@@ -29,12 +29,16 @@ def read_jsonl(path: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw-dir", type=Path, required=True, help="Directory containing YYYY-MM-DD.jsonl capture files.")
+    parser.add_argument("--vocab-dir", type=Path, help="Optional directory containing vocabulary-only YYYY-MM-DD.jsonl capture files.")
     parser.add_argument("--output-root", type=Path, default=Path("public/data/review-data"))
     args = parser.parse_args()
 
     items: list[dict] = []
     for path in sorted(args.raw_dir.glob("*.jsonl")):
         items.extend(read_jsonl(path))
+    if args.vocab_dir and args.vocab_dir.exists():
+        for path in sorted(args.vocab_dir.glob("*.jsonl")):
+            items.extend(read_jsonl(path))
 
     groups: dict[str, list[dict]] = defaultdict(list)
     for item in items:

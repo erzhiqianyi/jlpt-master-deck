@@ -107,10 +107,12 @@ export type DailyPracticeSummary = {
   minutes: number;
   strategy: string;
   questionCount: number;
+  summary?: string;
   created_at: string;
   updated_at: string;
 };
 export type DailyPractice = DailyPracticeSummary & {
+  sourceDraftId?: string;
   generated_at: string;
   diagnosis?: unknown;
   practice_plan?: Array<{ minutes: number; task: string }>;
@@ -245,6 +247,17 @@ export type LocalMockExamManifest = {
 
 export type NewsCycleModule = 'vocabulary' | 'grammar' | 'listening' | 'reading';
 export type NewsCycleQuestion = {
+  formalQuestionId?: string;
+  quality_review?: {
+    status: 'needs_review' | 'approved' | 'rejected';
+    checks: Record<string, 'pending' | 'pass' | 'fail' | 'not_applicable'>;
+    machine_issues: string[];
+    reviewer?: string | null;
+    reviewed_at?: string | null;
+    notes_zh?: string;
+  };
+  scoring_ready?: boolean;
+  review_note_zh?: string;
   id: string;
   date: string;
   level: string;
@@ -279,14 +292,31 @@ export type NewsCycleDay = {
   questions: NewsCycleQuestion[];
 };
 export type NewsCycleData = {
+  id?: string;
   summary?: {
     range?: { from: string; to: string };
     total_questions?: number;
+    modules?: Partial<Record<NewsCycleModule, number>>;
     direct_audio_question_count?: number;
     needs_audio_review_count?: number;
     status?: string;
   };
   days: NewsCycleDay[];
+};
+export type NewsCycleSummary = {
+  id: string;
+  range?: { from: string; to: string };
+  generatedAt?: string;
+  totalQuestions: number;
+  moduleCounts: Record<NewsCycleModule, number>;
+  audioCount: number;
+  needsAudioReviewCount: number;
+  formalQuestionCount: number;
+  formalPracticeQuestionIds: string[];
+  status: string;
+};
+export type NewsCycleCatalogData = {
+  cycles: NewsCycleSummary[];
 };
 
 export type StudyPlanModule = 'grammar' | 'reading' | 'listening' | 'vocabulary' | 'other';
@@ -320,6 +350,7 @@ export type StudyPlanTask = {
   detail?: string;
   sourceLabel?: string;
   materialId?: string;
+  workloadKind?: 'standard' | 'full_mock';
   status: StudyPlanTaskStatus;
   completedAt?: string;
 };
@@ -411,7 +442,7 @@ export type VocabItem = {
   base_form?: string;
   conjugations?: ConjugationForm[];
   collocations?: string[];
-  examples?: { ja: string; zh: string; analysis_zh?: string; form_analysis_zh?: string }[];
+  examples?: { ja: string; zh: string; spoken_ja?: string; spoken_zh?: string; analysis_zh?: string; form_analysis_zh?: string }[];
   comparisons?: { target: string; difference_zh: string }[];
   analysis?: string;
   explanation_zh?: string;

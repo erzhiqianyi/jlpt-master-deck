@@ -65,7 +65,7 @@ Apply the official JLPT-style structure: task instruction, complete natural cont
 
 For grammar expressions, prefer a sentence with a blank plus controlled distractors that test connection or function. Do not turn a grammar item into an isolated reading, spelling, or dictionary-meaning question unless that was the learner's actual confusion.
 
-For every grammar expression, record its register explicitly with `usage_register` (`written`, `spoken`, `both`, or `formal`) and explain the nuance in `usage_register_zh`. Add natural conversational equivalents to `everyday_alternatives`, especially when the tested form is written or formal. When variants within one entry differ, explain which variant is more common in conversation instead of assigning an oversimplified label.
+For every grammar expression, record its register explicitly with `usage_register` (`written`, `spoken`, `both`, or `formal`) and explain the nuance in `usage_register_zh`. Add natural conversational equivalents to `everyday_alternatives`, especially when the tested form is written or formal. When an example has a natural spoken rewrite, add it directly to that same example as `spoken_ja` and `spoken_zh` so learners can compare the bookish/test sentence with the conversational version. When variants within one entry differ, explain which variant is more common in conversation instead of assigning an oversimplified label.
 
 Every item in `practice_questions` must include `translation_zh`: a complete, natural Chinese translation of the Japanese sentence after inserting the correct answer. Keep this separate from `explanation_zh`, which explains why the answer is correct.
 

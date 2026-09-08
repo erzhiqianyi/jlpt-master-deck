@@ -1,32 +1,35 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { isTopicDraft, topicDraftForPractice } from './domain/practicePurpose';
+import { ArrowLeft, BookOpenText } from 'lucide-react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { itemAnalysis, itemMeaning, itemMemory } from './domain/items';
 import { defaultMemoryCardBackFields, defaultMemoryCardFrontFields, normalizeMemoryCardFields } from './domain/memoryCards';
 import { buildQuestions, deckLabelsFor } from './domain/questions';
-import { createDefaultStudyPlanProfile } from './domain/studyPlan';
+import { createDefaultStudyPlanProfile, localDateString } from './domain/studyPlan';
 import type { OfficialSampleModule } from './data/officialModuleSamples';
 import { AboutPanel } from './features/about/AboutPanel';
 import { CapturePanel } from './features/capture/CapturePanel';
 import { DraftsPanel } from './features/drafts/DraftsPanel';
 import { HomeDashboard } from './features/home/HomeDashboard';
+import { AttemptQuestionDetail } from './features/history/HistoryPanel';
 import { DataManagementPanel, type DataTab } from './features/insights/DataManagementPanel';
 import { ListeningPanel } from './features/listening/ListeningPanel';
-import { DesktopSidebarNavigation, MobileAppHeader, MobileStudyControls, type MobileStudyPanel } from './features/navigation/MobileNavigation';
+import { DesktopSidebarNavigation, MobileAppHeader, MobileBottomNavigation, MobileStudyControls, type MobileStudyPanel } from './features/navigation/MobileNavigation';
 import { OfficialModuleSamples } from './features/official-samples/OfficialModuleSamples';
 import { StudyPlanPanel } from './features/plan/StudyPlanPanel';
 import { MixedEntryIndexPanel, MixedPracticeHub } from './features/practice/MixedPracticeHub';
 import { MockExamCatalog } from './features/practice/MockExamCatalog';
 import { MockExamPanel } from './features/practice/MockExamPanel';
 import { NewsCyclePanel } from './features/news/NewsCyclePanel';
-import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel } from './features/practice/StudyPanels';
+import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel, type WordIndexPracticeFocus } from './features/practice/StudyPanels';
 import { QuestionTypeGuide } from './features/question-types/QuestionTypeGuide';
 import { QuestionTypeDetail } from './features/question-types/QuestionTypeDetail';
 import { ReadingPanel } from './features/reading/ReadingPanel';
 import { FocusedMemoryReview, type MemoryRating } from './features/review/FocusedMemoryReview';
 import { RecordsOverview } from './features/overview/RecordsOverview';
 import { SettingsView } from './features/settings/SettingsView';
+import { PublicIntroPanel } from './features/about/PublicIntroPanel';
 import { translations } from './i18n/translations';
 import { apiRequest } from './lib/api';
 import type {
@@ -69,6 +72,7 @@ import type {
 } from './types';
 
 const STORAGE_TOKEN = 'jlpt-auth-token-v1';
+const DEV_AUTH_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_DEV_AUTH_TOKEN : undefined;
 const MEMORY_CARD_FRONT_COMPAT_KEY = '_memory_card_front_fields';
 const MEMORY_CARD_BACK_COMPAT_KEY = '_memory_card_back_fields';
 
@@ -94,20 +98,18 @@ const defaultSettings: DisplaySettings = {
   customQuestionTypeTips: [],
 };
 
-const NEXT_JLPT_AT = '2026-12-06T09:00:00+09:00';
-
 type AppRouteNavItem = {
   view: AppView;
   label: string;
   page?: StudyPage;
   activeViews?: AppView[];
   children?: AppRouteNavItem[];
-  group?: 'study' | 'review' | 'record' | 'manage';
+  group?: 'today' | 'study' | 'review' | 'record' | 'manage';
 };
 
 export default function App() {
   const [data, setData] = useState<ReviewData>(fallbackData);
-  const [authToken, setAuthToken] = useState<string>(() => (typeof window === 'undefined' ? '' : localStorage.getItem(STORAGE_TOKEN) ?? ''));
+  const [authToken, setAuthToken] = useState<string>(() => (typeof window === 'undefined' ? '' : localStorage.getItem(STORAGE_TOKEN) ?? DEV_AUTH_TOKEN ?? ''));
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
@@ -139,7 +141,7 @@ export default function App() {
   const [activeDraftDetailId, setActiveDraftDetailId] = useState<string | null>(null);
   const [activeAttemptDetailId, setActiveAttemptDetailId] = useState<string | null>(null);
   const [attemptQuestionDetailOpen, setAttemptQuestionDetailOpen] = useState(false);
-  const [countdown, setCountdown] = useState(() => getCountdown(NEXT_JLPT_AT));
+  const [practiceFocus, setPracticeFocus] = useState<WordIndexPracticeFocus | null>(null);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileStudyPanel, setMobileStudyPanel] = useState<MobileStudyPanel>(null);
@@ -181,7 +183,7 @@ export default function App() {
         }));
         if (!cancelled) {
           setDailyPracticeDetails(dailyPracticeDetails);
-          setActiveDailyPractice(dailyPracticeDetails[0] ?? null);
+          setActiveDailyPractice(dailyPracticeDetails.find((practice) => !topicDraftForPractice(practice, draftList.drafts ?? [])) ?? null);
         }
         setListeningQuestions(listeningList.questions ?? []);
         setReadingQuestions(readingList.questions ?? []);
@@ -204,11 +206,6 @@ export default function App() {
     restoreSession();
     return () => { cancelled = true; };
   }, [authToken]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setCountdown(getCountdown(NEXT_JLPT_AT)), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.fontSize = settings.fontSize;
@@ -238,13 +235,62 @@ export default function App() {
     refreshDailyPractices().catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to load daily practice'));
   }, [activeDailyPractice, activeView, authToken]);
 
+  // Drafts may be created by an external agent while the home page stays open.
+  useEffect(() => {
+    if (!authToken || activeView !== 'home') return;
+    let cancelled = false;
+    let refreshing = false;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    async function refreshHomeDrafts() {
+      if (document.hidden || refreshing) return;
+      refreshing = true;
+      try {
+        const result = await apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken });
+        if (!cancelled) setDrafts(result.drafts ?? []);
+      } catch {
+        // Retain the last successful list during a temporary connection failure.
+      } finally {
+        refreshing = false;
+      }
+    }
+    const scheduleRefresh = () => {
+      if (idleHandle || timeoutHandle) return;
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(() => {
+          idleHandle = undefined;
+          void refreshHomeDrafts();
+        }, { timeout: 2000 });
+        return;
+      }
+      timeoutHandle = window.setTimeout(() => {
+        timeoutHandle = undefined;
+        void refreshHomeDrafts();
+      }, 800);
+    };
+    scheduleRefresh();
+    const timer = window.setInterval(refreshHomeDrafts, 30000);
+    window.addEventListener('focus', refreshHomeDrafts);
+    document.addEventListener('visibilitychange', refreshHomeDrafts);
+    return () => {
+      cancelled = true;
+      if (idleHandle) window.cancelIdleCallback(idleHandle);
+      if (timeoutHandle) window.clearTimeout(timeoutHandle);
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshHomeDrafts);
+      document.removeEventListener('visibilitychange', refreshHomeDrafts);
+    };
+  }, [authToken, activeView]);
+
   useEffect(() => {
     if (!window.location.hash) {
       window.history.replaceState(null, '', routeHash('home', 'questions'));
     }
 
     function handleHashChange() {
-      setRoute(routeFromHash(window.location.hash));
+      startTransition(() => {
+        setRoute(routeFromHash(window.location.hash));
+      });
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }
 
@@ -258,50 +304,112 @@ export default function App() {
   );
 
   const locale = normalizeLocale(settings.locale);
+  const needsActiveQuestions = activeView !== 'daily-practice' && (studyPage === 'questions' || studyPage === 'review');
   const questionItems = useMemo(
-    () => selectedDeck === 'all' ? items.filter((item) => item.deck !== 'name_reading' && item.type !== 'proper_name') : items,
-    [items, selectedDeck],
+    () => {
+      if (!needsActiveQuestions) {
+        return [];
+      }
+      return selectedDeck === 'all' ? items.filter((item) => item.deck !== 'name_reading' && item.type !== 'proper_name') : items;
+    },
+    [items, needsActiveQuestions, selectedDeck],
   );
   const allQuestions = useMemo(() => buildQuestions(questionItems, locale), [questionItems, locale]);
-  const historyQuestions = useMemo(() => uniqueById([
-    ...buildQuestions(data.items, locale),
-    ...dailyPracticeDetails.flatMap((practice) => practice.questions ?? []),
-  ]), [dailyPracticeDetails, data.items, locale]);
+  const needsHistoryQuestions = ['mistakes', 'memory', 'data', 'mcp'].includes(activeView)
+    || (['history', 'insights'].includes(activeView) && Boolean(activeAttemptDetailId));
+  const historyQuestions = useMemo(() => {
+    if (!needsHistoryQuestions) {
+      return [];
+    }
+    return uniqueById([
+      ...buildQuestions(data.items, locale),
+      ...dailyPracticeDetails.flatMap((practice) => practice.questions ?? []),
+    ]);
+  }, [dailyPracticeDetails, data.items, locale, needsHistoryQuestions]);
   const questions = useMemo(
     () => {
       if (activeView === 'daily-practice') {
         return activeDailyPractice?.questions ?? [];
       }
-      return activeView === 'vocabulary' ? shuffledBySeed(allQuestions, questionShuffleSeed) : allQuestions;
+      const focusedQuestions = activeView === 'grammar' && practiceFocus && practiceFocus.kind !== 'random'
+        ? allQuestions.filter((question) => {
+          if (practiceFocus.kind === 'question-kind') return question.kind === practiceFocus.questionKind;
+          const sourceItem = data.items.find((item) => item.id === question.itemId);
+          return Boolean(sourceItem?.tags?.includes(practiceFocus.tag));
+        })
+        : allQuestions;
+      return activeView === 'vocabulary' ? shuffledBySeed(focusedQuestions, questionShuffleSeed) : focusedQuestions;
     },
-    [activeDailyPractice, activeView, allQuestions, questionShuffleSeed],
+    [activeDailyPractice, activeView, allQuestions, data.items, practiceFocus, questionShuffleSeed],
   );
   const activeQuestion = questions[activeIndex % Math.max(questions.length, 1)];
   const practiceAnsweredCount = questions.filter((question) => Boolean(answers[question.id])).length;
   const practiceComplete = questions.length > 0 && practiceAnsweredCount === questions.length;
   const effectiveFeedbackMode = activeView === 'mixed' ? 'batch' : settings.feedbackMode;
   const activeWord = items[wordIndex % Math.max(items.length, 1)];
-  const answeredCount = Object.keys(answers).length;
-  const correctCount = Object.values(answers).filter((answer) => answer.correct).length;
-  const masteredCount = Object.values(progress).filter((item) => item.status === 'mastered').length;
   const labels = translations[locale];
   const deckLabels = deckLabelsFor(locale);
-  const moduleStats = moduleSummaries(data.items, labels);
+  const today = useMemo(() => todayDateKey(), []);
+  const needsHomeMetrics = activeView === 'home';
+  const hasMemoryReview = needsHomeMetrics && data.items.length > 0;
+  const homeTodayPractices = useMemo(() => {
+    if (!needsHomeMetrics) {
+      return [];
+    }
+    return dailyPracticeDetails
+      .filter((practice) => practice.date === today && !topicDraftForPractice(practice, drafts))
+      .sort((left, right) => right.version - left.version);
+  }, [dailyPracticeDetails, drafts, needsHomeMetrics, today]);
+  const latestHomeDraft = useMemo(() => {
+    if (!needsHomeMetrics) {
+      return undefined;
+    }
+    return drafts
+      .filter((draft) => ['draft', 'needs_revision', 'approved'].includes(draft.status) && localDateString(new Date(draft.created_at)) === today)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+  }, [drafts, needsHomeMetrics, today]);
+  const moduleStats = useMemo(
+    () => activeView === 'mixed' ? moduleSummaries(data.items, labels) : [],
+    [activeView, data.items, labels],
+  );
   const memoryReviewItems = useMemo(() => {
+    if (activeView !== 'memory-review') {
+      return [];
+    }
     const now = new Date().toISOString();
     return data.items
       .filter((item) => item.deck === 'grammar_expression' || item.deck === 'n1_vocab' || item.deck === 'name_reading')
       .filter((item) => !progress[item.id]?.nextReviewAt || (progress[item.id]?.nextReviewAt ?? '') <= now)
       .sort((left, right) => (progress[left.id]?.nextReviewAt ?? '9999').localeCompare(progress[right.id]?.nextReviewAt ?? '9999'));
-  }, [data.items, progress]);
+  }, [activeView, data.items, progress]);
   const hasStudyControls = !['samples', 'wordbooks'].includes(studyPage) && supportsStudyPage(activeView) && activeView !== 'mixed' && activeView !== 'daily-practice';
   const hasLibraryPage = activeView === 'vocabulary' || activeView === 'grammar' || activeView === 'listening' || activeView === 'reading';
   const libraryPageLabel = activeView === 'listening' || activeView === 'reading' ? labels.questionBankPage : labels.wordPage;
   const searchResults = useMemo(() => searchItems(data.items, searchQuery, locale, labels), [data.items, labels, locale, searchQuery]);
+  const needsReviewAttempt = studyPage === 'questions' || studyPage === 'review';
   const reviewAttempt = useMemo(
-    () => latestAttemptFor(attemptHistory, activeView, selectedDeck, questions),
-    [activeView, attemptHistory, questions, selectedDeck],
+    () => needsReviewAttempt ? latestAttemptFor(attemptHistory, activeView, selectedDeck, questions) : undefined,
+    [activeView, attemptHistory, needsReviewAttempt, questions, selectedDeck],
   );
+  const topicPracticeEntries = useMemo(() => {
+    if (activeView !== 'mixed' || studyPage !== 'tips' || route.itemId !== 'topics') {
+      return [];
+    }
+    return drafts.filter(isTopicDraft).map((draft) => {
+      const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
+      return {
+        key: draft.id, title: draft.title,
+        status: practice || ['approved', 'archived'].includes(draft.status) ? 'ready' as const : 'pending' as const,
+        updatedAt: draft.updated_at,
+        body: practice ? `${practice.questions.length} 题 · 开始练习` : ['approved', 'archived'].includes(draft.status) ? '已确认 · 查看并开始' : '待确认 · 查看题目',
+        count: practice?.questions.length ?? 0, icon: BookOpenText, tone: 'mint',
+        action: () => {
+          if (practice) { void openDailyPractice(practice.id); }
+          else { void selectDraft(draft.id); setActiveDraftDetailId(draft.id); navigateTo('drafts'); }
+        },
+      };
+    });
+  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage]);
   const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${activeView === 'vocabulary' ? questionShuffleSeed : ''}`;
 
   useEffect(() => {
@@ -310,6 +418,12 @@ export default function App() {
       setQuestionShuffleSeed(Math.random());
     }
   }, [activeView, selectedDeck, selectedWordbookId, locale]);
+
+  useEffect(() => {
+    if (activeView !== 'grammar' && practiceFocus) {
+      setPracticeFocus(null);
+    }
+  }, [activeView, practiceFocus]);
 
   useEffect(() => {
     if (selectedWordbookId === 'all') return;
@@ -542,15 +656,23 @@ export default function App() {
   }
 
   function navigateTo(view: AppView, page?: StudyPage) {
-    const requestedPage = page ?? (view === 'daily-practice' ? 'questions' : supportsStudyPage(view) ? 'tips' : 'questions');
+    const requestedPage = page ?? (supportsStudyPage(view) ? defaultDesktopStudyPage(view) : 'questions');
     const nextRoute = { view, page: supportsStudyPage(view) || isOfficialSampleModule(view) ? requestedPage : 'questions' as StudyPage };
     const nextHash = routeHash(nextRoute.view, nextRoute.page);
     if (window.location.hash === nextHash) {
-      setRoute(nextRoute);
+      startTransition(() => {
+        setRoute(nextRoute);
+      });
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       return;
     }
     window.location.hash = nextHash;
+  }
+
+  function startWordIndexPractice(focus?: WordIndexPracticeFocus) {
+    setPracticeFocus(focus && activeView === 'grammar' ? focus : null);
+    setActiveIndex(0);
+    navigateTo(activeView, 'questions');
   }
 
   function openSearchResult(item: VocabItem) {
@@ -690,8 +812,8 @@ export default function App() {
       return response.practice;
     }));
     setDailyPracticeDetails(nextDetails);
-    const nextId = selectId ?? activeDailyPractice?.id ?? nextPractices[0]?.id;
-    const selectedPractice = nextDetails.find((practice) => practice.id === nextId) ?? nextDetails[0] ?? null;
+    const nextId = selectId ?? activeDailyPractice?.id ?? nextDetails.find((practice) => !topicDraftForPractice(practice, drafts))?.id;
+    const selectedPractice = nextDetails.find((practice) => practice.id === nextId) ?? nextDetails.find((practice) => !topicDraftForPractice(practice, drafts)) ?? null;
     if (selectedPractice) {
       setActiveDailyPractice(selectedPractice);
     } else {
@@ -713,9 +835,9 @@ export default function App() {
 
   async function openDailyPractice(id?: string) {
     if (!authToken) return;
-    const todayPractice = activeDailyPractice?.date === todayDateKey()
+    const todayPractice = activeDailyPractice?.date === todayDateKey() && !topicDraftForPractice(activeDailyPractice, drafts)
       ? activeDailyPractice
-      : dailyPractices.find((practice) => practice.date === todayDateKey());
+      : dailyPracticeDetails.find((practice) => practice.date === todayDateKey() && !topicDraftForPractice(practice, drafts));
     const practiceId = id ?? todayPractice?.id;
     if (!practiceId) {
       await createDailyPracticeAndStart();
@@ -781,7 +903,7 @@ export default function App() {
       const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, {
         method: 'POST',
         token: authToken,
-        body: { date: todayDateKey() },
+        body: { date: todayDateKey(), title: drafts.find((draft) => draft.id === id && isTopicDraft(draft))?.title },
       });
       setActiveDailyPractice(response.practice);
       await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
@@ -873,6 +995,46 @@ export default function App() {
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Failed to save annotation');
     }
+  }
+
+  async function saveQuestionReview(id: string, body: string) {
+    const response = await apiRequest<{ draft: ReviewPackDraft }>(`/api/drafts/${id}/annotations`, { method: 'POST', token: authToken, body: { body } });
+    setActiveDraft(response.draft);
+  }
+
+  async function finalizeReviewedDraft(id: string) {
+    const latest = await apiRequest<{ draft: ReviewPackDraft }>(`/api/drafts/${id}`, { token: authToken });
+    const content = latest.draft.content as Record<string, unknown>;
+    const questions = [content.generated_practice, content.quiz, content.practice_questions, content.review_questions].find((list) => Array.isArray(list) && list.length) as unknown[] | undefined;
+    const confirmations = new Map<string, boolean>();
+    for (const annotation of latest.draft.annotations) {
+      try {
+        const entry = JSON.parse(annotation.body);
+        if (entry.kind === 'question_review') confirmations.set(entry.key, entry.confirmed === true);
+      } catch { /* Free-text annotations do not confirm a question. */ }
+    }
+    if (!questions?.length || !questions.every((question, index) => (confirmations.get(JSON.stringify([index, question])) ?? true))) {
+      setActiveDraft(latest.draft);
+      throw new Error('题目或确认状态有更新，请重新检查后生成最终版。');
+    }
+    const finalQuestions = questions.map((value, index) => {
+      const question = value as Record<string, unknown>;
+      const choices = Array.isArray(question.choices) ? question.choices.map(String) : [];
+      const rawAnswer = String(question.answer ?? '');
+      const answerIndex = Number.isInteger(question.answerIndex) ? Number(question.answerIndex)
+        : /^[1-9]\d*$/.test(rawAnswer) ? Number(rawAnswer) - 1 : choices.indexOf(rawAnswer);
+      if (choices.length < 2 || answerIndex < 0 || answerIndex >= choices.length) throw new Error(`第 ${index + 1} 题的答案不完整，请先编辑草稿。`);
+      return { ...question, answerIndex, kind: question.kind ?? question.type, target: question.target ?? question.promptTarget };
+    });
+    await apiRequest(`/api/drafts/${id}`, { method: 'PATCH', token: authToken, body: {
+      title: latest.draft.title,
+      content: { ...content, sections: [{ id: 'reviewed', title: latest.draft.title, questions: finalQuestions }] },
+    } });
+    await apiRequest(`/api/drafts/${id}/confirm`, { method: 'POST', token: authToken, body: { unknownWords: '' } });
+    const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, { method: 'POST', token: authToken, body: { date: todayDateKey() } });
+    setActiveDailyPractice(response.practice);
+    await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
+    window.location.hash = routeHash('daily-practice', 'questions');
   }
 
   async function copyDraftRevisionContext() {
@@ -1014,11 +1176,15 @@ export default function App() {
 
   function openPendingCaptures() {
     setDataTab('captures');
-    navigateTo('insights');
+    navigateTo('captures');
   }
 
   if (authLoading && !user) return <LoadingScreen />;
-  if (!user) return <LoginScreen error={authError} loading={authLoading} onSubmit={handleAuth} />;
+  if (!user) {
+    const isPublicLanding = !window.location.hash || window.location.hash === '#/' || activeView === 'about';
+    if (isPublicLanding) return <PublicIntroPanel />;
+    return <LoginScreen error={authError} loading={authLoading} onSubmit={handleAuth} />;
+  }
   if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
@@ -1052,11 +1218,12 @@ export default function App() {
         ? labels.reviewPage
         : labels.questionPage;
   const selectedMobileWordbook = wordbooks.find((wordbook) => wordbook.id === selectedWordbookId && wordbook.deck !== 'grammar_expression');
+  const isLibraryEntryPage = ['vocabulary', 'grammar'].includes(activeView) && studyPage === 'words' && !route.itemId;
   const studyItemDetailOpen = studyPage === 'words' && Boolean(route.itemId);
   const mobileFilterLabel = selectedWordbookId !== 'all' && selectedMobileWordbook
     ? selectedMobileWordbook.title
     : deckLabels[selectedDeck];
-  const showMobileStudyFilter = hasStudyControls && activeView === 'vocabulary' && !studyItemDetailOpen;
+  const showMobileStudyFilter = hasStudyControls && activeView === 'vocabulary' && studyPage !== 'words' && !studyItemDetailOpen;
   const mobileHeaderBackLabel = questionDetailOpen
     ? labels.historyBackToAttemptQuestions
     : studyItemDetailOpen
@@ -1066,22 +1233,26 @@ export default function App() {
       : dataDetailOpen
         ? dataManagementBackLabel
         : labels.navHome;
+  const activePracticeTitle = activeView === 'daily-practice'
+    ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
+    : labels.meaningTypeTitle;
+  const mobileHeaderTitle = activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
+    ? activePracticeTitle
+    : activeView === 'settings' && route.itemId
+      ? settingsSectionMobileTitle(route.itemId, labels, settings.locale)
+    : isLibraryEntryPage ? (activeView === 'vocabulary' ? labels.navVocabulary : labels.navGrammar) : mobileAppTitle(route, labels, isDataManagementView(activeView) ? dataTab : undefined, {
+      capture: captureDetailOpen,
+      draft: draftDetailOpen,
+      attempt: attemptDetailOpen,
+      question: questionDetailOpen,
+    });
 
   return (
     <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-hidden text-[#28312d]">
       <MobileAppHeader
-        title={mobileAppTitle(route, labels, isDataManagementView(activeView) ? dataTab : undefined, {
-          capture: captureDetailOpen,
-          draft: draftDetailOpen,
-          attempt: attemptDetailOpen,
-          question: questionDetailOpen,
-        })}
+        title={mobileHeaderTitle}
         backLabel={mobileHeaderBackLabel}
         showBack={showMobileBackHeader}
-        navOpen={mobileSidebarOpen}
-        navLabel={labels.mobileMenu}
-        navCloseLabel={labels.mobileClose}
-        onNavToggle={() => setMobileSidebarOpen((value) => !value)}
         onBack={() => {
           if (dataManagementBackAction) {
             dataManagementBackAction();
@@ -1089,11 +1260,11 @@ export default function App() {
           }
           window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
         }}
-        actionLabel={route.view === 'settings' ? labels.logout : undefined}
-        onAction={route.view === 'settings' ? handleLogout : undefined}
-        studyActionLabel={hasStudyControls && !studyItemDetailOpen ? mobileStudyModeLabel : undefined}
-        studyActionAriaLabel={hasStudyControls && !studyItemDetailOpen ? labels.mobileSwitchTask : undefined}
-        onStudyAction={hasStudyControls && !studyItemDetailOpen ? () => setMobileStudyPanel('task') : undefined}
+        actionLabel={undefined}
+        onAction={undefined}
+        studyActionLabel={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? mobileStudyModeLabel : undefined}
+        studyActionAriaLabel={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? labels.mobileSwitchTask : undefined}
+        onStudyAction={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? () => setMobileStudyPanel('task') : undefined}
         filterActionLabel={showMobileStudyFilter ? mobileFilterLabel : undefined}
         filterActionAriaLabel={showMobileStudyFilter ? `${labels.filters}: ${deckLabels[selectedDeck]}; ${labels.wordbookFilter}: ${selectedMobileWordbook ? selectedMobileWordbook.title : labels.wordbookAll}` : undefined}
         onFilterAction={showMobileStudyFilter ? () => setMobileStudyPanel('filter') : undefined}
@@ -1129,14 +1300,12 @@ export default function App() {
                   window.location.hash = routeHash(nextRoute.view, nextRoute.page, nextRoute.itemId);
                 }}
               />
-              <div className="ledger-top-status"><span><i />MCP 连接正常</span><button type="button" onClick={() => navigateTo('captures')}>待处理 {captures.filter((capture) => capture.status === 'inbox').length}</button></div>
-              <GlobalSearch
-                query={searchQuery}
-                results={searchResults}
-                labels={labels}
-                onQueryChange={setSearchQuery}
-                onOpenResult={openSearchResult}
-              />
+              <div className="ledger-kid-top-actions" aria-label="今天的快捷操作">
+                <span className="ledger-kid-sync"><i />已准备好</span>
+                <button type="button" className="ledger-kid-primary-action" onClick={() => navigateTo('mixed')}>
+                  开始练习
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1150,42 +1319,45 @@ export default function App() {
             <HomeDashboard
               labels={labels}
               locale={locale}
-              countdown={countdown}
-              metrics={[
-                { label: labels.insightsPending, value: captures.filter((capture) => capture.status === 'inbox').length.toString() },
-                { label: labels.dueReview, value: memoryReviewItems.length.toString() },
-                { label: labels.answered, value: answeredCount.toString() },
-                { label: labels.correct, value: correctCount.toString() },
-                { label: labels.mastered, value: masteredCount.toString() },
-              ]}
-              modules={moduleStats}
+              hasMemoryReview={hasMemoryReview}
               plan={studyPlan}
-              dailyPractice={(activeDailyPractice?.date === todayDateKey() ? activeDailyPractice : dailyPractices.find((practice) => practice.date === todayDateKey())) ?? null}
-              dailyPractices={dailyPractices}
+              todayPractices={homeTodayPractices}
+              latestDraft={latestHomeDraft}
+              onOpenDraft={(id) => {
+                setActiveDraft(null);
+                setActiveDraftDetailId(id);
+                navigateTo('drafts');
+                void selectDraft(id);
+              }}
               onNavigate={navigateTo}
               onStartDailyPractice={openDailyPractice}
               onCreateDailyPractice={createDailyPracticeAndStart}
+              onOpenPracticeHistory={() => navigateTo('history')}
               onStartMock={() => openMockExam()}
-              onStartMemoryReview={() => navigateTo('memory-review')}
               onTaskStatus={updateStudyPlanTask}
             />
           ) : null}
 
           {activeView !== 'home' ? (
-            <section className={`mx-auto w-full min-w-0 flex-1 ${hasStudyControls ? 'max-w-6xl px-0 py-0 md:px-8 md:py-5 lg:px-10' : 'max-w-7xl px-4 py-4 md:px-8 md:py-5 lg:px-10'}`}>
+            <section className={`mx-auto w-full min-w-0 flex-1 ${['mixed', 'history', 'insights', 'plan'].includes(activeView) && !route.itemId ? 'mobile-entry-shell' : ''} ${hasStudyControls ? 'max-w-6xl px-0 py-0 md:px-8 md:py-5 lg:px-10' : 'max-w-7xl px-4 py-4 md:px-8 md:py-5 lg:px-10'}`}>
           <div className={hasStudyControls || activeView === 'listening' ? 'min-w-0 space-y-5' : 'min-w-0'}>
-            {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('insights')} /> : null}
+            {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('captures')} /> : null}
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
                 key={activeView}
                 labels={labels}
                 locale={locale}
                 captures={captures}
+                items={data.items}
+                showRuby={settings.showExplanationRuby}
                 attempts={attemptHistory}
                 questions={historyQuestions}
-                draftsContent={<DraftsPanel embedded labels={labels} drafts={drafts} activeDraft={activeDraft} annotation={draftAnnotation} onAnnotationChange={setDraftAnnotation} onCreateDailyDraft={createDailyDraft} onSelectDraft={selectDraft} onSaveAnnotation={saveDraftAnnotation} onCopyRevisionContext={copyDraftRevisionContext} onCreateDraftFromSelection={createDraftFromSelection} onDeleteDraft={removeDraft} onConfirmDraft={confirmDraftForAgent} onPublishDraft={publishDraftAsDailyPractice} onUpdateDraft={updateDraft} detailDraftId={activeDraftDetailId} onDetailDraftChange={setActiveDraftDetailId} />}
-                settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
+                draftsContent={<DraftsPanel onSaveQuestionReview={saveQuestionReview} onFinalizeReviewedDraft={finalizeReviewedDraft} embedded labels={labels} drafts={drafts} activeDraft={activeDraft} annotation={draftAnnotation} onAnnotationChange={setDraftAnnotation} onCreateDailyDraft={createDailyDraft} onSelectDraft={selectDraft} onSaveAnnotation={saveDraftAnnotation} onCopyRevisionContext={copyDraftRevisionContext} onCreateDraftFromSelection={createDraftFromSelection} onDeleteDraft={removeDraft} onConfirmDraft={confirmDraftForAgent} onPublishDraft={publishDraftAsDailyPractice} onUpdateDraft={updateDraft} detailDraftId={activeDraftDetailId} onDetailDraftChange={setActiveDraftDetailId} />}
+                settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
                 activeTab={dataTab}
+                isHome={activeView === 'insights' || activeView === 'history'}
+                detailOpen={captureDetailOpen || attemptDetailOpen || draftDetailOpen}
+                recordSection={activeView === 'history' && route.itemId === 'today' ? 'today' : activeView === 'history' && route.itemId === 'history' ? 'history' : 'home'}
                 activeCaptureId={activeCaptureDetailId}
                 onActiveCaptureChange={setActiveCaptureDetailId}
                 activeAttemptId={activeAttemptDetailId}
@@ -1229,6 +1401,8 @@ export default function App() {
             ) : null}
             {activeView === 'plan' ? (
               <StudyPlanPanel
+                key={route.itemId ?? 'plan-home'}
+                section={route.itemId}
                 labels={labels}
                 locale={locale}
                 plan={studyPlan}
@@ -1247,8 +1421,11 @@ export default function App() {
             {activeView === 'news-cycle' ? (
               <NewsCyclePanel
                 locale={locale}
-                activeDate={route.itemId}
-                onOpen={(date) => { window.location.hash = routeHash('news-cycle', 'questions', date); }}
+                token={authToken}
+                selection={route.itemId}
+                onOpenCycle={(cycleId) => { window.location.hash = routeHash('news-cycle', 'questions', cycleId); }}
+                onOpenDay={(cycleId, date) => { window.location.hash = routeHash('news-cycle', 'questions', `${cycleId}:${date}`); }}
+                onPracticeCycle={(cycleId) => { window.location.hash = routeHash('news-cycle', 'questions', `${cycleId}:practice`); }}
                 onBack={() => navigateTo('news-cycle')}
               />
             ) : null}
@@ -1260,7 +1437,7 @@ export default function App() {
               )
             ) : null}
             {activeView === 'settings' ? (
-              <SettingsView labels={labels} settings={settings} username={user.username} onLogout={handleLogout} onUpdateSettings={updateSettings} />
+              <SettingsView labels={labels} settings={settings} username={user.username} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
             ) : null}
             {isOfficialSampleModule(activeView) && studyPage === 'samples' ? (
               <OfficialModuleSamples
@@ -1275,40 +1452,37 @@ export default function App() {
             ) : null}
             {activeView === 'mixed' && studyPage === 'tips' ? (
               <MixedPracticeHub
+                topicEntries={topicPracticeEntries}
+                groupKey={route.itemId}
                 labels={labels}
                 questions={questions}
                 items={data.items}
-	                progress={progress}
-	                latestAttempt={reviewAttempt}
-	                modules={moduleStats}
-	                captures={captures}
-	                drafts={drafts}
-	                listeningQuestions={listeningQuestions}
-	                readingQuestions={readingQuestions}
-	                studyPlan={studyPlan}
-	                answeredCount={answeredCount}
-	                correctCount={correctCount}
-	                onStart={() => navigateTo('mixed', 'questions')}
-	                onStartMock={() => openMockExam()}
-	                onOpenAllEntries={() => navigateTo('mixed', 'words')}
-	                onReview={() => navigateTo('mixed', 'review')}
-	                onNavigate={navigateTo}
-	              />
-	            ) : null}
-	            {activeView === 'mixed' && studyPage === 'words' ? (
-	              <MixedEntryIndexPanel
-	                labels={labels}
-	                locale={locale}
-	                items={data.items}
-	                listeningQuestions={listeningQuestions}
-	                readingQuestions={readingQuestions}
-	                onOpenModule={(view) => navigateTo(view, 'words')}
-	              />
-	            ) : null}
+                progress={progress}
+                modules={moduleStats}
+                captures={captures}
+                drafts={drafts}
+                listeningQuestions={listeningQuestions}
+                readingQuestions={readingQuestions}
+                studyPlan={studyPlan}
+                onStart={() => navigateTo('mixed', 'questions')}
+                onStartMock={() => openMockExam()}
+                onNavigate={(view) => { if (view === 'daily-practice') void openDailyPractice(); else navigateTo(view); }}
+              />
+            ) : null}
+            {activeView === 'mixed' && studyPage === 'words' ? (
+              <MixedEntryIndexPanel
+                labels={labels}
+                locale={locale}
+                items={data.items}
+                listeningQuestions={listeningQuestions}
+                readingQuestions={readingQuestions}
+                onOpenModule={(view) => navigateTo(view, 'words')}
+              />
+            ) : null}
             {activeView === 'mixed' && studyPage === 'mock' ? (
               <MockExamPanel examId="n1-ai-demo-001" locale={locale} onBack={() => openMockExam()} />
             ) : null}
-            {studyPage === 'tips' && route.itemId ? (
+            {studyPage === 'tips' && activeView !== 'mixed' && route.itemId ? (
               <QuestionTypeDetail id={route.itemId} labels={labels} locale={locale} customTip={settings.questionTypeTips[route.itemId]} customTipEntry={settings.customQuestionTypeTips.find((entry) => entry.id === route.itemId)} onBack={() => navigateTo(activeView, 'tips')} onUpdateTip={updateQuestionTypeTip} onUpdateCustomTip={updateCustomQuestionTypeTip} onDeleteCustomTip={deleteCustomQuestionTypeTip} />
             ) : studyPage === 'tips' && supportsStudyPage(activeView) && activeView !== 'mixed' ? (
               <QuestionTypeGuide labels={labels} locale={locale} customTips={settings.questionTypeTips} customTipEntries={settings.customQuestionTypeTips} section={questionTypeSectionFor(activeView)} onOpen={(id) => { window.location.hash = routeHash(activeView, 'tips', id); }} onCreateCustomTip={createCustomQuestionTypeTip} />
@@ -1375,6 +1549,13 @@ export default function App() {
 	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <PracticePanel
+                  wordbooks={activeView === 'vocabulary' ? wordbooks : undefined}
+                  selectedWordbookId={selectedWordbookId}
+                  onWordbookChange={activeView === 'vocabulary' ? (id) => {
+                    setSelectedDeck(id === 'all' ? 'all' : wordbooks.find((book) => book.id === id)?.deck ?? 'all');
+                    setSelectedWordbookId(id);
+                    setActiveIndex(0);
+                  } : undefined}
                   activeQuestion={activeQuestion}
                   questions={questions}
                   questionsLength={questions.length}
@@ -1385,13 +1566,15 @@ export default function App() {
                   answers={answers}
                   items={data.items}
                   labels={labels}
-                  questionTypeLabel={activeView === 'daily-practice' ? labels.dailyPracticeTitle : labels.meaningTypeTitle}
+                  questionTypeLabel={activePracticeTitle}
                   settings={settings}
                   onAnswer={answerQuestion}
                   onPrev={() => setActiveIndex((index) => Math.max(index - 1, 0))}
                   onNext={() => setActiveIndex((index) => nextPracticeIndex(index, questions, answers))}
                   onJump={(index) => setActiveIndex(index)}
-                  onRestart={restartPractice}
+                  onRestart={() => {
+                    restartPractice();
+                  }}
                   onPracticeHome={() => navigateTo('mixed', 'tips')}
                   onPrepareReview={() => submitPracticeReview(false)}
                   onReview={() => navigateTo(activeView, 'review')}
@@ -1430,7 +1613,7 @@ export default function App() {
                   selectedWordbookId={selectedWordbookId}
                   onWordbookChange={setSelectedWordbookId}
                   onOpen={(id) => { window.location.hash = routeHash(activeView, 'words', id); }}
-                  onPractice={() => navigateTo(activeView, 'questions')}
+                  onPractice={startWordIndexPractice}
                   onTips={() => navigateTo(activeView, 'tips')}
                   onReview={() => navigateTo(activeView, 'review')}
                   captureCategory={activeView === 'vocabulary' ? 'word' : activeView === 'grammar' ? 'grammar' : undefined}
@@ -1448,6 +1631,7 @@ export default function App() {
                   answers={answers}
                   items={data.items}
                   labels={labels}
+                  practiceTitle={activePracticeTitle}
                   locale={locale}
                   showRuby={settings.showExplanationRuby}
                   onRestart={restartPractice}
@@ -1477,6 +1661,9 @@ export default function App() {
           </footer>
         </div>
       </div>
+      {!showMobileBackHeader ? (
+        <MobileBottomNavigation items={navItems(labels)} activeView={activeView} onNavigate={navigateTo} />
+      ) : null}
 
     </main>
   );
@@ -1485,6 +1672,9 @@ export default function App() {
 function routeFromHash(hash: string): AppRoute {
   const [viewValue, pageValue, itemValue] = hash.replace(/^#\/?/, '').split('/');
   const view = isAppView(viewValue) ? viewValue : 'home';
+  if (view === 'plan') {
+    return { view, page: 'questions', itemId: ['daily', 'overview', 'adjust', 'textbooks'].includes(pageValue) ? pageValue : undefined };
+  }
   if (view === 'question-types') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
@@ -1494,7 +1684,10 @@ function routeFromHash(hash: string): AppRoute {
   if (view === 'news-cycle') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
-  if (view === 'about') {
+  if (view === 'history') {
+    return { view, page: 'questions', itemId: ['today', 'history'].includes(pageValue) ? pageValue : undefined };
+  }
+  if (view === 'about' || view === 'settings') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
   if (isOfficialSampleModule(view) && pageValue === 'samples') {
@@ -1502,7 +1695,11 @@ function routeFromHash(hash: string): AppRoute {
   }
   if (view === 'mixed') {
     const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
-    const itemId = page === 'words' && itemValue ? decodeURIComponent(itemValue) : undefined;
+    const itemId = page === 'words' && itemValue
+      ? decodeURIComponent(itemValue)
+      : page === 'tips' && ['modules', 'exam', 'materials', 'today', 'topics'].includes(itemValue)
+        ? itemValue
+        : undefined;
     return { view, page, itemId };
   }
   if (view === 'daily-practice') {
@@ -1510,7 +1707,7 @@ function routeFromHash(hash: string): AppRoute {
     return { view, page };
   }
   if (supportsStudyPage(view) && !pageValue) {
-    return { view, page: 'tips' };
+    return { view, page: defaultDesktopStudyPage(view) };
   }
   const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' ? pageValue : 'questions';
   const itemId = (page === 'tips' || page === 'words') && itemValue ? decodeURIComponent(itemValue) : undefined;
@@ -1518,6 +1715,9 @@ function routeFromHash(hash: string): AppRoute {
 }
 
 function routeHash(view: AppView, page: StudyPage, itemId?: string) {
+  if (view === 'history') {
+    return itemId ? `#/history/${encodeURIComponent(itemId)}` : '#/history';
+  }
   if (view === 'question-types') {
     return itemId ? `#/question-types/${encodeURIComponent(itemId)}` : '#/question-types';
   }
@@ -1529,6 +1729,9 @@ function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   }
   if (view === 'about') {
     return itemId ? `#/about/${encodeURIComponent(itemId)}` : '#/about';
+  }
+  if (view === 'settings') {
+    return itemId ? `#/settings/${encodeURIComponent(itemId)}` : '#/settings';
   }
   if (isOfficialSampleModule(view) && page === 'samples') {
     return itemId ? `#/${view}/samples/${encodeURIComponent(itemId)}` : `#/${view}/samples`;
@@ -1852,16 +2055,6 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function getCountdown(target: string) {
-  const diff = Math.max(0, new Date(target).getTime() - Date.now());
-  const totalMinutes = Math.floor(diff / 60_000);
-  return {
-    days: Math.floor(totalMinutes / 1440),
-    hours: Math.floor((totalMinutes % 1440) / 60),
-    minutes: totalMinutes % 60,
-  };
-}
-
 function moduleItems(items: VocabItem[], view: AppView, selectedDeck: Deck | 'all', selectedWordbookId = 'all') {
   if (view === 'home') {
     return items;
@@ -1892,43 +2085,21 @@ function navItems(labels: Record<string, string>) {
 
 function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
-    { view: 'home' as const, label: labels.navHome },
-    {
-      view: 'mixed' as const,
-      label: labels.questionPage,
-      activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types'] as AppView[],
-      children: [
-        { view: 'vocabulary' as const, label: labels.navVocabulary, children: studyModeNavItems('vocabulary', labels, true, labels.wordPage) },
-        { view: 'grammar' as const, label: labels.navGrammar, children: studyModeNavItems('grammar', labels, true, labels.wordPage) },
-        { view: 'listening' as const, label: labels.navListening, children: studyModeNavItems('listening', labels, true, labels.questionBankPage) },
-        { view: 'reading' as const, label: labels.navReading, children: studyModeNavItems('reading', labels, true, labels.questionBankPage) },
-        { view: 'question-types' as const, label: labels.navQuestionTypes },
-      ],
-    },
-    { view: 'plan' as const, label: labels.navPlan },
-    { view: 'insights' as const, label: labels.navMine, activeViews: ['history', 'drafts', 'settings'] as AppView[] },
+    { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, activeViews: ['daily-practice'] as AppView[] },
+    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'mistakes', 'memory'] as AppView[] },
+    { view: 'history' as const, label: labels.navStatsHome, activeViews: ['captures'] as AppView[] },
+    { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan },
+    { view: 'settings' as const, label: labels.settings, activeViews: ['data', 'mcp'] as AppView[] },
   ];
 }
 
 function desktopSidebarNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
-    { view: 'home' as const, label: labels.navHome },
-    { view: 'vocabulary' as const, page: 'words' as const, label: labels.navVocabulary, group: 'study' },
-    { view: 'grammar' as const, page: 'words' as const, label: labels.navGrammar, group: 'study' },
-    { view: 'listening' as const, page: 'words' as const, label: labels.navListening, group: 'study' },
-    { view: 'reading' as const, page: 'words' as const, label: labels.navReading, group: 'study' },
-    { view: 'question-types' as const, label: labels.navQuestionTypes, group: 'study' },
-    { view: 'mixed' as const, label: '综合练习', group: 'review' },
-    { view: 'mock-exams' as const, label: labels.navMockExams, group: 'review' },
-    { view: 'news-cycle' as const, label: '新闻练习', group: 'review' },
-    { view: 'drafts' as const, label: '复习草稿', group: 'review' },
-    { view: 'plan' as const, label: labels.navPlan, group: 'review' },
-    { view: 'captures' as const, label: 'Agent 同步', group: 'record' },
-    { view: 'history' as const, label: labels.dataPracticeTab, group: 'record' },
-    { view: 'mistakes' as const, label: '错题', group: 'record' },
-    { view: 'memory' as const, label: '学习记忆', group: 'manage' },
-    { view: 'data' as const, label: '数据', group: 'manage' },
-    { view: 'mcp' as const, label: 'MCP 设置', group: 'manage' },
+    { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, group: 'today', activeViews: ['daily-practice'] as AppView[] },
+    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, group: 'today', activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'mistakes', 'memory'] as AppView[] },
+    { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan, group: 'review' },
+    { view: 'history' as const, label: labels.navStatsHome, group: 'record', activeViews: ['captures'] as AppView[] },
+    { view: 'settings' as const, label: labels.settings, group: 'manage', activeViews: ['data', 'mcp'] as AppView[] },
   ];
 }
 
@@ -1948,10 +2119,12 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
   if (detail?.attempt) return labels.historyAttemptDetail;
   if (detail?.capture) return labels.captureDetailTitle;
   if (detail?.draft) return labels.draftPreview;
+  if (activeView === 'history' && route.itemId === 'today') return labels.historyFilterToday;
+  if (activeView === 'history' && route.itemId === 'history') return labels.historyPracticeTab;
   if (isDataManagementView(activeView)) {
     const visibleTab = activeDataTab ?? dataTabForRoute(activeView);
-    if (visibleTab === 'captures') return labels.historyCaptureTab;
-    if (visibleTab === 'practice') return labels.historyPracticeTab;
+    if (visibleTab === 'captures') return labels.navStatsHome;
+    if (visibleTab === 'practice') return labels.navStatsHome;
     return dataTabLabel(visibleTab, labels);
   }
   if (activeView === 'daily-practice') {
@@ -1959,6 +2132,12 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
   }
   if (activeView === 'question-types') {
     return labels.navQuestionTypes;
+  }
+  if (activeView === 'mixed' && route.page === 'tips' && route.itemId) {
+    if (route.itemId === 'topics') return '专项练习';
+    if (route.itemId === 'modules') return '分项学习';
+    if (route.itemId === 'exam') return '做题练习';
+    if (route.itemId === 'materials') return '新闻学习';
   }
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed'].includes(activeView)) {
     return studyPageLabelFor(activeView, route.page, labels);
@@ -1972,8 +2151,21 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
   return navItems(labels).find((item) => item.view === activeView)?.label ?? labels.brand;
 }
 
+function settingsSectionMobileTitle(section: string, labels: Record<string, string>, locale: Locale) {
+  const copy = locale === 'zh-CN'
+    ? { display: '显示与阅读', practice: '练习体验' }
+    : locale === 'ja'
+      ? { display: '表示と読みやすさ', practice: '練習体験' }
+      : { display: 'Display and Reading', practice: 'Practice Experience' };
+  if (section === 'display') return copy.display;
+  if (section === 'practice') return copy.practice;
+  if (section === 'memory') return locale === 'zh-CN' ? '记忆卡内容' : locale === 'ja' ? '記憶カードの内容' : 'Memory card content';
+  if (section === 'account') return `${labels.account} / ${labels.aboutTitle}`;
+  return labels.settings;
+}
+
 function isMobileTabRoute(route: AppRoute) {
-  if (route.view === 'home' || route.view === 'plan' || route.view === 'insights') {
+  if (route.view === 'home' || route.view === 'plan' || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
     return true;
   }
   if (route.view === 'mixed') {
@@ -1983,6 +2175,14 @@ function isMobileTabRoute(route: AppRoute) {
 }
 
 function mobileBackRoute(route: AppRoute): AppRoute {
+  if (route.view === 'history' && route.itemId) return { view: 'history', page: 'questions' };
+  if (route.view === 'mixed' && route.page === 'tips' && route.itemId) return { view: 'mixed', page: 'tips' };
+  if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) {
+    if (route.itemId) return { view: route.view, page: route.page };
+    if (route.page !== 'words') return { view: route.view, page: 'words' };
+    return { view: 'mixed', page: 'tips', itemId: 'modules' };
+  }
+
   if (route.view === 'mock-exams' && route.itemId) {
     return { view: 'mock-exams', page: 'questions' };
   }
@@ -2010,8 +2210,14 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   if (['vocabulary', 'grammar', 'listening', 'reading', 'question-types'].includes(route.view)) {
     return { view: 'home', page: 'questions' };
   }
-  if (['history', 'drafts', 'settings'].includes(route.view)) {
-    return { view: 'insights', page: 'questions' };
+  if (route.view === 'captures') {
+    return { view: 'history', page: 'questions' };
+  }
+  if (['history', 'insights', 'captures', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {
+    return { view: 'mixed', page: 'tips' };
+  }
+  if (route.view === 'settings' && route.itemId) {
+    return { view: 'settings', page: 'questions' };
   }
   return { view: 'home', page: 'questions' };
 }
@@ -2021,15 +2227,20 @@ function isDataManagementView(view: AppView) {
 }
 
 function dataTabForRoute(view: AppView): DataTab {
-  if (view === 'history') return 'practice';
+  if (view === 'history' || view === 'insights') return 'practice';
   if (view === 'drafts') return 'drafts';
   if (view === 'settings') return 'settings';
   return 'captures';
 }
 
 function desktopBackRoute(route: AppRoute): AppRoute | null {
+  if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) return mobileBackRoute(route);
+
   if (route.view === 'home') {
     return null;
+  }
+  if (route.view === 'history') {
+    return route.itemId ? { view: 'history', page: 'questions' } : null;
   }
   if (route.itemId) {
     return { view: route.view, page: route.page };
@@ -2049,8 +2260,11 @@ function desktopBackRoute(route: AppRoute): AppRoute | null {
   if (route.view === 'news-cycle') {
     return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'home', page: 'questions' };
   }
-  if (['history', 'drafts', 'settings'].includes(route.view)) {
-    return { view: 'insights', page: 'questions' };
+  if (route.view === 'captures') {
+    return { view: 'history', page: 'questions' };
+  }
+  if (['history', 'insights', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {
+    return { view: 'mixed', page: 'tips' };
   }
   return { view: 'home', page: 'questions' };
 }
@@ -2106,7 +2320,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
 
 function dataTabLabel(tab: DataTab, labels: Record<string, string>) {
   if (tab === 'captures') return labels.dataCapturesTab;
-  if (tab === 'practice') return labels.dataPracticeTab;
+  if (tab === 'practice') return labels.navStatsHome;
   if (tab === 'drafts') return labels.dataDraftsTab;
   return labels.settings;
 }
@@ -2326,6 +2540,9 @@ function LoginScreen({
             />
           </label>
           {error ? <p className="rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm font-semibold text-[#775516]">{error}</p> : null}
+          <a href="#/about" className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-2xl border border-[#efd1db] bg-white px-4 py-2 text-sm font-semibold text-[#654e58] hover:bg-[#fff0f5]">
+            查看应用介绍（不登录可读）
+          </a>
           <button type="submit" disabled={loading} className="cute-button-primary h-12 w-full rounded-2xl px-4 text-sm font-semibold text-white disabled:opacity-60">
             {loading ? 'Processing...' : mode === 'register' ? 'Create account' : 'Login'}
           </button>

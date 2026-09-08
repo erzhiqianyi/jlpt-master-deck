@@ -1,39 +1,15 @@
+import { useMobileList } from '../../hooks/useMobileList';
 import { ChevronLeft, ChevronRight, ExternalLink, House, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { localized } from '../../domain/items';
 import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-2xl border border-[#f0d4dd] bg-white/85 px-4 py-3 shadow-sm">
-      <p className="text-xs font-bold text-[#8f6f7b]">{label}</p>
-      <p className="journal-number mt-1 text-2xl font-black text-[#3d3036]">{value}</p>
-    </div>
-  );
-}
-
 function QuestionPrompt({ text, target }: { text: string; target?: string }) {
   if (!target) return text;
   const targetIndex = text.indexOf(target);
   if (targetIndex < 0) return text;
   return <>{text.slice(0, targetIndex)}<span className="font-semibold underline decoration-2 underline-offset-4">{target}</span>{text.slice(targetIndex + target.length)}</>;
-}
-
-function attemptSuggestion(attempt: PracticeAttempt | undefined, labels: Record<string, string>) {
-  if (!attempt?.summary) return labels.noAttemptHistory;
-  if (attempt.summary.wrong === 0) return labels.suggestionAllCorrect;
-  if (attempt.summary.accuracy < 0.7) return labels.suggestionLowAccuracy;
-  return labels.suggestionReviewWrong;
-}
-
-function aiPromptSeed(attempt: PracticeAttempt, questions: Question[]) {
-  const questionMap = new Map(questions.map((question) => [question.id, question]));
-  const misses = attempt.answers.filter((answer) => !answer.correct).map((answer) => {
-    const question = questionMap.get(answer.questionId);
-    return { kind: answer.kind, prompt: question?.prompt, selected: answer.selected, answer: question?.answer, correct_reason: question?.correctReason };
-  });
-  return JSON.stringify({ task: 'Analyze this JLPT practice attempt and propose focused review plus similar questions.', summary: attempt.summary, misses }, null, 2);
 }
 
 function formatDateTime(value: string | undefined, locale: Locale) {
@@ -54,6 +30,10 @@ function wordDetailHref(item: VocabItem) {
 
 const WORD_INDEX_PAGE_SIZE = 8;
 type WordIndexSortKey = 'created-asc' | 'created-desc' | 'level-asc' | 'level-desc' | 'kana-asc' | 'kana-desc' | 'questions-desc' | 'progress-asc';
+export type WordIndexPracticeFocus =
+  | { kind: 'random' }
+  | { kind: 'question-kind'; questionKind: QuestionKind }
+  | { kind: 'tag'; tag: string };
 function safeIndex(index: number, total: number) {
   return total ? ((index % total) + total) % total : 0;
 }
@@ -64,14 +44,31 @@ function isTextEntryTarget(target: EventTarget | null) {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 }
 
+function shouldAutoAdvanceAfterBatchAnswer() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+}
+
 function entryTags(item: VocabItem) {
+  return itemTagList(item).slice(0, 3);
+}
+
+function itemTagList(item: VocabItem) {
   const tags = new Set<string>();
   item.tags?.forEach((tag) => {
     if (tag !== 'mcp-draft' && tag !== 'codex-chat-review') {
       tags.add(tag);
     }
   });
-  return [...tags].filter(Boolean).slice(0, 3);
+  return [...tags].filter(Boolean);
+}
+
+function isUsefulGrammarTag(tag: string) {
+  if (/^N[1-5](?:\/N[1-5])?$/.test(tag)) return false;
+  if (/^教材・第\d+週$/.test(tag)) return false;
+  if (tag.includes('単語') || tag.includes('单词')) return false;
+  if (tag.includes('待整理')) return false;
+  return tag.length > 1;
 }
 
 function reviewItemTime(item: VocabItem) {
@@ -92,12 +89,22 @@ function sortLabel(key: WordIndexSortKey, labels: Record<string, string>) {
   return labels[`entrySort_${key}`] ?? key;
 }
 
+function questionKindLabel(kind: QuestionKind, labels: Record<string, string>) {
+  if (kind === 'grammar') return labels.grammar;
+  if (kind === 'meaning') return labels.meaning;
+  if (kind === 'moji_goi') return labels.mojiGoi;
+  if (kind === 'kana_to_kanji') return labels.kanaToKanji;
+  if (kind === 'kanji_to_kana') return labels.kanjiToKana;
+  return kind;
+}
+
 export function PracticeReviewPanel({
   attempt,
   questions,
   answers,
   items,
   labels,
+  practiceTitle,
   locale,
   showRuby,
   onRestart,
@@ -108,14 +115,17 @@ export function PracticeReviewPanel({
   answers: AnswerState;
   items: VocabItem[];
   labels: Record<string, string>;
+  practiceTitle?: string;
   locale: Locale;
   showRuby: boolean;
   onRestart: () => void;
   onBackToPractice: () => void;
 }) {
-  const [mobileAnswerId, setMobileAnswerId] = useState<string | null>(null);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
+  const questionDialogRef = useRef<HTMLDialogElement>(null);
   const questionMap = new Map(questions.map((question) => [question.id, question]));
-  const reviewAnswers = attempt?.answers.length
+  const storedReviewAnswers = attempt?.answers.length
     ? attempt.answers
     : questions
       .filter((question) => answers[question.id])
@@ -128,193 +138,116 @@ export function PracticeReviewPanel({
         answeredAt: answers[question.id].answeredAt ?? '',
         elapsedMs: answers[question.id].elapsedMs ?? 0,
       }));
-  const summary = attempt?.summary ?? {
-    total: questions.length,
-    correct: reviewAnswers.filter((answer) => answer.correct).length,
-    wrong: reviewAnswers.filter((answer) => !answer.correct).length,
-    accuracy: reviewAnswers.length ? reviewAnswers.filter((answer) => answer.correct).length / reviewAnswers.length : 0,
-    elapsedMs: reviewAnswers.at(-1)?.elapsedMs ?? 0,
+  const reviewAnswers = storedReviewAnswers.map((answer) => {
+    const question = questionMap.get(answer.questionId);
+    return question ? { ...answer, correct: answer.selected === question.answer } : answer;
+  });
+  const reviewCorrectCount = reviewAnswers.filter((answer) => answer.correct).length;
+  const summary = {
+    total: attempt?.summary?.total ?? questions.length,
+    correct: reviewCorrectCount,
+    wrong: reviewAnswers.length - reviewCorrectCount,
+    accuracy: reviewAnswers.length ? reviewCorrectCount / reviewAnswers.length : 0,
+    elapsedMs: attempt?.summary?.elapsedMs ?? reviewAnswers.at(-1)?.elapsedMs ?? 0,
   };
-  const wrongAnswers = reviewAnswers.filter((answer) => !answer.correct);
-  const mobileAnswer = reviewAnswers.find((answer) => answer.questionId === mobileAnswerId);
-  const mobileQuestion = mobileAnswer ? questionMap.get(mobileAnswer.questionId) : undefined;
+  const orderedAnswers = questions.flatMap((question) => {
+    const answer = reviewAnswers.find((entry) => entry.questionId === question.id);
+    return answer ? [answer] : [];
+  });
+  const activeIndex = Math.min(reviewIndex, Math.max(0, orderedAnswers.length - 1));
+  const activeAnswer = orderedAnswers[activeIndex];
+  const activeQuestion = activeAnswer ? questionMap.get(activeAnswer.questionId) : undefined;
+  const activeAnswerCorrect = activeQuestion && activeAnswer ? activeAnswer.selected === activeQuestion.answer : false;
+  const genericPracticeTitle = practiceTitle
+    ? /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)\s*(?:练习|練習|practice)?$/iu.test(practiceTitle.trim())
+    : false;
+  const reviewTitle = genericPracticeTitle
+    ? activeQuestion?.title ?? practiceTitle ?? labels.reviewSummaryTitle
+    : practiceTitle ?? activeQuestion?.title ?? labels.reviewSummaryTitle;
+  const showQuestionTitle = Boolean(activeQuestion?.title && activeQuestion.title !== reviewTitle);
+  const answeredCount = orderedAnswers.length;
+  const copy = locale === 'zh-CN'
+    ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习' }
+    : locale === 'ja'
+      ? { list: '問題一覧', previous: '前の問題', next: '次の問題', restart: 'もう一度練習' }
+      : { list: 'Questions', previous: 'Previous', next: 'Next', restart: 'Restart practice' };
+
+  function openQuestionDialog() {
+    setQuestionDialogOpen(true);
+    window.requestAnimationFrame(() => questionDialogRef.current?.showModal());
+  }
+
+  function closeQuestionDialog() {
+    setQuestionDialogOpen(false);
+    questionDialogRef.current?.close();
+  }
 
   return (
-    <>
-      <section className="cute-practice-card min-w-0 border px-4 pb-6 pt-5 lg:hidden">
-        {mobileQuestion && mobileAnswer ? (
-          <>
-            <button type="button" onClick={() => setMobileAnswerId(null)} className="flex min-h-10 items-center gap-1 text-sm font-bold text-[#a84269]">
-              <ChevronLeft size={18} /> {labels.reviewSummaryTitle}
-            </button>
-            <div className="mt-3 border-b border-[#f0d4dd] pb-5">
-              <p className="text-xs font-bold text-[#a84269]">{mobileQuestion.title}</p>
-              <h2 className="mt-2 text-xl font-black leading-8 text-[#3d3036]"><QuestionPrompt text={mobileQuestion.prompt} target={mobileQuestion.promptTarget} /></h2>
+    <section className="cute-practice-card practice-swipe-surface attempt-review-card min-w-0 border px-4 pb-6 pt-4 md:p-5">
+      {activeQuestion && activeAnswer ? <>
+        <div className="practice-question-section">
+          <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
+            <p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+              {orderedAnswers.length > 1 ? <ArrowButton label={copy.previous} direction="left" onClick={() => setReviewIndex(safeIndex(activeIndex - 1, orderedAnswers.length))} /> : null}
+              <button
+                type="button"
+                onClick={openQuestionDialog}
+                aria-haspopup="dialog"
+                aria-expanded={questionDialogOpen}
+                aria-label={`${copy.list}: ${activeIndex + 1} / ${orderedAnswers.length}`}
+                className="attempt-review-progress practice-progress-button flex min-h-10 min-w-32 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-3 py-1 text-[#a84269]"
+              >
+                <span className="journal-number text-sm font-black">{activeIndex + 1} / {orderedAnswers.length}</span>
+              </button>
+              <button type="button" onClick={onRestart} aria-label={copy.restart} title={copy.restart} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
+                <RotateCcw size={17} />
+              </button>
+              {orderedAnswers.length > 1 ? <ArrowButton label={copy.next} direction="right" onClick={() => setReviewIndex(safeIndex(activeIndex + 1, orderedAnswers.length))} /> : null}
             </div>
-            <AnswerPanel
-              question={mobileQuestion}
-              answer={mobileAnswer}
-              items={items}
-              showRuby={showRuby}
-              labels={labels}
-              locale={locale}
-            />
-          </>
-        ) : (
-          <>
-            <header className="border-b border-[#f0d4dd] pb-5">
-              <p className="text-xs font-bold text-[#a84269]">{labels.latestAttempt}</p>
-              <h2 className="mt-1 text-2xl font-black text-[#3d3036]">{labels.reviewSummaryTitle}</h2>
-              <p className="mt-2 text-sm leading-6 text-[#74646b]">{labels.reviewSummaryBody}</p>
-              <div className="mt-4 flex gap-2">
-                <button type="button" onClick={onBackToPractice} className="cute-button-secondary h-10 flex-1 rounded-full border px-3 text-sm font-bold">{labels.backToPractice}</button>
-                <button type="button" onClick={onRestart} className="cute-button-primary h-10 flex-1 rounded-full px-3 text-sm font-bold text-white">{labels.restartPractice}</button>
-              </div>
-            </header>
-
-            <div className="grid grid-cols-2 border-b border-[#f0d4dd] py-4">
-              <div className="border-r border-[#f0d4dd] pr-4">
-                <p className="text-xs text-[#8f6f7b]">{labels.correct}</p>
-                <p className="mt-1 text-xl font-black text-[#3d3036]">{summary.correct} / {summary.total}</p>
-              </div>
-              <div className="pl-4">
-                <p className="text-xs text-[#8f6f7b]">{labels.accuracy}</p>
-                <p className="mt-1 text-xl font-black text-[#3d3036]">{Math.round(summary.accuracy * 100)}%</p>
-              </div>
+          </div>
+          <article key={activeQuestion.id} className="attempt-review-question">
+            {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion.title}</h2> : null}
+            {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
+            <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} /></p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {activeQuestion.choices.map((choice, index) => {
+                const correct = choice === activeQuestion.answer;
+                const selected = choice === activeAnswer.selected;
+                return <div key={`${index}-${choice}`} data-answer-state={correct ? 'correct' : selected ? 'incorrect-selected' : 'answered-muted'} className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words ${correct ? 'border-[#65a37c] bg-[#f0fff5]' : selected ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white'}`}>
+                  <span className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
+                  <span className="min-w-0 pt-0.5">{choice}</span>
+                  {correct || selected ? <span className="review-choice-badges">
+                    {correct ? <small>{activeAnswerCorrect ? labels.correct : labels.rightAnswer}</small> : null}
+                    {selected && !activeAnswerCorrect ? <small>{labels.yourAnswer}</small> : null}
+                  </span> : null}
+                </div>;
+              })}
             </div>
-
-            <div className="pt-4">
-              <h3 className="text-sm font-bold text-[#3d3036]">{labels.reviewPage}</h3>
-              {reviewAnswers.length ? (
-                <div className="mt-2 divide-y divide-[#f0d4dd] border-y border-[#f0d4dd]">
-                  {reviewAnswers.map((answer, index) => {
-                    const question = questionMap.get(answer.questionId);
-                    return question ? (
-                      <button key={answer.questionId} type="button" onClick={() => setMobileAnswerId(answer.questionId)} className="flex min-h-16 w-full items-center gap-3 py-3 text-left">
-                        <span className="journal-number flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff0f5] text-sm font-bold text-[#a84269]">{index + 1}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold text-[#4b3b42]">{question.title}</span>
-                          <span className="mt-1 block truncate text-xs text-[#7a6a70]">{question.prompt}</span>
-                        </span>
-                        <span className={`shrink-0 text-xs font-semibold ${answer.correct ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{answer.correct ? labels.correct : labels.wrong}</span>
-                        <ChevronRight size={17} className="shrink-0 text-[#b98598]" />
-                      </button>
-                    ) : null;
-                  })}
-                </div>
-              ) : <p className="mt-3 text-sm text-[#68716c]">{labels.noAttemptHistory}</p>}
-            </div>
-          </>
-        )}
-      </section>
-
-      <section className="hidden min-w-0 space-y-5 lg:block">
-      <div className="cute-practice-card border p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-[#a84269]">{labels.latestAttempt}</p>
-            <h2 className="mt-2 text-2xl font-black text-[#3d3036]">{labels.reviewSummaryTitle}</h2>
-            <p className="mt-2 text-sm leading-6 text-[#74646b]">{labels.reviewSummaryBody}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={onBackToPractice} className="cute-button-secondary h-10 rounded-full border px-3 text-sm font-bold">
-              {labels.backToPractice}
-            </button>
-            <button type="button" onClick={onRestart} className="cute-button-primary h-10 rounded-full px-3 text-sm font-bold text-white">
-              {labels.restartPractice}
-            </button>
-          </div>
+          </article>
         </div>
+        <AnswerPanel
+          question={activeQuestion}
+          answer={activeAnswer}
+          items={items}
+          showRuby={showRuby}
+          labels={labels}
+          locale={locale}
+        />
+      </> : <p>{labels.noAttemptHistory}</p>}
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label={labels.correct} value={`${summary.correct} / ${summary.total}`} />
-          <Metric label={labels.accuracy} value={`${Math.round(summary.accuracy * 100)}%`} />
-          <Metric label={labels.wrongQuestions} value={summary.wrong.toString()} />
-          <Metric label={labels.elapsed} value={formatDuration(summary.elapsedMs)} />
+      <dialog ref={questionDialogRef} className="attempt-question-dialog" aria-labelledby="attempt-question-dialog-title" onClose={() => setQuestionDialogOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) closeQuestionDialog(); }}>
+        <div className="attempt-question-dialog-content">
+          <header><h2 id="attempt-question-dialog-title">{copy.list}</h2><button type="button" autoFocus aria-label={locale === 'zh-CN' ? '关闭' : locale === 'ja' ? '閉じる' : 'Close'} onClick={closeQuestionDialog}><X size={20} /></button></header>
+          <p className="attempt-question-legend"><span className="is-correct">✓ {labels.correct} {summary.correct}</span><span className="is-wrong">× {labels.wrong} {summary.wrong}</span><span>{labels.elapsed} {formatDuration(summary.elapsedMs)}</span></p>
+          <nav aria-label={copy.list}>
+            {orderedAnswers.map((answer, index) => <button type="button" key={answer.questionId} className={answer.correct ? 'is-correct' : 'is-wrong'} aria-current={index === activeIndex ? 'true' : undefined} aria-label={`${index + 1}: ${answer.correct ? labels.correct : labels.wrong}`} onClick={() => { setReviewIndex(index); closeQuestionDialog(); }}><span>{index + 1}</span><small>{answer.correct ? '✓' : '×'}</small></button>)}
+          </nav>
+          <p className="attempt-question-dialog-summary">{labels.completed} {answeredCount} / {summary.total}</p>
         </div>
+      </dialog>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-[#f0dfaa] bg-[#fff9df] p-3">
-            <p className="text-sm font-bold text-[#3d3036]">{labels.historyTitle}</p>
-            <p className="mt-2 text-sm leading-6 text-[#74646b]">
-              {labels.startedAt}: {formatDateTime(attempt?.startedAt, locale)}
-              <br />
-              {labels.completedAt}: {formatDateTime(attempt?.completedAt, locale)}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[#ccebd8] bg-[#f3fff7] p-3">
-            <p className="text-sm font-bold text-[#3d3036]">{labels.suggestionLabel}</p>
-            <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{attemptSuggestion(attempt, labels)}</p>
-          </div>
-        </div>
-
-        {attempt ? (
-          <details className="mt-4 rounded-2xl border border-[#f0d4dd] bg-white/75 p-3">
-            <summary className="cursor-pointer text-sm font-bold text-[#a84269]">{labels.aiSuggestionPromptLabel}</summary>
-            <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-[#f5f7f3] p-3 text-xs leading-5 text-[#313934]">{aiPromptSeed(attempt, questions)}</pre>
-          </details>
-        ) : null}
-      </div>
-
-      {!reviewAnswers.length ? (
-        <div className="cute-practice-card border border-dashed p-6">
-          <p className="text-sm leading-6 text-[#5f625b]">{labels.noAttemptHistory}</p>
-        </div>
-      ) : null}
-
-      {wrongAnswers.length ? (
-        <div className="cute-practice-card border p-4 md:p-5">
-          <h3 className="text-lg font-black text-[#3d3036]">{labels.wrongQuestions}</h3>
-          <div className="mt-3 space-y-4">
-            {wrongAnswers.map((answer) => {
-              const question = questionMap.get(answer.questionId);
-              return question ? (
-                <div key={answer.questionId} className="rounded-2xl border border-[#f0dfaa] bg-[#fff9df] p-3">
-                  <p className="text-sm font-bold text-[#a84269]">{question.title}</p>
-                  <p className="mt-2 text-base leading-7 text-[#3d3036]"><QuestionPrompt text={question.prompt} target={question.promptTarget} /></p>
-                  <AnswerPanel
-                    question={question}
-                    answer={answer}
-                    items={items}
-                    showRuby={showRuby}
-                    labels={labels}
-                    locale={locale}
-                  />
-                </div>
-              ) : null;
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-4">
-        {reviewAnswers.map((answer) => {
-          const question = questionMap.get(answer.questionId);
-          return question ? (
-            <div key={answer.questionId} className="cute-practice-card border p-4 md:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-[#a84269]">{question.title}</p>
-                  <p className="mt-2 text-base leading-7 text-[#3d3036]"><QuestionPrompt text={question.prompt} target={question.promptTarget} /></p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-bold ${answer.correct ? 'bg-[#d5eadc] text-[#285d47]' : 'bg-[#fff8df] text-[#775516]'}`}>
-                  {answer.correct ? labels.correct : labels.wrong}
-                </span>
-              </div>
-              <AnswerPanel
-                question={question}
-                answer={answer}
-                items={items}
-                showRuby={showRuby}
-                labels={labels}
-                locale={locale}
-              />
-            </div>
-          ) : null;
-        })}
-      </div>
-      </section>
-    </>
+    </section>
   );
 }
 
@@ -340,6 +273,9 @@ export function PracticePanel({
   onPrepareReview,
   onReview,
   analysisStatus,
+  wordbooks,
+  selectedWordbookId = 'all',
+  onWordbookChange,
 }: {
   activeQuestion?: Question;
   questions: Question[];
@@ -362,8 +298,12 @@ export function PracticePanel({
   onPrepareReview: () => Promise<void>;
   onReview: () => void;
   analysisStatus: PracticeAttempt['analysisStatus'];
+  wordbooks?: Wordbook[];
+  selectedWordbookId?: string;
+  onWordbookChange?: (id: string) => void;
 }) {
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
+  const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewPreparing, setReviewPreparing] = useState(false);
   const practiceCardRef = useRef<HTMLElement | null>(null);
@@ -442,7 +382,7 @@ export function PracticePanel({
     }
     const shouldAutoAdvance = typeof window !== 'undefined'
       && feedbackMode === 'batch'
-      && window.matchMedia('(max-width: 767px)').matches
+      && shouldAutoAdvanceAfterBatchAnswer()
       && questionsLength > 1
       && nextAnsweredCount < questionsLength
       && nextUnansweredIndex >= 0;
@@ -454,6 +394,34 @@ export function PracticePanel({
       }, feedbackMode === 'immediate' ? 550 : 180);
     }
   }
+
+  const genericPracticeTitle = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)\s*(?:练习|練習|practice)?$/iu.test(questionTypeLabel.trim());
+  const displayPracticeTitle = genericPracticeTitle
+    ? activeQuestion?.title ?? questionTypeLabel
+    : questionTypeLabel;
+  const showQuestionTitle = Boolean(activeQuestion?.title && activeQuestion.title !== displayPracticeTitle);
+  const answerSheetShowsResults = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
+  const answerSheetFilterOptions = [
+    { key: 'all' as const, label: labels.all ?? '全部' },
+    { key: 'current' as const, label: labels.practiceCurrent },
+    ...(answerSheetShowsResults
+      ? [
+          { key: 'correct' as const, label: labels.correct },
+          { key: 'wrong' as const, label: labels.wrong },
+        ]
+      : [{ key: 'correct' as const, label: labels.practiceAnswered }]),
+    { key: 'unanswered' as const, label: labels.practiceUnanswered },
+  ];
+  const visibleAnswerSheetQuestions = questions
+    .map((question, index) => ({ question, index, answer: answers[question.id] }))
+    .filter(({ index, answer }) => {
+      if (answerSheetFilter === 'all') return true;
+      if (answerSheetFilter === 'current') return index === activeIndex;
+      if (answerSheetFilter === 'unanswered') return !answer;
+      if (answerSheetFilter === 'correct') return answerSheetShowsResults ? Boolean(answer?.correct) : Boolean(answer);
+      if (answerSheetFilter === 'wrong') return answerSheetShowsResults ? Boolean(answer && !answer.correct) : false;
+      return true;
+    });
 
   useEffect(() => {
     if (!activeQuestion) return;
@@ -505,91 +473,110 @@ export function PracticePanel({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={() => { touchStartRef.current = null; }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-        <p className="text-sm font-bold text-[#a84269]">{questionTypeLabel}</p>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          {questionsLength > 1 ? <ArrowButton label={labels.prev} direction="left" shortcut="ArrowLeft" onClick={onPrev} /> : null}
-          <button
-            type="button"
-            onClick={() => setAnswerSheetOpen(true)}
-            aria-label={labels.practiceAnswerSheet}
-            className="flex min-h-10 min-w-24 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-2 py-1 text-[#a84269] transition hover:bg-[#ffe6ef] md:hidden"
-          >
-            <span className="journal-number text-sm font-black">{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
-            <span className="text-xs">{labels.completed} {answeredCount} / {questionsLength}</span>
-          </button>
-          <div className="hidden min-h-10 min-w-32 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-3 py-1 text-[#a84269] md:flex">
-            <span className="journal-number text-sm font-black">{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
-            <span className="text-xs">{labels.completed} {answeredCount} / {questionsLength}</span>
-          </div>
-          {answeredCount > 0 ? (
-            <button type="button" onClick={onRestart} aria-label={labels.restartPractice} title={labels.restartPractice} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] sm:w-auto sm:px-3">
-              <RotateCcw size={17} />
-              <span className="ml-2 hidden text-sm font-semibold sm:inline">{labels.restartPractice}</span>
+      <div className="practice-question-section">
+        <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
+          <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            {wordbooks && onWordbookChange ? <label className="practice-wordbook-filter">
+              <span className="sr-only">{labels.wordbookFilter}</span>
+              <select aria-label={labels.wordbookFilter} value={selectedWordbookId} onChange={(event) => onWordbookChange(event.target.value)}>
+                <option value="all">{labels.wordbookAll}</option>
+                {wordbooks.filter((book) => book.deck !== 'grammar_expression').map((book) => <option key={book.id} value={book.id}>{book.title}</option>)}
+              </select>
+            </label> : null}
+
+            {questionsLength > 1 ? <ArrowButton label={labels.prev} direction="left" shortcut="ArrowLeft" onClick={onPrev} /> : null}
+            <button
+              type="button"
+              onClick={() => setAnswerSheetOpen(true)}
+              aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`}
+              className="practice-progress-button flex min-h-10 min-w-24 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-2 py-1 text-[#a84269] transition hover:bg-[#ffe6ef] md:min-w-32 md:px-3"
+            >
+              <span className="journal-number text-sm font-black">{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
             </button>
-          ) : null}
-          {questionsLength > 1 ? (
-            <ArrowButton label={labels.next} direction="right" shortcut="ArrowRight" onClick={onNext} />
-          ) : null}
+            {questionsLength > 0 ? (
+              <button type="button" onClick={onRestart} aria-label={labels.restartPractice} title={labels.restartPractice} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
+                <RotateCcw size={17} />
+              </button>
+            ) : null}
+            {questionsLength > 1 ? (
+              <ArrowButton label={labels.next} direction="right" shortcut="ArrowRight" onClick={onNext} />
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4">
-        <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion?.title ?? labels.noQuestion}</h2>
-        {activeQuestion?.instruction ? (
-          <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
-        ) : null}
-        <p className={`${activeQuestion?.instruction ? 'mt-4' : 'mt-3'} break-words text-lg leading-8 text-[#3d3036]`}>
-          {activeQuestion ? <QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} /> : labels.noQuestionBody}
-        </p>
-      </div>
+        <div className="mt-4">
+          {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion?.title ?? labels.noQuestion}</h2> : null}
+          {activeQuestion?.instruction ? (
+            <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
+          ) : null}
+          <p className={`${activeQuestion?.instruction ? 'mt-4' : 'mt-3'} break-words text-lg leading-8 text-[#3d3036]`}>
+            {activeQuestion ? <QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} /> : labels.noQuestionBody}
+          </p>
+        </div>
 
-      {activeQuestion ? (
-        <>
-          {activeQuestion ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {activeQuestion.choices.map((choice, choiceIndex) => {
-                const answered = answers[activeQuestion.id];
-                const isSelected = answered?.selected === choice;
-                const isAnswer = choice === activeQuestion.answer;
-                const shouldReveal = feedbackMode === 'immediate';
-                const color = !answered
-                  ? 'border-[#f0d4dd] bg-white hover:bg-[#fff7fb]'
-                  : shouldReveal
-                    ? isAnswer
-                      ? 'border-[#65a37c] bg-[#f0fff5]'
+        {activeQuestion ? (
+          <>
+            {activeQuestion ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {activeQuestion.choices.map((choice, choiceIndex) => {
+                  const answered = answers[activeQuestion.id];
+                  const isSelected = answered?.selected === choice;
+                  const isAnswer = choice === activeQuestion.answer;
+                  const shouldReveal = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
+                  const answerState = !answered
+                    ? 'unanswered'
+                    : shouldReveal
+                      ? isAnswer
+                        ? 'correct'
+                        : isSelected
+                          ? 'incorrect-selected'
+                          : 'answered-muted'
+                      : isSelected
+                        ? 'selected-batch'
+                        : 'unanswered';
+                  const color = !answered
+                    ? 'border-[#f0d4dd] bg-white hover:bg-[#fff7fb]'
+                    : shouldReveal
+                      ? isAnswer
+                        ? 'border-[#65a37c] bg-[#f0fff5]'
+                        : isSelected
+                          ? 'border-[#d95f8a] bg-[#fff0f5]'
+                          : 'border-[#f0d4dd] bg-[#fffafc] opacity-70'
                       : isSelected
                         ? 'border-[#d95f8a] bg-[#fff0f5]'
-                        : 'border-[#f0d4dd] bg-[#fffafc] opacity-70'
-                    : isSelected
-                      ? 'border-[#d95f8a] bg-[#fff0f5]'
-                      : 'border-[#f0d4dd] bg-white';
-                return (
-                  <button
-                    type="button"
-                    key={choice}
-                    disabled={feedbackMode === 'immediate' && Boolean(answered)}
-                    aria-keyshortcuts={String(choiceIndex + 1)}
-                    onClick={() => answerOnMobile(activeQuestion, choice)}
-                    className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words disabled:cursor-default ${color}`}
-                  >
-                    <span aria-hidden="true" className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">
-                      {choiceIndex + 1}
-                    </span>
-                    <span className="min-w-0 pt-0.5">{choice}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-          {feedbackMode === 'batch' && complete ? (
-            <div className="mt-5 flex items-center justify-end gap-3 border-t border-[#f0d4dd] pt-4">
-              <button type="button" onClick={requestReview} disabled={reviewPreparing} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70">
-                {reviewPreparing ? labels.reviewPreparing : analysisStatus === 'processing' ? labels.analysisProcessing : analysisStatus === 'completed' ? labels.analysisCompleted : labels.reviewPage}
-              </button>
-            </div>
-          ) : null}
-          {feedbackMode === 'immediate' && answers[activeQuestion.id] ? (
+                        : 'border-[#f0d4dd] bg-white';
+                  return (
+                    <button
+                      type="button"
+                      key={choice}
+                      disabled={feedbackMode === 'immediate' && Boolean(answered)}
+                      aria-keyshortcuts={String(choiceIndex + 1)}
+                      data-answer-state={answerState}
+                      onClick={() => answerOnMobile(activeQuestion, choice)}
+                      className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words disabled:cursor-default ${color}`}
+                    >
+                      <span aria-hidden="true" className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">
+                        {choiceIndex + 1}
+                      </span>
+                      <span className="min-w-0 pt-0.5">{choice}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {feedbackMode === 'batch' && complete && analysisStatus !== 'completed' ? (
+              <div className="mt-5 flex items-center justify-end gap-3 border-t border-[#f0d4dd] pt-4">
+                <button type="button" onClick={requestReview} disabled={reviewPreparing} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70">
+                  {reviewPreparing ? labels.reviewPreparing : analysisStatus === 'processing' ? labels.analysisProcessing : labels.reviewPage}
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+
+      {activeQuestion && answers[activeQuestion.id] && (feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed')) ? (
             <AnswerPanel
               question={activeQuestion}
               answer={answers[activeQuestion.id]}
@@ -598,33 +585,63 @@ export function PracticePanel({
               labels={labels}
               locale={settings.locale}
             />
-          ) : null}
-        </>
       ) : null}
       {answerSheetOpen ? (
-        <div className="fixed inset-0 z-50 bg-[#2d2328]/30 px-4 py-5 md:hidden" role="dialog" aria-modal="true" aria-labelledby="practice-answer-sheet-title">
+        <div className="practice-answer-sheet-backdrop fixed inset-0 z-50 bg-[#2d2328]/30 px-4 py-5" role="dialog" aria-modal="true" aria-labelledby="practice-answer-sheet-title">
           <button type="button" className="absolute inset-0 h-full w-full cursor-default" aria-label={labels.close} onClick={() => setAnswerSheetOpen(false)} />
-          <div className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-3xl border border-[#f0d4dd] bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5 shadow-2xl">
+          <div className="practice-answer-sheet-panel absolute inset-x-0 bottom-0 max-h-[78vh] rounded-t-3xl border border-[#f0d4dd] bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h3 id="practice-answer-sheet-title" className="text-lg font-black text-[#3d3036]">{labels.practiceAnswerSheet}</h3>
                 <p className="mt-1 text-xs font-semibold text-[#74646b]">{labels.completed} {answeredCount} / {questionsLength}</p>
               </div>
-              <button type="button" onClick={() => setAnswerSheetOpen(false)} className="h-10 rounded-full border border-[#f0c9d4] px-4 text-sm font-bold text-[#a84269]">
-                {labels.close}
+              <button type="button" onClick={() => setAnswerSheetOpen(false)} aria-label={labels.close} title={labels.close} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
+                <X size={18} />
               </button>
             </div>
-            <div className="mt-4 grid grid-cols-5 gap-2">
-              {questions.map((question, index) => {
-                const answered = Boolean(answers[question.id]);
-                const current = index === activeIndex;
-                const stateClass = current
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#74646b]" role="toolbar" aria-label={labels.practiceAnswerSheet}>
+              {answerSheetFilterOptions.map((option) => {
+                const active = answerSheetFilter === option.key;
+                const tone = option.key === 'current'
                   ? 'border-[#a84269] bg-[#fff0f5] text-[#a84269]'
+                  : option.key === 'correct'
+                    ? answerSheetShowsResults
+                      ? 'border-[#65a37c] bg-[#f0fff5] text-[#285d47]'
+                      : 'border-[#9bd8b0] bg-[#f2fff6] text-[#285d47]'
+                    : option.key === 'wrong'
+                      ? 'border-[#d95f8a] bg-[#ffe2ea] text-[#8f2046]'
+                      : option.key === 'unanswered'
+                        ? 'border-[#eadfe3] bg-white text-[#74646b]'
+                        : 'border-[#eadfe3] bg-white text-[#3d3036]';
+                return (
+                  <button
+                    type="button"
+                    key={option.key}
+                    aria-pressed={active}
+                    onClick={() => setAnswerSheetFilter(option.key)}
+                    className={`rounded-full border px-3 py-1 font-bold ${tone} ${active ? 'ring-2 ring-[#d95f8a] ring-offset-1' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="practice-answer-sheet-grid mt-3 grid grid-cols-5 gap-2">
+              {visibleAnswerSheetQuestions.map(({ question, index, answer }) => {
+                const answered = Boolean(answer);
+                const current = index === activeIndex;
+                const resultClass = answerSheetShowsResults && answer
+                  ? answer.correct
+                    ? 'border-[#65a37c] bg-[#f0fff5] text-[#285d47]'
+                    : 'border-[#d95f8a] bg-[#ffe2ea] text-[#8f2046]'
                   : answered
                     ? 'border-[#9bd8b0] bg-[#f2fff6] text-[#285d47]'
                     : 'border-[#eadfe3] bg-white text-[#74646b]';
-                const stateLabel = current
-                  ? labels.practiceCurrent
+                const currentClass = current ? 'ring-2 ring-[#d95f8a] ring-offset-2' : '';
+                const stateLabel = answerSheetShowsResults && answer
+                  ? answer.correct
+                    ? labels.correct
+                    : labels.wrong
                   : answered
                     ? labels.practiceAnswered
                     : labels.practiceUnanswered;
@@ -637,19 +654,17 @@ export function PracticePanel({
                       setAnswerSheetOpen(false);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    aria-label={`${stateLabel}: ${index + 1}`}
-                    className={`journal-number h-11 rounded-2xl border text-sm font-black ${stateClass}`}
+                    aria-label={`${current ? `${labels.practiceCurrent}, ` : ''}${stateLabel}: ${index + 1}`}
+                    className={`journal-number h-11 rounded-2xl border text-sm font-black ${resultClass} ${currentClass}`}
                   >
                     {index + 1}
                   </button>
                 );
               })}
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#74646b]">
-              <span className="rounded-full border border-[#a84269] bg-[#fff0f5] px-3 py-1 text-[#a84269]">{labels.practiceCurrent}</span>
-              <span className="rounded-full border border-[#9bd8b0] bg-[#f2fff6] px-3 py-1 text-[#285d47]">{labels.practiceAnswered}</span>
-              <span className="rounded-full border border-[#eadfe3] bg-white px-3 py-1">{labels.practiceUnanswered}</span>
-            </div>
+            {visibleAnswerSheetQuestions.length === 0 ? (
+              <p className="mt-4 rounded-2xl bg-[#fff7fb] px-4 py-3 text-sm font-semibold text-[#74646b]">{labels.noQuestion}</p>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -699,6 +714,7 @@ function AnswerPanel({
   showRuby,
   labels,
   locale,
+  compact = false,
 }: {
   question: Question;
   answer?: { selected: string; correct: boolean };
@@ -706,6 +722,7 @@ function AnswerPanel({
   showRuby: boolean;
   labels: Record<string, string>;
   locale: Locale;
+  compact?: boolean;
 }) {
   if (!answer) {
     return null;
@@ -713,61 +730,80 @@ function AnswerPanel({
 
   const sourceItem = items.find((item) => item.id === question.itemId);
   const needsHumanReview = sourceItem?.content_origin === 'ai_generated' && sourceItem.verification_status !== 'verified';
-  const statusStyle = answer.correct
-    ? 'border-[#9bd8b0] bg-[#f2fff6] text-[#285d47]'
-    : 'border-[#f0c9d4] bg-[#fff7fb] text-[#8f365b]';
+  const isCorrect = answer.selected === question.answer;
+  const statusStyle = isCorrect ? 'is-correct' : 'is-wrong';
 
   return (
-    <div className={`cute-answer-note mt-5 border p-4 ${statusStyle}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="rounded-full bg-white/75 px-3 py-1 text-sm font-bold">{answer.correct ? labels.correct : labels.wrong}</p>
+    <div className={`cute-answer-note practice-answer-panel mt-6 ${statusStyle}`}>
+      <div className="answer-note-summary flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="answer-note-kicker text-xs font-black tracking-[0.08em] uppercase text-current/70">{labels.reviewPage}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="answer-status-pill text-sm font-black">{isCorrect ? labels.correct : labels.wrong}</span>
+            {!isCorrect ? <>
+              <span className="answer-inline-fact min-w-0 text-sm font-semibold">{labels.yourAnswer}: {answer.selected}</span>
+              <span className="answer-inline-fact min-w-0 text-sm font-semibold">{labels.rightAnswer}: {question.answer}</span>
+            </> : null}
+          </div>
+        </div>
         {sourceItem ? (
           <EntryLink item={sourceItem} label={`${labels.viewEntry}: ${sourceItem.original}`} />
         ) : null}
       </div>
-      <p className="mt-2 text-sm">{labels.yourAnswer}：{answer.selected}</p>
-      <p className="mt-1 text-sm">{labels.rightAnswer}：{question.answer}</p>
-      <div className="mt-4 border-t border-black/10">
-        <ExplanationSection label={labels.contextLabel}>
-          <RubyText text={question.context} items={items} enabled={showRuby} />
-        </ExplanationSection>
+
+      <div className="answer-note-sections mt-4 grid gap-3">
         {question.translationZh ? (
-          <ExplanationSection label={labels.fullChineseTranslation ?? '完整中文翻译'}>
-            {question.translationZh}
-          </ExplanationSection>
+          <div className="answer-note-block">
+            <p className="text-xs font-bold text-current/70">{labels.fullChineseTranslation ?? '完整中文翻译'}</p>
+            <p className="mt-1 text-sm leading-6 text-[#3f4944]">{question.translationZh}</p>
+          </div>
         ) : null}
-        <ExplanationSection label={labels.correctReasonLabel}>
-          <RubyText text={question.correctReason} items={items} enabled={showRuby} />
-        </ExplanationSection>
-        <section className="border-t border-black/10 py-4">
-          <h3 className="text-sm font-semibold text-[#313934]">{labels.choiceAnalysisLabel}</h3>
-          <div className="mt-2 divide-y divide-black/10">
+
+        <div className="answer-note-block">
+          <p className="text-sm font-black text-[#27312c]">{labels.correctReasonLabel}</p>
+          <p className="mt-2 text-sm leading-6 text-[#3f4944]">
+            <RubyText text={question.correctReason} items={items} enabled={showRuby} />
+          </p>
+        </div>
+
+        <details open={compact ? undefined : true} className="answer-note-block">
+          <summary className="cursor-pointer text-sm font-bold text-[#27312c]">{labels.choiceAnalysisLabel}</summary>
+          <div className="answer-choice-analysis mt-3 grid gap-2">
             {question.choiceAnalysis.map((choice) => {
               const linkedItem = choice.correct ? sourceItem : itemForChoice(choice.choice, question.kind, items);
+              const selected = choice.choice === answer.selected;
               return (
-                <div key={choice.choice} className="grid gap-2 py-3 sm:grid-cols-[minmax(110px,auto)_1fr] sm:items-start sm:gap-4">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div
+                  key={choice.choice}
+                  className={`answer-choice-row ${choice.correct ? 'is-correct' : selected ? 'is-selected' : ''}`}
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     {linkedItem ? (
                       <EntryLink item={linkedItem} label={choice.choice} compact />
                     ) : (
-                      <span className="font-semibold text-[#27312c]">{choice.choice}</span>
+                      <span className="min-w-0 font-semibold text-[#27312c]">{choice.choice}</span>
                     )}
-                    <span className={`rounded px-2 py-0.5 text-xs font-semibold ${choice.correct ? 'bg-[#d5eadc] text-[#285d47]' : 'bg-white/70 text-[#665d4b]'}`}>
-                      {choice.correct ? labels.choiceFits : labels.choiceDoesNotFit}
+                    <span className={`answer-choice-tag px-2 py-0.5 text-xs font-bold ${choice.correct ? 'is-correct' : selected ? 'is-selected' : ''}`}>
+                      {choice.correct ? labels.choiceFits : selected ? labels.yourAnswer : labels.choiceDoesNotFit}
                     </span>
                   </div>
-                  <p className="text-sm leading-6 text-[#4b534e]">
+                  <p className="mt-2 text-sm leading-6 text-[#4b534e]">
                     <RubyText text={choice.explanation} items={items} enabled={showRuby} />
                   </p>
                 </div>
               );
             })}
           </div>
-        </section>
-        <ExplanationSection label={labels.memoryPointLabel}>
-          <RubyText text={question.memoryPoint} items={items} enabled={showRuby} />
-        </ExplanationSection>
+        </details>
+
+        <div className="answer-note-block">
+          <p className="text-sm font-black text-[#27312c]">{labels.memoryPointLabel}</p>
+          <p className="mt-2 text-sm leading-6 text-[#3f4944]">
+            <RubyText text={question.memoryPoint} items={items} enabled={showRuby} />
+          </p>
+        </div>
       </div>
+
       {needsHumanReview ? (
         <p className="mt-3 rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm leading-6 text-[#775516]">
           {labels.unverifiedContentNotice}
@@ -796,15 +832,6 @@ function EntryLink({ item, label, compact = false }: { item: VocabItem; label: s
   );
 }
 
-function ExplanationSection({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <section className="border-t border-black/10 py-4 first:border-t-0">
-      <h3 className="text-sm font-semibold text-[#313934]">{label}</h3>
-      <p className="mt-2 text-sm leading-6 text-[#4b534e]">{children}</p>
-    </section>
-  );
-}
-
 export function WordIndexPanel({ items, questions, answers, progress, labels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange }: {
   items: VocabItem[];
   questions: Question[];
@@ -819,7 +846,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   defaultTargetDeck?: Deck;
   pendingCaptureCount?: number;
   onOpen: (id: string) => void;
-  onPractice?: () => void;
+  onPractice?: (focus?: WordIndexPracticeFocus) => void;
   onTips?: () => void;
   onReview?: () => void;
   onManageWordbooks?: () => void;
@@ -831,6 +858,8 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   const [pageIndex, setPageIndex] = useState(0);
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
   const [showCaptureForm, setShowCaptureForm] = useState(false);
+  const [showEntryLibrary, setShowEntryLibrary] = useState(!captureCategory || !['word', 'grammar'].includes(captureCategory));
+  const [showFocusedPractice, setShowFocusedPractice] = useState(false);
   const [captureBody, setCaptureBody] = useState('');
   const [captureContext, setCaptureContext] = useState('');
   const [targetWordbookId, setTargetWordbookId] = useState(defaultTargetDeck);
@@ -839,65 +868,104 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   const [wordbookError, setWordbookError] = useState('');
   const [captureSaving, setCaptureSaving] = useState(false);
   const [captureSaved, setCaptureSaved] = useState(false);
-  const [mobileVisibleCount, setMobileVisibleCount] = useState(WORD_INDEX_PAGE_SIZE);
-  const mobileLoadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [selectedGrammarTag, setSelectedGrammarTag] = useState('');
+  const allTagValue = '__all__';
   const vocabularyWordbooks = wordbooks.filter((wordbook) => wordbook.deck !== 'grammar_expression');
+  const isGrammarLibrary = captureCategory === 'grammar';
+  const isVocabularyLibrary = captureCategory === 'word';
+  const showEntryHub = isGrammarLibrary || isVocabularyLibrary;
   const questionsByItem = useMemo(() => questions.reduce<Record<string, Question[]>>((groups, question) => {
     groups[question.itemId] = [...(groups[question.itemId] ?? []), question];
     return groups;
   }, {}), [questions]);
-  const sortedItems = useMemo(() => [...items].sort((left, right) => {
-    const leftQuestions = questionsByItem[left.id]?.length ?? 0;
-    const rightQuestions = questionsByItem[right.id]?.length ?? 0;
-    const leftAnswered = questionsByItem[left.id]?.filter((question) => answers[question.id]).length ?? 0;
-    const rightAnswered = questionsByItem[right.id]?.filter((question) => answers[question.id]).length ?? 0;
-    const leftProgress = leftQuestions ? leftAnswered / leftQuestions : 0;
-    const rightProgress = rightQuestions ? rightAnswered / rightQuestions : 0;
-    const fallback = reviewItemTime(left) - reviewItemTime(right) || readingSortValue(left).localeCompare(readingSortValue(right), 'ja');
-    if (sortKey === 'created-desc') return reviewItemTime(right) - reviewItemTime(left) || fallback;
-    if (sortKey === 'level-asc') return levelSortValue(left.jlpt_level) - levelSortValue(right.jlpt_level) || fallback;
-    if (sortKey === 'level-desc') return levelSortValue(right.jlpt_level) - levelSortValue(left.jlpt_level) || fallback;
-    if (sortKey === 'kana-asc') return readingSortValue(left).localeCompare(readingSortValue(right), 'ja') || fallback;
-    if (sortKey === 'kana-desc') return readingSortValue(right).localeCompare(readingSortValue(left), 'ja') || fallback;
-    if (sortKey === 'questions-desc') return rightQuestions - leftQuestions || fallback;
-    if (sortKey === 'progress-asc') return leftProgress - rightProgress || fallback;
-    return fallback;
-  }), [answers, items, questionsByItem, sortKey]);
+  const questionKindOptions = useMemo(() => {
+    const counts = questions.reduce<Partial<Record<QuestionKind, number>>>((groups, question) => {
+      groups[question.kind] = (groups[question.kind] ?? 0) + 1;
+      return groups;
+    }, {});
+    return (Object.entries(counts) as [QuestionKind, number][])
+      .sort((left, right) => right[1] - left[1]);
+  }, [questions]);
+  const grammarTagOptions = useMemo(() => {
+    if (captureCategory !== 'grammar') return [] as string[];
+    const tagSet = new Set<string>();
+    items.forEach((item) => itemTagList(item).filter(isUsefulGrammarTag).forEach((tag) => tagSet.add(tag)));
+    return Array.from(tagSet).sort((left, right) => left.localeCompare(right, locale));
+  }, [captureCategory, items, locale]);
+  const focusedContentOptions = useMemo(() => {
+    if (captureCategory !== 'grammar') return [] as { tag: string; count: number }[];
+    return grammarTagOptions
+      .map((tag) => ({
+        tag,
+        count: items.filter((item) => itemTagList(item).filter(isUsefulGrammarTag).includes(tag)).length,
+      }))
+      .filter((option) => option.count > 0)
+      .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag, locale))
+      .slice(0, 8);
+  }, [captureCategory, grammarTagOptions, items, locale]);
+  const sortedItems = useMemo(() => {
+    const hasTagFilter = captureCategory === 'grammar' && selectedGrammarTag && selectedGrammarTag !== allTagValue;
+    const baseItems = hasTagFilter
+      ? items.filter((item) => itemTagList(item).filter(isUsefulGrammarTag).includes(selectedGrammarTag))
+      : items;
+    return [...baseItems].sort((left, right) => {
+      const leftQuestions = questionsByItem[left.id]?.length ?? 0;
+      const rightQuestions = questionsByItem[right.id]?.length ?? 0;
+      const leftAnswered = questionsByItem[left.id]?.filter((question) => answers[question.id]).length ?? 0;
+      const rightAnswered = questionsByItem[right.id]?.filter((question) => answers[question.id]).length ?? 0;
+      const leftProgress = leftQuestions ? leftAnswered / leftQuestions : 0;
+      const rightProgress = rightQuestions ? rightAnswered / rightQuestions : 0;
+      const fallback = reviewItemTime(left) - reviewItemTime(right) || readingSortValue(left).localeCompare(readingSortValue(right), 'ja');
+      if (sortKey === 'created-desc') return reviewItemTime(right) - reviewItemTime(left) || fallback;
+      if (sortKey === 'level-asc') return levelSortValue(left.jlpt_level) - levelSortValue(right.jlpt_level) || fallback;
+      if (sortKey === 'level-desc') return levelSortValue(right.jlpt_level) - levelSortValue(left.jlpt_level) || fallback;
+      if (sortKey === 'kana-asc') return readingSortValue(left).localeCompare(readingSortValue(right), 'ja') || fallback;
+      if (sortKey === 'kana-desc') return readingSortValue(right).localeCompare(readingSortValue(left), 'ja') || fallback;
+      if (sortKey === 'questions-desc') return rightQuestions - leftQuestions || fallback;
+      if (sortKey === 'progress-asc') return leftProgress - rightProgress || fallback;
+      return fallback;
+    });
+  }, [answers, items, questionsByItem, selectedGrammarTag, sortKey]);
   const pageCount = Math.max(1, Math.ceil(sortedItems.length / WORD_INDEX_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * WORD_INDEX_PAGE_SIZE;
   const pageItems = sortedItems.slice(pageStart, pageStart + WORD_INDEX_PAGE_SIZE);
+  const mobileList = useMobileList(sortedItems.length, JSON.stringify([captureCategory, selectedWordbookId, sortKey, selectedGrammarTag]), WORD_INDEX_PAGE_SIZE);
+  const mobileVisibleCount = mobileList.visible;
   const mobileItems = sortedItems.slice(0, mobileVisibleCount);
   const pageEnd = pageStart + pageItems.length;
   const mobilePageEnd = Math.min(mobileVisibleCount, sortedItems.length);
+  const showTagFilteredEmpty = captureCategory === 'grammar' && selectedGrammarTag && selectedGrammarTag !== allTagValue && !sortedItems.length;
 
   useEffect(() => {
     setPageIndex((index) => Math.min(index, pageCount - 1));
   }, [pageCount]);
 
   useEffect(() => {
-    setPageIndex(0);
-    setMobileVisibleCount(WORD_INDEX_PAGE_SIZE);
-  }, [sortKey]);
+    if (captureCategory !== 'grammar') {
+      setSelectedGrammarTag('');
+      return;
+    }
+    if (!selectedGrammarTag || (selectedGrammarTag !== allTagValue && !grammarTagOptions.includes(selectedGrammarTag))) {
+      setSelectedGrammarTag(allTagValue);
+    }
+  }, [captureCategory, selectedGrammarTag, grammarTagOptions, allTagValue]);
 
   useEffect(() => {
-    setMobileVisibleCount(WORD_INDEX_PAGE_SIZE);
-  }, [items, questions, answers]);
+    setPageIndex(0);
+  }, [sortKey, selectedGrammarTag]);
+
 
   useEffect(() => {
     setTargetWordbookId(defaultTargetDeck);
   }, [defaultTargetDeck]);
 
   useEffect(() => {
-    const sentinel = mobileLoadMoreRef.current;
-    if (!sentinel || mobileVisibleCount >= sortedItems.length) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      setMobileVisibleCount((count) => Math.min(count + WORD_INDEX_PAGE_SIZE, sortedItems.length));
-    }, { rootMargin: '240px 0px' });
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [mobileVisibleCount, sortedItems.length]);
+    setShowEntryLibrary(!captureCategory || !['word', 'grammar'].includes(captureCategory));
+    setShowFocusedPractice(false);
+  }, [captureCategory]);
+
+
 
   async function saveCapture(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -946,18 +1014,111 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   }
 
   return (
-    <section className="min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm">
-      <div className="border-b border-[#e5ddd1] px-4 py-4 md:px-5">
+    <section className={showEntryHub ? 'ledger-word-index ledger-entry-index min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
+      {showEntryHub && !showEntryLibrary ? (
+        <div className="ledger-entry-hub">
+          {!showFocusedPractice ? <>
+          <div className="ledger-section-hero ledger-entry-hub-heading">
+            <div>
+              <h2 className="ledger-entry-page-title">{isGrammarLibrary ? '选择语法训练' : '选择单词训练'}</h2>
+            </div>
+          </div>
+          <div className="ledger-entry-actions" aria-label={isGrammarLibrary ? '语法主要入口' : '单词主要入口'}>
+            {onPractice ? (
+              <button type="button" className="ledger-entry-action is-coral" onClick={() => onPractice({ kind: 'random' })}>
+                <RotateCcw size={22} aria-hidden="true" />
+                <span>开始练习</span>
+                <strong>{isGrammarLibrary ? '随机做一组语法题' : '随机做一组单词题'}</strong>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="ledger-entry-action is-blue"
+              onClick={() => { setShowFocusedPractice(true); setShowEntryLibrary(false); setShowCaptureForm(false); window.scrollTo({ top: 0 }); }}
+            >
+              <Target size={22} aria-hidden="true" />
+              <span>按题型练习</span>
+              <strong>{isGrammarLibrary ? '按题型或内容先选范围' : '按题型先选范围'}</strong>
+            </button>
+            {onTips ? (
+              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
+                <Lightbulb size={22} aria-hidden="true" />
+                <span>学习方法</span>
+                <strong>先看题型和解法提示</strong>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="ledger-entry-action is-ink"
+              onClick={() => { setShowEntryLibrary((value) => !value); setShowFocusedPractice(false); }}
+            >
+              <ExternalLink size={22} aria-hidden="true" />
+              <span>{isGrammarLibrary ? '语法笔记' : '单词本'}</span>
+              <strong>{isGrammarLibrary ? '查找学过的句型和例句' : '查找单词、读音和例句'}</strong>
+            </button>
+            {captureCategory && onSaveCapture ? (
+              <button
+                type="button"
+                className="ledger-entry-action is-green"
+                onClick={() => { setShowCaptureForm((value) => !value); setCaptureSaved(false); }}
+              >
+                <Plus size={22} aria-hidden="true" />
+                <span>{isGrammarLibrary ? '记一个句型' : '记一个单词'}</span>
+                <strong>{isGrammarLibrary ? '把今天看到的句型收进来' : '选择单词本后保存新词'}</strong>
+              </button>
+            ) : null}
+          </div>
+          </> : null}
+          {showFocusedPractice ? (
+            <div className="ledger-focused-practice-panel">
+              <button type="button" className="gentle-back" onClick={() => setShowFocusedPractice(false)}><ChevronLeft size={20} aria-hidden="true" />返回{isGrammarLibrary ? '语法' : '单词'}</button>
+              <div>
+                <p>按题型练习</p>
+                <div className="ledger-focused-practice-options">
+                  {questionKindOptions.length ? questionKindOptions.map(([kind, count]) => (
+                    <button key={kind} type="button" onClick={() => onPractice?.({ kind: 'question-kind', questionKind: kind })}>
+                      <span>{questionKindLabel(kind, labels)}</span>
+                      <strong>{count} 题</strong>
+                    </button>
+                  )) : <span className="ledger-focused-empty">暂无可练题型</span>}
+                </div>
+              </div>
+              <div>
+                <p>按内容练习</p>
+                <div className="ledger-focused-practice-options">
+                  {isGrammarLibrary && focusedContentOptions.length ? focusedContentOptions.map((option) => (
+                    <button key={option.tag} type="button" onClick={() => onPractice?.({ kind: 'tag', tag: option.tag })}>
+                      <span>{option.tag}</span>
+                      <strong>{option.count} 项</strong>
+                    </button>
+                  )) : isVocabularyLibrary && vocabularyWordbooks.length ? vocabularyWordbooks.slice(0, 8).map((wordbook) => (
+                    <button key={wordbook.id} type="button" onClick={() => { onWordbookChange?.(wordbook.id); setShowEntryLibrary(true); setShowFocusedPractice(false); }}>
+                      <span>{wordbook.title}</span>
+                      <strong>{items.filter((item) => item.wordbook_ids?.includes(wordbook.id) || (!item.wordbook_ids?.length && item.deck === wordbook.deck)).length} 项</strong>
+                    </button>
+                  )) : <span className="ledger-focused-empty">暂无可用分类</span>}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className={`ledger-word-toolbar border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
         <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3">
           <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
-            {captureCategory && onSaveCapture ? (
+            {showEntryHub ? (
+              <ModuleAction label="返回入口" onClick={() => { setShowEntryLibrary(false); setShowFocusedPractice(false); }}>
+                <ChevronLeft size={16} />
+              </ModuleAction>
+            ) : null}
+            {!showEntryHub && captureCategory && onSaveCapture ? (
               <ModuleAction label={captureCategory === 'grammar' ? labels.entryAddGrammar : labels.entryAddWord} onClick={() => { setShowCaptureForm((value) => !value); setCaptureSaved(false); }}>
                 <Plus size={16} />
               </ModuleAction>
             ) : null}
-            {onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
-            {onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
-            {onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
+            {!showEntryHub && onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
+            {!showEntryHub && onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
+            {!showEntryHub && onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
           </div>
           <div className="mobile-filter-row flex flex-wrap items-center gap-2">
             {captureCategory === 'word' && onWordbookChange ? (
@@ -985,6 +1146,20 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
                 {labels.wordbookManage}
               </button>
             ) : null}
+            {captureCategory === 'grammar' && grammarTagOptions.length ? (
+              <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
+                <span className="shrink-0">{labels.entryTagFilter}</span>
+                <select
+                  value={selectedGrammarTag || allTagValue}
+                  onChange={(event) => setSelectedGrammarTag(event.target.value)}
+                  aria-label={labels.entryTagFilter}
+                  className="h-9 max-w-56 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm font-semibold text-[#34443c] outline-none focus:border-[#24473f]"
+                >
+                  <option value={allTagValue}>{labels.entryTagAll}</option>
+                  {grammarTagOptions.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                </select>
+              </label>
+            ) : null}
             <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
               <span className="shrink-0">{labels.entrySort}</span>
               <select
@@ -1007,7 +1182,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
                 {labels.entryPendingCapture}: {pendingCaptureCount}
               </button>
             ) : null}
-            <span className="rounded-md bg-[#e8f0eb] px-3 py-1 text-sm font-semibold text-[#24473f]">{items.length} {labels.items}</span>
+            <span className="rounded-md bg-[#e8f0eb] px-3 py-1 text-sm font-semibold text-[#24473f]">{sortedItems.length} {labels.items}</span>
           </div>
         </div>
       </div>
@@ -1075,14 +1250,11 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
           </div>
         </form>
       ) : null}
-      {items.length ? (
+      {showEntryLibrary && sortedItems.length ? (
         <>
         <div className="mobile-list md:hidden">
           {mobileItems.map((item) => {
-            const itemQuestions = questionsByItem[item.id] ?? [];
-            const itemAnswers = itemQuestions.filter((question) => answers[question.id]);
             const itemProgress = progress[item.id];
-            const tags = entryTags(item);
             return (
               <button key={item.id} type="button" onClick={() => onOpen(item.id)} className="mobile-list-item mobile-list-link cute-focus" aria-label={`${labels.entryOpen}: ${item.original}`}>
                 <span className="mobile-list-main">
@@ -1090,14 +1262,8 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
                   {item.reading ? <span className="mobile-list-subtitle">{item.reading}</span> : null}
                 </span>
                 <span className="mobile-list-progress">
-                  <span>{itemQuestions.length ? `${itemAnswers.length}/${itemQuestions.length}` : labels.entryNoProgress}</span>
                   <StatusPill status={itemProgress?.status ?? 'new'} labels={labels} />
                 </span>
-                <span className="mobile-list-tags">
-                  <span className="mobile-list-pill">{item.jlpt_level ?? '-'}</span>
-                  {tags.slice(0, 2).map((tag) => <span key={tag} className="mobile-list-pill is-soft">{tag}</span>)}
-                </span>
-                <span className="mobile-list-note">{itemProgress?.nextReviewAt ? `${labels.nextReview}: ${formatDateTime(itemProgress.nextReviewAt, locale)}` : formatDateTime(item.input_at ?? item.date, locale)}</span>
                 <ChevronRight className="mobile-list-cue" size={18} aria-hidden="true" />
               </button>
             );
@@ -1123,8 +1289,8 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
 	                const itemQuestions = questionsByItem[item.id] ?? [];
 	                const itemAnswers = itemQuestions.filter((question) => answers[question.id]);
 	                const itemProgress = progress[item.id];
-	                const tags = entryTags(item);
-	                return (
+                const tags = captureCategory === 'grammar' ? itemTagList(item).filter(isUsefulGrammarTag) : entryTags(item);
+                return (
 	                  <tr key={item.id} className="bg-white hover:bg-[#fbf8f2]">
                     <td className="px-4 py-3 align-top">
                       <button type="button" onClick={() => onOpen(item.id)} className="block min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]">
@@ -1168,11 +1334,11 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e] md:px-5">
           <span className="font-semibold">
-            <span className="md:hidden">{mobilePageEnd} / {items.length} {labels.items}</span>
-            <span className="hidden md:inline">{pageStart + 1}-{pageEnd} / {items.length} {labels.items}</span>
+            <span className="md:hidden">{mobilePageEnd} / {sortedItems.length} {labels.items}</span>
+            <span className="hidden md:inline">{pageStart + 1}-{pageEnd} / {sortedItems.length} {labels.items}</span>
           </span>
-          <div ref={mobileLoadMoreRef} className="mobile-load-state md:hidden">
-            {mobilePageEnd >= items.length ? labels.mobileNoMore : null}
+          <div ref={mobileList.setSentinel} className="mobile-load-state md:hidden">
+            {mobilePageEnd >= sortedItems.length ? labels.mobileNoMore : null}
           </div>
           <div className="hidden items-center gap-2 md:flex">
             <button
@@ -1199,7 +1365,12 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
           </div>
         </div>
         </>
-      ) : <EmptyModule labels={labels} />}
+      ) : showEntryLibrary ? (
+        <section className="cute-practice-card min-w-0 border border-dashed p-6">
+          <h2 className="text-2xl font-black text-[#3d3036]">{showTagFilteredEmpty ? labels.entryNoFilteredItems : labels.moduleEmptyTitle}</h2>
+          <p className="mt-3 text-sm leading-7 text-[#74646b]">{showTagFilteredEmpty ? labels.entryNoFilteredItemsBody : labels.moduleEmptyBody}</p>
+        </section>
+      ) : null}
     </section>
   );
 }
@@ -1456,7 +1627,7 @@ function VocabCard({
   const isGrammarEntry = item.deck === 'grammar_expression';
   const grammarForms = item.grammar_forms?.filter((form) => form.form || form.example || form.meaning_zh || form.connection_zh) ?? [];
   const grammarFeatures = item.grammar_features?.filter((feature) => feature.feature || feature.detail_zh) ?? [];
-  const examples = item.examples?.filter((example) => example.ja || example.zh || example.analysis_zh || example.form_analysis_zh) ?? [];
+  const examples = item.examples?.filter((example) => example.ja || example.zh || example.spoken_ja || example.spoken_zh || example.analysis_zh || example.form_analysis_zh) ?? [];
   const inflectionClass = resolvedInflectionClass(item);
   const baseForm = item.base_form ?? (inflectionClass === 'suru' && item.original.endsWith('する') ? item.original : undefined);
   const conjugations = resolvedConjugations(item, inflectionClass, baseForm);
@@ -1591,6 +1762,17 @@ function VocabCard({
                   </p>
                 ) : null}
                 {example.zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.zh}</p> : null}
+                {example.spoken_ja || example.spoken_zh ? (
+                  <div className="mt-3 rounded-lg border border-[#f0d4dd] bg-[#fffaf5] px-3 py-2">
+                    <p className="text-xs font-bold text-[#8f365b]">{labels.spokenExample ?? '口语版'}</p>
+                    {example.spoken_ja ? (
+                      <p className="mt-1 text-sm font-bold leading-7 text-[#3d3036]">
+                        <RubyText text={example.spoken_ja} items={[item]} enabled={showRuby} />
+                      </p>
+                    ) : null}
+                    {example.spoken_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.spoken_zh}</p> : null}
+                  </div>
+                ) : null}
                 {example.form_analysis_zh ? <p className="mt-2 text-sm leading-6 text-[#8f365b]">{example.form_analysis_zh}</p> : null}
                 {example.analysis_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.analysis_zh}</p> : null}
               </div>

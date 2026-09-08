@@ -1,3 +1,4 @@
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { configurableMemoryCardFields, type MemoryCardField } from '../../domain/memoryCards';
 import type { DisplaySettings, Locale } from '../../types';
@@ -6,66 +7,92 @@ type SettingsViewProps = {
   labels: Record<string, string>;
   settings: DisplaySettings;
   username: string;
+  activeSection?: string;
+  onOpenSection?: (section: SettingsSectionId) => void;
   onLogout: () => void;
   onUpdateSettings: (settings: DisplaySettings) => void;
 };
 
-export function SettingsView({ labels, settings, username, onLogout, onUpdateSettings }: SettingsViewProps) {
+type SettingsSectionId = 'display' | 'practice' | 'memory' | 'account';
+
+type SettingsCopy = {
+  displayAndReading: string;
+  kanaDisplay: string;
+  practiceExperience: string;
+  feedbackTiming: string;
+  profileEdit: string;
+  learningLanguage: string;
+  nativeLanguage: string;
+};
+
+const settingsPageCopy: Record<Locale, SettingsCopy> = {
+  'zh-CN': {
+    displayAndReading: '显示与阅读',
+    kanaDisplay: '假名显示',
+    practiceExperience: '练习体验',
+    feedbackTiming: '反馈时机',
+    profileEdit: '学习档案',
+    learningLanguage: '学习 日本语',
+    nativeLanguage: '母语 中文',
+  },
+  ja: {
+    displayAndReading: '表示と読みやすさ',
+    kanaDisplay: 'ふりがな表示',
+    practiceExperience: '練習体験',
+    feedbackTiming: 'フィードバックのタイミング',
+    profileEdit: '学習プロフィール',
+    learningLanguage: '学習 日本語',
+    nativeLanguage: '母語 中国語',
+  },
+  en: {
+    displayAndReading: 'Display and Reading',
+    kanaDisplay: 'Kana Display',
+    practiceExperience: 'Practice Experience',
+    feedbackTiming: 'Feedback Timing',
+    profileEdit: 'Learning Profile',
+    learningLanguage: 'Learning Japanese',
+    nativeLanguage: 'Native Chinese',
+  },
+};
+
+export function SettingsView({ labels, settings, username, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings }: SettingsViewProps) {
+  const copy = settingsPageCopy[settings.locale];
+  const activeSection = isSettingsSection(activeSectionValue) ? activeSectionValue : undefined;
+  const onOpenSection = openSection ?? (() => undefined);
+  const profileCard = <SettingsProfileCard copy={copy} username={username} />;
+
   return (
-    <section className="min-w-0 rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:p-6">
-      <h2 className="text-2xl font-semibold text-[#27312c]">{labels.settings}</h2>
-      <div className="mt-5 divide-y divide-[#e4e7df]">
-        <SettingsRow title={labels.account}>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-[#68716b]">{labels.currentUser}</span>
-            <span className="rounded-md bg-[#eef3ed] px-3 py-2 text-sm font-semibold text-[#31564c]">{username}</span>
-            <button type="button" onClick={onLogout} className="h-10 rounded-md border border-[#d1d8cf] bg-white px-4 text-sm font-semibold text-[#3f5f56] hover:bg-[#f3f6f1]">
-              {labels.logout}
-            </button>
-          </div>
-        </SettingsRow>
-        <SettingsRow title={labels.aboutTitle} desktopOnly>
-          <p className="text-sm leading-6 text-[#68716b]">{labels.settingsAboutBody}</p>
-          <a href="#/about" className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-[#31564c] hover:underline">
-            {labels.settingsAboutLink} →
-          </a>
-        </SettingsRow>
-        <SettingsRow title={labels.language}>
-          <LanguageSelect value={settings.locale} onChange={(locale) => onUpdateSettings({ ...settings, locale })} />
-        </SettingsRow>
-        <SettingsRow title={labels.fontSize}>
-          <div className="grid max-w-xl grid-cols-3 gap-2" role="group" aria-label={labels.fontSize}>
-            <SegmentButton active={settings.fontSize === 'small'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'small' })}>
-              {labels.fontSizeSmall}
-            </SegmentButton>
-            <SegmentButton active={settings.fontSize === 'standard'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'standard' })}>
-              {labels.fontSizeStandard}
-            </SegmentButton>
-            <SegmentButton active={settings.fontSize === 'large'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'large' })}>
-              {labels.fontSizeLarge}
-            </SegmentButton>
-          </div>
-        </SettingsRow>
-        <SettingsRow title={memoryCardSettingsCopy[settings.locale].title}>
-          <MemoryCardFieldSettings settings={settings} onUpdateSettings={onUpdateSettings} />
-        </SettingsRow>
-        <SettingsRow title={labels.display}>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Toggle checked={settings.showReviewRuby} label={labels.reviewRuby} onChange={(checked) => onUpdateSettings({ ...settings, showReviewRuby: checked })} />
-            <Toggle checked={settings.showExplanationRuby} label={labels.explanationRuby} onChange={(checked) => onUpdateSettings({ ...settings, showExplanationRuby: checked })} />
-          </div>
-        </SettingsRow>
-        <SettingsRow title={labels.answerFeedbackMode}>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'immediate' })}>
-              {labels.feedbackModeImmediate}
-            </SegmentButton>
-            <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>
-              {labels.feedbackModeBatch}
-            </SegmentButton>
-          </div>
-        </SettingsRow>
+    <section className="gentle-settings mobile-settings-page mobile-page-surface mx-auto max-w-3xl min-w-0 rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:p-6">
+      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c]${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
+
+      {!activeSection ? <div className="settings-home-only md:hidden">{profileCard}</div> : null}
+      <div className="settings-mobile-detail md:hidden">
+        {activeSection ? (
+          <section className="settings-section-card settings-detail-card">
+            <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} onUpdateSettings={onUpdateSettings} />
+          </section>
+        ) : (
+          <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
+        )}
       </div>
+      <div className="settings-desktop-content hidden md:block">
+        {!activeSection ? (
+          <>
+            {profileCard}
+            <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
+          </>
+        ) : (
+          <SettingsSection title={sectionTitle(activeSection, labels, copy, settings)} icon={sectionIcon(activeSection)}>
+            <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} onUpdateSettings={onUpdateSettings} />
+          </SettingsSection>
+        )}
+      </div>
+
+      {!activeSection ? <div className="settings-logout-area">
+        <button type="button" onClick={onLogout} className="settings-logout-button">
+          <LogOut size={18} />{labels.logout}
+        </button>
+      </div> : null}
     </section>
   );
 }
@@ -122,6 +149,140 @@ const memoryCardSettingsCopy: Record<Locale, {
   },
 };
 
+function isSettingsSection(value: string | undefined): value is SettingsSectionId {
+  return value === 'display' || value === 'practice' || value === 'memory' || value === 'account';
+}
+
+function sectionTitle(section: SettingsSectionId, labels: Record<string, string>, copy: SettingsCopy, settings: DisplaySettings) {
+  if (section === 'display') return copy.displayAndReading;
+  if (section === 'practice') return copy.practiceExperience;
+  if (section === 'memory') return memoryCardSettingsCopy[settings.locale].title;
+  return `${labels.account} / ${labels.aboutTitle}`;
+}
+
+function sectionIcon(section: SettingsSectionId) {
+  if (section === 'display') return <Settings2 size={22} />;
+  if (section === 'practice') return <Sparkles size={22} />;
+  if (section === 'memory') return <PanelTop size={22} />;
+  return <MessageSquareText size={22} />;
+}
+
+function SettingsProfileCard({ copy, username }: { copy: SettingsCopy; username: string }) {
+  return (
+    <section className="settings-profile-card" aria-label={copy.profileEdit}>
+      <div className="settings-avatar" aria-hidden="true">
+        <UserRound size={42} />
+      </div>
+      <div className="min-w-0">
+        <h3>{username}</h3>
+        <p>{copy.profileEdit}</p>
+      </div>
+      <ChevronRight className="settings-profile-chevron" size={24} aria-hidden="true" />
+      <div className="settings-language-pair">
+        <span><BookOpen size={18} />{copy.learningLanguage}</span>
+        <ChevronRight size={18} aria-hidden="true" />
+        <span><Languages size={18} />{copy.nativeLanguage}</span>
+      </div>
+    </section>
+  );
+}
+
+function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: SettingsCopy; labels: Record<string, string>; settings: DisplaySettings; onOpenSection: (section: SettingsSectionId) => void }) {
+  return (
+    <div className="settings-section-list mt-5">
+      <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
+      <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
+      <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
+      <SettingsNavItem icon={<MessageSquareText size={22} />} title={`${labels.account} / ${labels.aboutTitle}`} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
+    </div>
+  );
+}
+
+function SettingsNavItem({ icon, title, subtitle, onClick }: { icon: ReactNode; title: string; subtitle: string; onClick: () => void }) {
+  return (
+    <button type="button" className="settings-nav-item" onClick={onClick}>
+      <span className="settings-nav-icon">{icon}</span>
+      <span className="settings-nav-copy">
+        <strong>{title}</strong>
+        <small>{subtitle}</small>
+      </span>
+      <ChevronRight size={22} aria-hidden="true" />
+    </button>
+  );
+}
+
+function SettingsSectionContent({ section, copy, labels, settings, username, onUpdateSettings }: {
+  section: SettingsSectionId;
+  copy: SettingsCopy;
+  labels: Record<string, string>;
+  settings: DisplaySettings;
+  username: string;
+  onUpdateSettings: (settings: DisplaySettings) => void;
+}) {
+  if (section === 'display') {
+    return (
+      <>
+        <SettingsRow title={labels.language}>
+          <LanguageSelect value={settings.locale} onChange={(locale) => onUpdateSettings({ ...settings, locale })} />
+        </SettingsRow>
+        <SettingsRow title={labels.fontSize}>
+          <div className="grid max-w-xl grid-cols-3 gap-2" role="group" aria-label={labels.fontSize}>
+            <SegmentButton active={settings.fontSize === 'small'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'small' })}>{labels.fontSizeSmall}</SegmentButton>
+            <SegmentButton active={settings.fontSize === 'standard'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'standard' })}>{labels.fontSizeStandard}</SegmentButton>
+            <SegmentButton active={settings.fontSize === 'large'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'large' })}>{labels.fontSizeLarge}</SegmentButton>
+          </div>
+        </SettingsRow>
+        <SettingsRow title={copy.kanaDisplay}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Toggle checked={settings.showReviewRuby} label={labels.reviewRuby} onChange={(checked) => onUpdateSettings({ ...settings, showReviewRuby: checked })} />
+            <Toggle checked={settings.showExplanationRuby} label={labels.explanationRuby} onChange={(checked) => onUpdateSettings({ ...settings, showExplanationRuby: checked })} />
+          </div>
+        </SettingsRow>
+      </>
+    );
+  }
+  if (section === 'practice') {
+    return (
+      <SettingsRow title={copy.feedbackTiming}>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'immediate' })}>{labels.feedbackModeImmediate}</SegmentButton>
+          <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
+        </div>
+      </SettingsRow>
+    );
+  }
+  if (section === 'memory') {
+    return <MemoryCardFieldSettings settings={settings} onUpdateSettings={onUpdateSettings} />;
+  }
+  return (
+    <>
+      <SettingsRow title={labels.account}>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-[#68716b]">{labels.currentUser}</span>
+          <span className="rounded-md bg-[#eef3ed] px-3 py-2 text-sm font-semibold text-[#31564c]">{username}</span>
+        </div>
+      </SettingsRow>
+      <SettingsRow title={labels.aboutTitle}>
+        <p className="text-sm leading-6 text-[#68716b]">{labels.settingsAboutBody}</p>
+        <a href="#/about" className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-[#31564c] hover:underline">
+          {labels.settingsAboutLink} →
+        </a>
+      </SettingsRow>
+    </>
+  );
+}
+
+function SettingsSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="settings-section-card">
+      <h3><span>{icon}</span>{title}</h3>
+      <div className="settings-section-body">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: DisplaySettings; onUpdateSettings: (settings: DisplaySettings) => void }) {
   const copy = memoryCardSettingsCopy[settings.locale];
   const update = (side: 'front' | 'back', field: MemoryCardField) => {
@@ -138,7 +299,7 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
       {(['front', 'back'] as const).map((side) => {
         const selected = side === 'front' ? settings.memoryCardFrontFields : settings.memoryCardBackFields;
         return (
-          <fieldset key={side} className="rounded-md border border-[#d9d0c3] bg-white p-3">
+          <details key={side} className="gentle-details"><summary>{side === 'front' ? copy.front : copy.back} · {selected.length}</summary><fieldset className="pb-4">
             <legend className="px-1 text-sm font-semibold text-[#46514c]">{side === 'front' ? copy.front : copy.back}</legend>
             <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {configurableMemoryCardFields.map((field) => {
@@ -158,7 +319,7 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
                 );
               })}
             </div>
-          </fieldset>
+          </fieldset></details>
         );
       })}
       <p className="m-0 text-xs leading-5 text-[#7d837e]">{copy.exampleNote}</p>

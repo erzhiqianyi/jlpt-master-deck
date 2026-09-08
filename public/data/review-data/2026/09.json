@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T15:43:37.087Z",
+  "generated_at": "2026-09-03T13:41:25.501Z",
   "archive_month": "2026/09",
   "data_source": "sqlite-export",
   "items": [
@@ -78,7 +78,8 @@
         "N3",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-JTx6dW877OeQ9TOe",
@@ -199,7 +200,8 @@
         "N2",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-txMn2fHMCc6iqgKp",
@@ -320,7 +322,8 @@
         "N3",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-PruE8sg11kICd4Oe",
@@ -441,7 +444,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-_mLOWs-xXocHJc4M",
@@ -585,7 +589,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-s3VOXpsZYr_sccLT",
@@ -706,7 +711,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-fzDLOTQocXTjsZPs",
@@ -827,7 +833,8 @@
         "N2",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-8f0fF0hESbgo8ik3",
@@ -948,7 +955,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-dxPOrdf9UFD2aiwi",
@@ -1069,7 +1077,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-wKXckkPxCBBoR8nR",
@@ -1213,7 +1222,8 @@
         "N4",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-jyy3sTZXgg0uANLu",
@@ -1334,7 +1344,8 @@
         "N2",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-tXu4QHhOZbXRd7eb",
@@ -1455,7 +1466,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-VWcBQR5fYoPLsmyb",
@@ -1595,7 +1607,8 @@
         "N1",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "capture-qDQ41tlmmh4fJCrH",
@@ -1716,7 +1729,8 @@
         "N2",
         "待整理单词",
         "N1/N2 词汇"
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d01-001",
@@ -7579,7 +7593,8 @@
           "kind": "past",
           "form": "会議が長引いた"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-002",
@@ -7673,7 +7688,8 @@
           "kind": "negative",
           "form": "会議の準備をしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-003",
@@ -7743,7 +7759,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-004",
@@ -7837,7 +7854,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "意見を述べる"
+      "base_form": "意見を述べる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-005",
@@ -7957,7 +7975,8 @@
           "kind": "past",
           "form": "意見をまとめた"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-006",
@@ -8051,7 +8070,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "意見を求める"
+      "base_form": "意見を求める",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-007",
@@ -8145,7 +8165,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "具体的な案を出す"
+      "base_form": "具体的な案を出す",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-008",
@@ -8239,7 +8260,8 @@
         }
       ],
       "inflection_class": "na_adjective",
-      "base_form": "抽象的だ"
+      "base_form": "抽象的だ",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-009",
@@ -8333,7 +8355,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "アイデアを出す"
+      "base_form": "アイデアを出す",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-010",
@@ -8427,7 +8450,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "結論が出る"
+      "base_form": "結論が出る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-011",
@@ -8521,7 +8545,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "資料を配る"
+      "base_form": "資料を配る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-012",
@@ -8615,7 +8640,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "プリントを配る"
+      "base_form": "プリントを配る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-013",
@@ -8709,7 +8735,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "メモを取る"
+      "base_form": "メモを取る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-014",
@@ -8829,7 +8856,8 @@
           "kind": "past",
           "form": "張り切った"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-015",
@@ -8923,7 +8951,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "仕事を引き受ける"
+      "base_form": "仕事を引き受ける",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-016",
@@ -9017,7 +9046,8 @@
           "kind": "negative",
           "form": "打ち合わせをしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-017",
@@ -9111,7 +9141,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "打ち合わせる"
+      "base_form": "打ち合わせる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-018",
@@ -9205,7 +9236,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "スケジュールを組む"
+      "base_form": "スケジュールを組む",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-019",
@@ -9326,7 +9358,8 @@
           "kind": "past",
           "form": "仕事を順調にこなした"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-020",
@@ -9446,7 +9479,8 @@
           "kind": "past",
           "form": "電話を取り次いだ"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-021",
@@ -9540,7 +9574,8 @@
           "kind": "negative",
           "form": "電話を転送しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-022",
@@ -9634,7 +9669,8 @@
           "kind": "negative",
           "form": "電話を保留しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-023",
@@ -9728,7 +9764,8 @@
           "kind": "negative",
           "form": "残業しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-024",
@@ -9822,7 +9859,8 @@
         }
       ],
       "inflection_class": "i_adjective",
-      "base_form": "出張が多い"
+      "base_form": "出張が多い",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-025",
@@ -9916,7 +9954,8 @@
           "kind": "negative",
           "form": "出世しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-026",
@@ -10010,7 +10049,8 @@
           "kind": "negative",
           "form": "昇進しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-027",
@@ -10130,7 +10170,8 @@
           "kind": "past",
           "form": "本社に転勤になった"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-028",
@@ -10250,7 +10291,8 @@
           "kind": "past",
           "form": "転職した"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-029",
@@ -10344,7 +10386,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "会社を首になる"
+      "base_form": "会社を首になる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-030",
@@ -10433,7 +10476,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "リストラされる"
+      "base_form": "リストラされる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-031",
@@ -10527,7 +10571,8 @@
           "kind": "negative",
           "form": "退職しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d03-032",
@@ -10621,7 +10666,8 @@
           "kind": "negative",
           "form": "失業しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-001",
@@ -10691,7 +10737,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-002",
@@ -10761,7 +10808,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-003",
@@ -10836,7 +10884,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-004",
@@ -10906,7 +10955,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-005",
@@ -10976,7 +11026,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-006",
@@ -11046,7 +11097,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-007",
@@ -11116,7 +11168,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-008",
@@ -11210,7 +11263,8 @@
           "kind": "negative",
           "form": "パソコンを操作しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-009",
@@ -11304,7 +11358,8 @@
           "kind": "negative",
           "form": "基本をマスターしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-010",
@@ -11398,7 +11453,8 @@
           "kind": "negative",
           "form": "パソコンを起動しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-011",
@@ -11492,7 +11548,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "パソコンを立ち上げる"
+      "base_form": "パソコンを立ち上げる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-012",
@@ -11586,7 +11643,8 @@
           "kind": "negative",
           "form": "パソコンを終了しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-013",
@@ -11680,7 +11738,8 @@
           "kind": "negative",
           "form": "パソコンを再起動しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-014",
@@ -11774,7 +11833,8 @@
           "kind": "negative",
           "form": "次の画面を表示しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-015",
@@ -11868,7 +11928,8 @@
           "kind": "negative",
           "form": "プロバイダーと契約しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-016",
@@ -11962,7 +12023,8 @@
           "kind": "negative",
           "form": "インターネットに接続しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-017",
@@ -12051,7 +12113,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "インターネットにつなぐ"
+      "base_form": "インターネットにつなぐ",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-018",
@@ -12140,7 +12203,8 @@
           "kind": "negative",
           "form": "インターネットにアクセスしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-019",
@@ -12229,7 +12293,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "インターネットがつながる"
+      "base_form": "インターネットがつながる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-020",
@@ -12323,7 +12388,8 @@
           "kind": "negative",
           "form": "インターネットで検索しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-021",
@@ -12417,7 +12483,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "ホームページで情報を得る"
+      "base_form": "ホームページで情報を得る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-022",
@@ -12537,7 +12604,8 @@
           "kind": "past",
           "form": "ダウンロードを開始した"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-023",
@@ -12631,7 +12699,8 @@
           "kind": "negative",
           "form": "ダウンロードが完了しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-024",
@@ -12720,7 +12789,8 @@
           "kind": "negative",
           "form": "ソフトをインストールしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-025",
@@ -12809,7 +12879,8 @@
           "kind": "negative",
           "form": "スタートボタンをクリックしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-026",
@@ -12898,7 +12969,8 @@
           "kind": "negative",
           "form": "パソコンがフリーズしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-027",
@@ -12992,7 +13064,8 @@
           "kind": "negative",
           "form": "システムを更新しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-028",
@@ -13067,7 +13140,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-029",
@@ -13161,7 +13235,8 @@
           "kind": "negative",
           "form": "メールのやり取りをしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-030",
@@ -13255,7 +13330,8 @@
           "kind": "negative",
           "form": "アドレスを入力しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d04-031",
@@ -13349,7 +13425,8 @@
           "kind": "negative",
           "form": "アドレスを登録しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-001",
@@ -13443,7 +13520,8 @@
         }
       ],
       "inflection_class": "suru",
-      "base_form": "新規作成する"
+      "base_form": "新規作成する",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-002",
@@ -13537,7 +13615,8 @@
         }
       ],
       "inflection_class": "suru",
-      "base_form": "名前をつけて保存する"
+      "base_form": "名前をつけて保存する",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-003",
@@ -13631,7 +13710,8 @@
         }
       ],
       "inflection_class": "suru",
-      "base_form": "ページ設定する"
+      "base_form": "ページ設定する",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-004",
@@ -13725,7 +13805,8 @@
           "kind": "negative",
           "form": "印刷しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-005",
@@ -13819,7 +13900,8 @@
         }
       ],
       "inflection_class": "suru",
-      "base_form": "書式設定する"
+      "base_form": "書式設定する",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-006",
@@ -13894,7 +13976,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-007",
@@ -13969,7 +14052,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-008",
@@ -14044,7 +14128,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-009",
@@ -14119,7 +14204,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-010",
@@ -14194,7 +14280,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-011",
@@ -14288,7 +14375,8 @@
           "kind": "negative",
           "form": "書類を作成しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-012",
@@ -14382,7 +14470,8 @@
           "kind": "negative",
           "form": "かなを漢字に変換しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-013",
@@ -14476,7 +14565,8 @@
           "kind": "negative",
           "form": "漢字を確定しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-014",
@@ -14570,7 +14660,8 @@
           "kind": "negative",
           "form": "文字を削除しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-015",
@@ -14664,7 +14755,8 @@
           "kind": "negative",
           "form": "改行しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-016",
@@ -14758,7 +14850,8 @@
           "kind": "negative",
           "form": "文字のサイズを設定しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-017",
@@ -14852,7 +14945,8 @@
           "kind": "negative",
           "form": "フォントを変更しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-018",
@@ -14946,7 +15040,8 @@
           "kind": "negative",
           "form": "カーソルを移動しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-019",
@@ -15040,7 +15135,8 @@
           "kind": "negative",
           "form": "範囲を選択しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-020",
@@ -15134,7 +15230,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "目的の位置に合わせる"
+      "base_form": "目的の位置に合わせる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-021",
@@ -15228,7 +15325,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "文字を中央にそろえる"
+      "base_form": "文字を中央にそろえる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-022",
@@ -15322,7 +15420,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "右に寄せる"
+      "base_form": "右に寄せる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-023",
@@ -15416,7 +15515,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "下線をつける"
+      "base_form": "下線をつける",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-024",
@@ -15505,7 +15605,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "アンダーラインをつける"
+      "base_form": "アンダーラインをつける",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-025",
@@ -15599,7 +15700,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "記号を入れる"
+      "base_form": "記号を入れる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-026",
@@ -15693,7 +15795,8 @@
           "kind": "negative",
           "form": "図を挿入しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-027",
@@ -15787,7 +15890,8 @@
           "kind": "negative",
           "form": "図を拡大しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-028",
@@ -15881,7 +15985,8 @@
           "kind": "negative",
           "form": "図を縮小しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-029",
@@ -15975,7 +16080,8 @@
           "kind": "negative",
           "form": "内容を修正しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-030",
@@ -16069,7 +16175,8 @@
           "kind": "negative",
           "form": "文書を編集しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-031",
@@ -16163,7 +16270,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "元に戻す"
+      "base_form": "元に戻す",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-032",
@@ -16257,7 +16365,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "やり直す"
+      "base_form": "やり直す",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-033",
@@ -16351,7 +16460,8 @@
           "kind": "negative",
           "form": "図形をコピーしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-034",
@@ -16445,7 +16555,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "切り取る"
+      "base_form": "切り取る",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-035",
@@ -16539,7 +16650,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "貼り付ける"
+      "base_form": "貼り付ける",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-036",
@@ -16659,7 +16771,8 @@
           "kind": "past",
           "form": "画像を取り込んだ"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-037",
@@ -16779,7 +16892,8 @@
           "kind": "past",
           "form": "文書を保存した"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-038",
@@ -16873,7 +16987,8 @@
           "kind": "negative",
           "form": "ファイルを添付しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d05-039",
@@ -16967,7 +17082,8 @@
           "kind": "negative",
           "form": "上書き保存しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-001",
@@ -17061,7 +17177,8 @@
           "kind": "negative",
           "form": "プリンターで印刷しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-002",
@@ -17150,7 +17267,8 @@
           "kind": "negative",
           "form": "プリンターでプリントしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-003",
@@ -17270,7 +17388,8 @@
           "kind": "past",
           "form": "プリンターの用紙が切れた"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-004",
@@ -17364,7 +17483,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "用紙を切らす"
+      "base_form": "用紙を切らす",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-005",
@@ -17453,7 +17573,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "インクがなくなる"
+      "base_form": "インクがなくなる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-006",
@@ -17542,7 +17663,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "トナーがなくなる"
+      "base_form": "トナーがなくなる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-007",
@@ -17636,7 +17758,8 @@
           "kind": "negative",
           "form": "印刷の範囲を指定しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-008",
@@ -17730,7 +17853,8 @@
           "kind": "negative",
           "form": "印刷の向きを確認しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-009",
@@ -17824,7 +17948,8 @@
           "kind": "negative",
           "form": "余白を多くしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-010",
@@ -17899,7 +18024,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-011",
@@ -18019,7 +18145,8 @@
           "kind": "past",
           "form": "印刷がずれた"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-012",
@@ -18113,7 +18240,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "印刷位置をずらす"
+      "base_form": "印刷位置をずらす",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-013",
@@ -18207,7 +18335,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "手間がかかる"
+      "base_form": "手間がかかる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-014",
@@ -18328,7 +18457,8 @@
           "kind": "past",
           "form": "手間を省いた"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-015",
@@ -18422,7 +18552,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "表示を切り替える"
+      "base_form": "表示を切り替える",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-016",
@@ -18516,7 +18647,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "データが消える"
+      "base_form": "データが消える",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-017",
@@ -18610,7 +18742,8 @@
           "kind": "negative",
           "form": "データを消去しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-018",
@@ -18711,7 +18844,8 @@
         "6o6absksKdQ9NGJ8"
       ],
       "source_draft_title": "第2週 N2单词・実戦復習問題（25問）",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-019",
@@ -18805,7 +18939,8 @@
           "kind": "negative",
           "form": "受信を拒否しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-020",
@@ -18899,7 +19034,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "個人情報を盗まれる"
+      "base_form": "個人情報を盗まれる",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-021",
@@ -18993,7 +19129,8 @@
           "kind": "negative",
           "form": "ウイルスに感染しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-022",
@@ -19087,7 +19224,8 @@
           "kind": "negative",
           "form": "新しいウイルスに対応しない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-023",
@@ -19181,7 +19319,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "チャットを楽しむ"
+      "base_form": "チャットを楽しむ",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-024",
@@ -19275,7 +19414,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "コミュニケーションを楽しむ"
+      "base_form": "コミュニケーションを楽しむ",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-025",
@@ -19369,7 +19509,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "掲示板に書き込む"
+      "base_form": "掲示板に書き込む",
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-026",
@@ -19439,7 +19580,8 @@
       "wordbook_ids": [
         "wordbook-lbhIySnfItbH"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-027",
@@ -19533,7 +19675,8 @@
           "kind": "negative",
           "form": "品物を売り買いしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n2-textbook-week2-d06-028",
@@ -19622,7 +19765,8 @@
           "kind": "negative",
           "form": "オンラインゲームをしない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-ganges",
@@ -19682,7 +19826,8 @@
         "地名",
         "世界史"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-hikino-yoken",
@@ -19759,7 +19904,8 @@
         "IT",
         "要件定義"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-himiko",
@@ -19819,7 +19965,8 @@
         "人名",
         "日本史"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-ryudo",
@@ -19896,7 +20043,8 @@
         "IT",
         "ビジネス"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-shinshutsu",
@@ -19996,7 +20144,8 @@
           "kind": "te",
           "form": "進出して"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-toraijin",
@@ -20072,7 +20221,8 @@
         "雑談",
         "日本史"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-yayoi-jidai",
@@ -20135,7 +20285,8 @@
         "雑談",
         "日本史"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-gi-go-shoku",
@@ -20198,7 +20349,8 @@
         "雑談",
         "中国史"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-huizu",
@@ -20257,7 +20409,8 @@
         "雑談",
         "民族名"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-itazura-ni-ikiru",
@@ -20342,7 +20495,8 @@
         "文語",
         "表現"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-iyu",
@@ -20418,7 +20572,8 @@
         "雑談",
         "書面語"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-nemureru-shishi",
@@ -20498,7 +20653,8 @@
         "雑談",
         "慣用表現"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-shiki",
@@ -20605,7 +20761,8 @@
           "kind": "te",
           "form": "敷いて"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-tsurezuregusa",
@@ -20673,7 +20830,8 @@
         "作品名",
         "古典"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-arima-shinshichi",
@@ -20733,7 +20891,8 @@
         "人名",
         "幕末"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-higeki",
@@ -20809,7 +20968,8 @@
         "雑談",
         "文学"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-ishi-no-ue",
@@ -20893,7 +21053,8 @@
         "雑談",
         "ことわざ"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-jinjo-shogakko",
@@ -20970,7 +21131,8 @@
         "日本史",
         "教育"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-miura-anjin",
@@ -21034,7 +21196,8 @@
         "人名",
         "江戸時代"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-murahachibu",
@@ -21111,7 +21274,8 @@
         "社会",
         "慣用表現"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "chat-2026-09-01-sakamoto-ryoma",
@@ -21175,7 +21339,8 @@
         "人名",
         "幕末"
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-合併",
@@ -26778,31 +26943,11 @@
       "core_memory": "熱戦＝双方全力、激烈且精彩；接戦＝比分或实力差距很小。",
       "explanation_zh": "「熱戦」强调比赛双方投入全力，过程激烈而且值得观看，常见于体育报道。它不只说明比分接近：即使最终有一定分差，只要比赛过程激烈精彩，也可以称为「熱戦」。",
       "collocations": [
-        {
-          "text": "熱戦を繰り広げる",
-          "reading": "ねっせんをくりひろげる",
-          "meaning_zh": "展开激烈精彩的较量"
-        },
-        {
-          "text": "熱戦が続く",
-          "reading": "ねっせんがつづく",
-          "meaning_zh": "激战持续"
-        },
-        {
-          "text": "熱戦を制する",
-          "reading": "ねっせんをせいする",
-          "meaning_zh": "赢下激战"
-        },
-        {
-          "text": "手に汗握る熱戦",
-          "reading": "てにあせにぎるねっせん",
-          "meaning_zh": "令人捏一把汗的激战"
-        },
-        {
-          "text": "決勝戦での熱戦",
-          "reading": "けっしょうせんでのねっせん",
-          "meaning_zh": "决赛中的激战"
-        }
+        "熱戦を繰り広げる",
+        "熱戦が続く",
+        "熱戦を制する",
+        "手に汗握る熱戦",
+        "決勝戦での熱戦"
       ],
       "examples": [
         {
@@ -27219,7 +27364,8 @@
           "reading": "こうりゅう"
         }
       ],
-      "source_chat_summary": "用户在语法第二课中通过作家发表作品、全国巡演、企业合并等例句学习「を皮切りに」，并要求按「範囲の始まり・限度」标签整理及生成五题。"
+      "source_chat_summary": "用户在语法第二课中通过作家发表作品、全国巡演、企业合并等例句学习「を皮切りに」，并要求按「範囲の始まり・限度」标签整理及生成五题。",
+      "collocations": []
     },
     {
       "date": "2026-09-02",
@@ -27456,7 +27602,8 @@
           "reading": "さぎょうてじゅん"
         }
       ],
-      "source_chat_summary": "用户在语法第二课中通过校规、旅行日程、家庭料理和商店商品范围等例句学习「に至るまで」，并要求按指定标签整理及生成五题。"
+      "source_chat_summary": "用户在语法第二课中通过校规、旅行日程、家庭料理和商店商品范围等例句学习「に至るまで」，并要求按指定标签整理及生成五题。",
+      "collocations": []
     },
     {
       "date": "2026-09-02",
@@ -27731,7 +27878,8 @@
           "reading": "ろくわり"
         }
       ],
-      "source_chat_summary": "用户通过气温、人数、睡眠、运动、平均分和三岁儿子帮忙等例句学习「といったところだ／で」，并要求按指定标签整理及生成五题。"
+      "source_chat_summary": "用户通过气温、人数、睡眠、运动、平均分和三岁儿子帮忙等例句学习「といったところだ／で」，并要求按指定标签整理及生成五题。",
+      "collocations": []
     },
     {
       "date": "2026-09-02",
@@ -27966,7 +28114,8 @@
           "reading": "せんしゅせいか"
         }
       ],
-      "source_chat_summary": "用户在语法第二课中通过戒烟、辞职、停止招生等例句学习「を限りに」，并要求按指定标签整理及生成五题。"
+      "source_chat_summary": "用户在语法第二课中通过戒烟、辞职、停止招生等例句学习「を限りに」，并要求按指定标签整理及生成五题。",
+      "collocations": []
     },
     {
       "date": "2026-09-02",
@@ -28219,7 +28368,4575 @@
           "reading": "たいにん"
         }
       ],
-      "source_chat_summary": "用户在语法第二课中通过截止申请、闭店、会议闭会和停止售票等例句学习「をもって」，并要求按指定标签整理及生成五题。"
+      "source_chat_summary": "用户在语法第二课中通过截止申请、闭店、会议闭会和停止售票等例句学习「をもって」，并要求按指定标签整理及生成五题。",
+      "collocations": []
+    },
+    {
+      "id": "news-2026-08-24-mimawareru",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T00:55:38.881Z",
+      "deck": "n1_vocab",
+      "type": "vocabulary",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "見舞われる",
+      "reading": "みまわれる",
+      "meaning_ja": "災害や不幸など、望ましくない出来事に遭う。",
+      "meaning_zh": "遭遇、遭受灾害或不幸。",
+      "core_memory": "「災害・事故・不幸に見舞われる」の形で覚える。",
+      "part_of_speech": "連語（受身表現）",
+      "examples": [
+        {
+          "ja": "沿岸部は台風による暴風雨に見舞われるおそれがある。",
+          "zh": "沿海地区可能遭受台风带来的暴风雨。"
+        },
+        {
+          "ja": "この地域は数年に一度、記録的な豪雨に見舞われる。",
+          "zh": "这一地区每隔几年就会遭遇一次创纪录的暴雨。"
+        }
+      ],
+      "collocations": [
+        "大雨に見舞われる",
+        "災害に見舞われる",
+        "不幸に見舞われる"
+      ],
+      "ruby_terms": [
+        {
+          "text": "見舞われる",
+          "reading": "みまわれる"
+        }
+      ],
+      "tags": [
+        "新闻日语",
+        "灾害",
+        "文脈規定"
+      ],
+      "content_origin": "ai_generated",
+      "verification_status": "verified",
+      "question_kinds": [
+        "moji_goi"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "支えられた",
+          "免れた",
+          "促された"
+        ]
+      },
+      "source_chat_summary": "新闻练习的文脈規定题原先没有空格且答案词形不一致；修正后按用户要求转入正式题库试做。",
+      "review_status": "new",
+      "practice_questions": [
+        {
+          "id": "news-2026-08-24-02-formal",
+          "kind": "moji_goi",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、1・2・3・4から一つ選んでください。",
+          "prompt": "地域は記録的な大雨に（　）。",
+          "choices": [
+            "支えられた",
+            "免れた",
+            "見舞われた",
+            "促された"
+          ],
+          "answer": "見舞われた",
+          "explanation_zh": "正确答案是「見舞われた」。「〜に見舞われる」表示遭遇灾害等不利事件；句子叙述已经发生的大雨，因此使用过去式。",
+          "tested_expression": "〜に見舞われる",
+          "form_analysis_zh": "「見舞われる」是受身形，本句使用过去式「見舞われた」。"
+        }
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-02-022",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T20:33:11+09:00",
+      "lesson": "N1语法",
+      "lesson_topic": "限定・非限定・付加",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "70歳以上の方に限り、入場は無料",
+      "source_original_sentence": "70歳以上の方に限り、入場は無料",
+      "source_normalized_sentence": "70歳以上の方に限り、入場は無料です。",
+      "grammar_point": "Nに限り",
+      "reading": "エヌにかぎり",
+      "meaning_ja": "対象をある人・物・条件だけに限定する、改まった表現。通知・規則・案内などでよく使われる。",
+      "paraphrase_ja": "Nだけ／Nに限定して",
+      "meaning_zh": "仅限于N；只对N适用。把适用对象限定在特定人、事物或条件，属于较正式的书面表达。",
+      "core_memory": "Nに限り＝仅限N；公告规则中的正式「Nだけ」。",
+      "explanation_zh": "「70歳以上の方に限り」把免费入场的对象限定为70岁及以上的人，即只有这一人群可以免费入场。这里的「に限り」相当于较正式的「だけ」或「に限定して」，常用于告示、活动规则、优惠条件和招聘要求。原句可以使用，但完整告示写成「70歳以上の方に限り、入場は無料です」或「入場料は無料です」更完整。",
+      "grammar_forms": [
+        {
+          "form": "N＋に限り",
+          "example": "本日に限り、入館料は無料です。",
+          "meaning_zh": "仅限今天，入馆免费。"
+        },
+        {
+          "form": "N＋に限って",
+          "example": "会員に限って、このサービスを利用できます。",
+          "meaning_zh": "只有会员可以使用这项服务。"
+        },
+        {
+          "form": "N＋に限らず",
+          "example": "高齢者に限らず、どなたでも参加できます。",
+          "meaning_zh": "不限于老年人，任何人都可以参加。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "限定",
+          "detail_zh": "把资格、时间、对象或条件限定在N的范围内。"
+        },
+        {
+          "feature": "正式语感",
+          "detail_zh": "比「だけ」正式，常见于公告、规定、服务说明和书面通知。"
+        },
+        {
+          "feature": "对比非限定",
+          "detail_zh": "「Nに限らず」表示不限于N，范围还扩展到其他对象，与「Nに限り」方向相反。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "70歳以上の方に限り、入場は無料です。",
+          "zh": "仅限70岁及以上人士免费入场。"
+        },
+        {
+          "ja": "本日に限り、すべての商品を二割引きで販売します。",
+          "zh": "仅限今天，所有商品以八折销售。"
+        },
+        {
+          "ja": "参加者に限り、資料を無料で配布します。",
+          "zh": "仅向参加者免费发放资料。"
+        }
+      ],
+      "question_kinds": [
+        "grammar"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "を問わず",
+          "に加えて",
+          "に応じて"
+        ]
+      },
+      "comparisons": [
+        {
+          "target": "だけ",
+          "difference_zh": "意思接近，但「だけ」较中性、口语也常用；「に限り」更正式，常用于公告和规则。"
+        },
+        {
+          "target": "に限って",
+          "difference_zh": "用于限定时与「に限り」接近，但「に限って」还可表示“偏偏……”或“唯独……不会”等说话人的判断；「に限り」主要是正式限定。"
+        },
+        {
+          "target": "に限らず",
+          "difference_zh": "表示“不仅限于N”，会把范围扩展出去，意思与限定用法相反。"
+        },
+        {
+          "target": "を問わず",
+          "difference_zh": "表示“不论……”，明确说明某条件不构成限制，如「年齢を問わず」。"
+        }
+      ],
+      "practice_questions": [
+        {
+          "id": "2026-09-02-022-practice-01",
+          "kind": "grammar",
+          "instruction": "文法として最も自然なものを選びなさい。",
+          "prompt": "この割引券をお持ちの方（　）、入館料が半額になります。",
+          "choices": [
+            "に限り",
+            "を問わず",
+            "に加えて",
+            "に応じて"
+          ],
+          "answer": "に限り",
+          "explanation_zh": "优惠对象被限定为持有优惠券的人，因此使用正式限定表达「Nに限り」。「を問わず」是不论条件，「に加えて」是再加上，「に応じて」是根据条件而变化。"
+        }
+      ],
+      "question": "文法として最も自然なものを選びなさい。\nこの割引券をお持ちの方（　）、入館料が半額になります。",
+      "choices": [
+        "に限り",
+        "を問わず",
+        "に加えて",
+        "に応じて"
+      ],
+      "correct_answer": "に限り",
+      "distractor_notes": {
+        "を問わず": "表示不论某项条件，与只限定持券人的意思相反。",
+        "に加えて": "表示在原有对象或事项之外再增加一项，不能表示资格限定。",
+        "に応じて": "表示依据情况、能力或数量发生相应变化，此处优惠并非按程度变化。"
+      },
+      "notes": [
+        "接续：名词＋に限り。",
+        "常见于公告：本日に限り／会員に限り／購入者に限り。",
+        "「70歳以上」包含70岁本人。",
+        "「方」是「人」的礼貌说法。",
+        "完整告示也常写作「70歳以上の方に限り、入場料は無料です」。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "70歳以上",
+          "reading": "ななじゅっさいいじょう"
+        },
+        {
+          "text": "方",
+          "reading": "かた"
+        },
+        {
+          "text": "限り",
+          "reading": "かぎり"
+        },
+        {
+          "text": "入場",
+          "reading": "にゅうじょう"
+        },
+        {
+          "text": "無料",
+          "reading": "むりょう"
+        },
+        {
+          "text": "対象",
+          "reading": "たいしょう"
+        },
+        {
+          "text": "条件",
+          "reading": "じょうけん"
+        },
+        {
+          "text": "限定する",
+          "reading": "げんていする"
+        },
+        {
+          "text": "改まった",
+          "reading": "あらたまった"
+        },
+        {
+          "text": "表現",
+          "reading": "ひょうげん"
+        },
+        {
+          "text": "通知",
+          "reading": "つうち"
+        },
+        {
+          "text": "規則",
+          "reading": "きそく"
+        },
+        {
+          "text": "案内",
+          "reading": "あんない"
+        },
+        {
+          "text": "本日",
+          "reading": "ほんじつ"
+        },
+        {
+          "text": "入館料",
+          "reading": "にゅうかんりょう"
+        },
+        {
+          "text": "会員",
+          "reading": "かいいん"
+        },
+        {
+          "text": "利用できます",
+          "reading": "りようできます"
+        },
+        {
+          "text": "高齢者",
+          "reading": "こうれいしゃ"
+        },
+        {
+          "text": "参加できます",
+          "reading": "さんかできます"
+        },
+        {
+          "text": "商品",
+          "reading": "しょうひん"
+        },
+        {
+          "text": "二割引き",
+          "reading": "にわりびき"
+        },
+        {
+          "text": "販売します",
+          "reading": "はんばいします"
+        },
+        {
+          "text": "参加者",
+          "reading": "さんかしゃ"
+        },
+        {
+          "text": "資料",
+          "reading": "しりょう"
+        },
+        {
+          "text": "配布します",
+          "reading": "はいふします"
+        },
+        {
+          "text": "割引券",
+          "reading": "わりびきけん"
+        },
+        {
+          "text": "お持ち",
+          "reading": "おもち"
+        },
+        {
+          "text": "半額",
+          "reading": "はんがく"
+        },
+        {
+          "text": "年齢",
+          "reading": "ねんれい"
+        },
+        {
+          "text": "購入者",
+          "reading": "こうにゅうしゃ"
+        },
+        {
+          "text": "入場料",
+          "reading": "にゅうじょうりょう"
+        }
+      ],
+      "source_chat_summary": "用户在N1语法主题「限定・非限定・付加」中提交例句「70歳以上の方に限り、入場は無料」，学习正式限定表达「Nに限り」及其与「だけ」「に限って」「に限らず」「を問わず」的区别。",
+      "review_status": "new",
+      "practice_generation_status": "unverified",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-02-023",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T20:39:51+09:00",
+      "lesson": "N1语法",
+      "lesson_topic": "限定・非限定・付加",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "この商品リストを見る限りでは、この製品は今もう販売されていません",
+      "source_original_sentence": "この商品リストを見る限りでは、この製品は今もう販売されていません",
+      "source_normalized_sentence": "この商品リストを見る限りでは、この製品は今はもう販売されていません。",
+      "grammar_point": "Vる／Vた限りでは",
+      "reading": "ブイる／ブイたかぎりでは",
+      "meaning_ja": "見たり調べたりして得た情報の範囲内で、判断や推測を述べる表現。",
+      "paraphrase_ja": "見たところでは／分かる範囲では",
+      "meaning_zh": "就……所见；根据……范围内掌握的信息来看。表示判断仅以亲眼所见、调查结果或现有资料为依据，并不宣称绝对正确。",
+      "core_memory": "Vる／Vた限りでは＝根据目前看到或查到的信息来判断。",
+      "explanation_zh": "「この商品リストを見る限りでは」表示“就这份商品清单所能确认的信息来看”。说话人据此判断该产品已经不再销售，但保留了清单可能不完整或信息可能更新的余地。原句中的「今もう」可以理解，不过「今はもう販売されていません」更自然；也可以简洁地说「現在は販売されていません」。这与表示对象限定的「Nに限り」不同：前者限定的是判断依据，后者限定的是适用对象。",
+      "grammar_forms": [
+        {
+          "form": "Vる＋限りでは",
+          "example": "私が見る限りでは、機械に異常はありません。",
+          "meaning_zh": "就我所见，机器没有异常。"
+        },
+        {
+          "form": "Vた＋限りでは",
+          "example": "昨日調べた限りでは、その制度に変更はありません。",
+          "meaning_zh": "根据昨天调查到的情况，该制度没有变化。"
+        },
+        {
+          "form": "Nの＋限りでは",
+          "example": "私の知る限りでは、彼はその会議に出席していません。",
+          "meaning_zh": "据我所知，他没有出席那场会议。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "判断依据的范围",
+          "detail_zh": "把结论限定在自己所见、所知或调查到的信息范围内。"
+        },
+        {
+          "feature": "保留断言",
+          "detail_zh": "暗示其他信息可能导致不同结论，因此语气比直接断定更谨慎。"
+        },
+        {
+          "feature": "常与认知行为搭配",
+          "detail_zh": "常见「見る限りでは」「知る限りでは」「調べた限りでは」「聞いた限りでは」。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "この商品リストを見る限りでは、この製品は今はもう販売されていません。",
+          "zh": "就这份商品清单来看，这款产品现在已经不再销售了。"
+        },
+        {
+          "ja": "私が調べた限りでは、同じ事故はこれまで報告されていない。",
+          "zh": "根据我调查到的情况，此前没有报告过同类事故。"
+        },
+        {
+          "ja": "外から見る限りでは、建物に大きな被害はなさそうだ。",
+          "zh": "从外面看，建筑物似乎没有受到严重损坏。"
+        }
+      ],
+      "question_kinds": [
+        "grammar"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "調べたところで",
+          "調べたに限って",
+          "調べたばかりに"
+        ]
+      },
+      "comparisons": [
+        {
+          "target": "Nに限り",
+          "difference_zh": "限定优惠、资格或规则的适用对象，相当于正式的「Nだけ」；「Vる／Vた限りでは」限定的是作出判断时所依据的信息范围。"
+        },
+        {
+          "target": "Vる限り",
+          "difference_zh": "还可表示“只要……就……”或“在……持续期间”，如「元気である限り働く」；带「では」且与「見る・知る・調べる」等搭配时，通常表示判断依据。"
+        },
+        {
+          "target": "ところを見ると",
+          "difference_zh": "根据眼前迹象作出推测，推测感较强；「限りでは」更明确地强调信息范围有限。"
+        }
+      ],
+      "practice_questions": [
+        {
+          "id": "2026-09-02-023-practice-01",
+          "kind": "grammar",
+          "instruction": "文法として最も自然なものを選びなさい。",
+          "prompt": "私が昨日（　）、この地域で同じ事例は報告されていない。",
+          "choices": [
+            "調べた限りでは",
+            "調べたところで",
+            "調べたに限って",
+            "調べたばかりに"
+          ],
+          "answer": "調べた限りでは",
+          "explanation_zh": "后句是根据昨天调查所得信息作出的判断，并保留信息范围有限的语气，因此用「調べた限りでは」。「ところで」表示即使做也无用，「に限って」不能这样接在过去式后表示依据，「ばかりに」表示正因为某事而导致不良结果。"
+        }
+      ],
+      "question": "文法として最も自然なものを選びなさい。\n私が昨日（　）、この地域で同じ事例は報告されていない。",
+      "choices": [
+        "調べた限りでは",
+        "調べたところで",
+        "調べたに限って",
+        "調べたばかりに"
+      ],
+      "correct_answer": "調べた限りでは",
+      "distractor_notes": {
+        "調べたところで": "「Vたところで」表示即使做了也不会产生理想结果，不表示调查所得是判断依据。",
+        "調べたに限って": "接续不成立；限定对象时通常用「Nに限って／Nに限り」。",
+        "調べたばかりに": "表示正因为做了某事而导致不良结果，与根据调查作判断不同。"
+      },
+      "notes": [
+        "接续：动词辞书形／た形＋限りでは。",
+        "固定搭配：見る限りでは／知る限りでは／調べた限りでは／聞いた限りでは。",
+        "结论只在现有信息范围内成立，带有谨慎、不绝对断言的语气。",
+        "自然化：今もう販売されていません→今はもう販売されていません。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "商品",
+          "reading": "しょうひん"
+        },
+        {
+          "text": "見る",
+          "reading": "みる"
+        },
+        {
+          "text": "限り",
+          "reading": "かぎり"
+        },
+        {
+          "text": "製品",
+          "reading": "せいひん"
+        },
+        {
+          "text": "今",
+          "reading": "いま"
+        },
+        {
+          "text": "販売されていません",
+          "reading": "はんばいされていません"
+        },
+        {
+          "text": "得た",
+          "reading": "えた"
+        },
+        {
+          "text": "情報",
+          "reading": "じょうほう"
+        },
+        {
+          "text": "範囲内",
+          "reading": "はんいない"
+        },
+        {
+          "text": "判断",
+          "reading": "はんだん"
+        },
+        {
+          "text": "推測",
+          "reading": "すいそく"
+        },
+        {
+          "text": "分かる",
+          "reading": "わかる"
+        },
+        {
+          "text": "私",
+          "reading": "わたし"
+        },
+        {
+          "text": "機械",
+          "reading": "きかい"
+        },
+        {
+          "text": "異常",
+          "reading": "いじょう"
+        },
+        {
+          "text": "昨日",
+          "reading": "きのう"
+        },
+        {
+          "text": "調べた",
+          "reading": "しらべた"
+        },
+        {
+          "text": "制度",
+          "reading": "せいど"
+        },
+        {
+          "text": "変更",
+          "reading": "へんこう"
+        },
+        {
+          "text": "知る",
+          "reading": "しる"
+        },
+        {
+          "text": "会議",
+          "reading": "かいぎ"
+        },
+        {
+          "text": "出席していません",
+          "reading": "しゅっせきしていません"
+        },
+        {
+          "text": "同じ事故",
+          "reading": "おなじじこ"
+        },
+        {
+          "text": "報告されていない",
+          "reading": "ほうこくされていない"
+        },
+        {
+          "text": "外",
+          "reading": "そと"
+        },
+        {
+          "text": "建物",
+          "reading": "たてもの"
+        },
+        {
+          "text": "大きな被害",
+          "reading": "おおきなひがい"
+        },
+        {
+          "text": "認知行動",
+          "reading": "にんちこうどう"
+        },
+        {
+          "text": "地域",
+          "reading": "ちいき"
+        },
+        {
+          "text": "事例",
+          "reading": "じれい"
+        },
+        {
+          "text": "元気",
+          "reading": "げんき"
+        },
+        {
+          "text": "働く",
+          "reading": "はたらく"
+        }
+      ],
+      "source_chat_summary": "用户在N1语法主题「限定・非限定・付加」中提交「この商品リストを見る限りでは、この製品は今もう販売されていません」，学习「Vる／Vた限りでは」表示在目前所见、所知或调查所得的信息范围内作出谨慎判断，并与限定对象的「Nに限り」区分。",
+      "review_status": "new",
+      "practice_generation_status": "unverified",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-02-024",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T20:41:45+09:00",
+      "lesson": "N1语法",
+      "lesson_topic": "限定・非限定・付加",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "彼はストレスのため、心ばかりか体も不健康になってしまった",
+      "source_original_sentence": "彼はストレスのため、心ばかりか体も不健康になってしまった",
+      "source_normalized_sentence": "彼はストレスのため、心ばかりか、体も不健康になってしまった。",
+      "grammar_point": "Nばかりか、Nも／まで",
+      "reading": "エヌばかりか、エヌも／まで",
+      "meaning_ja": "ある事柄だけでなく、さらに別の事柄も同様であることを、驚きや強調を込めて付け加える表現。",
+      "paraphrase_ja": "Nだけでなく、Nも／まで",
+      "meaning_zh": "不仅N，而且N也／甚至连N也。先提出一项，再追加程度更深、范围更广或更出乎意料的一项。",
+      "core_memory": "AばかりかBも／まで＝不但A，连B也；B通常更进一步。",
+      "explanation_zh": "句子表示压力造成的影响不只在心理层面，身体也变得不健康。「ばかりか」后面常与「も」「まで」「さえ」呼应，突出后项是进一步追加的信息。原句语法成立，但日语里「心が不健康になる」略显生硬；更自然可以说「彼はストレスのため、精神面ばかりか身体面でも健康を損なってしまった」或「心ばかりか体まで病んでしまった」。",
+      "grammar_forms": [
+        {
+          "form": "N＋ばかりか、Nも／まで",
+          "example": "この問題は子どもばかりか、大人にも難しい。",
+          "meaning_zh": "这个问题不仅对孩子，对成年人也很难。"
+        },
+        {
+          "form": "普通形＋ばかりか、～も／まで",
+          "example": "彼は謝らなかったばかりか、責任まで他人に押しつけた。",
+          "meaning_zh": "他不仅没有道歉，甚至还把责任推给了别人。"
+        },
+        {
+          "form": "ナ形容詞・N＋であるばかりか",
+          "example": "この町は静かであるばかりか、交通も便利だ。",
+          "meaning_zh": "这座城市不仅安静，交通也很方便。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "付加",
+          "detail_zh": "在前项事实的基础上，再补充一个同方向的后项事实。"
+        },
+        {
+          "feature": "递进与意外感",
+          "detail_zh": "后项通常比前项程度更深、影响更广，或更出乎说话人的预料。"
+        },
+        {
+          "feature": "呼应副助词",
+          "detail_zh": "后项常出现「も」「まで」「さえ」，加强“不仅……连……也”的语气。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "彼はストレスのため、精神面ばかりか身体面でも健康を損なってしまった。",
+          "zh": "他由于压力，不仅心理方面，连身体方面的健康也受到了损害。"
+        },
+        {
+          "ja": "この台風は交通機関ばかりか、学校や病院にも大きな影響を与えた。",
+          "zh": "这场台风不仅影响了交通机构，也给学校和医院造成了很大影响。"
+        },
+        {
+          "ja": "彼女は英語ばかりか、フランス語まで流暢に話せる。",
+          "zh": "她不仅会英语，甚至还能流利地说法语。"
+        }
+      ],
+      "question_kinds": [
+        "grammar"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "に限り",
+          "を問わず",
+          "に応じて"
+        ]
+      },
+      "comparisons": [
+        {
+          "target": "だけでなく",
+          "difference_zh": "同样表示“不仅……而且……”，语气较中性；「ばかりか」更强调后项的递进或意外性，书面感也稍强。"
+        },
+        {
+          "target": "どころか",
+          "difference_zh": "常表示实际情况与预想相反，或远远超过前项，如「休むどころか、徹夜した」；「ばかりか」主要是在同一方向上追加后项。"
+        },
+        {
+          "target": "のみならず",
+          "difference_zh": "意思相近但更正式、书面；「ばかりか」更容易带出说话人的惊讶或负面评价。"
+        },
+        {
+          "target": "に限り",
+          "difference_zh": "「に限り」把对象限制在某范围；「ばかりか」则从前项继续扩展、追加后项，方向相反。"
+        }
+      ],
+      "practice_questions": [
+        {
+          "id": "2026-09-02-024-practice-01",
+          "kind": "grammar",
+          "instruction": "文法として最も自然なものを選びなさい。",
+          "prompt": "この台風は交通機関（　）、学校や病院にも大きな影響を与えた。",
+          "choices": [
+            "ばかりか",
+            "に限り",
+            "を問わず",
+            "に応じて"
+          ],
+          "answer": "ばかりか",
+          "explanation_zh": "影响范围从交通机构进一步扩大到学校和医院，后项的「にも」与追加表达「ばかりか」呼应，因此答案是「ばかりか」。"
+        }
+      ],
+      "question": "文法として最も自然なものを選びなさい。\nこの台風は交通機関（　）、学校や病院にも大きな影響を与えた。",
+      "choices": [
+        "ばかりか",
+        "に限り",
+        "を問わず",
+        "に応じて"
+      ],
+      "correct_answer": "ばかりか",
+      "distractor_notes": {
+        "に限り": "表示仅限于交通机构，与后文还包括学校和医院相矛盾。",
+        "を問わず": "表示不论某种条件，通常需要能构成对立或分类的条件，如年龄、国籍、晴雨；此处是在列举并扩展受影响对象。",
+        "に応じて": "表示根据情况、数量或能力而相应变化，不表示在交通机构之外继续追加对象。"
+      },
+      "notes": [
+        "接续：名词＋ばかりか；动词、イ形容词普通形＋ばかりか；ナ形容词、名词常用「であるばかりか」。",
+        "后项常与「も／まで／さえ」呼应。",
+        "后项一般是程度更深、范围更广或更意外的信息。",
+        "自然表达：精神面ばかりか身体面でも健康を損なう／心ばかりか体まで病む。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "彼",
+          "reading": "かれ"
+        },
+        {
+          "text": "心",
+          "reading": "こころ"
+        },
+        {
+          "text": "体",
+          "reading": "からだ"
+        },
+        {
+          "text": "不健康",
+          "reading": "ふけんこう"
+        },
+        {
+          "text": "事柄",
+          "reading": "ことがら"
+        },
+        {
+          "text": "別",
+          "reading": "べつ"
+        },
+        {
+          "text": "同様",
+          "reading": "どうよう"
+        },
+        {
+          "text": "驚き",
+          "reading": "おどろき"
+        },
+        {
+          "text": "強調",
+          "reading": "きょうちょう"
+        },
+        {
+          "text": "付け加える",
+          "reading": "つけくわえる"
+        },
+        {
+          "text": "精神面",
+          "reading": "せいしんめん"
+        },
+        {
+          "text": "身体面",
+          "reading": "しんたいめん"
+        },
+        {
+          "text": "健康",
+          "reading": "けんこう"
+        },
+        {
+          "text": "損なってしまった",
+          "reading": "そこなってしまった"
+        },
+        {
+          "text": "病んでしまった",
+          "reading": "やんでしまった"
+        },
+        {
+          "text": "問題",
+          "reading": "もんだい"
+        },
+        {
+          "text": "子ども",
+          "reading": "こども"
+        },
+        {
+          "text": "大人",
+          "reading": "おとな"
+        },
+        {
+          "text": "難しい",
+          "reading": "むずかしい"
+        },
+        {
+          "text": "謝らなかった",
+          "reading": "あやまらなかった"
+        },
+        {
+          "text": "責任",
+          "reading": "せきにん"
+        },
+        {
+          "text": "他人",
+          "reading": "たにん"
+        },
+        {
+          "text": "押しつけた",
+          "reading": "おしつけた"
+        },
+        {
+          "text": "町",
+          "reading": "まち"
+        },
+        {
+          "text": "静か",
+          "reading": "しずか"
+        },
+        {
+          "text": "交通",
+          "reading": "こうつう"
+        },
+        {
+          "text": "便利",
+          "reading": "べんり"
+        },
+        {
+          "text": "台風",
+          "reading": "たいふう"
+        },
+        {
+          "text": "交通機関",
+          "reading": "こうつうきかん"
+        },
+        {
+          "text": "学校",
+          "reading": "がっこう"
+        },
+        {
+          "text": "病院",
+          "reading": "びょういん"
+        },
+        {
+          "text": "大きな影響",
+          "reading": "おおきなえいきょう"
+        },
+        {
+          "text": "与えた",
+          "reading": "あたえた"
+        },
+        {
+          "text": "英語",
+          "reading": "えいご"
+        },
+        {
+          "text": "流暢",
+          "reading": "りゅうちょう"
+        },
+        {
+          "text": "話せる",
+          "reading": "はなせる"
+        },
+        {
+          "text": "普通形",
+          "reading": "ふつうけい"
+        },
+        {
+          "text": "名詞",
+          "reading": "めいし"
+        },
+        {
+          "text": "動詞",
+          "reading": "どうし"
+        },
+        {
+          "text": "形容詞",
+          "reading": "けいようし"
+        }
+      ],
+      "source_chat_summary": "用户在N1语法主题「限定・非限定・付加」中提交「彼はストレスのため、心ばかりか体も不健康になってしまった」，学习付加表达「Nばかりか、Nも／まで」以及后项递进语感，并补充更自然的「精神面ばかりか身体面でも健康を損なう」。",
+      "review_status": "new",
+      "practice_generation_status": "unverified",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "n1-くつろげる",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T21:02:34+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "寛げる",
+      "reading": "くつろげる",
+      "part_of_speech": "動詞「寛ぐ」の可能形",
+      "inflection_class": "godan",
+      "base_form": "寛ぐ",
+      "conjugations": [
+        {
+          "kind": "dictionary",
+          "form": "寛ぐ"
+        },
+        {
+          "kind": "potential",
+          "form": "寛げる"
+        },
+        {
+          "kind": "polite_potential",
+          "form": "寛げます"
+        },
+        {
+          "kind": "negative_potential",
+          "form": "寛げない"
+        },
+        {
+          "kind": "past_potential",
+          "form": "寛げた"
+        },
+        {
+          "kind": "te_potential",
+          "form": "寛げて"
+        }
+      ],
+      "meaning_ja": "心身の緊張を解いて、ゆったり休んだり過ごしたりすることができる。",
+      "paraphrase_ja": "リラックスしてゆっくり過ごせる",
+      "meaning_zh": "能够放松；能够舒适自在地休息或度过时间。",
+      "core_memory": "寛ぐ＝放松；寛げる＝能够放松、可以自在休息。",
+      "explanation_zh": "「寛げる」是五段动词「寛ぐ」的可能形，表示“能够放松、可以自在地休息”。常用来修饰让人感到舒适的场所，如「寛げる空間」「心から寛げる場所」。它描述人在环境中能解除紧张、悠闲度过时间，并不表示让别人放松。",
+      "collocations": [
+        "ゆっくり寛げる",
+        "家で寛げる",
+        "寛げる空間",
+        "心から寛げる"
+      ],
+      "examples": [
+        {
+          "ja": "このソファなら、家族みんなでゆったり寛げる。",
+          "zh": "如果是这张沙发，全家人都能悠闲地放松。"
+        },
+        {
+          "ja": "木の香りがする、静かで寛げる空間だ。",
+          "zh": "这是一个散发木香、安静而令人放松的空间。"
+        },
+        {
+          "ja": "旅館の広い和室で、心から寛げた。",
+          "zh": "在旅馆宽敞的日式房间里，我彻底放松了下来。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "寛ぐ",
+          "difference_zh": "基本形，表示实际处于放松、自在的状态；「寛げる」表示具备这种可能。"
+        },
+        {
+          "item": "休める",
+          "reading": "やすめる",
+          "difference_zh": "强调能够休息或让身体停下来，不一定有舒适自在的感觉。"
+        },
+        {
+          "item": "落ち着ける",
+          "reading": "おちつける",
+          "difference_zh": "强调能够安定下来、保持冷静；「寛げる」更侧重解除紧张并悠闲度过时间。"
+        },
+        {
+          "item": "リラックスできる",
+          "difference_zh": "意思接近，口语感更强；「寛げる」常用于家庭、酒店、咖啡馆等舒适空间。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning",
+        "moji_goi",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "寛がせた",
+          "寛がれた",
+          "寛がなかった"
+        ],
+        "meaning": [
+          "緊張して注意を払い続けられる",
+          "短時間だけ眠ることができる",
+          "急いでその場を離れられる"
+        ],
+        "moji_goi": [
+          "片づけられる",
+          "引き受けられる",
+          "持ち上げられる"
+        ],
+        "kanji_to_kana": [
+          "かんげる",
+          "ゆるげる",
+          "くつろがえる"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n静かで、仕事の後にゆっくり（　）店を探している。",
+      "choices": [
+        "寛げる",
+        "片づけられる",
+        "引き受けられる",
+        "持ち上げられる"
+      ],
+      "correct_answer": "寛げる",
+      "distractor_notes": {
+        "片づけられる": "“能够整理、收拾”，不符合在店里放松的语境。",
+        "引き受けられる": "“能够承担、接受委托”，不描述舒适地度过时间。",
+        "持ち上げられる": "“能够举起”，与安静的店和放松无关。",
+        "くつろがせた": "使役形式，表示让某人放松；本句需要表示自己能够放松的可能形。",
+        "くつろがれた": "被动态或尊敬表达，不表示说话人能够放松。",
+        "くつろがなかった": "否定过去式，表示没有放松，与句中所需的可能意义不同。",
+        "かんげる": "「寛」を音読みの「かん」で読んだ誤読。この語では訓読みで「くつろげる」と読む。",
+        "ゆるげる": "「寛」の意味から連想した誤読で、「寛げる」の読みではない。",
+        "くつろがえる": "語幹と可能形の作り方を混同した誤読。正しくは「くつろげる」。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-02-031-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "静かで、仕事の後にゆっくり（　）店を探している。",
+          "choices": [
+            "寛げる",
+            "片づけられる",
+            "引き受けられる",
+            "持ち上げられる"
+          ],
+          "answer": "寛げる",
+          "explanation_zh": "句子要表达“寻找下班后可以悠闲放松的店”，因此选择「寛げる」。"
+        },
+        {
+          "id": "2026-09-02-031-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の意味に最も近いものを選びなさい。",
+          "prompt": "このホテルには、心から「寛げる」場所がある。",
+          "target": "寛げる",
+          "choices": [
+            "リラックスしてゆっくり過ごせる",
+            "緊張して注意を払い続けられる",
+            "短時間だけ眠ることができる",
+            "急いでその場を離れられる"
+          ],
+          "answer": "リラックスしてゆっくり過ごせる",
+          "explanation_zh": "「寛げる」表示能够解除紧张，舒适自在地度过时间。"
+        },
+        {
+          "id": "2026-09-02-031-practice-03",
+          "kind": "grammar",
+          "instruction": "文法として最も自然なものを選びなさい。",
+          "prompt": "長旅で疲れていたが、ホテルではゆっくり（　）。",
+          "choices": [
+            "寛げた",
+            "寛がせた",
+            "寛がれた",
+            "寛がなかった"
+          ],
+          "answer": "寛げた",
+          "explanation_zh": "这里表示抵达酒店后“得以放松”，使用「寛ぐ」的可能形过去式「寛げた」。"
+        },
+        {
+          "id": "2026-09-02-031-practice-04",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "このホテルには、心から寛げる場所がある。",
+          "target": "寛げる",
+          "choices": [
+            "くつろげる",
+            "かんげる",
+            "ゆるげる",
+            "くつろがえる"
+          ],
+          "answer": "くつろげる",
+          "explanation_zh": "「寛ぐ」读作「くつろぐ」，其可能形「寛げる」读作「くつろげる」。"
+        }
+      ],
+      "notes": [
+        "基本形是「寛ぐ（くつろぐ）」，「寛げる（くつろげる）」是其可能形。",
+        "常见表达：「寛げる空間」「心から寛げる場所」。",
+        "按用户要求使用汉字「寛げる」作为词条表记；日常文本中也经常写作平假名「くつろげる」。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "寛げる",
+          "reading": "くつろげる"
+        },
+        {
+          "text": "寛ぐ",
+          "reading": "くつろぐ"
+        },
+        {
+          "text": "心身",
+          "reading": "しんしん"
+        },
+        {
+          "text": "緊張",
+          "reading": "きんちょう"
+        },
+        {
+          "text": "休む",
+          "reading": "やすむ"
+        },
+        {
+          "text": "過ごす",
+          "reading": "すごす"
+        },
+        {
+          "text": "空間",
+          "reading": "くうかん"
+        },
+        {
+          "text": "心",
+          "reading": "こころ"
+        },
+        {
+          "text": "木",
+          "reading": "き"
+        },
+        {
+          "text": "香り",
+          "reading": "かおり"
+        },
+        {
+          "text": "旅館",
+          "reading": "りょかん"
+        },
+        {
+          "text": "広い",
+          "reading": "ひろい"
+        },
+        {
+          "text": "和室",
+          "reading": "わしつ"
+        },
+        {
+          "text": "休める",
+          "reading": "やすめる"
+        },
+        {
+          "text": "落ち着ける",
+          "reading": "おちつける"
+        }
+      ],
+      "source_chat_summary": "用户提交「くつろげる」后，明确要求使用汉字形式记录；词条已修正为「寛げる（くつろげる）」，基本形为「寛ぐ（くつろぐ）」。",
+      "review_status": "corrected",
+      "verification_status": "unverified",
+      "practice_generation_status": "unverified",
+      "correction_history": [
+        {
+          "corrected_at": "2026-09-02T21:07:48+09:00",
+          "field": "original／normalized／base_form",
+          "before": "くつろげる／くつろぐ",
+          "after": "寛げる／寛ぐ",
+          "reason": "用户明确要求使用汉字记录。"
+        }
+      ],
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "n1-多種多様",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T21:09:02+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "多種多様",
+      "reading": "たしゅたよう",
+      "part_of_speech": "名詞・ナ形容詞",
+      "inflection_class": "na_adjective",
+      "base_form": "多種多様だ",
+      "conjugations": [
+        {
+          "kind": "dictionary",
+          "form": "多種多様だ"
+        },
+        {
+          "kind": "attributive",
+          "form": "多種多様な"
+        },
+        {
+          "kind": "polite",
+          "form": "多種多様です"
+        },
+        {
+          "kind": "negative",
+          "form": "多種多様ではない"
+        },
+        {
+          "kind": "past",
+          "form": "多種多様だった"
+        },
+        {
+          "kind": "adverbial",
+          "form": "多種多様に"
+        }
+      ],
+      "meaning_ja": "種類や性質が非常に多く、それぞれに違いがあるさま。",
+      "paraphrase_ja": "いろいろな種類があり、変化に富んでいる",
+      "meaning_zh": "多种多样；种类或性质非常丰富，而且各不相同。",
+      "core_memory": "多種多様＝种类很多＋彼此不同；修饰名词时用「多種多様な」。",
+      "explanation_zh": "「多種多様」强调不仅数量多，而且种类、性质各不相同。既可作名词，也常作为ナ形容词使用，如「多種多様な価値観」「意見は多種多様だ」。比单独的「多様」更加强调“种类繁多”。",
+      "collocations": [
+        "多種多様な価値観",
+        "多種多様な商品",
+        "多種多様なニーズに応える",
+        "意見は多種多様だ"
+      ],
+      "examples": [
+        {
+          "ja": "現代社会では、多種多様な価値観が共存している。",
+          "zh": "现代社会中，多种多样的价值观并存。"
+        },
+        {
+          "ja": "この市場では、多種多様な商品が販売されている。",
+          "zh": "这个市场销售着各式各样的商品。"
+        },
+        {
+          "ja": "参加者の意見は多種多様で、一つにまとめるのは難しかった。",
+          "zh": "参加者的意见多种多样，很难统一起来。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "多様",
+          "reading": "たよう",
+          "difference_zh": "表示多样、具有不同形式；「多種多様」更明确地强调种类繁多。"
+        },
+        {
+          "item": "さまざま",
+          "difference_zh": "日常使用范围更广、语气更自然；「多種多様」较书面，也更强调类别丰富。"
+        },
+        {
+          "item": "多岐にわたる",
+          "reading": "たきにわたる",
+          "difference_zh": "强调范围涉及许多领域或方面，常修饰内容、问题、业务等。"
+        },
+        {
+          "item": "千差万別",
+          "reading": "せんさばんべつ",
+          "difference_zh": "强调每个事物都有很大差别，彼此各不相同。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "単調",
+          "一律",
+          "同一"
+        ],
+        "meaning": [
+          "どれもほとんど同じである",
+          "数が少なく限られている",
+          "一つの基準に統一されている"
+        ],
+        "kanji_to_kana": [
+          "たしゅだよう",
+          "たねたよう",
+          "たしゅたさま"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n企業は消費者の（　）なニーズに応える必要がある。",
+      "choices": [
+        "多種多様",
+        "単調",
+        "一律",
+        "同一"
+      ],
+      "correct_answer": "多種多様",
+      "distractor_notes": {
+        "単調": "变化少、单调，与需求各式各样的语境相反。",
+        "一律": "全部采用相同标准或方式，不表示种类丰富。",
+        "同一": "表示完全相同，与多样性相反。",
+        "たしゅだよう": "「多様」读作「たよう」，不发生浊音化。",
+        "たねたよう": "把「種」误读为训读「たね」；在该四字词中读音读作「しゅ」。",
+        "たしゅたさま": "把「様」误读为训读「さま」；这里读音读作「よう」。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-02-032-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "企業は消費者の（　）なニーズに応える必要がある。",
+          "choices": [
+            "多種多様",
+            "単調",
+            "一律",
+            "同一"
+          ],
+          "answer": "多種多様",
+          "explanation_zh": "消费者的需求种类丰富且各不相同，因此选择「多種多様」。"
+        },
+        {
+          "id": "2026-09-02-032-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の意味に最も近いものを選びなさい。",
+          "prompt": "参加者の意見は「多種多様」だった。",
+          "target": "多種多様",
+          "choices": [
+            "いろいろな種類があり、それぞれ違っている",
+            "どれもほとんど同じである",
+            "数が少なく限られている",
+            "一つの基準に統一されている"
+          ],
+          "answer": "いろいろな種類があり、それぞれ違っている",
+          "explanation_zh": "「多種多様」表示种类很多，而且各自具有不同的性质或特点。"
+        },
+        {
+          "id": "2026-09-02-032-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "現代社会には多種多様な価値観が存在する。",
+          "target": "多種多様",
+          "choices": [
+            "たしゅたよう",
+            "たしゅだよう",
+            "たねたよう",
+            "たしゅたさま"
+          ],
+          "answer": "たしゅたよう",
+          "explanation_zh": "「多種多様」读作「たしゅたよう」。其中「種」读「しゅ」，「様」读「よう」。"
+        }
+      ],
+      "notes": [
+        "修饰名词时使用「多種多様な＋名詞」。",
+        "作谓语时可说「意見は多種多様だ／です」。",
+        "比「多様」更突出种类繁多、各不相同。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "多種多様",
+          "reading": "たしゅたよう"
+        },
+        {
+          "text": "種類",
+          "reading": "しゅるい"
+        },
+        {
+          "text": "性質",
+          "reading": "せいしつ"
+        },
+        {
+          "text": "非常",
+          "reading": "ひじょう"
+        },
+        {
+          "text": "価値観",
+          "reading": "かちかん"
+        },
+        {
+          "text": "商品",
+          "reading": "しょうひん"
+        },
+        {
+          "text": "応える",
+          "reading": "こたえる"
+        },
+        {
+          "text": "意見",
+          "reading": "いけん"
+        },
+        {
+          "text": "現代社会",
+          "reading": "げんだいしゃかい"
+        },
+        {
+          "text": "共存",
+          "reading": "きょうぞん"
+        },
+        {
+          "text": "市場",
+          "reading": "しじょう"
+        },
+        {
+          "text": "販売",
+          "reading": "はんばい"
+        },
+        {
+          "text": "参加者",
+          "reading": "さんかしゃ"
+        },
+        {
+          "text": "多岐",
+          "reading": "たき"
+        },
+        {
+          "text": "千差万別",
+          "reading": "せんさばんべつ"
+        }
+      ],
+      "source_chat_summary": "用户在N1单词连续记录中提交「多種多様」，需要整理读音、名词／ナ形容词用法及近义表达，并同步到「N1/N2 词汇」。 已按用户约定正式同步到内置单词本「N1/N2 词汇」。",
+      "review_status": "new",
+      "verification_status": "unverified",
+      "practice_generation_status": "unverified",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "n1-力仕事",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T21:37:24+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "related_item_ids": [
+        "2026-09-02-034"
+      ],
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "力仕事",
+      "reading": "ちからしごと",
+      "part_of_speech": "名詞",
+      "meaning_ja": "強い力や体力を必要とする、体を使って行う仕事。",
+      "paraphrase_ja": "体力を使う仕事",
+      "meaning_zh": "体力活；需要较强力气或体力完成的工作。",
+      "core_memory": "力仕事＝需要力气的体力活；「力」在这里读「ちから」。",
+      "explanation_zh": "「力仕事」指搬运重物、施工等需要使用力气或体力的工作，语气较日常。它不等于所有体力劳动：「肉体労働」范围更广且较正式；「重労働」还强调工作非常辛苦、负担沉重。",
+      "collocations": [
+        "力仕事をする",
+        "力仕事が得意だ",
+        "力仕事を任せる",
+        "力仕事に向いている"
+      ],
+      "examples": [
+        {
+          "ja": "引っ越しでは、家具を運ぶ力仕事を兄に任せた。",
+          "zh": "搬家时，我把搬家具的体力活交给了哥哥。"
+        },
+        {
+          "ja": "この作業は力仕事なので、二人で行ったほうがいい。",
+          "zh": "这项作业需要体力，最好两个人一起做。"
+        },
+        {
+          "ja": "機械の導入によって、以前ほど力仕事をしなくて済むようになった。",
+          "zh": "由于引进了机器，现在不用像以前那样干那么多体力活了。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "肉体労働",
+          "reading": "にくたいろうどう",
+          "difference_zh": "泛指主要使用身体完成的劳动，范围更广，语气也更正式。"
+        },
+        {
+          "item": "重労働",
+          "reading": "じゅうろうどう",
+          "difference_zh": "强调劳动强度高、负担沉重，不只是需要力气。"
+        },
+        {
+          "item": "手仕事",
+          "reading": "てしごと",
+          "difference_zh": "指用手进行的手工劳动或手艺活，重点是手工制作而非力气。"
+        },
+        {
+          "item": "作業",
+          "reading": "さぎょう",
+          "difference_zh": "泛指按照步骤进行的工作，不限定是否需要体力。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "事務仕事",
+          "手仕事",
+          "頭脳労働"
+        ],
+        "meaning": [
+          "細かい手作業を中心とする仕事",
+          "机に向かって考える仕事",
+          "決まった書類を処理する仕事"
+        ],
+        "kanji_to_kana": [
+          "りょくしごと",
+          "ちからじごと",
+          "りきしごと"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n家具を何階も上まで運ぶのは大変な（　）だ。",
+      "choices": [
+        "力仕事",
+        "事務仕事",
+        "手仕事",
+        "頭脳労働"
+      ],
+      "correct_answer": "力仕事",
+      "distractor_notes": {
+        "事務仕事": "办公室文职工作，不符合搬运家具的语境。",
+        "手仕事": "强调手工制作或手艺，并不等于需要较强体力的工作。",
+        "頭脳労働": "主要使用思考能力的脑力劳动，与搬运重物相反。",
+        "りょくしごと": "把「力」误读为音读「りょく」；该复合词读「ちからしごと」。",
+        "ちからじごと": "「仕事」读「しごと」，这里不发生浊音化。",
+        "りきしごと": "把「力」误读为音读「りき」；该词使用训读「ちから」。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-02-036-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "家具を何階も上まで運ぶのは大変な（　）だ。",
+          "choices": [
+            "力仕事",
+            "事務仕事",
+            "手仕事",
+            "頭脳労働"
+          ],
+          "answer": "力仕事",
+          "explanation_zh": "把家具搬上多层楼需要使用较强体力，因此选择「力仕事」。"
+        },
+        {
+          "id": "2026-09-02-036-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の意味に最も近いものを選びなさい。",
+          "prompt": "この作業は「力仕事」なので、二人で行ったほうがいい。",
+          "target": "力仕事",
+          "choices": [
+            "強い力や体力を必要とする仕事",
+            "細かい手作業を中心とする仕事",
+            "机に向かって考える仕事",
+            "決まった書類を処理する仕事"
+          ],
+          "answer": "強い力や体力を必要とする仕事",
+          "explanation_zh": "「力仕事」指需要力气或体力完成的工作。"
+        },
+        {
+          "id": "2026-09-02-036-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "この力仕事は一人ではできない。",
+          "target": "力仕事",
+          "choices": [
+            "ちからしごと",
+            "りょくしごと",
+            "ちからじごと",
+            "りきしごと"
+          ],
+          "answer": "ちからしごと",
+          "explanation_zh": "「力仕事」读作「ちからしごと」。「力」在这里使用训读「ちから」。"
+        }
+      ],
+      "notes": [
+        "「力」在「力仕事」中读作「ちから」，不是「りょく」或「りき」。",
+        "日常语感较强，常用于搬运、施工、家务等需要力气的工作。",
+        "「肉体労働」范围更广；「重労働」更强调强度和辛苦程度。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "力仕事",
+          "reading": "ちからしごと"
+        },
+        {
+          "text": "強い",
+          "reading": "つよい"
+        },
+        {
+          "text": "体力",
+          "reading": "たいりょく"
+        },
+        {
+          "text": "必要",
+          "reading": "ひつよう"
+        },
+        {
+          "text": "行う",
+          "reading": "おこなう"
+        },
+        {
+          "text": "得意",
+          "reading": "とくい"
+        },
+        {
+          "text": "任せる",
+          "reading": "まかせる"
+        },
+        {
+          "text": "向いている",
+          "reading": "むいている"
+        },
+        {
+          "text": "引っ越し",
+          "reading": "ひっこし"
+        },
+        {
+          "text": "家具",
+          "reading": "かぐ"
+        },
+        {
+          "text": "運ぶ",
+          "reading": "はこぶ"
+        },
+        {
+          "text": "兄",
+          "reading": "あに"
+        },
+        {
+          "text": "作業",
+          "reading": "さぎょう"
+        },
+        {
+          "text": "機械",
+          "reading": "きかい"
+        },
+        {
+          "text": "導入",
+          "reading": "どうにゅう"
+        },
+        {
+          "text": "以前",
+          "reading": "いぜん"
+        },
+        {
+          "text": "肉体労働",
+          "reading": "にくたいろうどう"
+        },
+        {
+          "text": "重労働",
+          "reading": "じゅうろうどう"
+        },
+        {
+          "text": "手仕事",
+          "reading": "てしごと"
+        },
+        {
+          "text": "頭脳労働",
+          "reading": "ずのうろうどう"
+        }
+      ],
+      "source_chat_summary": "用户在N1语法题中遇到「力仕事」后，将其作为单独词汇提交；需要整理读音、体力活语感及近义词区别，并同步到「N1/N2 词汇」。 已按用户约定正式同步到内置单词本「N1/N2 词汇」。",
+      "review_status": "new",
+      "verification_status": "unverified",
+      "practice_generation_status": "unverified",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "n1-リアリティー",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T21:59:44+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "related_item_ids": [
+        "2026-09-02-038"
+      ],
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "リアリティー",
+      "reading": "リアリティー",
+      "part_of_speech": "名詞",
+      "meaning_ja": "実際に存在したり起こったりしているかのように感じられる現実感や迫真性。",
+      "paraphrase_ja": "本物らしく感じられる現実味",
+      "meaning_zh": "真实感、现实感；仿佛真实存在或发生一样的逼真感。",
+      "core_memory": "リアリティー＝真实感；拼写是「ティ」（小写ィ），不是「テイ」。",
+      "explanation_zh": "「リアリティー」表示作品、表演、故事等给人的真实感或可信度。拼写要注意「ティ」由「テ＋小写ィ」组成，因此「リアリテイー」是误写。较短的「リアリティ」也很常见，两种形式都可使用。",
+      "collocations": [
+        "リアリティーがある",
+        "リアリティーに欠ける",
+        "リアリティーを持たせる",
+        "圧倒的なリアリティー"
+      ],
+      "examples": [
+        {
+          "ja": "彼の演技には、圧倒的なリアリティーがある。",
+          "zh": "他的表演具有极强的真实感。"
+        },
+        {
+          "ja": "細部まで取材することで、物語にリアリティーを持たせた。",
+          "zh": "通过采访调查到细节，为故事增添了真实感。"
+        },
+        {
+          "ja": "設定が現実離れしていて、少しリアリティーに欠ける。",
+          "zh": "设定脱离现实，稍微缺乏真实感。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "現実",
+          "reading": "げんじつ",
+          "difference_zh": "指客观存在的现实本身；「リアリティー」指作品或表达给人的真实感。"
+        },
+        {
+          "item": "現実味",
+          "reading": "げんじつみ",
+          "difference_zh": "意思非常接近，强调事情听起来或看起来具有现实可能性。"
+        },
+        {
+          "item": "臨場感",
+          "reading": "りんじょうかん",
+          "difference_zh": "强调仿佛亲临现场的感觉；不一定等于内容真实可信。"
+        },
+        {
+          "item": "リアル",
+          "difference_zh": "口语中可表示逼真、真实，也可指现实状态；用法比「リアリティー」更灵活。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "リアリテイー",
+          "リアリテー",
+          "リアリテイ"
+        ],
+        "meaning": [
+          "実際に起きた出来事そのもの",
+          "その場にいるような音の広がり",
+          "作品の内容を短くまとめたもの"
+        ]
+      },
+      "question": "文脈と表記の両方に最も合う語を選びなさい。\nこの俳優の演技には、見る人を引き込むほどの（　）がある。",
+      "choices": [
+        "リアリティー",
+        "リアリテイー",
+        "リアリテー",
+        "リアリテイ"
+      ],
+      "correct_answer": "リアリティー",
+      "distractor_notes": {
+        "リアリテイー": "「ティ」を大写的「テイ」写出的误写；正确形式使用小写「ィ」。",
+        "リアリテー": "缺少「ティ」中的小写「ィ」，不是标准表记。",
+        "リアリテイ": "同时把「ティ」误写为「テイ」，并缺少末尾长音符号。",
+        "実際に起きた出来事そのもの": "这是现实中的事实本身；「リアリティー」指给人的真实感。",
+        "その場にいるような音の広がり": "更接近「臨場感」，不等于一般的真实感。",
+        "作品の内容を短くまとめたもの": "这是梗概或摘要，与真实感无关。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-02-039-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈と表記の両方に最も合う語を選びなさい。",
+          "prompt": "この俳優の演技には、見る人を引き込むほどの（　）がある。",
+          "choices": [
+            "リアリティー",
+            "リアリテイー",
+            "リアリテー",
+            "リアリテイ"
+          ],
+          "answer": "リアリティー",
+          "explanation_zh": "句子需要表示表演的真实感，且「ティ」必须写成「テ＋小写ィ」，因此选择「リアリティー」。"
+        },
+        {
+          "id": "2026-09-02-039-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の意味に最も近いものを選びなさい。",
+          "prompt": "この物語は細部まで描かれていて、「リアリティー」がある。",
+          "target": "リアリティー",
+          "choices": [
+            "本物らしく感じられる現実味",
+            "実際に起きた出来事そのもの",
+            "その場にいるような音の広がり",
+            "作品の内容を短くまとめたもの"
+          ],
+          "answer": "本物らしく感じられる現実味",
+          "explanation_zh": "「リアリティーがある」表示作品让人感觉真实、可信，具有现实感。"
+        }
+      ],
+      "notes": [
+        "正确拼写：「リアリティー」；「ティ」中的「ィ」必须小写。",
+        "「リアリティ」也是常见且正确的形式。",
+        "常用于演技、故事、描写、设定等是否具有真实感的语境。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "実際",
+          "reading": "じっさい"
+        },
+        {
+          "text": "存在",
+          "reading": "そんざい"
+        },
+        {
+          "text": "起こる",
+          "reading": "おこる"
+        },
+        {
+          "text": "現実感",
+          "reading": "げんじつかん"
+        },
+        {
+          "text": "迫真性",
+          "reading": "はくしんせい"
+        },
+        {
+          "text": "本物",
+          "reading": "ほんもの"
+        },
+        {
+          "text": "欠ける",
+          "reading": "かける"
+        },
+        {
+          "text": "持たせる",
+          "reading": "もたせる"
+        },
+        {
+          "text": "圧倒的",
+          "reading": "あっとうてき"
+        },
+        {
+          "text": "彼",
+          "reading": "かれ"
+        },
+        {
+          "text": "演技",
+          "reading": "えんぎ"
+        },
+        {
+          "text": "細部",
+          "reading": "さいぶ"
+        },
+        {
+          "text": "取材",
+          "reading": "しゅざい"
+        },
+        {
+          "text": "物語",
+          "reading": "ものがたり"
+        },
+        {
+          "text": "設定",
+          "reading": "せってい"
+        },
+        {
+          "text": "現実離れ",
+          "reading": "げんじつばなれ"
+        },
+        {
+          "text": "現実",
+          "reading": "げんじつ"
+        },
+        {
+          "text": "現実味",
+          "reading": "げんじつみ"
+        },
+        {
+          "text": "臨場感",
+          "reading": "りんじょうかん"
+        }
+      ],
+      "source_chat_summary": "用户明确纠正片假名拼写：「リアリテイー」应为使用小写「ィ」的「リアリティー」。作为独立词汇记录并同步到「N1/N2 词汇」。 已按用户约定正式同步到内置单词本「N1/N2 词汇」。",
+      "review_status": "corrected",
+      "verification_status": "unverified",
+      "practice_generation_status": "unverified",
+      "correction_history": [
+        {
+          "corrected_at": "2026-09-02T21:59:44+09:00",
+          "field": "original／normalized",
+          "before": "リアリテイー",
+          "after": "リアリティー",
+          "reason": "用户明确指出片假名「ティ」需要使用小写「ィ」。"
+        }
+      ],
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "n1-一之助",
+      "date": "2026-09-02",
+      "input_at": "2026-09-02T22:02:52+09:00",
+      "lesson": "人名读法",
+      "deck": "name_reading",
+      "type": "proper_name",
+      "related_item_ids": [
+        "2026-09-02-038"
+      ],
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "一之助",
+      "reading": "いちのすけ",
+      "part_of_speech": "固有名詞・男性名",
+      "meaning_ja": "日本の男性名の一つ。ここでは「いちのすけ」と読む候補として記録する。",
+      "paraphrase_ja": "男性の名前",
+      "meaning_zh": "日本男性名字之一；当前按常见候选读音「いちのすけ」记录。",
+      "core_memory": "一之助 → いちのすけ（具体人物的正式读音仍需来源确认）。",
+      "explanation_zh": "「一之助」通常可读作「いちのすけ」，其中「一」读「いち」、「之助」读「のすけ」。不过日本姓名的读法不能只靠汉字机械确定；若指特定演员或其他具体人物，应以其官方网站、节目资料或本人标注为准。",
+      "examples": [
+        {
+          "ja": "一之助さんならではの、迫力のある演技だった。",
+          "zh": "那是只有一之助先生才能呈现的、很有魄力的表演。"
+        },
+        {
+          "ja": "資料には「一之助」と書かれているが、正式な読み方は本人の紹介欄で確認する。",
+          "zh": "资料上写着“一之助”，但正式读音要在本人介绍栏中确认。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "一之介",
+          "reading": "いちのすけ",
+          "difference_zh": "可能读音相同，但最后一个汉字不同，是另一种姓名表记。"
+        },
+        {
+          "item": "一ノ助",
+          "reading": "いちのすけ",
+          "difference_zh": "使用片假名「ノ」的另一种姓名表记，不能与「一之助」视为同一写法。"
+        }
+      ],
+      "question_kinds": [],
+      "question_distractors": {},
+      "practice_questions": [],
+      "notes": [
+        "当前候选读音：いちのすけ。",
+        "人名存在特殊读法，未确认具体人物来源前不生成正式读音选择题。",
+        "这不是普通 JLPT 词汇，因此归入「补充・人名读法」。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "一之助",
+          "reading": "いちのすけ"
+        },
+        {
+          "text": "日本",
+          "reading": "にほん"
+        },
+        {
+          "text": "男性名",
+          "reading": "だんせいめい"
+        },
+        {
+          "text": "候補",
+          "reading": "こうほ"
+        },
+        {
+          "text": "迫力",
+          "reading": "はくりょく"
+        },
+        {
+          "text": "演技",
+          "reading": "えんぎ"
+        },
+        {
+          "text": "資料",
+          "reading": "しりょう"
+        },
+        {
+          "text": "正式",
+          "reading": "せいしき"
+        },
+        {
+          "text": "本人",
+          "reading": "ほんにん"
+        },
+        {
+          "text": "紹介欄",
+          "reading": "しょうかいらん"
+        },
+        {
+          "text": "確認する",
+          "reading": "かくにんする"
+        }
+      ],
+      "source_chat_summary": "用户从含有「歌舞伎俳優の一之助さん」的语法例句中单独提交人名「一之助」。暂按候选读音「いちのすけ」记录，但具体人物读音尚未由来源确认。",
+      "review_status": "new",
+      "verification_status": "needs_review",
+      "practice_generation_status": "not_applicable",
+      "targetWordbookId": "name_reading",
+      "targetWordbookTitle": "补充・人名读法",
+      "wordbook_ids": [
+        "name_reading"
+      ],
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "n1-布製",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T09:21:17+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "布製",
+      "reading": "ぬのせい",
+      "part_of_speech": "名詞・接尾語的用法",
+      "meaning_ja": "布を材料として作られていること。また、そのように作られたもの。",
+      "paraphrase_ja": "布でできている",
+      "meaning_zh": "布制、用布做成；以布为材料制成的。",
+      "core_memory": "布製＝布做的；读作「ぬのせい」，常用「布製の＋名词」。",
+      "explanation_zh": "「布製」表示物品以布为主要材料制成，常以「布製の袋」「布製バッグ」的形式修饰名词。「製」接在材料后表示“……制的”，如「木製」「革製」。注意「布」在这里读训读「ぬの」，整体读作「ぬのせい」。",
+      "collocations": [
+        "布製の袋",
+        "布製バッグ",
+        "布製マスク",
+        "布製品"
+      ],
+      "examples": [
+        {
+          "ja": "買い物には、洗って繰り返し使える布製の袋を持っていく。",
+          "zh": "购物时，我会带上可以清洗并反复使用的布袋。"
+        },
+        {
+          "ja": "このケースは布製なので、軽くて持ち運びやすい。",
+          "zh": "这个收纳套是布制的，因此轻便、容易携带。"
+        },
+        {
+          "ja": "会場では布製のマスクも販売されていた。",
+          "zh": "会场里也出售布制口罩。"
+        }
+      ],
+      "comparisons": [
+        {
+          "item": "布地",
+          "reading": "ぬのじ",
+          "difference_zh": "指作为材料的布料本身；「布製」表示成品是用布做成的。"
+        },
+        {
+          "item": "木製",
+          "reading": "もくせい",
+          "difference_zh": "表示木制、以木材制成。"
+        },
+        {
+          "item": "革製",
+          "reading": "かわせい",
+          "difference_zh": "表示皮革制成；「革」在这里读「かわ」。"
+        },
+        {
+          "item": "織物",
+          "reading": "おりもの",
+          "difference_zh": "指通过纺织制成的织物或纺织品，是材料或制品类别，不是“布制的”这一属性。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "木製",
+          "金属製",
+          "ガラス製"
+        ],
+        "meaning": [
+          "布を売るための店",
+          "布の模様を印刷すること",
+          "古い布を捨てること"
+        ],
+        "kanji_to_kana": [
+          "ふせい",
+          "ぬのぜい",
+          "りょうせい"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n洗って繰り返し使える（　）の袋を持参してください。",
+      "choices": [
+        "布製",
+        "木製",
+        "金属製",
+        "ガラス製"
+      ],
+      "correct_answer": "布製",
+      "distractor_notes": {
+        "木製": "木制品通常不能作为可清洗、折叠携带的购物袋。",
+        "金属製": "金属制与句中普通可反复使用的袋子语境不符。",
+        "ガラス製": "玻璃不适合作为袋子的主要材料。",
+        "ふせい": "把「布」误读为音读「ふ」；该词读「ぬのせい」。",
+        "ぬのぜい": "「製」读「せい」，不发生浊音化。",
+        "りょうせい": "不是「布製」中各汉字的正确读法。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-002-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "洗って繰り返し使える（　）の袋を持参してください。",
+          "choices": [
+            "布製",
+            "木製",
+            "金属製",
+            "ガラス製"
+          ],
+          "answer": "布製",
+          "explanation_zh": "能清洗并反复使用的袋子通常以布为材料，因此选择「布製」。"
+        },
+        {
+          "id": "2026-09-03-002-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の意味に最も近いものを選びなさい。",
+          "prompt": "このケースは「布製」なので、軽くて持ち運びやすい。",
+          "target": "布製",
+          "choices": [
+            "布を材料として作られている",
+            "布を売るための店",
+            "布の模様を印刷すること",
+            "古い布を捨てること"
+          ],
+          "answer": "布を材料として作られている",
+          "explanation_zh": "「布製」表示以布为材料制作而成。"
+        },
+        {
+          "id": "2026-09-03-002-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "旅行には布製の軽いバッグを持っていく。",
+          "target": "布製",
+          "choices": [
+            "ぬのせい",
+            "ふせい",
+            "ぬのぜい",
+            "りょうせい"
+          ],
+          "answer": "ぬのせい",
+          "explanation_zh": "「布製」读作「ぬのせい」。「布」使用训读「ぬの」。"
+        }
+      ],
+      "notes": [
+        "基本形式是「布製の＋名词」。",
+        "「布」在这里读「ぬの」，不是音读「ふ」。",
+        "「布地」是布料本身；「布製」说明成品的材料。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "布製",
+          "reading": "ぬのせい"
+        },
+        {
+          "text": "布",
+          "reading": "ぬの"
+        },
+        {
+          "text": "材料",
+          "reading": "ざいりょう"
+        },
+        {
+          "text": "作られている",
+          "reading": "つくられている"
+        },
+        {
+          "text": "袋",
+          "reading": "ふくろ"
+        },
+        {
+          "text": "布製品",
+          "reading": "ぬのせいひん"
+        },
+        {
+          "text": "買い物",
+          "reading": "かいもの"
+        },
+        {
+          "text": "洗って",
+          "reading": "あらって"
+        },
+        {
+          "text": "繰り返し",
+          "reading": "くりかえし"
+        },
+        {
+          "text": "持っていく",
+          "reading": "もっていく"
+        },
+        {
+          "text": "軽い",
+          "reading": "かるい"
+        },
+        {
+          "text": "持ち運びやすい",
+          "reading": "もちはこびやすい"
+        },
+        {
+          "text": "会場",
+          "reading": "かいじょう"
+        },
+        {
+          "text": "販売されていた",
+          "reading": "はんばいされていた"
+        },
+        {
+          "text": "布地",
+          "reading": "ぬのじ"
+        },
+        {
+          "text": "木製",
+          "reading": "もくせい"
+        },
+        {
+          "text": "革製",
+          "reading": "かわせい"
+        },
+        {
+          "text": "織物",
+          "reading": "おりもの"
+        },
+        {
+          "text": "金属製",
+          "reading": "きんぞくせい"
+        }
+      ],
+      "source_chat_summary": "用户在N1单词连续记录中提交「布製」，需要整理读音、材料构词用法及与「布地」等词的区别，并同步到「N1/N2 词汇」。 已按用户约定正式同步到内置单词本「N1/N2 词汇」。",
+      "review_status": "new",
+      "verification_status": "unverified",
+      "practice_generation_status": "unverified",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "n1-店主",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T09:26:44+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "unknown",
+      "level_confidence": "low",
+      "original": "店主",
+      "reading": "てんしゅ",
+      "part_of_speech": "名詞",
+      "meaning_ja": "店を所有している人、または店を切り盛りしている責任者。",
+      "paraphrase_ja": "店の主人／店を営む人",
+      "meaning_zh": "店主；店老板；经营店铺的人。",
+      "core_memory": "店主＝てんしゅ；店の主人、店を営む人。",
+      "explanation_zh": "「店主」是偏书面或说明性一点的说法，指拥有或经营店铺的人。日常口语里也常说「店長」或「ご主人」，但「店長」可以只是雇佣的店铺负责人，不一定是所有者；「店主」更容易让人联想到这家店的主人或经营者。",
+      "collocations": [
+        "店主に聞く",
+        "店主のこだわり",
+        "老舗の店主",
+        "店主自ら仕入れる"
+      ],
+      "examples": [
+        {
+          "ja": "店主におすすめを聞いてから、料理を注文した。",
+          "zh": "向店主询问推荐之后，我点了菜。"
+        },
+        {
+          "ja": "この店は、店主自ら毎朝市場で魚を仕入れている。",
+          "zh": "这家店由店主本人每天早上去市场进鱼。"
+        },
+        {
+          "ja": "老舗の店主は、昔ながらの製法を守り続けている。",
+          "zh": "老店的店主一直坚持传统做法。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "店長",
+          "difference_zh": "「店長」是店铺负责人、经理，可以是员工；「店主」更偏“店的主人/经营者”。"
+        },
+        {
+          "target": "主人",
+          "difference_zh": "「主人」可指丈夫、家主、老板等，范围较宽；「店主」明确限定为店铺的主人或经营者。"
+        },
+        {
+          "target": "経営者",
+          "difference_zh": "「経営者」泛指经营者，企业规模可大可小；「店主」多用于具体店铺。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "職人",
+          "客",
+          "店員"
+        ],
+        "meaning": [
+          "店で働く客",
+          "商品の名前",
+          "店の場所"
+        ],
+        "kanji_to_kana": [
+          "みせぬし",
+          "てんぬし",
+          "てんじゅ"
+        ]
+      },
+      "question": "次の文の（　）に入れるのに最もよいものを選びなさい。\nこの料理には、長年店を守ってきた（　）のこだわりが表れている。",
+      "choices": [
+        "店主",
+        "職人",
+        "客",
+        "店員"
+      ],
+      "correct_answer": "店主",
+      "distractor_notes": {
+        "職人": "技術を持つ人を指すが、店を所有・経営する人という意味までは含まない。",
+        "客": "店に来る人で、文の「店を守ってきた」と合わない。",
+        "店員": "店で働く人だが、責任者・経営者とは限らない。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-009-practice-01",
+          "kind": "moji_goi",
+          "instruction": "次の文の（　）に入れるのに最もよいものを選びなさい。",
+          "prompt": "この料理には、長年店を守ってきた（　）のこだわりが表れている。",
+          "choices": [
+            "店主",
+            "職人",
+            "客",
+            "店員"
+          ],
+          "answer": "店主",
+          "explanation_zh": "「長年店を守ってきた」「こだわりが表れている」から、店を営む責任者である「店主」が最も自然です。"
+        },
+        {
+          "id": "2026-09-03-009-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "あの店の店主は、毎朝自分で市場へ行く。",
+          "target": "店主",
+          "choices": [
+            "店の主人",
+            "店の商品",
+            "店の客",
+            "店の場所"
+          ],
+          "answer": "店の主人",
+          "explanation_zh": "「店主」是店的主人或经营者，所以最接近「店の主人」。"
+        },
+        {
+          "id": "2026-09-03-009-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "この店の店主は、客との会話を大切にしている。",
+          "target": "店主",
+          "choices": [
+            "てんしゅ",
+            "みせぬし",
+            "てんぬし",
+            "てんじゅ"
+          ],
+          "answer": "てんしゅ",
+          "explanation_zh": "「店主」的标准读法是「てんしゅ」。"
+        }
+      ],
+      "notes": [
+        "「店主」本身不是典型 N1 专属词，JLPT 等级先标为 unknown。",
+        "读法一般为「てんしゅ」。也可见意思相近的训读式表达「店の主（みせのぬし）」，但作为熟语「店主」读「てんしゅ」。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "店主",
+          "reading": "てんしゅ"
+        },
+        {
+          "text": "店",
+          "reading": "みせ"
+        },
+        {
+          "text": "所有",
+          "reading": "しょゆう"
+        },
+        {
+          "text": "切り盛り",
+          "reading": "きりもり"
+        },
+        {
+          "text": "責任者",
+          "reading": "せきにんしゃ"
+        },
+        {
+          "text": "主人",
+          "reading": "しゅじん"
+        },
+        {
+          "text": "営む",
+          "reading": "いとなむ"
+        },
+        {
+          "text": "老舗",
+          "reading": "しにせ"
+        },
+        {
+          "text": "自ら",
+          "reading": "みずから"
+        },
+        {
+          "text": "仕入れる",
+          "reading": "しいれる"
+        },
+        {
+          "text": "料理",
+          "reading": "りょうり"
+        },
+        {
+          "text": "注文した",
+          "reading": "ちゅうもんした"
+        },
+        {
+          "text": "毎朝",
+          "reading": "まいあさ"
+        },
+        {
+          "text": "市場",
+          "reading": "いちば"
+        },
+        {
+          "text": "魚",
+          "reading": "さかな"
+        },
+        {
+          "text": "昔ながら",
+          "reading": "むかしながら"
+        },
+        {
+          "text": "製法",
+          "reading": "せいほう"
+        },
+        {
+          "text": "守り続けている",
+          "reading": "まもりつづけている"
+        },
+        {
+          "text": "店長",
+          "reading": "てんちょう"
+        },
+        {
+          "text": "経営者",
+          "reading": "けいえいしゃ"
+        },
+        {
+          "text": "職人",
+          "reading": "しょくにん"
+        },
+        {
+          "text": "客",
+          "reading": "きゃく"
+        },
+        {
+          "text": "店員",
+          "reading": "てんいん"
+        },
+        {
+          "text": "表れている",
+          "reading": "あらわれている"
+        },
+        {
+          "text": "会話",
+          "reading": "かいわ"
+        },
+        {
+          "text": "大切",
+          "reading": "たいせつ"
+        }
+      ],
+      "source_chat_summary": "用户提交「店主」，需要作为单词记录并同步到「N1/N2 词汇」。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "n1-襲われる",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T09:41:04+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "襲われる",
+      "reading": "おそわれる",
+      "part_of_speech": "動詞（受身形）",
+      "inflection_class": "ichidan",
+      "base_form": "襲われる",
+      "conjugations": [
+        {
+          "kind": "ない形",
+          "form": "襲われない"
+        },
+        {
+          "kind": "た形",
+          "form": "襲われた"
+        },
+        {
+          "kind": "て形",
+          "form": "襲われて"
+        },
+        {
+          "kind": "ます形",
+          "form": "襲われます"
+        }
+      ],
+      "meaning_ja": "人・動物・災害・感情などから急に危害や強い影響を受ける。",
+      "paraphrase_ja": "急に被害や強い影響を受ける",
+      "meaning_zh": "遭到袭击；遭遇灾害；突然被不安、睡意等强烈状态侵袭。",
+      "core_memory": "襲われる＝被袭击/被强烈状态突然侵袭；「不安に襲われる」也常用。",
+      "explanation_zh": "「襲われる」是「襲う」的被动形。对象可以是人或动物，也可以是灾害、感情、生理状态等。重点是“突然、强烈地受到影响”。",
+      "collocations": [
+        "強盗に襲われる",
+        "眠気に襲われる",
+        "不安に襲われる",
+        "台風に襲われる"
+      ],
+      "examples": [
+        {
+          "ja": "夜道で突然、男に襲われた。",
+          "zh": "在夜路上突然遭到男子袭击。"
+        },
+        {
+          "ja": "会議中に強い眠気に襲われた。",
+          "zh": "开会时突然被强烈睡意袭来。"
+        },
+        {
+          "ja": "大きな不安に襲われて、眠れなかった。",
+          "zh": "被强烈不安侵袭，睡不着。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "襲う",
+          "difference_zh": "「襲う」是主动“袭击/侵袭”；「襲われる」是被动“遭到袭击/被侵袭”。"
+        },
+        {
+          "target": "攻撃される",
+          "difference_zh": "偏实际攻击；「襲われる」还可用于不安、睡意、灾害等抽象或自然现象。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "支えられた",
+          "祝われた",
+          "誘われた"
+        ],
+        "meaning": [
+          "落ち着いて休む",
+          "静かに考える",
+          "予定を決める"
+        ],
+        "kanji_to_kana": [
+          "しゅうわれる",
+          "おそうわれる",
+          "おさわれる"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n帰り道で突然強い雨に（　）、全身がぬれてしまった。",
+      "choices": [
+        "襲われ",
+        "支えられ",
+        "祝われ",
+        "誘われ"
+      ],
+      "correct_answer": "襲われ",
+      "distractor_notes": {
+        "支えられ": "支援される意味で、強い雨の被害とは合わない。",
+        "祝われ": "祝福される意味で文脈と合わない。",
+        "誘われ": "誘いを受ける意味で、雨から受ける強い影響を表せない。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-011-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "帰り道で突然強い雨に（　）、全身がぬれてしまった。",
+          "choices": [
+            "襲われ",
+            "支えられ",
+            "祝われ",
+            "誘われ"
+          ],
+          "answer": "襲われ",
+          "explanation_zh": "突然受到强雨影响，最自然是「強い雨に襲われる」。"
+        },
+        {
+          "id": "2026-09-03-011-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "彼は夜道で襲われた。",
+          "target": "襲われた",
+          "choices": [
+            "急に危害を受けた",
+            "落ち着いて休んだ",
+            "静かに考えた",
+            "予定を決めた"
+          ],
+          "answer": "急に危害を受けた",
+          "explanation_zh": "「襲われる」表示突然受到危害或强烈影响。"
+        },
+        {
+          "id": "2026-09-03-011-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "町は台風に襲われた。",
+          "target": "襲われた",
+          "choices": [
+            "おそわれた",
+            "しゅうわれた",
+            "おそうわれた",
+            "おさわれた"
+          ],
+          "answer": "おそわれた",
+          "explanation_zh": "「襲われる」读作「おそわれる」。"
+        }
+      ],
+      "notes": [
+        "抽象用法「不安に襲われる」「眠気に襲われる」很常见。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "襲われる",
+          "reading": "おそわれる"
+        },
+        {
+          "text": "襲う",
+          "reading": "おそう"
+        },
+        {
+          "text": "動物",
+          "reading": "どうぶつ"
+        },
+        {
+          "text": "災害",
+          "reading": "さいがい"
+        },
+        {
+          "text": "感情",
+          "reading": "かんじょう"
+        },
+        {
+          "text": "危害",
+          "reading": "きがい"
+        },
+        {
+          "text": "影響",
+          "reading": "えいきょう"
+        },
+        {
+          "text": "強盗",
+          "reading": "ごうとう"
+        },
+        {
+          "text": "眠気",
+          "reading": "ねむけ"
+        },
+        {
+          "text": "不安",
+          "reading": "ふあん"
+        },
+        {
+          "text": "台風",
+          "reading": "たいふう"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「襲われる」，总结时整理为 N1 词汇并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "n1-心身",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T09:43:29+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N2",
+      "level_confidence": "medium",
+      "original": "心身",
+      "reading": "しんしん",
+      "part_of_speech": "名詞",
+      "meaning_ja": "心と体。精神面と身体面の両方。",
+      "paraphrase_ja": "心と体",
+      "meaning_zh": "身心；精神和身体。",
+      "core_memory": "心身＝しんしん＝心と体；「心身ともに疲れる」。",
+      "explanation_zh": "「心身」把心理和身体作为一个整体来表达，常用于健康、疲劳、影响、负担等正式或说明性语境。",
+      "collocations": [
+        "心身ともに",
+        "心身の健康",
+        "心身に影響を及ぼす",
+        "心身の疲労"
+      ],
+      "examples": [
+        {
+          "ja": "長時間の勤務で、心身ともに疲れ切っていた。",
+          "zh": "长时间工作后，身心都疲惫不堪。"
+        },
+        {
+          "ja": "十分な休養は心身の健康を保つために欠かせない。",
+          "zh": "充分休养对保持身心健康不可或缺。"
+        },
+        {
+          "ja": "過度なストレスは心身に悪い影響を及ぼす。",
+          "zh": "过度压力会对身心造成不良影响。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "精神",
+          "difference_zh": "只偏心理、精神层面；「心身」同时包括心理和身体。"
+        },
+        {
+          "target": "身体",
+          "difference_zh": "只偏身体层面；「心身」包括身体和心理两方面。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "資金",
+          "方針",
+          "設備"
+        ],
+        "meaning": [
+          "お金と時間",
+          "場所と建物",
+          "予定と結果"
+        ],
+        "kanji_to_kana": [
+          "こころみ",
+          "しんみ",
+          "こころからだ"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n十分な睡眠は、（　）の健康を保つために重要だ。",
+      "choices": [
+        "心身",
+        "資金",
+        "方針",
+        "設備"
+      ],
+      "correct_answer": "心身",
+      "distractor_notes": {
+        "資金": "资金，与健康搭配不自然。",
+        "方針": "方针，不表示人的身心状态。",
+        "設備": "设备，与人的健康不合。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-012-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "十分な睡眠は、（　）の健康を保つために重要だ。",
+          "choices": [
+            "心身",
+            "資金",
+            "方針",
+            "設備"
+          ],
+          "answer": "心身",
+          "explanation_zh": "睡眠关系到身体和精神两方面，所以是「心身の健康」。"
+        },
+        {
+          "id": "2026-09-03-012-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "彼は心身ともに疲れている。",
+          "target": "心身",
+          "choices": [
+            "心と体",
+            "お金と時間",
+            "場所と建物",
+            "予定と結果"
+          ],
+          "answer": "心と体",
+          "explanation_zh": "「心身」就是心和身体。"
+        },
+        {
+          "id": "2026-09-03-012-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "休養は心身の回復に必要だ。",
+          "target": "心身",
+          "choices": [
+            "しんしん",
+            "こころみ",
+            "しんみ",
+            "こころからだ"
+          ],
+          "answer": "しんしん",
+          "explanation_zh": "「心身」读作「しんしん」。"
+        }
+      ],
+      "notes": [
+        "不一定是 N1 专属，但常用于正式说明文。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "心身",
+          "reading": "しんしん"
+        },
+        {
+          "text": "心",
+          "reading": "こころ"
+        },
+        {
+          "text": "体",
+          "reading": "からだ"
+        },
+        {
+          "text": "精神面",
+          "reading": "せいしんめん"
+        },
+        {
+          "text": "身体面",
+          "reading": "しんたいめん"
+        },
+        {
+          "text": "健康",
+          "reading": "けんこう"
+        },
+        {
+          "text": "疲労",
+          "reading": "ひろう"
+        },
+        {
+          "text": "休養",
+          "reading": "きゅうよう"
+        },
+        {
+          "text": "影響",
+          "reading": "えいきょう"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「心身」，总结时整理为词汇并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
+    },
+    {
+      "id": "n1-収まる",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T10:03:50+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N2",
+      "level_confidence": "medium",
+      "original": "収まる",
+      "reading": "おさまる",
+      "part_of_speech": "動詞",
+      "inflection_class": "godan",
+      "base_form": "収まる",
+      "conjugations": [
+        {
+          "kind": "ない形",
+          "form": "収まらない"
+        },
+        {
+          "kind": "た形",
+          "form": "収まった"
+        },
+        {
+          "kind": "て形",
+          "form": "収まって"
+        },
+        {
+          "kind": "ます形",
+          "form": "収まります"
+        }
+      ],
+      "meaning_ja": "物が一定の場所や範囲の中に入る。また、混乱や勢いが静まる。",
+      "paraphrase_ja": "中に入る／落ち着く",
+      "meaning_zh": "收进、容纳在某处；事态平息；恢复到稳定状态或范围内。",
+      "core_memory": "収まる＝范围内に入る＋騒ぎが落ち着く；同音词很多。",
+      "explanation_zh": "「収まる」常表示东西进入某个容器、范围，或局面从混乱回到稳定。和「治まる」「納まる」同音但侧重点不同。",
+      "collocations": [
+        "箱に収まる",
+        "予算内に収まる",
+        "騒ぎが収まる",
+        "怒りが収まる"
+      ],
+      "examples": [
+        {
+          "ja": "荷物が全部スーツケースに収まった。",
+          "zh": "行李全都装进了行李箱。"
+        },
+        {
+          "ja": "騒ぎは数時間後にようやく収まった。",
+          "zh": "骚动几个小时后终于平息了。"
+        },
+        {
+          "ja": "費用は予定の範囲内に収まった。",
+          "zh": "费用控制在了预定范围内。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "治まる",
+          "difference_zh": "多用于疼痛、病情、混乱等平息。"
+        },
+        {
+          "target": "納まる",
+          "difference_zh": "偏该放的位置、该付的钱、事情妥善落定。"
+        },
+        {
+          "target": "収める",
+          "difference_zh": "他动词，使某物收进/使事态平息。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "広がった",
+          "壊れた",
+          "外れた"
+        ],
+        "meaning": [
+          "外へ出る",
+          "激しくなる",
+          "新しく作る"
+        ],
+        "kanji_to_kana": [
+          "しゅうまる",
+          "おさめる",
+          "おしまる"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n荷物はなんとか一つの箱に（　）。",
+      "choices": [
+        "収まった",
+        "広がった",
+        "壊れた",
+        "外れた"
+      ],
+      "correct_answer": "収まった",
+      "distractor_notes": {
+        "広がった": "範囲が広くなる意味で、箱に入る文脈と合わない。",
+        "壊れた": "破損する意味で、容器に入る意味ではない。",
+        "外れた": "外に出る・位置がずれる意味で逆。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-013-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "荷物はなんとか一つの箱に（　）。",
+          "choices": [
+            "収まった",
+            "広がった",
+            "壊れた",
+            "外れた"
+          ],
+          "answer": "収まった",
+          "explanation_zh": "行李进入箱子里，用「箱に収まる」。"
+        },
+        {
+          "id": "2026-09-03-013-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "騒ぎはようやく収まった。",
+          "target": "収まった",
+          "choices": [
+            "落ち着いた",
+            "外へ出た",
+            "激しくなった",
+            "新しく作った"
+          ],
+          "answer": "落ち着いた",
+          "explanation_zh": "事态、骚动「収まる」表示平息、安定下来。"
+        },
+        {
+          "id": "2026-09-03-013-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "費用は予算内に収まった。",
+          "target": "収まった",
+          "choices": [
+            "おさまった",
+            "しゅうまった",
+            "おさめった",
+            "おしまった"
+          ],
+          "answer": "おさまった",
+          "explanation_zh": "「収まる」读作「おさまる」。"
+        }
+      ],
+      "notes": [
+        "「収まる／治まる／納まる／修まる」は同音异字，正式整理时要重点区分。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "収まる",
+          "reading": "おさまる"
+        },
+        {
+          "text": "範囲",
+          "reading": "はんい"
+        },
+        {
+          "text": "混乱",
+          "reading": "こんらん"
+        },
+        {
+          "text": "勢い",
+          "reading": "いきおい"
+        },
+        {
+          "text": "静まる",
+          "reading": "しずまる"
+        },
+        {
+          "text": "荷物",
+          "reading": "にもつ"
+        },
+        {
+          "text": "騒ぎ",
+          "reading": "さわぎ"
+        },
+        {
+          "text": "費用",
+          "reading": "ひよう"
+        },
+        {
+          "text": "予算内",
+          "reading": "よさんない"
+        },
+        {
+          "text": "治まる",
+          "reading": "おさまる"
+        },
+        {
+          "text": "納まる",
+          "reading": "おさまる"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「収まる」，总结时整理为词汇并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "n1-取り巻く",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T19:35:27+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "取り巻く",
+      "reading": "とりまく",
+      "part_of_speech": "動詞",
+      "inflection_class": "godan",
+      "base_form": "取り巻く",
+      "conjugations": [
+        {
+          "kind": "ない形",
+          "form": "取り巻かない"
+        },
+        {
+          "kind": "た形",
+          "form": "取り巻いた"
+        },
+        {
+          "kind": "て形",
+          "form": "取り巻いて"
+        },
+        {
+          "kind": "ます形",
+          "form": "取り巻きます"
+        }
+      ],
+      "meaning_ja": "周囲を囲む。また、人や物事の周りにある環境や状況を形作る。",
+      "paraphrase_ja": "周りを囲む／周囲にある",
+      "meaning_zh": "围住、包围；环绕；围绕某人或事物的环境、状况。",
+      "core_memory": "取り巻く＝周りを囲む；抽象可说「会社を取り巻く環境」。",
+      "explanation_zh": "既可用于物理上围住某人某物，也常用于说明文中表示围绕某个组织、问题、人物的环境和状况。",
+      "collocations": [
+        "群衆が取り巻く",
+        "記者が取り巻く",
+        "会社を取り巻く環境",
+        "子どもを取り巻く社会"
+      ],
+      "examples": [
+        {
+          "ja": "事故現場を多くの人が取り巻いていた。",
+          "zh": "许多人围在事故现场周围。"
+        },
+        {
+          "ja": "企業を取り巻く環境は急速に変化している。",
+          "zh": "围绕企业的环境正在迅速变化。"
+        },
+        {
+          "ja": "子どもを取り巻く社会の問題を考える必要がある。",
+          "zh": "有必要思考围绕儿童的社会问题。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "囲む",
+          "difference_zh": "一般的“围住”；「取り巻く」更常用于人群包围或抽象环境。"
+        },
+        {
+          "target": "巡る",
+          "difference_zh": "「問題を巡る議論」表示围绕问题展开讨论；「取り巻く環境」表示周边环境本身。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "追い払っている",
+          "片づけている",
+          "見失っている"
+        ],
+        "meaning": [
+          "遠くへ離れる",
+          "完全に忘れる",
+          "一つに決める"
+        ],
+        "kanji_to_kana": [
+          "とりまいく",
+          "とりかく",
+          "しゅまく"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n企業を（　）環境は、ここ数年で大きく変わった。",
+      "choices": [
+        "取り巻く",
+        "追い払う",
+        "片づける",
+        "見失う"
+      ],
+      "correct_answer": "取り巻く",
+      "distractor_notes": {
+        "追い払う": "赶走的意思，不表示周边环境。",
+        "片づける": "整理、解决的意思，不修饰环境。",
+        "見失う": "看丢、迷失的意思，与环境变化不合。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-014-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "企業を（　）環境は、ここ数年で大きく変わった。",
+          "choices": [
+            "取り巻く",
+            "追い払う",
+            "片づける",
+            "見失う"
+          ],
+          "answer": "取り巻く",
+          "explanation_zh": "「企業を取り巻く環境」是固定感很强的说明文搭配，表示围绕企业的环境。"
+        },
+        {
+          "id": "2026-09-03-014-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "記者たちが俳優を取り巻いた。",
+          "target": "取り巻いた",
+          "choices": [
+            "周りを囲んだ",
+            "遠くへ離れた",
+            "完全に忘れた",
+            "一つに決めた"
+          ],
+          "answer": "周りを囲んだ",
+          "explanation_zh": "物理意义上「取り巻く」表示围在周围。"
+        },
+        {
+          "id": "2026-09-03-014-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "会社を取り巻く状況を分析する。",
+          "target": "取り巻く",
+          "choices": [
+            "とりまく",
+            "とりまいく",
+            "とりかく",
+            "しゅまく"
+          ],
+          "answer": "とりまく",
+          "explanation_zh": "「取り巻く」读作「とりまく」。"
+        }
+      ],
+      "notes": [
+        "抽象搭配「Nを取り巻く環境／状況」很适合新闻、论文和商务语境。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "取り巻く",
+          "reading": "とりまく"
+        },
+        {
+          "text": "周囲",
+          "reading": "しゅうい"
+        },
+        {
+          "text": "囲む",
+          "reading": "かこむ"
+        },
+        {
+          "text": "環境",
+          "reading": "かんきょう"
+        },
+        {
+          "text": "状況",
+          "reading": "じょうきょう"
+        },
+        {
+          "text": "群衆",
+          "reading": "ぐんしゅう"
+        },
+        {
+          "text": "記者",
+          "reading": "きしゃ"
+        },
+        {
+          "text": "企業",
+          "reading": "きぎょう"
+        },
+        {
+          "text": "急速",
+          "reading": "きゅうそく"
+        },
+        {
+          "text": "変化",
+          "reading": "へんか"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「取り巻く」，总结时整理为 N1 词汇并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "2026-09-03-n1-limitation-ni-kagiri",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:00:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "に限り",
+      "reading": "にかぎり",
+      "grammar_point": "Nに限り",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "70歳以上の方に限り、入場は無料。",
+      "meaning_ja": "対象をある範囲に限定し、その範囲だけに特別な扱いを適用する表現。",
+      "paraphrase_ja": "Nだけに限って",
+      "meaning_zh": "仅限于N；只对N这个范围适用。",
+      "core_memory": "に限り＝只限某对象；常见公告、规则、优惠。",
+      "explanation_zh": "「Nに限り」把适用对象限定在N。常用于公告、规定、优惠条件等，语感正式。",
+      "grammar_forms": [
+        {
+          "form": "N + に限り",
+          "connection_zh": "前接名词，表示规则或待遇只适用于该对象。",
+          "example": "70歳以上の方に限り、入場は無料です。",
+          "meaning_zh": "仅限70岁以上人士免费入场。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "限定对象",
+          "detail_zh": "只把某待遇或规则适用于前项范围。"
+        },
+        {
+          "feature": "正式公告语感",
+          "detail_zh": "常见于通知、票务、活动规则。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "70歳以上の方に限り、入場は無料です。",
+          "zh": "仅限70岁以上人士免费入场。"
+        },
+        {
+          "ja": "会員に限り、この資料を閲覧できます。",
+          "zh": "仅限会员可以阅览这份资料。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "限りでは",
+          "difference_zh": "「限りでは」表示根据某信息范围判断；「に限り」表示对象限定。"
+        },
+        {
+          "target": "をおいてほかにない",
+          "difference_zh": "「をおいて」表示唯一候选；「に限り」表示规则适用范围。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "限りでは",
+          "ならでは",
+          "はおろか"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-ni-kagiri-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "本日の割引は学生（　）適用されます。",
+          "choices": [
+            "に限り",
+            "限りでは",
+            "ならでは",
+            "もさることながら"
+          ],
+          "answer": "に限り",
+          "explanation_zh": "折扣适用对象被限定为学生，所以选「に限り」。",
+          "translation_zh": "今天的折扣仅限学生适用。"
+        }
+      ],
+      "notes": [
+        "不要和「見る限りでは」混淆。"
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习限定表达「70歳以上の方に限り、入場は無料」。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-limitation-kagiri-dewa",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:01:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "限りでは",
+      "reading": "かぎりでは",
+      "grammar_point": "Vる／Vた限りでは",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "この商品リストを見る限りでは、この製品は今もう販売されていません。",
+      "meaning_ja": "見たり聞いたり調べたりした範囲を根拠に判断を述べる表現。",
+      "paraphrase_ja": "〜の範囲で判断すると",
+      "meaning_zh": "就……范围来看；根据……所知。",
+      "core_memory": "限りでは＝根据我看到/听到/查到的范围判断。",
+      "explanation_zh": "「Vる／Vた限りでは」限定判断依据，不是限定对象。后项常是推测、判断、评价。",
+      "grammar_forms": [
+        {
+          "form": "Vる／Vた + 限りでは",
+          "connection_zh": "前接「見る・聞く・調べる」等认知动词。",
+          "example": "この商品リストを見る限りでは、この製品はもう販売されていません。",
+          "meaning_zh": "就这个商品清单来看，这个产品已经不卖了。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "限定判断依据",
+          "detail_zh": "表示结论只基于目前掌握的信息范围。"
+        },
+        {
+          "feature": "后项多为判断",
+          "detail_zh": "常接「ようだ・らしい・と思う・ない」。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "資料を読む限りでは、計画に大きな問題はなさそうだ。",
+          "zh": "就阅读资料来看，计划似乎没有大问题。"
+        },
+        {
+          "ja": "私が聞いた限りでは、会議は予定どおり行われる。",
+          "zh": "据我听到的情况，会议会按计划举行。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "に限り",
+          "difference_zh": "「に限り」限定适用对象；「限りでは」限定判断根据。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "に限り",
+          "にとどまらず",
+          "はおろか"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-kagiri-dewa-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "私が調べた（　）、この制度は来月から変わるようだ。",
+          "choices": [
+            "限りでは",
+            "に限り",
+            "ならでは",
+            "をおいて"
+          ],
+          "answer": "限りでは",
+          "explanation_zh": "「調べた」范围内的判断，所以选「限りでは」。",
+          "translation_zh": "据我调查的范围来看，这个制度似乎从下个月开始改变。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「この商品リストを見る限りでは」的判断依据限定。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-addition-bakari-ka",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:02:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "original": "ばかりか",
+      "reading": "ばかりか",
+      "grammar_point": "Nばかりか、Nも／まで",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "彼はストレスのため、心ばかりか体も不健康になってしまった。",
+      "meaning_ja": "一つの事柄だけでなく、さらに別の事柄も同様であることを強調する表現。",
+      "paraphrase_ja": "〜だけでなく、さらに〜も",
+      "meaning_zh": "不仅……而且……；连……也。",
+      "core_memory": "ばかりか＝不但A，B也/甚至B也；后项进一步追加。",
+      "explanation_zh": "前项成立，后项也成立，且后项通常更进一步、更广或更意外。后面常和「も・まで・さえ」呼应。",
+      "grammar_forms": [
+        {
+          "form": "N + ばかりか、Nも／まで",
+          "connection_zh": "前接名词；后项常出现「も」「まで」。",
+          "example": "心ばかりか体も不健康になった。",
+          "meaning_zh": "不仅心理，身体也变得不健康。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "付加递进",
+          "detail_zh": "从前项继续追加同方向后项。"
+        },
+        {
+          "feature": "后项更强",
+          "detail_zh": "后项常比前项影响更广或更出乎意料。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "彼女は英語ばかりか、フランス語まで流暢に話せる。",
+          "zh": "她不仅会英语，甚至还能流利地说法语。"
+        },
+        {
+          "ja": "この台風は交通機関ばかりか、学校や病院にも大きな影響を与えた。",
+          "zh": "这场台风不仅影响交通，也给学校和医院造成很大影响。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "にとどまらず",
+          "difference_zh": "两者都可表示扩展；「ばかりか」更强调追加与意外感。"
+        },
+        {
+          "target": "はおろか",
+          "difference_zh": "「はおろか」多为负面“别说A，连B都”；「ばかりか」可正可负。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "に限り",
+          "を問わず",
+          "に応じて"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-bakari-ka-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この薬は効果がない（　）、副作用まで出た。",
+          "choices": [
+            "ばかりか",
+            "に限り",
+            "ならでは",
+            "をおいて"
+          ],
+          "answer": "ばかりか",
+          "explanation_zh": "不仅没有效果，甚至出现副作用，是负面递进追加。",
+          "translation_zh": "这个药不仅没效果，甚至还出现了副作用。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「心ばかりか体も」的付加递进。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-addition-ue-ni",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:03:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N2",
+      "level_confidence": "medium",
+      "original": "上に",
+      "reading": "うえに",
+      "grammar_point": "N／普通形＋上に",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "ひろ子さんは誠実な上に、よく気配りをする人だ。",
+      "meaning_ja": "ある性質や状態に、さらに同じ方向の性質や状態を付け加える表現。",
+      "paraphrase_ja": "〜だけでなく、さらに〜",
+      "meaning_zh": "不仅……而且……；在……基础上还……。",
+      "core_memory": "上に＝A基础上再加B；前后评价方向通常一致。",
+      "explanation_zh": "「上に」表示追加。前后通常同方向，都是好事或都是坏事。比「ばかりか」更中性，递进意外感较弱。",
+      "grammar_forms": [
+        {
+          "form": "ナ形容詞な + 上に",
+          "connection_zh": "な形容词接「な上に」。",
+          "example": "誠実な上に、よく気配りをする。",
+          "meaning_zh": "不仅诚实，而且很会体贴人。"
+        },
+        {
+          "form": "普通形 + 上に",
+          "connection_zh": "动词、い形容词普通形后接「上に」。",
+          "example": "駅から近い上に、家賃も安い。",
+          "meaning_zh": "不仅离车站近，而且房租也便宜。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "同方向追加",
+          "detail_zh": "前后通常都是正面或都是负面。"
+        },
+        {
+          "feature": "中性付加",
+          "detail_zh": "比「ばかりか」少一些惊讶或强递进。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "ひろ子さんは誠実な上に、よく気配りをする人だ。",
+          "zh": "广子不仅诚实，而且很会照顾别人。"
+        },
+        {
+          "ja": "この部屋は狭い上に、日当たりも悪い。",
+          "zh": "这个房间不仅窄，而且采光也差。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "ばかりか",
+          "difference_zh": "「ばかりか」更强调后项意外或程度更进一步；「上に」更像同方向追加。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "ばかりか",
+          "に限り",
+          "をおいて"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-ue-ni-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この店は料理がおいしい（　）、値段も手ごろだ。",
+          "choices": [
+            "上に",
+            "をおいて",
+            "はおろか",
+            "とは限らず"
+          ],
+          "answer": "上に",
+          "explanation_zh": "好吃和价格合理都是正面评价，适合同方向追加「上に」。",
+          "translation_zh": "这家店不仅菜好吃，价格也合适。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「誠実な上に、よく気配りをする」的追加用法。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-limitation-wo-oite-hoka-ni-nai",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:04:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "をおいてほかにない",
+      "reading": "をおいてほかにない",
+      "grammar_point": "Nをおいてほかにない／いない",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "この病気を治す方法は、今のところ手術をおいてほかにないのです。",
+      "meaning_ja": "ある候補以外に、それに匹敵するものや人はないと強く述べる表現。",
+      "paraphrase_ja": "N以外にはない／いない",
+      "meaning_zh": "除了N以外没有别的；N是唯一选择。",
+      "core_memory": "をおいてほかにない＝唯一候选；后面固定ほかにない/いない。",
+      "explanation_zh": "评价的是“候选对象本身”。常用于人、地点、方法、职业、候选地等。后面必须有「ほかにない・ほかにいない・ほかに考えられない」。",
+      "grammar_forms": [
+        {
+          "form": "N + をおいて + ほかにない／いない",
+          "connection_zh": "前接名词；后面固定接否定存在。",
+          "example": "手術をおいてほかにない。",
+          "meaning_zh": "除手术外没有别的方法。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "唯一候选",
+          "detail_zh": "强调没有同等可选对象。"
+        },
+        {
+          "feature": "固定搭配",
+          "detail_zh": "常与「ほかにない／いない／考えられない」一起出现。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "心からくつろげる場所はここをおいてほかにない。",
+          "zh": "能让我从心底放松的地方，除了这里没有别处。"
+        },
+        {
+          "ja": "この力仕事を任せられる人は、山口さんをおいてほかにいない。",
+          "zh": "能托付这项体力活的人，除了山口没有别人。"
+        },
+        {
+          "ja": "私が将来やりたい仕事は、教師をおいてほかに考えられない。",
+          "zh": "我将来想做的工作，除了教师想不到别的。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "ならでは",
+          "difference_zh": "「ならでは」评价独特特色；「をおいてほかにない」评价唯一候选本身。"
+        },
+        {
+          "target": "に限り",
+          "difference_zh": "「に限り」是规则适用范围；「をおいて」是没有其他候选。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "ならでは",
+          "はおろか",
+          "にとどまらず"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-wo-oite-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この役を任せられる俳優は、彼（　）。",
+          "choices": [
+            "をおいてほかにいない",
+            "ならではだ",
+            "はおろか",
+            "にとどまらない"
+          ],
+          "answer": "をおいてほかにいない",
+          "explanation_zh": "句子评价“唯一能担任这个角色的人”，所以用「をおいてほかにいない」。",
+          "translation_zh": "能托付这个角色的演员，除了他没有别人。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户反复练习「候補地／場所／人／仕事をおいてほかにない」和手术唯一方法题。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-limitation-naradewa",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:05:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "ならでは",
+      "reading": "ならでは",
+      "grammar_point": "Nならではだ／NならではのN",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "この景色は富士山の頂上ならではのものだろう。",
+      "meaning_ja": "そのものだけが持つ、またはそのものだからこそ実現できる独特のよさを表す表現。",
+      "paraphrase_ja": "Nだけが持つ独特のよさ",
+      "meaning_zh": "只有N才有的独特优点；正因为是N才有的特色。",
+      "core_memory": "ならでは＝独特好处；评价特色，不是唯一候选。",
+      "explanation_zh": "多用于积极评价，如体验、味道、演技、纯真、温暖、景色等。句末可用「Nならではだ」，修饰名词用「NならではのN」。",
+      "grammar_forms": [
+        {
+          "form": "N + ならではだ",
+          "connection_zh": "句末评价：这是N才有的特色。",
+          "example": "この温かみは手作りならではだ。",
+          "meaning_zh": "这种温暖感是手工制品才有的。"
+        },
+        {
+          "form": "N + ならではの + N",
+          "connection_zh": "修饰名词，表示N特有的优秀性质。",
+          "example": "ハワイならではの体験。",
+          "meaning_zh": "夏威夷才有的体验。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "特色评价",
+          "detail_zh": "焦点是性质、体验、味道、表演等特色。"
+        },
+        {
+          "feature": "通常正面",
+          "detail_zh": "多带赞赏语气。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "ぜひ一度ヨットに乗ってみてはいかがですか。この体験はハワイならではですよ。",
+          "zh": "一定要不要试着坐一次游艇？这种体验可是夏威夷特有的。"
+        },
+        {
+          "ja": "この布製袋にはぬくもりが感じられる。手作りならではだと思う。",
+          "zh": "这个布袋能感受到温暖。我觉得这是手工制作才有的。"
+        },
+        {
+          "ja": "この絵には、子供ならではの純真さがある。",
+          "zh": "这幅画里有孩子特有的纯真。"
+        },
+        {
+          "ja": "この景色は富士山の頂上ならではのものだろう。",
+          "zh": "这景色大概是富士山山顶才有的吧。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "をおいてほかにない",
+          "difference_zh": "「ならでは」评价独特特色；「をおいてほかにない」评价唯一可选对象。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "をおいて",
+          "に限り",
+          "はおろか"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-naradewa-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この繊細な色づかいは、彼女（　）の作品だ。",
+          "choices": [
+            "ならでは",
+            "をおいて",
+            "はおろか",
+            "限りでは"
+          ],
+          "answer": "ならでは",
+          "explanation_zh": "这里评价“她才有的独特色彩感”，所以选「ならでは」。",
+          "translation_zh": "这种细腻的用色，是她才有的作品特色。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「ならでは」与「をおいてほかにない」的区别，并做富士山景色题。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-addition-ni-todomarazu",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:06:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "にとどまらず",
+      "reading": "にとどまらず",
+      "grammar_point": "N／Vるにとどまらず",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "マスメディアによる情報というものは、今や一国にとどまらず、世界中に伝わる。",
+      "meaning_ja": "ある範囲だけで終わらず、さらに広い範囲へ及ぶことを表す表現。",
+      "paraphrase_ja": "〜だけで終わらず、さらに広がって",
+      "meaning_zh": "不止于……；不限于……，进一步扩大到……。",
+      "core_memory": "にとどまらず＝不止于A，范围扩展到B。",
+      "explanation_zh": "书面表达。用于影响、范围、对象、活动、问题等从前项扩大到后项。动词接辞书形：Vるにとどまらず。",
+      "grammar_forms": [
+        {
+          "form": "N + にとどまらず",
+          "connection_zh": "前接名词，表示范围不止于该名词。",
+          "example": "一国にとどまらず、世界中に伝わる。",
+          "meaning_zh": "不止于一个国家，而是传到全世界。"
+        },
+        {
+          "form": "Vる + にとどまらず",
+          "connection_zh": "前接动词辞书形。",
+          "example": "料理を作るにとどまらず、食器も作る。",
+          "meaning_zh": "不止做料理，还做餐具。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "范围扩大",
+          "detail_zh": "后项显示更广范围或更高阶段。"
+        },
+        {
+          "feature": "中性书面",
+          "detail_zh": "本身不限定褒贬，可用于好事、坏事或事实。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "マスメディアによる情報は、一国にとどまらず、世界中に伝わる。",
+          "zh": "大众媒体的信息不止传到一个国家，而是传向全世界。"
+        },
+        {
+          "ja": "母のケーキ作りは単なる趣味にとどまらず、自分の店を開くまでになった。",
+          "zh": "母亲做蛋糕不再只是兴趣，甚至发展到开了自己的店。"
+        },
+        {
+          "ja": "彼の趣味は広く、料理を作るにとどまらず、料理に合う食器を作ることも趣味だと言う。",
+          "zh": "他的兴趣很广，不只是做料理，还说制作配料理的餐具也是兴趣。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "に限らず",
+          "difference_zh": "「に限らず」偏“不限于某类别”；「にとどまらず」偏“不停留于某范围，继续扩大”。"
+        },
+        {
+          "target": "はおろか",
+          "difference_zh": "「はおろか」多为强烈负面递进；「にとどまらず」是中性范围扩展。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "に限り",
+          "とは限らず",
+          "はおろか"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-ni-todomarazu-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この研究成果は大学内（　）、企業からも注目されている。",
+          "choices": [
+            "にとどまらず",
+            "とは限らず",
+            "に限り",
+            "ならでは"
+          ],
+          "answer": "にとどまらず",
+          "explanation_zh": "关注范围从大学内扩大到企业，所以选「にとどまらず」。",
+          "translation_zh": "这项研究成果不止在大学内，也受到企业关注。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「にとどまらず」的范围扩展和相关选择题。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-addition-wa-oroka",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:07:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "はおろか",
+      "reading": "はおろか",
+      "grammar_point": "N／Vるはおろか",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "私はスペイン語では話すはおろか簡単な挨拶もできない。",
+      "meaning_ja": "あることはもちろん、より基本的・容易なことさえ成り立たないと強調する表現。",
+      "paraphrase_ja": "〜はもちろん、〜さえない",
+      "meaning_zh": "别说……了，连更基本的……都不行。",
+      "core_memory": "はおろか＝别说A，连更基本/更意外的B都；多接ない。",
+      "explanation_zh": "常用于负面或不足评价。前项通常是较高程度，后项是更基本、更容易或更意外的事实，后面常有「も・さえ・すら」。",
+      "grammar_forms": [
+        {
+          "form": "N + はおろか、Bも／さえ／すら...ない",
+          "connection_zh": "前接名词，后项多是否定。",
+          "example": "外国旅行はおろか、住んでいる県から出たこともない。",
+          "meaning_zh": "别说出国旅行，连住的县都没出过。"
+        },
+        {
+          "form": "Vる + はおろか、Bも...ない",
+          "connection_zh": "前接动词辞书形。",
+          "example": "話すはおろか、簡単な挨拶もできない。",
+          "meaning_zh": "别说会说，连简单寒暄都不会。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "负面递进",
+          "detail_zh": "后项通常是“连这个都不行”的更强强调。"
+        },
+        {
+          "feature": "尺度要清楚",
+          "detail_zh": "A和B要在同一能力或状况尺度上。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "私は花粉症がひどくて、外ではおろか、家の中でさえマスクが外せない。",
+          "zh": "我花粉症很严重，别说在外面，连在家里都不能摘口罩。"
+        },
+        {
+          "ja": "小売店を取り巻く状況は厳しい。町の専門店はおろか、有名デパートの閉店も相次いでいる。",
+          "zh": "零售业环境严峻，别说街上的专卖店，连知名百货店也接连关门。"
+        },
+        {
+          "ja": "私はスペイン語では話すはおろか、簡単な挨拶もできない。",
+          "zh": "我别说用西班牙语说话，连简单寒暄都不会。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "にとどまらず",
+          "difference_zh": "「にとどまらず」中性扩大范围；「はおろか」多为负面“连B都”。"
+        },
+        {
+          "target": "ばかりか",
+          "difference_zh": "「ばかりか」是追加；「はおろか」强调连较基本后项都不成立。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "にとどまらず",
+          "をおいて",
+          "もさることながら"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-wa-oroka-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "彼は漢字を読む（　）、ひらがなもまだ十分に読めない。",
+          "choices": [
+            "はおろか",
+            "にとどまらず",
+            "をおいて",
+            "ならでは"
+          ],
+          "answer": "はおろか",
+          "explanation_zh": "别说读汉字，连更基本的平假名都还读不好，是负面递进。",
+          "translation_zh": "他别说读汉字，连平假名都还不能充分读懂。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「はおろか」的负面递进和多道选择题。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "2026-09-03-n1-addition-mo-saru-koto-nagara",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:08:00+09:00",
+      "deck": "grammar_expression",
+      "type": "grammar",
+      "jlpt_level": "N1",
+      "level_confidence": "high",
+      "original": "もさることながら",
+      "reading": "もさることながら",
+      "grammar_point": "Nもさることながら",
+      "source_grammar_point": "限定・非限定・付加",
+      "source_original_sentence": "この作家が書くものは、鋭い感性もさることながら、注意深く選ばれた語彙と文の運び方が素晴らしい。",
+      "meaning_ja": "前の事柄も当然そうだが、それに加えて後の事柄をより強調する表現。",
+      "paraphrase_ja": "〜もそうだが、それ以上に〜",
+      "meaning_zh": "……固然如此，但更要强调……。",
+      "core_memory": "もさることながら＝A也不用说，但重点是B。",
+      "explanation_zh": "书面、正式。前项被承认，后项才是说话人真正要强调的点。可用于赞赏，也可用于问题评价。",
+      "grammar_forms": [
+        {
+          "form": "N + もさることながら、B",
+          "connection_zh": "前接名词；后项是更想强调的评价点。",
+          "example": "人柄もさることながら、頭の働きの良さが目立つ。",
+          "meaning_zh": "人品固然不用说，头脑灵活这一点更突出。"
+        }
+      ],
+      "grammar_features": [
+        {
+          "feature": "承认前项，强调后项",
+          "detail_zh": "不是简单并列，而是焦点转移到B。"
+        },
+        {
+          "feature": "可褒可贬",
+          "detail_zh": "可用于优秀评价，也可用于社会问题等负面评价。"
+        }
+      ],
+      "examples": [
+        {
+          "ja": "彼は人柄もさることながら、その頭の働きの良さで周囲の人をぐいぐい引っ張っていく。",
+          "zh": "他的人品固然不用说，更凭借头脑灵活有力地带动周围的人。"
+        },
+        {
+          "ja": "若者の政治的無関心もさることながら、社会全体に政治に対する無力感が広がっているような気がする。",
+          "zh": "年轻人对政治冷漠固然是问题，但我感觉对政治的无力感正在整个社会蔓延。"
+        },
+        {
+          "ja": "試合に勝つには選手の実力もさることながら、運も必要なのだ。",
+          "zh": "要赢比赛，选手实力固然重要，运气也必要。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "上に",
+          "difference_zh": "「上に」是同方向追加；「もさることながら」是承认A但更强调B。"
+        },
+        {
+          "target": "はおろか",
+          "difference_zh": "「はおろか」常是否定递进；「もさることながら」可用于正面或问题评价，后项是重点。"
+        }
+      ],
+      "question_kinds": [
+        "grammar",
+        "meaning"
+      ],
+      "question_distractors": {
+        "grammar": [
+          "はおろか",
+          "をおいて",
+          "ならでは"
+        ]
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-mo-saru-q1",
+          "kind": "grammar",
+          "instruction": "次の文の（　）に入れるのに最もよいものを、１・２・３・４から一つ選びなさい。",
+          "prompt": "この町は歴史的な建物（　）、地元の人の温かさも魅力だ。",
+          "choices": [
+            "もさることながら",
+            "はおろか",
+            "をおいてほかにない",
+            "とは限らず"
+          ],
+          "answer": "もさることながら",
+          "explanation_zh": "承认历史建筑有魅力，但更补充强调当地人的温暖，所以选「もさることながら」。",
+          "translation_zh": "这座城市历史建筑固然迷人，当地人的温暖也是魅力。"
+        }
+      ],
+      "tags": [
+        "N1",
+        "限定・非限定・付加",
+        "文の文法1"
+      ],
+      "source_chat_summary": "用户学习「もさることながら」的承认前项、强调后项，并做多道选择题。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "content_origin": "user_provided",
+      "collocations": [],
+      "conjugations": []
+    },
+    {
+      "id": "n1-鋭い",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T21:59:05+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N2",
+      "level_confidence": "medium",
+      "original": "鋭い",
+      "reading": "するどい",
+      "part_of_speech": "い形容詞",
+      "inflection_class": "i_adjective",
+      "base_form": "鋭い",
+      "conjugations": [
+        {
+          "kind": "ない形",
+          "form": "鋭くない"
+        },
+        {
+          "kind": "た形",
+          "form": "鋭かった"
+        },
+        {
+          "kind": "て形",
+          "form": "鋭くて"
+        },
+        {
+          "kind": "副詞形",
+          "form": "鋭く"
+        }
+      ],
+      "meaning_ja": "先端や刃が細くとがっている。また、感覚・考え・指摘などが非常に敏感で的確である。",
+      "paraphrase_ja": "とがっている／敏感で的確だ",
+      "meaning_zh": "尖锐、锋利；敏锐；犀利。",
+      "core_memory": "鋭い＝锋利＋敏锐/犀利；「鋭い指摘」「鋭い感覚」。",
+      "explanation_zh": "用户输入为简体字「锐い」，正式日文表记整理为「鋭い」。可用于刀刃等物理锋利，也可用于目光、感觉、分析、指摘等抽象敏锐。",
+      "collocations": [
+        "鋭い刃物",
+        "鋭い目つき",
+        "鋭い感覚",
+        "鋭い指摘"
+      ],
+      "examples": [
+        {
+          "ja": "彼女は問題の本質を鋭く見抜いた。",
+          "zh": "她敏锐地看穿了问题的本质。"
+        },
+        {
+          "ja": "この包丁は刃が鋭いので、扱いに注意が必要だ。",
+          "zh": "这把菜刀刀刃锋利，使用时需要注意。"
+        },
+        {
+          "ja": "会議で鋭い指摘を受け、計画を見直した。",
+          "zh": "在会议上受到犀利指出后，重新审视了计划。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "細い",
+          "difference_zh": "「細い」只是细；「鋭い」强调尖、锋利，或判断敏锐。"
+        },
+        {
+          "target": "厳しい",
+          "difference_zh": "「厳しい」是严格、严峻；「鋭い」是敏锐、犀利。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning",
+        "kanji_to_kana"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "浅い",
+          "鈍い",
+          "丸い"
+        ],
+        "meaning": [
+          "反応が遅い",
+          "形が大きい",
+          "気持ちが穏やかだ"
+        ],
+        "kanji_to_kana": [
+          "えいどい",
+          "さとい",
+          "するい"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n彼の（　）指摘によって、計画の問題点が明らかになった。",
+      "choices": [
+        "鋭い",
+        "浅い",
+        "鈍い",
+        "丸い"
+      ],
+      "correct_answer": "鋭い",
+      "distractor_notes": {
+        "浅い": "深さや理解が足りない意味で、的確な指摘と合わない。",
+        "鈍い": "反応や感覚がにぶい意味で逆。",
+        "丸い": "形や性格の穏やかさを表し、指摘の的確さではない。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-015-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "彼の（　）指摘によって、計画の問題点が明らかになった。",
+          "choices": [
+            "鋭い",
+            "浅い",
+            "鈍い",
+            "丸い"
+          ],
+          "answer": "鋭い",
+          "explanation_zh": "能让问题点变清楚的指出，是敏锐、犀利的「鋭い指摘」。"
+        },
+        {
+          "id": "2026-09-03-015-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "彼女は鋭い感覚を持っている。",
+          "target": "鋭い",
+          "choices": [
+            "敏感で的確な",
+            "反応が遅い",
+            "形が大きい",
+            "気持ちが穏やかな"
+          ],
+          "answer": "敏感で的確な",
+          "explanation_zh": "抽象用法中「鋭い」表示敏锐、准确。"
+        },
+        {
+          "id": "2026-09-03-015-practice-03",
+          "kind": "kanji_to_kana",
+          "instruction": "下線部の読み方として最もよいものを選びなさい。",
+          "prompt": "鋭い刃物には注意が必要だ。",
+          "target": "鋭い",
+          "choices": [
+            "するどい",
+            "えいどい",
+            "さとい",
+            "するい"
+          ],
+          "answer": "するどい",
+          "explanation_zh": "「鋭い」读作「するどい」。"
+        }
+      ],
+      "notes": [
+        "原始输入是「锐い」，正式日文词条保存为「鋭い」。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "鋭い",
+          "reading": "するどい"
+        },
+        {
+          "text": "刃物",
+          "reading": "はもの"
+        },
+        {
+          "text": "目つき",
+          "reading": "めつき"
+        },
+        {
+          "text": "感覚",
+          "reading": "かんかく"
+        },
+        {
+          "text": "指摘",
+          "reading": "してき"
+        },
+        {
+          "text": "本質",
+          "reading": "ほんしつ"
+        },
+        {
+          "text": "見抜いた",
+          "reading": "みぬいた"
+        },
+        {
+          "text": "包丁",
+          "reading": "ほうちょう"
+        },
+        {
+          "text": "扱い",
+          "reading": "あつかい"
+        },
+        {
+          "text": "会議",
+          "reading": "かいぎ"
+        },
+        {
+          "text": "計画",
+          "reading": "けいかく"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「锐い」，总结时规范为「鋭い」并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ]
+    },
+    {
+      "id": "n1-ぐいぐい",
+      "date": "2026-09-03",
+      "input_at": "2026-09-03T22:05:07+09:00",
+      "lesson": "N1单词",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N2",
+      "level_confidence": "medium",
+      "original": "ぐいぐい",
+      "reading": "ぐいぐい",
+      "part_of_speech": "副詞・擬態語",
+      "meaning_ja": "強い力や勢いで続けて動かす様子。また、遠慮せず積極的に進める様子。",
+      "paraphrase_ja": "強く勢いよく",
+      "meaning_zh": "用力地、使劲地；快速而强势地；积极推进地。",
+      "core_memory": "ぐいぐい＝力/勢いが強い；拉、喝、推进、吸引都可用。",
+      "explanation_zh": "「ぐいぐい」强调动作持续、有力、有势头。可用于物理动作，也可用于喝得快、话题推进强、人或作品吸引力强。",
+      "collocations": [
+        "ぐいぐい引っ張る",
+        "ぐいぐい飲む",
+        "話をぐいぐい進める",
+        "人をぐいぐい引きつける"
+      ],
+      "examples": [
+        {
+          "ja": "彼はロープをぐいぐい引っ張った。",
+          "zh": "他使劲拉绳子。"
+        },
+        {
+          "ja": "司会者は議論をぐいぐい進めていった。",
+          "zh": "主持人强势地推进了讨论。"
+        },
+        {
+          "ja": "この小説は読者をぐいぐい引き込む力がある。",
+          "zh": "这部小说有强烈吸引读者读下去的力量。"
+        }
+      ],
+      "comparisons": [
+        {
+          "target": "どんどん",
+          "difference_zh": "强调不断进展；「ぐいぐい」更有力量、强势推进感。"
+        },
+        {
+          "target": "無理やり",
+          "difference_zh": "强调勉强、强迫；「ぐいぐい」不一定负面，也可表示吸引力强。"
+        }
+      ],
+      "question_kinds": [
+        "moji_goi",
+        "meaning"
+      ],
+      "question_distractors": {
+        "moji_goi": [
+          "しみじみ",
+          "ぼんやり",
+          "そっと"
+        ],
+        "meaning": [
+          "静かに少しずつ",
+          "何も考えずに",
+          "悲しそうに"
+        ]
+      },
+      "question": "文脈に最も合う語を選びなさい。\n彼女は会議の議論を（　）進めていった。",
+      "choices": [
+        "ぐいぐい",
+        "しみじみ",
+        "ぼんやり",
+        "そっと"
+      ],
+      "correct_answer": "ぐいぐい",
+      "distractor_notes": {
+        "しみじみ": "深く感じる様子で、議論を進める勢いを表せない。",
+        "ぼんやり": "ぼんやりしている様子で、積極的に進める意味と反対。",
+        "そっと": "静かに・控えめにという意味で、強い推進力とは合わない。"
+      },
+      "practice_questions": [
+        {
+          "id": "2026-09-03-016-practice-01",
+          "kind": "moji_goi",
+          "instruction": "文脈に最も合う語を選びなさい。",
+          "prompt": "彼女は会議の議論を（　）進めていった。",
+          "choices": [
+            "ぐいぐい",
+            "しみじみ",
+            "ぼんやり",
+            "そっと"
+          ],
+          "answer": "ぐいぐい",
+          "explanation_zh": "强势、积极推进讨论，用「ぐいぐい進める」。"
+        },
+        {
+          "id": "2026-09-03-016-practice-02",
+          "kind": "meaning",
+          "instruction": "下線部の言葉に意味が最も近いものを選びなさい。",
+          "prompt": "彼はロープをぐいぐい引っ張った。",
+          "target": "ぐいぐい",
+          "choices": [
+            "強く勢いよく",
+            "静かに少しずつ",
+            "何も考えずに",
+            "悲しそうに"
+          ],
+          "answer": "強く勢いよく",
+          "explanation_zh": "物理动作中「ぐいぐい」表示用力、连续、有势头。"
+        }
+      ],
+      "notes": [
+        "假名词，不生成漢字読み题。"
+      ],
+      "ruby_terms": [
+        {
+          "text": "強い力",
+          "reading": "つよいちから"
+        },
+        {
+          "text": "勢い",
+          "reading": "いきおい"
+        },
+        {
+          "text": "遠慮",
+          "reading": "えんりょ"
+        },
+        {
+          "text": "積極的",
+          "reading": "せっきょくてき"
+        },
+        {
+          "text": "引っ張る",
+          "reading": "ひっぱる"
+        },
+        {
+          "text": "飲む",
+          "reading": "のむ"
+        },
+        {
+          "text": "進める",
+          "reading": "すすめる"
+        },
+        {
+          "text": "引きつける",
+          "reading": "ひきつける"
+        },
+        {
+          "text": "司会者",
+          "reading": "しかいしゃ"
+        },
+        {
+          "text": "議論",
+          "reading": "ぎろん"
+        },
+        {
+          "text": "小説",
+          "reading": "しょうせつ"
+        },
+        {
+          "text": "読者",
+          "reading": "どくしゃ"
+        }
+      ],
+      "source_chat_summary": "临时 buffer 中记录「ぐいぐい」，总结时整理为词汇并同步到 N1 单词本。",
+      "review_status": "new",
+      "verification_status": "verified",
+      "practice_generation_status": "generated",
+      "targetWordbookId": "n1_vocab",
+      "targetWordbookTitle": "N1/N2 词汇",
+      "wordbook_ids": [
+        "n1_vocab"
+      ],
+      "conjugations": []
     }
   ],
   "daily_packs": []

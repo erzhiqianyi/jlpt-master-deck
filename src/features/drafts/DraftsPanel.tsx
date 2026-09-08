@@ -1,5 +1,9 @@
-import { ArrowLeft, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { isTopicDraft } from '../../domain/practicePurpose';
+import { useMobileList } from '../../hooks/useMobileList';
+import { useConfirmation } from '../../components/confirmation';
+import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
+import { ArrowLeft, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DraftSummary, ReviewPackDraft } from '../../types';
 
 type DraftsPanelProps = {
@@ -19,6 +23,8 @@ type DraftsPanelProps = {
   onUpdateDraft?: (id: string, input: { title: string; content: unknown }) => Promise<void>;
   detailDraftId?: string | null;
   onDetailDraftChange?: (id: string | null) => void;
+  onSaveQuestionReview?: (id: string, body: string) => Promise<void>;
+  onFinalizeReviewedDraft?: (id: string) => Promise<void>;
   embedded?: boolean;
 };
 
@@ -39,8 +45,11 @@ export function DraftsPanel({
   onUpdateDraft,
   detailDraftId,
   onDetailDraftChange,
+  onSaveQuestionReview,
+  onFinalizeReviewedDraft,
   embedded = false,
 }: DraftsPanelProps) {
+  const confirm = useConfirmation();
   const [internalDetailDraftId, setInternalDetailDraftId] = useState<string | null>(null);
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
   const [selectionBusy, setSelectionBusy] = useState(false);
@@ -54,11 +63,21 @@ export function DraftsPanel({
   const [editingError, setEditingError] = useState('');
   const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
   const selectedDraftIdSet = useMemo(() => new Set(selectedDraftIds), [selectedDraftIds]);
+  const [manageList, setManageList] = useState(false);
+  const mobileList = useMobileList(drafts.length, 'drafts', 6);
+  const orderedDrafts = useMemo(() => [...drafts].sort((a, b) => {
+    const priority = (status: string) => ['draft', 'needs_revision'].includes(status) ? 0 : status === 'approved' ? 1 : 2;
+    return priority(a.status) - priority(b.status) || b.updated_at.localeCompare(a.updated_at);
+  }), [drafts]);
+  const draftStatusText = (status: string) => ({ draft: '待审核', needs_revision: '待修改', approved: '已确认', archived: '已归档' }[status] ?? status);
   const groupedDrafts = useMemo(() => groupDraftsByDate(drafts), [drafts]);
   const selectedCount = selectedDraftIds.length;
   const currentDetailDraftId = detailDraftId === undefined ? internalDetailDraftId : detailDraftId;
   const showingDetail = Boolean(currentDetailDraftId);
   const detailDraft = activeDraft?.id === currentDetailDraftId ? activeDraft : null;
+  const contentRecord = detailDraft && isRecord(detailDraft.content) ? detailDraft.content as GrammarReviewPack : null;
+  const reviewQuestions = [contentRecord?.generated_practice, contentRecord?.quiz, contentRecord?.practice_questions, contentRecord?.review_questions].find((list) => Array.isArray(list) && list.length) ?? [];
+  const hasQuestionReview = Array.isArray(reviewQuestions) && reviewQuestions.length > 0 && onSaveQuestionReview && onFinalizeReviewedDraft;
 
   function setCurrentDetailDraftId(id: string | null) {
     if (detailDraftId === undefined) {
@@ -106,7 +125,7 @@ export function DraftsPanel({
   async function deleteDraft(id: string) {
     if (!onDeleteDraft || deletingDraftId) return;
     const target = drafts.find((draft) => draft.id === id);
-    if (!window.confirm(labels.deleteDraftConfirm.replace('{title}', target?.title ?? labels.draftUntitledItem))) return;
+    if (!(await confirm({ title: labels.deleteDraft, description: labels.deleteDraftConfirm.replace('{title}', target?.title ?? labels.draftUntitledItem), confirmLabel: labels.deleteDraft, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeletingDraftId(id);
     try {
       await onDeleteDraft(id);
@@ -206,20 +225,20 @@ export function DraftsPanel({
           <p className="mt-2 text-sm leading-6 text-[#68716b]">{labels.noDraftsBody}</p>
         </div>
       ) : showingDetail ? (
-        <article className="min-w-0 rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
+        <article className="gentle-draft min-w-0 rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
           {detailDraft ? (
             <>
-              <div className="border-b border-[#e1e6df] p-4 md:p-5">
+              <div className="gentle-draft-back border-b border-[#e1e6df] p-4 md:p-5">
                 <button type="button" onClick={backToList} className="inline-flex items-center gap-2 text-sm font-semibold text-[#31564c] hover:underline">
                   <ArrowLeft size={16} /> {labels.draftBackToList}
                 </button>
               </div>
-              <div className="flex flex-col gap-4 p-4 md:flex-row md:items-start md:justify-between md:p-5">
+              <div className="gentle-draft-heading flex flex-col gap-4 p-4 md:flex-row md:items-start md:justify-between md:p-5">
                 <div>
-                  <p className="text-sm font-semibold text-[#856033]">{labels.draftPreview}</p>
-                  <h3 className="mt-1 text-2xl font-semibold">{detailDraft.title}</h3>
+                  
+                  <h3 title={detailDraft.title} className="mt-1 text-2xl font-semibold">{detailDraft.title}</h3>
                 </div>
-                <div className="mobile-action-row flex flex-wrap gap-2">
+                <PreviewDisclosure title="更多操作" icon={MoreHorizontal}><div className="mobile-action-row flex flex-wrap gap-2">
                   <button type="button" onClick={onCopyRevisionContext} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f]">
                     {labels.revisionContext}
                   </button>
@@ -228,26 +247,16 @@ export function DraftsPanel({
                       {labels.draftEdit}
                     </button>
                   ) : null}
-                  {onConfirmDraft ? (
-                    <button type="button" onClick={() => confirmDraftForAgent(detailDraft.id)} disabled={confirmingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#173d35] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
-                      {confirmingDraftId === detailDraft.id ? labels.processing : labels.confirmDraftForAgent}
-                    </button>
-                  ) : null}
-                  {onPublishDraft && detailDraft.status === 'approved' ? (
-                    <button type="button" onClick={() => publishDraft(detailDraft.id)} disabled={publishingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#a84269] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
-                      {publishingDraftId === detailDraft.id ? labels.processing : labels.publishDraftAsDailyPractice}
-                    </button>
-                  ) : null}
                   {onDeleteDraft ? (
                     <button type="button" onClick={() => deleteDraft(detailDraft.id)} disabled={deletingDraftId === detailDraft.id} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#d7b9ad] bg-white px-3 text-sm font-semibold text-[#8f3d2e] disabled:cursor-wait disabled:opacity-60">
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       {deletingDraftId === detailDraft.id ? labels.processing : labels.deleteDraft}
                     </button>
                   ) : null}
-                </div>
+                </div></PreviewDisclosure>
               </div>
 
-              <div className="grid gap-5 border-t border-[#edf0ec] p-4 md:grid-cols-[minmax(0,1fr)_20rem] md:p-5">
+              <div className="gentle-draft-body grid gap-5 border-t border-[#edf0ec] p-4 md:p-5">
                 <div className="min-w-0">
                   {editingDraftId === detailDraft.id ? (
                     <DraftEditor
@@ -262,14 +271,18 @@ export function DraftsPanel({
                       onSave={() => saveDraftEdits(detailDraft.id)}
                     />
                   ) : (
-                    <DraftContentPreview content={detailDraft.content} labels={labels} />
+                    hasQuestionReview ? <QuestionReviewWorkspace key={detailDraft.id} draft={detailDraft} questions={reviewQuestions}
+                      renderQuestion={(index) => <QuestionList key={JSON.stringify([index, reviewQuestions[index]])} questions={[reviewQuestions[index]]} labels={labels} startNumber={index + 1} hidePagination />}
+                      onSave={onSaveQuestionReview!} onFinalize={onFinalizeReviewedDraft!} />
+                      : <DraftContentPreview key={detailDraft.id} content={detailDraft.content} labels={labels} />
                   )}
                 </div>
-                <aside className="min-w-0 space-y-4 md:sticky md:top-24 md:self-start">
+                {!hasQuestionReview ? <aside className="gentle-draft-notes min-w-0 space-y-4">
+                  <PreviewDisclosure title="有不认识的词，或想改的地方？" buttonLabel="记生词 / 提建议" icon={MessageSquare}>
                   {onConfirmDraft ? (
                     <section className="rounded-lg border border-[#d8e1d9] bg-[#f8faf7] p-4">
-                      <h4 className="text-base font-semibold">{labels.draftAgentHandoffTitle}</h4>
-                      <p className="mt-2 text-sm leading-6 text-[#68716b]">{labels.draftAgentHandoffBody}</p>
+                      <h4 className="text-base font-semibold">记下不认识的词</h4>
+                      <p className="mt-2 text-sm leading-6 text-[#68716b]">可以先记在这里，确认时会一起提交。</p>
                       <label className="mt-3 block text-sm font-semibold text-[#34413b]">
                         {labels.draftUnknownWords}
                         <textarea
@@ -283,7 +296,7 @@ export function DraftsPanel({
                   ) : null}
 
                   <section className="rounded-lg border border-[#e2ddd3] bg-white p-4">
-                    <h4 className="text-base font-semibold">{labels.draftAnnotations}</h4>
+                    <h4 className="text-base font-semibold">写下你的想法</h4>
                     <div className="mt-3 grid gap-2">
                       {detailDraft.annotations.length ? detailDraft.annotations.map((item) => (
                         <p key={item.id} className="rounded-md bg-[#fffaf4] p-3 text-sm leading-6 text-[#4f5b55]">
@@ -296,14 +309,29 @@ export function DraftsPanel({
                     <textarea
                       value={annotation}
                       onChange={(event) => onAnnotationChange(event.target.value)}
-                      placeholder={labels.annotationPlaceholder}
+                      aria-label="想改的地方" placeholder="比如：这道题太难了，想多看一个例子。"
                       className="mt-4 min-h-28 w-full rounded-md border border-[#c8bcae] bg-white p-3 text-sm leading-6"
                     />
                     <button type="button" onClick={onSaveAnnotation} className="mt-3 h-10 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white">
                       {labels.saveAnnotation}
                     </button>
                   </section>
-                </aside>
+                  </PreviewDisclosure>
+                  <div className="gentle-draft-confirm">
+                    <p>{detailDraft.status === 'archived' ? '这份练习已经整理好了。' : detailDraft.status === 'approved' ? (isTopicDraft(detailDraft) ? '已确认，可以保存为专项练习了。' : '已确认。加入今日练习后，就可以开始做题了。') : '看完了吗？先确认题目，再开始练习。'}</p>
+                    <div className="flex flex-wrap gap-3">                  {onConfirmDraft && !['approved', 'archived'].includes(detailDraft.status) ? (
+                    <button type="button" onClick={() => confirmDraftForAgent(detailDraft.id)} disabled={confirmingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#173d35] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+                      {confirmingDraftId === detailDraft.id ? '正在提交…' : '确认这份练习'}
+                    </button>
+                  ) : null}
+                  {onPublishDraft && ['approved', 'archived'].includes(detailDraft.status) ? (
+                    <button type="button" onClick={() => publishDraft(detailDraft.id)} disabled={publishingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#a84269] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+                      {publishingDraftId === detailDraft.id ? '正在准备…' : isTopicDraft(detailDraft) ? '保存为专项练习并开始' : '加入今日练习'}
+                    </button>
+                  ) : null}
+</div>
+                  </div>
+                </aside> : null}
               </div>
             </>
           ) : (
@@ -313,8 +341,21 @@ export function DraftsPanel({
             </div>
           )}
         </article>
+      ) : mobileList.mobile && !manageList ? (
+        <section className="gentle-draft-list">
+          <div className="gentle-draft-list-tools"><button type="button" onClick={() => setManageList(true)}>管理草稿</button></div>
+          {orderedDrafts.slice(0, mobileList.visible).map((draft) => (
+            <button key={draft.id} type="button" className="gentle-draft-list-row" onClick={() => openDraft(draft.id)}>
+              <span className="gentle-draft-list-meta"><span>{draftStatusText(draft.status)}</span><time>{formatDate(draft.updated_at)}</time></span>
+              <strong>{draft.title}</strong>
+              <span className="gentle-draft-list-open">{['draft', 'needs_revision'].includes(draft.status) ? '查看并审核' : '查看内容'} →</span>
+            </button>
+          ))}
+          {drafts.length ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < drafts.length ? '上拉查看更多' : '已经到底了'}</div> : <p>{labels.noDrafts}</p>}
+        </section>
       ) : (
         <section className="min-w-0 space-y-4">
+          {mobileList.mobile ? <button type="button" className="gentle-back" onClick={() => { setManageList(false); setSelectedDraftIds([]); }}>完成管理</button> : null}
           <div className="mobile-action-header flex flex-col gap-3 rounded-lg border border-[#d7dfd6] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-[#27312c]">{labels.draftListTitle}</h3>
@@ -357,7 +398,7 @@ export function DraftsPanel({
                             <span className="min-w-0">
                               <span className="block text-base font-semibold leading-6 text-[#27312c]">{draft.title}</span>
                               <span className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-[#68716b]">
-                                <span>{labels.draftStatus}: {draft.status}</span>
+                                <span>{draftStatusText(draft.status)}</span>
                                 <span>{labels.updatedAt}: {formatDate(draft.updated_at)}</span>
                               </span>
                             </span>
@@ -619,62 +660,19 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
   );
 
   return (
-    <div className="mt-5 space-y-8">
-      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+    <div className="gentle-draft-preview mt-5 space-y-8">
+      <div className="gentle-draft-meta flex flex-wrap gap-2 text-xs font-semibold">
         {draft.kind ? <span className="rounded bg-[#edf4ef] px-2 py-1 text-[#31564c]">{readableKind(draft.kind, labels)}</span> : null}
         {draft.jlpt_level ? <span className="rounded bg-[#f1eee8] px-2 py-1 text-[#584f43]">{draft.jlpt_level}</span> : null}
         {draft.topic ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.topic}</span> : null}
-        {draft.strategy ? <span className="rounded bg-[#eef3f7] px-2 py-1 text-[#36546b]">{draft.strategy.replaceAll('_', ' ')}</span> : null}
-        {draft.minutes ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.minutes} min</span> : null}
-        {draft.time_limit_minutes ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.time_limit_minutes} min</span> : null}
-        {draft.question_count || sectionQuestionCount ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.question_count ?? sectionQuestionCount} 题</span> : null}
+        
+        {draft.minutes ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.minutes} 分钟</span> : null}
+        {draft.time_limit_minutes ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.time_limit_minutes} 分钟</span> : null}
+        {!(practiceQuestions.length || reviewQuestions.length || dailyQuiz.length) && (draft.question_count || sectionQuestionCount) ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.question_count ?? sectionQuestionCount} 题</span> : null}
         {draft.total_points ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.total_points} 分</span> : null}
         {grammarItems.length || grammarPoints.length ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{labels.draftGrammarPoints}: {grammarItems.length + grammarPoints.length}</span> : null}
         {practiceQuestions.length || reviewQuestions.length || dailyQuiz.length ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{labels.draftPracticeQuestions}: {practiceQuestions.length + reviewQuestions.length + dailyQuiz.length}</span> : null}
       </div>
-
-      {practicePlan.length ? (
-        <PreviewSection icon={ListChecks} title="今日计划">
-          <div className="grid gap-2 sm:grid-cols-3">
-            {practicePlan.map((item, index) => (
-              <div key={`${item.task}-${index}`} className="rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3">
-                {typeof item.minutes === 'number' ? <p className="text-lg font-semibold text-[#31564c]">{item.minutes} 分钟</p> : null}
-                {item.task ? <p className="mt-1 text-sm leading-6 text-[#4f5b55]">{item.task}</p> : null}
-              </div>
-            ))}
-          </div>
-        </PreviewSection>
-      ) : null}
-
-      {weakQuestionTypes.length || draft.diagnosis?.rule ? (
-        <PreviewSection icon={Lightbulb} title="针对性诊断">
-          {draft.diagnosis?.rule ? <p className="mb-3 text-sm leading-6 text-[#4f5b55]">{draft.diagnosis.rule}</p> : null}
-          {weakQuestionTypes.length ? (
-            <div className="grid gap-2">
-              {weakQuestionTypes.map((item, index) => (
-                <div key={`${item.kind}-${index}`} className="rounded-md border border-[#e1e6df] bg-white p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-[#27312c]">{readableQuestionKind(item.kind)}</p>
-                    <span className="rounded bg-[#edf4ef] px-2 py-1 text-xs font-semibold text-[#31564c]">{formatAccuracy(item.accuracy)}</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[#68716b]">
-                    {`总 ${item.total ?? 0} / 对 ${item.correct ?? 0} / 错 ${item.wrong ?? 0}`}
-                    {item.lastAnsweredAt ? ` · 最近 ${formatDateTime(item.lastAnsweredAt)}` : ''}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </PreviewSection>
-      ) : null}
-
-      {warmup.length ? (
-        <PreviewSection icon={BookOpenText} title="Warmup">
-          <ul className="grid gap-2 text-sm leading-6 text-[#4f5b55]">
-            {warmup.slice(0, 12).map((item, index) => <li key={index} className="rounded-md bg-[#f8faf7] p-3">{summarizeValue(item, labels)}</li>)}
-          </ul>
-        </PreviewSection>
-      ) : null}
 
       {draft.original_question?.passage || draft.normalized?.passage ? (
         <div className="grid gap-5 lg:grid-cols-2">
@@ -781,32 +779,86 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
       {!grammarItems.length && !grammarPoints.length && !answerAnalysis.length && !sourceQuestions.length && !practiceQuestions.length && !reviewQuestions.length && !dailyQuiz.length && sections.length ? (
         <PreviewSection icon={ClipboardList} title={labels.draftPreview}>
           <div className="divide-y divide-[#e1e6df]">
-            {sections.map((section, index) => {
-              const questions = Array.isArray(section.questions) ? section.questions : [];
-              const startNumber = sections.slice(0, index).reduce((total, previous) => total + (Array.isArray(previous.questions) ? previous.questions.length : 0), 0) + 1;
-              return (
-                <section key={section.id ?? `${section.title}-${index}`} className="py-5 first:pt-0 last:pb-0">
-                  {section.title ? <h4 className="text-base font-semibold text-[#27312c]">{section.title}</h4> : null}
-                  {section.instruction ? <p className="mt-2 rounded-md bg-[#f8faf7] p-3 text-sm leading-6 text-[#4f5b55]">{section.instruction}</p> : null}
-                  {section.body ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.body}</p> : null}
-                  {questions.length ? <div className="mt-3"><QuestionList questions={questions} labels={labels} startNumber={startNumber} /></div> : null}
-                  {Array.isArray(section.items) && section.items.length ? (
-                    <ul className="mt-3 grid gap-2 text-sm leading-6 text-[#68716b]">
-                      {section.items.map((item, itemIndex) => <li key={itemIndex}>{summarizeValue(item, labels)}</li>)}
-                    </ul>
-                  ) : null}
-                </section>
-              );
-            })}
+            <QuestionList
+              questions={sections.flatMap((section) => Array.isArray(section.questions) ? section.questions : [])}
+              sections={sections.flatMap((section) => (Array.isArray(section.questions) ? section.questions : []).map(() => section))}
+              labels={labels}
+            />
+            {sections.filter((section) => !Array.isArray(section.questions) || !section.questions.length).map((section, index) => (
+              <section key={section.id ?? index} className="py-5">
+                {section.title ? <h4 className="text-base font-semibold text-[#27312c]">{section.title}</h4> : null}
+                {section.instruction ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.instruction}</p> : null}
+                {section.body ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.body}</p> : null}
+                {Array.isArray(section.items) ? <ul className="mt-3 grid gap-2 text-sm leading-6 text-[#68716b]">{section.items.map((item, itemIndex) => <li key={itemIndex}>{summarizeValue(item, labels)}</li>)}</ul> : null}
+              </section>
+            ))}
           </div>
         </PreviewSection>
       ) : null}
 
+      <div className="gentle-draft-context">
+      {practicePlan.length ? (
+        <PreviewDisclosure title="学习安排" icon={ListChecks}><PreviewSection icon={ListChecks} title="今日计划">
+          <div className="grid gap-2 sm:grid-cols-3">
+            {practicePlan.map((item, index) => (
+              <div key={`${item.task}-${index}`} className="rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3">
+                {typeof item.minutes === 'number' ? <p className="text-lg font-semibold text-[#31564c]">{item.minutes} 分钟</p> : null}
+                {item.task ? <p className="mt-1 text-sm leading-6 text-[#4f5b55]">{item.task}</p> : null}
+              </div>
+            ))}
+          </div>
+        </PreviewSection></PreviewDisclosure>
+      ) : null}
+
+      {weakQuestionTypes.length || draft.diagnosis?.rule ? (
+        <PreviewDisclosure title="为什么练这些题？" icon={Lightbulb}><PreviewSection icon={Lightbulb} title="针对性诊断">
+          {draft.diagnosis?.rule ? <p className="mb-3 text-sm leading-6 text-[#4f5b55]">{draft.diagnosis.rule}</p> : null}
+          {weakQuestionTypes.length ? (
+            <div className="grid gap-2">
+              {weakQuestionTypes.map((item, index) => (
+                <div key={`${item.kind}-${index}`} className="rounded-md border border-[#e1e6df] bg-white p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-[#27312c]">{readableQuestionKind(item.kind)}</p>
+                    <span className="rounded bg-[#edf4ef] px-2 py-1 text-xs font-semibold text-[#31564c]">{formatAccuracy(item.accuracy)}</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[#68716b]">
+                    {`做过 ${item.total ?? "—"} 题 · 答对 ${item.correct ?? "未记录"} · 答错 ${item.wrong ?? "未记录"}`}
+                    {item.lastAnsweredAt ? ` · 最近 ${formatDateTime(item.lastAnsweredAt)}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </PreviewSection></PreviewDisclosure>
+      ) : null}
+
+      {warmup.length ? (
+        <PreviewDisclosure title="先回忆一下" icon={BookOpenText}><PreviewSection icon={BookOpenText} title="回忆小提示">
+          <ul className="grid gap-2 text-sm leading-6 text-[#4f5b55]">
+            {warmup.slice(0, 12).map((item, index) => <li key={index} className="rounded-md bg-[#f8faf7] p-3">{summarizeValue(item, labels)}</li>)}
+          </ul>
+        </PreviewSection></PreviewDisclosure>
+      ) : null}
+
+      </div>
       {!visualized ? (
         <div className="border-y border-[#e1e6df] py-6 text-sm leading-6 text-[#68716b]">
           {labels.draftReadableFallback}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function PreviewDisclosure({ title, buttonLabel, icon: Icon, children }: { title: string; buttonLabel?: string; icon?: LucideIcon; children: ReactNode }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  return (
+    <div className="preview-disclosure">
+      <button className="preview-disclosure-trigger" type="button" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>{Icon ? <Icon size={18} aria-hidden="true" /> : null}<span>{buttonLabel ?? title}</span></button>
+      <dialog ref={dialog} className="preview-dialog" aria-label={title}>
+        <header><h3>{title}</h3><button type="button" autoFocus onClick={() => dialog.current?.close()}>关闭</button></header>
+        <div className="preview-dialog-content">{children}</div>
+      </dialog>
     </div>
   );
 }
@@ -855,7 +907,10 @@ function GrammarItemList({ items, labels }: { items: GrammarItem[]; labels: Reco
   );
 }
 
-function QuestionList({ questions, labels, startNumber = 1 }: { questions: DraftQuestion[]; labels: Record<string, string>; startNumber?: number }) {
+function QuestionList({ questions, sections, labels, startNumber = 1, hidePagination = false }: { questions: DraftQuestion[]; sections?: DraftSection[]; labels: Record<string, string>; startNumber?: number; hidePagination?: boolean }) {
+  const [page, setPage] = useState(0);
+  const currentPage = Math.min(page, Math.max(0, questions.length - 1));
+  const section = sections?.[currentPage];
   const [revealedQuestionIds, setRevealedQuestionIds] = useState<Set<string>>(() => new Set());
 
   function toggleAnswer(id: string) {
@@ -871,9 +926,19 @@ function QuestionList({ questions, labels, startNumber = 1 }: { questions: Draft
   }
 
   return (
-    <div className="divide-y divide-[#e1e6df]">
-      {questions.map((question, index) => {
-        const questionId = question.id ?? `${question.prompt}-${index}`;
+    <div className="gentle-draft-questions">
+      {section?.title ? <h4 className="text-base font-semibold text-[#27312c]">{section.title}</h4> : null}
+      {section?.instruction ? <p className="mt-2 rounded-md bg-[#f8faf7] p-3 text-sm leading-6 text-[#4f5b55]">{section.instruction}</p> : null}
+      {section?.body ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.body}</p> : null}
+      {Array.isArray(section?.items) && section.items.length ? <ul className="mt-3 grid gap-2 text-sm leading-6 text-[#68716b]">{section.items.map((item, itemIndex) => <li key={itemIndex}>{summarizeValue(item, labels)}</li>)}</ul> : null}
+      {!hidePagination ? <nav className="gentle-question-pager" aria-label="预览题目翻页">
+        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>上一题</button>
+        <span aria-live="polite">第 {questions.length ? currentPage + 1 : 0} / {questions.length} 题</span>
+        <button type="button" disabled={currentPage >= questions.length - 1} onClick={() => setPage(currentPage + 1)}>下一题</button>
+      </nav> : null}
+      {questions.slice(currentPage, currentPage + 1).map((question, offset) => {
+        const index = currentPage + offset;
+        const questionId = `${index}-${question.id ?? question.prompt}`;
         const answerChoiceNumber = typeof question.answerIndex === 'number' && question.answerIndex >= 0
           ? question.answerIndex + 1
           : numericAnswerIndex(question.answer);
@@ -888,9 +953,6 @@ function QuestionList({ questions, labels, startNumber = 1 }: { questions: Draft
                 {question.tested_expression || question.tested ? <span className="w-fit shrink-0 rounded bg-[#edf4ef] px-2 py-1 text-xs font-semibold text-[#31564c]">{question.tested_expression ?? question.tested}</span> : null}
               </div>
             </div>
-            <button type="button" onClick={() => toggleAnswer(questionId)} className="mt-3 h-9 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f] hover:bg-[#f8faf7]">
-              {isRevealed ? labels.draftHideAnswer : labels.draftShowAnswer}
-            </button>
             {isRevealed && hasStarResult ? (
               <div className="mt-3 grid gap-2 rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3 text-sm leading-6 text-[#4f5b55] sm:grid-cols-3">
                 {question.full_order ? <ResultField label={labels.draftFullOrder ?? '完整排序'} value={question.full_order} /> : null}
@@ -911,6 +973,9 @@ function QuestionList({ questions, labels, startNumber = 1 }: { questions: Draft
                 })}
               </ol>
             ) : null}
+            <button type="button" onClick={() => toggleAnswer(questionId)} className="mt-3 h-9 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f] hover:bg-[#f8faf7]">
+              {isRevealed ? labels.draftHideAnswer : labels.draftShowAnswer}
+            </button>
             {isRevealed && question.explanation_zh ? <p className="mt-3 text-sm leading-6 text-[#68716b]">{question.explanation_zh}</p> : null}
           </article>
         );

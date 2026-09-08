@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     allowedHosts: ['jlpt-local.erzhiqian.cc'],
     proxy: {
-      '/api': 'http://localhost:8791',
+      '/api': `http://localhost:${process.env.JLPT_API_PORT ?? 8791}`,
     },
   },
   plugins: [react()],

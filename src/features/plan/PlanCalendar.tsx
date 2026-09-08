@@ -1,4 +1,4 @@
-import { BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, FileStack, ListChecks } from 'lucide-react';
+import { BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { calendarDays, localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { Locale, StudyDailySummary, StudyPlanDayEvidence, StudyPlanTask, StudyPlanTaskStatus } from '../../types';
@@ -38,13 +38,49 @@ export function PlanCalendar({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
+    <div className="plan-agenda-layout">
+      <aside className="plan-month"><div>
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" aria-label={labels.planPreviousMonth} title={labels.planPreviousMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className={iconButtonClass}>
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <div className="min-w-0 text-center">
+
+            <h2 className="truncate text-base font-semibold text-[#27312c]">{new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(month)}</h2>
+          </div>
+          <button type="button" aria-label={labels.planNextMonth} title={labels.planNextMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className={iconButtonClass}>
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        <button type="button" onClick={() => { setSelectedDate(today); setMonth(new Date(`${today.slice(0, 7)}-01T00:00:00`)); }} className="plan-today-link">
+          {labels.planJumpToday}
+        </button>
+
+        <div className="plan-month-grid">
+          {weekdays.map((weekday) => (
+            <div key={weekday} className="plan-weekday">{weekday}</div>
+          ))}
+          {days.map((date, index) => {
+            const dayTasks = date ? tasksForDate(tasks, date) : [];
+            const completed = dayTasks.filter((task) => task.status === 'completed').length;
+            const selected = date === selectedDate;
+            const isToday = date === today;
+            return date ? (
+              <button key={date} type="button" aria-label={`${formatFullDate(date, locale)} · ${completed}/${dayTasks.length}`} aria-pressed={selected} onClick={() => setSelectedDate(date)} className={`plan-date ${selected ? 'is-selected' : ''} ${isToday ? 'is-today' : ''} ${completed && completed === dayTasks.length ? 'is-complete' : ''}`}>
+                <span className="plan-date-number">{Number(date.slice(-2))}</span>
+                <span className="plan-date-mark" aria-hidden="true">{completed && completed === dayTasks.length ? <Check size={12} /> : dayTasks.length ? <span className={completed ? 'has-progress' : ''} /> : null}</span>
+              </button>
+            ) : <div key={`empty-${index}`} className="plan-date-empty" />;
+          })}
+        </div>
+      <div className="plan-calendar-key"><span><i />{locale === 'zh-CN' ? '有安排' : locale === 'ja' ? '予定あり' : 'Planned'}</span><span><Check size={13} />{locale === 'zh-CN' ? '已完成' : locale === 'ja' ? '完了' : 'Done'}</span></div>
+      </div></aside>
       <section className="min-w-0 space-y-5">
         <DayFocus
           labels={labels}
           locale={locale}
           date={selectedDate}
-          today={today}
           tasks={selectedTasks}
           summary={selectedSummary}
           evidence={selectedEvidence}
@@ -53,51 +89,15 @@ export function PlanCalendar({
         />
       </section>
 
-      <aside className="min-w-0 rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" aria-label={labels.planPreviousMonth} title={labels.planPreviousMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className={iconButtonClass}>
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <div className="min-w-0 text-center">
-            <p className="text-xs font-semibold text-[#7d6032]">{labels.planMiniCalendar}</p>
-            <h2 className="truncate text-base font-semibold text-[#27312c]">{new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(month)}</h2>
-          </div>
-          <button type="button" aria-label={labels.planNextMonth} title={labels.planNextMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className={iconButtonClass}>
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
 
-        <button type="button" onClick={() => { setSelectedDate(today); setMonth(new Date(`${today.slice(0, 7)}-01T00:00:00`)); }} className="mt-3 h-9 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-sm font-semibold text-[#31564c] hover:bg-[#f3f6f1]">
-          {labels.planJumpToday}
-        </button>
-
-        <div className="mt-3 grid grid-cols-7 border-l border-t border-[#d7dfd6]">
-          {weekdays.map((weekday) => (
-            <div key={weekday} className="border-b border-r border-[#d7dfd6] bg-[#f2f5f0] px-1 py-1.5 text-center text-[11px] font-semibold text-[#68716b]">{weekday}</div>
-          ))}
-          {days.map((date, index) => {
-            const dayTasks = date ? tasksForDate(tasks, date) : [];
-            const completed = dayTasks.filter((task) => task.status === 'completed').length;
-            const selected = date === selectedDate;
-            const isToday = date === today;
-            return date ? (
-              <button key={date} type="button" onClick={() => setSelectedDate(date)} className={`min-h-11 border-b border-r border-[#d7dfd6] p-1 text-center ${selected ? 'bg-[#e9f1ec] ring-2 ring-inset ring-[#31564c]' : isToday ? 'bg-[#fff8df] hover:bg-[#fff3c4]' : 'bg-white hover:bg-[#f7f9f5]'}`}>
-                <span className="block text-xs font-semibold text-[#27312c]">{Number(date.slice(-2))}</span>
-                {dayTasks.length ? <span className="mt-0.5 block text-[10px] font-semibold text-[#31564c]">{completed}/{dayTasks.length}</span> : null}
-              </button>
-            ) : <div key={`empty-${index}`} className="min-h-11 border-b border-r border-[#d7dfd6] bg-[#f7f8f5]" />;
-          })}
-        </div>
-      </aside>
     </div>
   );
 }
 
-function DayFocus({ labels, locale, date, today, tasks, summary, evidence, updatingId, onTaskStatus }: {
+function DayFocus({ labels, locale, date, tasks, summary, evidence, updatingId, onTaskStatus }: {
   labels: Record<string, string>;
   locale: Locale;
   date: string;
-  today: string;
   tasks: StudyPlanTask[];
   summary?: StudyDailySummary;
   evidence: StudyPlanDayEvidence;
@@ -106,32 +106,32 @@ function DayFocus({ labels, locale, date, today, tasks, summary, evidence, updat
 }) {
   const completedTasks = tasks.filter((task) => task.status === 'completed');
   const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
-  const isToday = date === today;
   return (
-    <section className="rounded-lg border border-[#dfe5dc] bg-white p-5 shadow-sm md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <section className="plan-day-agenda">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm font-semibold text-[#7d6032]">{formatFullDate(date, locale)}</p>
-          <h2 className="mt-1 text-2xl font-semibold text-[#27312c]">{isToday ? labels.planTodayFocus : labels.planSelectedDayTasks}</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.planSelectedDayTasks}</h2>
         </div>
-        <div className="min-w-[9rem] rounded-md bg-[#edf4ef] px-3 py-2 text-right">
-          <p className="text-xs font-semibold text-[#68716b]">{isToday ? labels.planTodayCompletionRate : labels.planDayCompletionRate}</p>
-          <p className="text-xl font-semibold text-[#31564c]">{completionRate}%</p>
+        <div className="plan-day-count">
+          <p className="text-xs font-semibold text-[#68716b]">{labels.planTaskProgress}</p>
+          <p className="text-xl font-semibold text-[#31564c]">{completedTasks.length} / {tasks.length}</p>
         </div>
       </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e5ebe6]" aria-label={isToday ? labels.planTodayCompletionRate : labels.planDayCompletionRate} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completionRate} role="progressbar">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e5ebe6]" aria-label={labels.planDayCompletionRate} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completionRate} role="progressbar">
         <span className="block h-full rounded-full bg-[#31564c]" style={{ width: `${completionRate}%` }} />
       </div>
 
-      <div className="mt-5 min-w-0">
-        <h3 className="text-sm font-semibold text-[#46514c]">{labels.planTodayTasks}</h3>
-        <TaskList labels={labels} tasks={tasks} updatingId={updatingId} onTaskStatus={onTaskStatus} />
-      </div>
+      <div className="mt-5 grid gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-[#46514c]">{labels.planDayPlanContents}</h3>
+          <TaskList labels={labels} tasks={tasks} updatingId={updatingId} onTaskStatus={onTaskStatus} />
+        </div>
 
-      <div className="mt-5 min-w-0 rounded-lg border border-[#e4e7df] bg-[#fbfcf8] p-4">
-        <h3 className="text-sm font-semibold text-[#46514c]">{isToday ? labels.planTodayDone : labels.planDayDone}</h3>
-        <DoneList labels={labels} tasks={completedTasks} evidence={evidence} />
-        <DailySummary labels={labels} summary={summary} evidence={evidence} tasks={tasks} compact />
+        <details className="gentle-details"><summary>{labels.planDayDone}</summary>
+          <DoneList labels={labels} tasks={completedTasks} evidence={evidence} />
+          <DailySummary labels={labels} summary={summary} evidence={evidence} tasks={tasks} compact />
+        </details>
       </div>
     </section>
   );
@@ -144,20 +144,21 @@ function TaskList({ labels, tasks, updatingId, onTaskStatus }: {
   onTaskStatus: (id: string, status: StudyPlanTaskStatus) => Promise<void>;
 }) {
   return (
-    <div className="mt-3 divide-y divide-[#dfe5dc] border-y border-[#dfe5dc]">
+    <div className="plan-task-list">
       {tasks.length ? tasks.map((task) => (
-        <article key={task.id} className="py-4">
+        <article key={task.id} className={`plan-task-row is-${task.status}`}>
           <div className="flex items-start gap-3">
-            <input type="checkbox" checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')} className="mt-1 h-5 w-5 shrink-0 accent-[#31564c]" />
+            <input type="checkbox" aria-label={task.title} checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')} className="mt-1 h-5 w-5 shrink-0 accent-[#31564c]" />
             <div className="min-w-0 flex-1">
-              <h3 className={`text-sm font-semibold ${task.status === 'completed' ? 'text-[#7a807b] line-through' : 'text-[#27312c]'}`}>{task.title}</h3>
-              <p className="mt-1 text-xs text-[#68716b]">{labels[`planModule_${task.module}`]} · {task.minutes} {labels.minutes}</p>
+              <h3 className={`text-base font-semibold leading-6 ${task.status === 'completed' ? 'text-[#7a807b] line-through' : 'text-[#27312c]'}`}>{task.title}</h3>
+              <p className={`plan-task-meta module-${task.module}`}>{labels[`planModule_${task.module}`]} · {task.minutes} {labels.minutes}</p>
+              <details className="gentle-task-detail"><summary>{labels.planTaskHow}</summary>
               {task.detail ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{task.detail}</p> : null}
-              <button type="button" disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')} className="mt-2 text-xs font-semibold text-[#7a5d43] hover:underline">{task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask}</button>
+              <button type="button" disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')} className="mt-3 text-xs font-semibold text-[#7a5d43] hover:underline">{task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask}</button></details>
             </div>
           </div>
         </article>
-      )) : <p className="py-5 text-sm text-[#68716b]">{labels.planNoTasksForDay}</p>}
+      )) : <p className="rounded-lg border border-dashed border-[#dfe5dc] bg-[#fbfcf8] p-4 text-sm text-[#68716b]">{labels.planNoTasksForDay}</p>}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { useMobileList } from '../../hooks/useMobileList';
+import { useConfirmation } from '../../components/confirmation';
 import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, ExternalLink, Lightbulb, LoaderCircle, Mic, Pause, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Target, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
@@ -41,13 +43,15 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showAiForm, setShowAiForm] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
   const [pageIndex, setPageIndex] = useState(0);
+  const mobileList = useMobileList(questions.length, 'library');
   const pageCount = Math.max(1, Math.ceil(questions.length / LISTENING_LIBRARY_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * LISTENING_LIBRARY_PAGE_SIZE;
-  const pageItems = questions.slice(pageStart, pageStart + LISTENING_LIBRARY_PAGE_SIZE);
+  const pageItems = questions.slice(mobileList.mobile ? 0 : pageStart, mobileList.mobile ? mobileList.visible : pageStart + LISTENING_LIBRARY_PAGE_SIZE);
   const pageEnd = pageStart + pageItems.length;
 
   useEffect(() => {
@@ -135,13 +139,57 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
   }
 
   return (
-    <section className="cute-practice-card min-w-0 border">
-      <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-4 md:px-6">
+    <section className="ledger-word-index ledger-entry-index min-w-0">
+      {!showLibrary ? (
+        <div className="ledger-entry-hub">
+          <div className="ledger-section-hero ledger-entry-hub-heading">
+            <div>
+              <h2 className="ledger-entry-page-title">选择听力训练</h2>
+            </div>
+          </div>
+          <div className="ledger-entry-actions" aria-label="听力主要入口">
+            {onPractice ? (
+              <button type="button" className="ledger-entry-action is-coral" onClick={onPractice}>
+                <RotateCcw size={22} aria-hidden="true" />
+                <span>开始练习</span>
+                <strong>按当前听力题库顺序练一轮</strong>
+              </button>
+            ) : null}
+            {onTips ? (
+              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
+                <Lightbulb size={22} aria-hidden="true" />
+                <span>学习方法</span>
+                <strong>先看听力题型和解法提示</strong>
+              </button>
+            ) : null}
+            <button type="button" className="ledger-entry-action is-ink" onClick={() => setShowLibrary(true)}>
+              <ExternalLink size={22} aria-hidden="true" />
+              <span>听力材料</span>
+              <strong>打开音频、题型和题目列表</strong>
+            </button>
+            <button type="button" className="ledger-entry-action is-green" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }}>
+              {showAiForm ? <X size={22} aria-hidden="true" /> : <Sparkles size={22} aria-hidden="true" />}
+              <span>从链接准备练习</span>
+              <strong>请 AI 根据链接准备题目</strong>
+            </button>
+            <button type="button" className="ledger-entry-action is-blue" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }}>
+              {showForm ? <X size={22} aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
+              <span>添加听力材料</span>
+              <strong>上传音频并保存题目</strong>
+            </button>
+          </div>
+        </div>
+      ) : (
+      <div className="ledger-word-toolbar mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-4 md:px-6">
         <div>
           <h2 className="text-2xl font-black text-[#3d3036]">{labels.listeningLibrary}</h2>
           <p className="mt-1 text-sm text-[#74646b]">{questions.length} {labels.questions}</p>
         </div>
         <div className="mobile-action-row flex flex-wrap gap-2">
+          <button type="button" onClick={() => { setShowLibrary(false); setShowForm(false); setShowAiForm(false); setMessage(''); }} className="cute-button-secondary inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold">
+            <ChevronLeft size={17} />
+            返回入口
+          </button>
           <button type="button" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }} className="cute-button-secondary inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold">
             {showAiForm ? <X size={17} /> : <Sparkles size={17} />}
             {showAiForm ? labels.mobileClose : labels.aiGenerateFromLink}
@@ -152,8 +200,9 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
           </button>
         </div>
       </div>
+      )}
 
-      <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} />
+      {showLibrary ? <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} /> : null}
 
       {message ? <p role="status" className="border-b border-[#f0d4dd] px-4 py-3 text-sm font-bold text-[#8f365b] md:px-6">{message}</p> : null}
 
@@ -252,7 +301,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
         </form>
       ) : null}
 
-      <div className="px-4 py-5 md:px-6">
+      {showLibrary ? <div className="px-4 py-5 md:px-6">
         {questions.length ? (
           <>
             <div className="mobile-list md:hidden">
@@ -306,7 +355,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e] md:mt-0">
+            {mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < questions.length ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
+            <div className="desktop-list-pagination flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e] md:mt-0">
               <span className="font-semibold">{pageStart + 1}-{pageEnd} / {questions.length} {labels.questions}</span>
               <div className="flex items-center gap-2">
                 <button type="button" aria-label={labels.entryPagePrev} title={labels.entryPagePrev} disabled={currentPage === 0} onClick={() => setPageIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
@@ -322,7 +372,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
         ) : (
           <p className="mt-3 text-sm leading-6 text-[#68716b]">{labels.listeningEmpty}</p>
         )}
-      </div>
+      </div> : null}
     </section>
   );
 }
@@ -383,7 +433,7 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
 
   if (!questions.length || !activeQuestion) {
     return (
-      <section className="cute-practice-card min-w-0 border p-5 md:p-6">
+      <section className="cute-practice-card mobile-page-surface min-w-0 border p-5 md:p-6">
         <h2 className="text-2xl font-black text-[#3d3036]">{labels.listeningPracticeTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-[#74646b]">{labels.listeningPracticeEmpty}</p>
         {onOpenLibrary ? (
@@ -396,7 +446,7 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
   }
 
   return (
-    <section className="cute-practice-card min-w-0 border">
+    <section className="cute-practice-card mobile-page-surface min-w-0 border">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-5">
         <p className="text-sm font-bold text-[#a84269]">{labels.listeningPracticeTitle}</p>
         <div className="flex items-center gap-2">
@@ -490,6 +540,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const confirm = useConfirmation();
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -513,7 +564,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
   }, [item.id, labels.listeningPlayError, token]);
 
   async function remove() {
-    if (!window.confirm(labels.listeningDeleteConfirm)) return;
+    if (!(await confirm({ title: labels.listeningDelete, description: labels.listeningDeleteConfirm, confirmLabel: labels.listeningDelete, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeleting(true);
     try {
       await onDelete(item.id);

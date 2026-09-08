@@ -85,16 +85,23 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/local-news-cycle') {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local news practice is only available from localhost' });
+      if (!isLoopbackRequest(req) && !user) {
+        return json(res, 401, { error: 'Authentication required' });
       }
-      return json(res, 200, readLocalNewsCycle());
+      return json(res, 200, readLocalNewsCycle(url.searchParams.get('id')));
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/local-news-cycles') {
+      if (!isLoopbackRequest(req) && !user) {
+        return json(res, 401, { error: 'Authentication required' });
+      }
+      return json(res, 200, { cycles: readLocalNewsCycles() });
     }
 
     const localNewsAudioMatch = /^\/api\/local-news-audio\/(\d{4}-\d{2}-\d{2})\/(.+)$/.exec(url.pathname);
     if (req.method === 'GET' && localNewsAudioMatch) {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local news audio is only available from localhost' });
+      if (!isLoopbackRequest(req) && !user) {
+        return json(res, 401, { error: 'Authentication required' });
       }
       return streamLocalFile(res, localNewsRoot, `${localNewsAudioMatch[1]}/media/${localNewsAudioMatch[2]}`, 'Local news audio not found');
     }
@@ -539,19 +546,65 @@ function readLocalMockExamManifest(res) {
   return json(res, 200, JSON.parse(readFileSync(manifestPath, 'utf8')));
 }
 
-function readLocalNewsCycle() {
+function readLocalNewsCycles() {
+  const weeklyRoot = join(localNewsRoot, 'weekly');
+  if (!existsSync(weeklyRoot)) return [];
+  const reviewItems = loadReviewData().items ?? [];
+  return readdirSync(weeklyRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d{4}-W\d{2}$/.test(entry.name))
+    .flatMap((entry) => {
+      const summaryPath = join(weeklyRoot, entry.name, 'cycle-summary.json');
+      if (!existsSync(summaryPath)) return [];
+      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+      const formalPracticeQuestionIds = formalNewsPracticeQuestionIds(reviewItems, summary.range);
+      const totalQuestions = Number(summary.total_questions ?? 0);
+      return [{
+        id: entry.name,
+        range: summary.range,
+        generatedAt: summary.generated_at,
+        totalQuestions,
+        moduleCounts: {
+          vocabulary: Number(summary.modules?.vocabulary ?? 0),
+          grammar: Number(summary.modules?.grammar ?? 0),
+          listening: Number(summary.modules?.listening ?? 0),
+          reading: Number(summary.modules?.reading ?? 0),
+        },
+        audioCount: Number(summary.direct_audio_question_count ?? 0),
+        needsAudioReviewCount: Number(summary.needs_audio_review_count ?? 0),
+        formalQuestionCount: formalPracticeQuestionIds.length,
+        formalPracticeQuestionIds,
+        status: formalPracticeQuestionIds.length >= totalQuestions && totalQuestions > 0
+          ? 'published'
+          : formalPracticeQuestionIds.length > 0
+            ? 'partially_published'
+            : String(summary.status ?? 'draft'),
+      }];
+    })
+    .sort((left, right) => right.id.localeCompare(left.id));
+}
+
+function formalNewsPracticeQuestionIds(items, range) {
+  if (!range?.from || !range?.to) return [];
+  return items
+    .flatMap((item) => Array.isArray(item.practice_questions) ? item.practice_questions : [])
+    .map((question) => String(question?.id ?? ''))
+    .filter((id) => {
+      const match = /^news-(\d{4}-\d{2}-\d{2})-.+-formal$/.exec(id);
+      return match && match[1] >= range.from && match[1] <= range.to;
+    });
+}
+
+function readLocalNewsCycle(requestedId) {
   if (!existsSync(localNewsRoot)) return { days: [] };
+  const cycles = readLocalNewsCycles();
+  const cycleId = requestedId || cycles[0]?.id;
+  if (!cycleId || !/^\d{4}-W\d{2}$/.test(cycleId) || !cycles.some((cycle) => cycle.id === cycleId)) {
+    return { days: [] };
+  }
   let summary;
   const weeklyRoot = join(localNewsRoot, 'weekly');
-  if (existsSync(weeklyRoot)) {
-    const cycles = readdirSync(weeklyRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .sort();
-    const latest = cycles.at(-1);
-    const summaryPath = latest ? join(weeklyRoot, latest, 'cycle-summary.json') : '';
-    if (summaryPath && existsSync(summaryPath)) summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-  }
+  const summaryPath = join(weeklyRoot, cycleId, 'cycle-summary.json');
+  if (existsSync(summaryPath)) summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
   const dates = readdirSync(localNewsRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(entry.name))
     .map((entry) => entry.name)
@@ -580,7 +633,7 @@ function readLocalNewsCycle() {
       questions,
     }];
   });
-  return { summary, days };
+  return { id: cycleId, summary, days };
 }
 
 function streamLocalFile(res, root, relativePath, notFoundMessage) {

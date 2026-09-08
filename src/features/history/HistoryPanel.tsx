@@ -1,4 +1,5 @@
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
+import { useMobileList } from '../../hooks/useMobileList';
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, History, ListChecks, NotebookPen, Percent } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -8,7 +9,7 @@ type AttemptFilter = {
   range: 'all' | 'today' | 'week' | 'month';
 };
 
-export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, embedded = false, mode = 'both', selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
+export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
@@ -17,6 +18,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
   embedded?: boolean;
   mode?: 'both' | 'captures' | 'practice';
+  recordSection?: 'home' | 'today' | 'history';
   selectedCaptureId?: string | null;
   onSelectedCaptureChange?: (id: string | null) => void;
   selectedAttemptId?: string | null;
@@ -24,15 +26,19 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   attemptQuestionDetailOpen?: boolean;
   onAttemptQuestionDetailChange?: (open: boolean) => void;
 }) {
+  const [page, setPage] = useState(0);
   const [view, setView] = useState<'captures' | 'practice'>('captures');
   const [uncontrolledAttemptId, setUncontrolledAttemptId] = useState<string | null>(null);
   const [attemptFilter, setAttemptFilter] = useState<AttemptFilter>({ module: 'all', result: 'all', range: 'all' });
   const [uncontrolledCaptureId, setUncontrolledCaptureId] = useState<string | null>(null);
+  const [uncontrolledRecordSection, setUncontrolledRecordSection] = useState<'home' | 'today' | 'history'>(mode === 'both' ? 'history' : 'home');
   const activeView = mode === 'both' ? view : mode;
+  const recordSection = controlledRecordSection ?? uncontrolledRecordSection;
   const selectedCaptureId = controlledCaptureId !== undefined ? controlledCaptureId : uncontrolledCaptureId;
   const selectedAttemptId = controlledAttemptId !== undefined ? controlledAttemptId : uncontrolledAttemptId;
   const setSelectedAttemptId = onSelectedAttemptChange ?? setUncontrolledAttemptId;
   const sortedAttempts = useMemo(() => attempts.filter((attempt) => Boolean(attempt.completedAt)).sort((first, second) => dateValue(second.completedAt ?? second.startedAt) - dateValue(first.completedAt ?? first.startedAt)), [attempts]);
+  const todayAttempts = useMemo(() => sortedAttempts.filter((attempt) => isTodayAttempt(attempt)), [sortedAttempts]);
   const filteredAttempts = useMemo(() => sortedAttempts.filter((attempt) => attemptMatchesFilter(attempt, attemptFilter)), [attemptFilter, sortedAttempts]);
   const selectedAttempt = sortedAttempts.find((attempt) => attempt.id === selectedAttemptId);
   const selectedCapture = captures.find((capture) => capture.id === selectedCaptureId) ?? null;
@@ -43,6 +49,21 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
     setSelectedCaptureId(null);
   }, [activeView, setSelectedCaptureId]);
 
+  const showAttemptHistory = activeView === 'practice' && (mode === 'both' || recordSection === 'history');
+  const count = activeView === 'captures' ? captures.length : showAttemptHistory ? filteredAttempts.length : 0;
+  const mobileList = useMobileList(count, JSON.stringify([activeView, attemptFilter]), 6);
+  const pageCount = Math.max(1, Math.ceil(count / 6));
+  const currentPage = Math.min(page, pageCount - 1);
+  const start = currentPage * 6;
+  const detailOpen = activeView === 'captures' ? Boolean(selectedCapture) : Boolean(selectedAttempt);
+  const openRecordSection = (section: 'today' | 'history') => {
+    if (mode === 'practice' && typeof window !== 'undefined') {
+      window.location.hash = `#/history/${section}`;
+      return;
+    }
+    setUncontrolledRecordSection(section);
+  };
+
   return (
     <section className={`${embedded ? 'py-2' : 'mx-auto w-full max-w-4xl py-2 md:py-5'} history-panel`}>
       {!embedded ? <><p className="text-sm font-semibold text-[#7d6032]">{labels.historyEyebrow}</p><h1 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.historyPageTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#68716b]">{labels.historyPageBody}</p></> : null}
@@ -52,6 +73,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <HistoryTab active={view === 'practice'} label={`${labels.historyPracticeTab} ${sortedAttempts.length}`} onClick={() => setView('practice')} />
       </div> : null}
 
+      {detailOpen ? <button type="button" className="gentle-back" onClick={() => { setSelectedCaptureId(null); setSelectedAttemptId(null); }}><ArrowLeft size={18} />{activeView === 'captures' ? labels.historyBackToCaptures : labels.historyBackToAttempts}</button> : null}
       {activeView === 'captures' ? (
         selectedCapture ? (
           <CaptureDetail
@@ -61,18 +83,128 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
             onToggleStatus={() => onCaptureStatus(selectedCapture.id, selectedCapture.status === 'processed' ? 'inbox' : 'processed')}
           />
         ) : captures.length ? (
-          <CaptureTable labels={labels} locale={locale} captures={captures} onSelect={setSelectedCaptureId} />
+          <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} />
         ) : <Empty text={labels.historyNoCaptures} />
       ) : selectedAttempt ? (
         <PracticeAttemptDetail labels={labels} locale={locale} attempt={selectedAttempt} questions={questions} onBack={() => setSelectedAttemptId(null)} showBack={!embedded} questionDetailOpen={attemptQuestionDetailOpen} onQuestionDetailChange={onAttemptQuestionDetailChange} />
-      ) : sortedAttempts.length ? (
+      ) : (
         <>
-          <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} filteredCount={filteredAttempts.length} onChange={setAttemptFilter} />
-          {filteredAttempts.length ? (
-            <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts} onSelect={setSelectedAttemptId} />
-          ) : <Empty text={labels.historyNoFilteredPractice} />}
+          {recordSection === 'home' ? (
+            <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
+          ) : null}
+          {recordSection === 'today' ? (
+            <TodayPracticeSummary labels={labels} locale={locale} attempts={todayAttempts} onSelect={setSelectedAttemptId} />
+          ) : null}
+          {showAttemptHistory ? (
+            <>
+              <details className="study-log-filter-panel mt-4">
+                <summary>{labels.filters}</summary>
+                <div className="study-log-filters"><label><input type="checkbox" checked={attemptFilter.result === 'wrong'} onChange={(event) => { setAttemptFilter({ ...attemptFilter, result: event.target.checked ? 'wrong' : 'all' }); setPage(0); }} />{locale === 'zh-CN' ? '只看有错题的练习' : locale === 'ja' ? '誤答のある練習のみ' : 'Only practices with mistakes'}</label></div>
+                <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} filteredCount={filteredAttempts.length} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
+              </details>
+              <p className="study-log-summary">{locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} · {sortedAttempts.length}{locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · {sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}{locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}</p>
+              {filteredAttempts.length ? (
+                <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
+              ) : <Empty text={labels.historyNoFilteredPractice} />}
+            </>
+          ) : null}
         </>
-      ) : <Empty text={labels.historyNoPractice} />}
+      )}
+      {!detailOpen && count > 0 && mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < count ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
+      {!detailOpen && count > 0 && !mobileList.mobile ? <nav className="gentle-pagination" aria-label={labels.navStatsHome}>
+        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} aria-label={locale === 'zh-CN' ? '上一页' : locale === 'ja' ? '前のページ' : 'Previous page'}><ChevronLeft size={20} /></button>
+        <span aria-live="polite">{currentPage + 1} / {pageCount}</span>
+        <button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)} aria-label={locale === 'zh-CN' ? '下一页' : locale === 'ja' ? '次のページ' : 'Next page'}><ChevronRight size={20} /></button>
+      </nav> : null}
+    </section>
+  );
+}
+
+function RecordHome({ labels, locale, todayAttempts, attempts, captures, onOpenToday, onOpenHistory }: {
+  labels: Record<string, string>;
+  locale: Locale;
+  todayAttempts: PracticeAttempt[];
+  attempts: PracticeAttempt[];
+  captures: LearningCapture[];
+  onOpenToday: () => void;
+  onOpenHistory: () => void;
+}) {
+  const todayTotal = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
+  const todayCorrect = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter((answer) => answer.correct).length), 0);
+  const todayAccuracy = todayTotal ? Math.round(todayCorrect / todayTotal * 100) : 0;
+  const todayMeta = todayAttempts.length
+    ? `${todayAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${todayTotal}${locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'} · ${todayAccuracy}%`
+    : (locale === 'zh-CN' ? '今天还没有完成练习' : locale === 'ja' ? '今日はまだ練習がありません' : 'No completed practice today');
+  const historyMeta = `${attempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`;
+  const capturesMeta = `${captures.length}${locale === 'zh-CN' ? ' 条输入记录' : locale === 'ja' ? ' 件の入力履歴' : ' captures'}`;
+
+  return (
+    <nav className="record-home-grid" aria-label={labels.navStatsHome}>
+      <button type="button" className="record-home-card is-primary" onClick={onOpenToday}>
+        <span className="record-home-icon"><ListChecks size={25} /></span>
+        <span><strong>{locale === 'zh-CN' ? '今天统计' : locale === 'ja' ? '今日の統計' : 'Today'}</strong><small>{todayMeta}</small></span>
+        <ChevronRight size={20} />
+      </button>
+      <button type="button" className="record-home-card" onClick={onOpenHistory}>
+        <span className="record-home-icon"><History size={25} /></span>
+        <span><strong>{locale === 'zh-CN' ? '历史练习记录' : locale === 'ja' ? '練習履歴' : 'Practice history'}</strong><small>{historyMeta}</small></span>
+        <ChevronRight size={20} />
+      </button>
+      <a className="record-home-card" href="#/captures">
+        <span className="record-home-icon"><NotebookPen size={25} /></span>
+        <span><strong>{locale === 'zh-CN' ? '输入记录' : locale === 'ja' ? '入力履歴' : 'Input records'}</strong><small>{capturesMeta}</small></span>
+        <ChevronRight size={20} />
+      </a>
+    </nav>
+  );
+}
+
+function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
+  labels: Record<string, string>;
+  locale: Locale;
+  attempts: PracticeAttempt[];
+  onSelect: (id: string) => void;
+}) {
+  const totals = attempts.reduce((summary, attempt) => {
+    const total = attempt.summary?.total ?? attempt.answers.length;
+    const correct = attempt.summary?.correct ?? attempt.answers.filter((answer) => answer.correct).length;
+    return {
+      total: summary.total + total,
+      correct: summary.correct + correct,
+      elapsedMs: summary.elapsedMs + (attempt.summary?.elapsedMs ?? 0),
+    };
+  }, { total: 0, correct: 0, elapsedMs: 0 });
+  const accuracy = totals.total ? Math.round((totals.correct / totals.total) * 100) : 0;
+  const latestAttempts = attempts;
+  const title = locale === 'zh-CN' ? '今天结果' : locale === 'ja' ? '今日の結果' : 'Today';
+  const empty = locale === 'zh-CN' ? '今天还没有完成练习。' : locale === 'ja' ? '今日はまだ完了した練習がありません。' : 'No completed practice today.';
+
+  return (
+    <section className="today-practice-summary" aria-label={title}>
+      <div className="today-practice-summary-heading">
+        <h2>{title}</h2>
+        <span>{formatTodayLabel(locale)}</span>
+      </div>
+      {attempts.length ? (
+        <>
+          <dl className="today-practice-stats">
+            <div><dt><ListChecks size={15} />{locale === 'zh-CN' ? '练习' : locale === 'ja' ? '練習' : 'Practices'}</dt><dd>{attempts.length}</dd></div>
+            <div><dt><Percent size={15} />{locale === 'zh-CN' ? '正确率' : locale === 'ja' ? '正答率' : 'Accuracy'}</dt><dd>{accuracy}%</dd></div>
+            <div><dt><Clock3 size={15} />{locale === 'zh-CN' ? '用时' : locale === 'ja' ? '時間' : 'Time'}</dt><dd>{formatDuration(totals.elapsedMs)}</dd></div>
+          </dl>
+          <div className="today-practice-results" aria-label={locale === 'zh-CN' ? '今天最近结果' : locale === 'ja' ? '今日の最近の結果' : 'Recent results today'}>
+            {latestAttempts.map((attempt) => (
+              <button key={attempt.id} type="button" onClick={() => onSelect(attempt.id)}>
+                <span>
+                  <strong>{moduleLabel(labels, attempt.view)}</strong>
+                  <small>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · {attempt.summary?.total ?? attempt.answers.length}{locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'}</small>
+                </span>
+                <b>{summaryText(attempt)}</b>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : <p>{empty}</p>}
     </section>
   );
 }
@@ -84,71 +216,14 @@ function CaptureTable({ labels, locale, captures, onSelect }: {
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="mt-4 overflow-hidden rounded-lg border border-[#d7dfd6] bg-white">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#f6f8f5] text-xs font-semibold text-[#68716b]">
-            <tr>
-              <th className="px-4 py-3">{labels.captureCategory}</th>
-              <th className="px-4 py-3">{labels.captureRecordedAt ?? labels.completedAt}</th>
-              <th className="px-4 py-3">{labels.captureDetailTitle}</th>
-              <th className="px-4 py-3">{labels.draftStatus}</th>
-              <th className="w-12 px-4 py-3"><span className="sr-only">{labels.historyAttemptOpen}</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#e3e8e2]">
-            {captures.map((capture) => {
-              const summary = captureSummary(capture);
-              return (
-                <tr key={capture.id} className="hover:bg-[#f8faf7]">
-                  <td className="px-4 py-3 font-semibold text-[#31564c]">
-                    <span className="block">{labels[`captureCategory_${capture.category}`]}</span>
-                    {capture.targetDeck ? <span className="mt-1 block text-xs text-[#68716b]">{captureTargetDeckLabel(labels, capture)}</span> : null}
-                  </td>
-                  <td className="px-4 py-3 text-[#4f5b55]">{formatDate(capture.createdAt, locale)}</td>
-                  <td className="max-w-[32rem] px-4 py-3">
-                    <button type="button" onClick={() => onSelect(capture.id)} className="block max-w-full text-left">
-                      <span className="block truncate font-semibold text-[#27312c] hover:text-[#31564c]">{summary.title}</span>
-                      {summary.subtitle ? <span className="mt-1 line-clamp-1 block text-xs leading-5 text-[#68716b]">{summary.subtitle}</span> : null}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#4f5b55]">
-                      {capture.status === 'processed' ? <CheckCircle2 size={15} className="text-[#3d755c]" /> : <Circle size={15} className="text-[#9c7464]" />}
-                      {captureStatusLabel(labels, capture.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button type="button" aria-label={labels.historyAttemptOpen} onClick={() => onSelect(capture.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#31564c] hover:bg-[#edf4ef]">
-                      <ChevronRight size={18} />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="divide-y divide-[#e3e8e2] md:hidden">
-        {captures.map((capture) => {
-          const summary = captureSummary(capture);
-          return (
-            <button key={capture.id} type="button" onClick={() => onSelect(capture.id)} className="flex min-h-20 w-full items-center justify-between gap-3 px-4 py-3 text-left">
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-[#31564c]">{labels[`captureCategory_${capture.category}`]}</span>
-                {capture.targetDeck ? <span className="mt-1 block text-xs text-[#68716b]">{captureTargetDeckLabel(labels, capture)}</span> : null}
-                <span className="mt-1 block truncate text-sm font-semibold text-[#27312c]">{summary.title}</span>
-                <span className="mt-1 block text-xs text-[#7a807b]">{formatDate(capture.createdAt, locale)}</span>
-              </span>
-              <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[#34413b]">
-                <span className="hidden text-xs text-[#4f5b55] sm:inline">{captureStatusLabel(labels, capture.status)}</span>
-                {capture.status === 'processed' ? <CheckCircle2 size={16} className="text-[#3d755c]" /> : <Circle size={16} className="text-[#9c7464]" />}
-                <ChevronRight size={18} className="text-[#7a807b]" />
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="gentle-capture-list mt-4 overflow-hidden rounded-2xl border border-[#d7dfd6] bg-white divide-y divide-[#e3e8e2]">
+      {captures.map((capture) => <button key={capture.id} type="button" onClick={() => onSelect(capture.id)} className="flex min-h-20 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#f8faf7]">
+        <span className="min-w-0">
+          <span className="block truncate text-base font-semibold text-[#27312c]">{captureSummary(capture).title}</span>
+          <span className="mt-1 block text-sm text-[#526960]">{labels[`captureCategory_${capture.category}`]} · {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(new Date(capture.createdAt))}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-2 text-sm text-[#526960]">{captureStatusLabel(labels, capture.status)}<ChevronRight size={18} aria-hidden="true" /></span>
+      </button>)}
     </div>
   );
 }
@@ -322,60 +397,16 @@ function PracticeAttemptTable({ labels, locale, attempts, onSelect }: {
   attempts: PracticeAttempt[];
   onSelect: (id: string) => void;
 }) {
-  return (
-    <div className="history-attempt-table mt-4 overflow-hidden rounded-lg border border-[#d7dfd6] bg-white">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#f6f8f5] text-xs font-semibold text-[#68716b]">
-            <tr>
-              <th className="px-4 py-3">{labels.historyAttemptModule}</th>
-              <th className="px-4 py-3">{labels.completedAt}</th>
-              <th className="px-4 py-3">{labels.historyAttemptQuestions}</th>
-              <th className="px-4 py-3">{labels.accuracy}</th>
-              <th className="px-4 py-3">{labels.elapsed}</th>
-              <th className="w-12 px-4 py-3"><span className="sr-only">{labels.historyAttemptOpen}</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#e3e8e2]">
-            {attempts.map((attempt) => (
-              <tr key={attempt.id} className="hover:bg-[#f8faf7]">
-                <td className="px-4 py-3">
-                  <button type="button" onClick={() => onSelect(attempt.id)} className="text-left font-semibold text-[#31564c] hover:underline">
-                    {moduleLabel(labels, attempt.view)}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-[#4f5b55]">{formatDate(attempt.completedAt ?? attempt.startedAt, locale)}</td>
-                <td className="px-4 py-3 text-[#4f5b55]">{attempt.summary?.total ?? attempt.answers.length}</td>
-                <td className="px-4 py-3 font-semibold text-[#34413b]">{summaryText(attempt)}</td>
-                <td className="px-4 py-3 text-[#4f5b55]">{formatDuration(attempt.summary?.elapsedMs)}</td>
-                <td className="px-4 py-3 text-right">
-                  <button type="button" aria-label={labels.historyAttemptOpen} onClick={() => onSelect(attempt.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#31564c] hover:bg-[#edf4ef]">
-                    <ChevronRight size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="history-attempt-mobile-list divide-y divide-[#e3e8e2] md:hidden">
-        {attempts.map((attempt) => (
-          <button key={attempt.id} type="button" onClick={() => onSelect(attempt.id)} className="history-attempt-mobile-row flex min-h-20 w-full items-center justify-between gap-3 px-4 py-3 text-left">
-            <span className="history-attempt-mobile-main min-w-0">
-              <span className="history-attempt-mobile-title block text-sm font-semibold text-[#31564c]">{moduleLabel(labels, attempt.view)}</span>
-              <span className="history-attempt-mobile-meta mt-1 block text-xs text-[#7a807b]">
-                {formatDate(attempt.completedAt ?? attempt.startedAt, locale)} · {attempt.summary?.total ?? attempt.answers.length} {labels.historyAttemptQuestions} · {formatDuration(attempt.summary?.elapsedMs)}
-              </span>
-            </span>
-            <span className="history-attempt-mobile-result inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-[#34413b]">
-              <span>{summaryText(attempt)}</span>
-              <ChevronRight size={18} className="history-attempt-mobile-cue text-[#7a807b]" />
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const dateKey = (attempt: PracticeAttempt) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
+  return <div className="study-log-list">
+    {attempts.map((attempt, index) => <div key={attempt.id}>
+      {index === 0 || dateKey(attempts[index - 1]) !== dateKey(attempt) ? <h2>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt))}</h2> : null}
+      <button type="button" onClick={() => onSelect(attempt.id)}>
+        <span><strong>{moduleLabel(labels, attempt.view)}</strong><small>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · {attempt.summary?.total ?? attempt.answers.length}{locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'} · {formatDuration(attempt.summary?.elapsedMs)}</small></span>
+        <span className="study-log-result">{summaryText(attempt)}<ChevronRight size={18} /></span>
+      </button>
+    </div>)}
+  </div>;
 }
 
 function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, showBack = true, questionDetailOpen = false, onQuestionDetailChange }: {
@@ -550,7 +581,7 @@ function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, sho
   );
 }
 
-function AttemptQuestionDetail({ labels, entry, position, total, question, onBack, onPrevious, onNext }: {
+export function AttemptQuestionDetail({ labels, entry, position, total, question, onBack, onPrevious, onNext }: {
   labels: Record<string, string>;
   entry: { answer: PracticeAttempt['answers'][number]; index: number };
   position: number;
@@ -699,6 +730,15 @@ function inlineText(value: unknown) {
 
 function formatDate(value: string, locale: Locale) {
   return new Intl.DateTimeFormat(locale === 'zh-CN' ? 'zh-CN' : locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatTodayLabel(locale: Locale) {
+  return new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+}
+
+function isTodayAttempt(attempt: PracticeAttempt) {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(new Date(attempt.completedAt ?? attempt.startedAt)) === formatter.format(new Date());
 }
 
 function formatDuration(ms: number | undefined) {

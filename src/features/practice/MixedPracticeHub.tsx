@@ -1,134 +1,226 @@
-import { ArrowRight, BarChart3, BookOpenText, Brain, ChevronLeft, ChevronRight, Clock3, FileCheck2, Headphones, Inbox, Languages, Layers3, ListChecks, NotebookTabs, RotateCcw, Target, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, NotebookTabs, PlayCircle, RotateCcw, Search, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, PracticeAttempt, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
+import { useMobileList } from '../../hooks/useMobileList';
+import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
+type PracticeEntry = { status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void };
+type PracticeGroup = { action?: () => void; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; entries: PracticeEntry[] };
 const MIXED_ENTRY_PAGE_SIZE = 8;
 
 export function MixedPracticeHub({
+  topicEntries = [],
+  groupKey,
   labels,
   questions,
   items,
   progress,
-  latestAttempt,
   modules,
   captures,
   drafts,
   listeningQuestions,
   readingQuestions,
   studyPlan,
-  answeredCount,
-  correctCount,
   onStart,
   onStartMock,
-  onOpenAllEntries,
-  onReview,
   onNavigate,
 }: {
+  topicEntries?: PracticeEntry[];
+  groupKey?: string;
   labels: Record<string, string>;
   questions: Question[];
   items: VocabItem[];
   progress: ProgressState;
-  latestAttempt?: PracticeAttempt;
   modules: ModuleSummary[];
   captures: LearningCapture[];
   drafts: DraftSummary[];
   listeningQuestions: ListeningQuestion[];
   readingQuestions: ReadingQuestion[];
   studyPlan: StudyPlanDocument;
-  answeredCount: number;
-  correctCount: number;
   onStart: () => void;
   onStartMock: () => void;
-  onOpenAllEntries: () => void;
-  onReview: () => void;
   onNavigate: (view: AppView) => void;
 }) {
   const dueCount = Object.values(progress).filter((item) => !item.nextReviewAt || item.nextReviewAt <= new Date().toISOString()).length;
-  const weakCount = Object.values(progress).filter((item) => item.wrong > item.correct || item.status === 'learning').length;
-  const latestAccuracy = latestAttempt?.summary ? Math.round(latestAttempt.summary.accuracy * 100) : null;
   const grammarCount = items.filter((item) => item.deck === 'grammar_expression').length;
   const vocabularyCount = items.filter((item) => item.deck !== 'grammar_expression').length;
-  const progressCount = Object.keys(progress).length;
-  const pendingCaptureCount = captures.filter((capture) => capture.status === 'inbox').length;
-  const processedCaptureCount = captures.filter((capture) => capture.status === 'processed').length;
-  const activeDraftCount = drafts.filter((draft) => draft.status !== 'archived').length;
-  const archivedDraftCount = drafts.filter((draft) => draft.status === 'archived').length;
   const plannedTaskCount = studyPlan.tasks.length;
-  const doneTaskCount = studyPlan.tasks.filter((task) => task.status === 'done').length;
+  const syncedWorkCount = captures.length + drafts.length;
+  const moduleCount = (view: AppView) => modules.find((module) => module.view === view)?.count ?? 0;
+  const activeGroupKey = groupKey ?? null;
+  const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
+  const moduleEntries: PracticeEntry[] = [
+    { key: 'vocabulary', title: labels.navVocabulary, body: '单词、汉字、读音', count: vocabularyCount || moduleCount('vocabulary'), icon: Languages, tone: 'green', action: () => onNavigate('vocabulary') },
+    { key: 'grammar', title: labels.navGrammar, body: '学习句子怎么说', count: grammarCount || moduleCount('grammar'), icon: Brain, tone: 'orange', action: () => onNavigate('grammar') },
+    { key: 'listening', title: labels.navListening, body: '听一听，选出答案', count: listeningQuestions.length || moduleCount('listening'), icon: Headphones, tone: 'blue', action: () => onNavigate('listening') },
+    { key: 'reading', title: labels.navReading, body: '读一读，回答问题', count: readingQuestions.length || moduleCount('reading'), icon: BookOpenText, tone: 'mint', action: () => onNavigate('reading') },
+  ];
+  const groups: PracticeGroup[] = [
+    {
+      key: 'topics', title: '专项练习', body: '按教材、汉字或语法主题练一套',
+      count: topicEntries.length, icon: BookOpenText, tone: 'mint',
+      entries: topicEntries,
+    },
+    {
+      key: 'modules',
+      title: '分项学习',
+      body: '单词、语法、听力、阅读',
+      count: moduleEntries.reduce((total, entry) => total + entry.count, 0),
+      icon: Languages,
+      tone: 'green',
+      entries: moduleEntries,
+    },
+    {
+      key: 'exam',
+      title: '做题练习',
+      body: '今日练习、综合练习和模拟考试',
+      count: questions.length + plannedTaskCount,
+      icon: Layers3,
+      tone: 'purple',
+      entries: [
+        { key: 'daily', title: '今日练习', body: '开始今天准备好的题目', count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
+        { key: 'drafts', title: '待确认的练习', body: '先检查新题目，确认后再开始', count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
+        { key: 'mixed', title: '综合练习', body: '单词和句子一起练', count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
+        { key: 'mock', title: '模拟考试', body: '按考试节奏练一套', count: plannedTaskCount, icon: FileCheck2, tone: 'gray', action: onStartMock },
+      ],
+    },
+    {
+      key: 'materials',
+      title: '新闻学习',
+      body: '用新闻练习阅读和听力',
+      action: () => onNavigate('news-cycle'),
+      count: syncedWorkCount + items.length,
+      icon: NotebookTabs,
+      tone: 'yellow',
+      entries: [
+        { key: 'news', title: '新闻练习', body: '用新闻材料练读听', count: syncedWorkCount, icon: NotebookTabs, tone: 'yellow', action: () => onNavigate('news-cycle') },
+      ],
+    },
+  ];
+  const activeGroup = activeGroupKey ? groups.find((group) => group.key === activeGroupKey) ?? null : null;
 
   return (
-    <main className="ledger-mixed">
-      <header className="ledger-mixed-heading">
+    <main className="ledger-mixed ledger-practice-center">
+      <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
+        {activeGroup ? <button type="button" aria-label="返回练习" onClick={() => setActiveGroupKey(null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
         <div>
-          <p>{labels.navMixed}&nbsp; / &nbsp;{labels.mixedHubEyebrow}</p>
-          <h1>{labels.mixedHubTitle}</h1>
-          <span>{labels.mixedHubBody}</span>
+          <p>练习</p>
+          <h1>{activeGroup ? activeGroup.title : '你想练什么？'}</h1>
+          {!activeGroup ? <span>选一种方式开始。</span> : null}
         </div>
-        <button type="button" onClick={onOpenAllEntries} className="ledger-mixed-link">
-          <NotebookTabs size={17} />{labels.mixedHubAllEntries}<ArrowRight size={15} />
-        </button>
       </header>
 
-      <section className="ledger-mixed-focus">
-        <header>
-          <div><span className="ledger-step">1</span><div><h2>{labels.mixedHubStart}</h2><p>{labels.navVocabulary} {vocabularyCount} · {labels.navGrammar} {grammarCount}</p></div></div>
-          <button type="button" onClick={onStart} className="ledger-primary-button"><RotateCcw size={17} />{labels.mixedHubStart}</button>
-        </header>
-        <div className="ledger-mixed-metrics">
-          <MixedMetric icon={Layers3} label={labels.mixedHubTotalQuestions} value={questions.length} />
-          <MixedMetric icon={BarChart3} label={labels.dueReview} value={dueCount} tone="green" />
-          <MixedMetric icon={Target} label={labels.mixedHubWeakItems} value={weakCount} tone="attention" />
-        </div>
-      </section>
-
-      <div className="ledger-mixed-secondary">
-        <section className="ledger-mixed-result">
-          <header><div><span className="ledger-step is-outline">2</span><div><h2>{labels.mixedHubLastTitle}</h2><p>{labels.mixedHubReviewLast}</p></div></div></header>
-          {latestAttempt?.summary ? (
-            <div className="ledger-mixed-result-body"><strong>{latestAccuracy}%</strong><div><p>{labels.correct}: {latestAttempt.summary.correct} / {latestAttempt.summary.total}</p><i><span style={{ width: `${latestAccuracy ?? 0}%` }} /></i></div></div>
-          ) : (
-            <p className="ledger-mixed-empty">{labels.mixedHubLastEmpty}</p>
+      {activeGroup ? (
+        <>
+          {activeGroup.key === 'topics' ? <TopicPracticeList entries={topicEntries} /> : (
+            <section className="ledger-practice-center-grid" aria-label={`${activeGroup.title}入口`}>
+              {activeGroup.entries.map((card) => (
+                <PracticeCenterCard key={card.key} icon={card.icon} title={card.title} body={card.body} count={card.count} tone={card.tone} onClick={card.action} />
+              ))}
+            </section>
           )}
-          <footer><button type="button" onClick={onReview}>{labels.mixedHubReviewLast}<ArrowRight size={15} /></button><button type="button" onClick={() => onNavigate('insights')}>{labels.mixedHubManageData}<ArrowRight size={15} /></button></footer>
+        </>
+      ) : (
+        <section className="ledger-practice-center-grid" aria-label="练习分类">
+          {groups.map((group) => (
+            <PracticeCenterCard
+              key={group.key}
+              icon={group.icon}
+              title={group.title}
+              body={group.body}
+              count={group.count}
+              tone={group.tone}
+              onClick={group.action ?? (() => setActiveGroupKey(group.key))}
+            />
+          ))}
         </section>
+      )}
 
-        <section className="ledger-mixed-mock">
-          <header><FileCheck2 size={20} /><div><h2>{labels.navMockExams}</h2><p>N1-N5 · 2套/级</p></div></header>
-          <div><p>外部 Agent 写回练习题 · 非官方真题 · 系统合成听力</p><strong>文字词汇 · 语法 · 阅读 · 听力</strong></div>
-          <button type="button" onClick={onStartMock} className="ledger-primary-button"><Clock3 size={17} />进入</button>
-        </section>
-      </div>
-
-      <section className="ledger-mixed-inventory">
-        <header><div><p>{labels.mixedHubAllDataEyebrow}</p><h2>{labels.mixedHubAllDataTitle}</h2></div><button type="button" onClick={() => onNavigate('insights')}>{labels.mixedHubManageData}<ArrowRight size={15} /></button></header>
-        <div className="ledger-inventory-grid">
-          <InventoryTile icon={Layers3} label={labels.mixedHubDataEntries} value={items.length} detail={`${labels.navGrammar} ${grammarCount} / ${labels.navVocabulary} ${vocabularyCount}`} />
-          <InventoryTile icon={BarChart3} label={labels.mixedHubDataPractice} value={questions.length} detail={`${labels.answered} ${answeredCount} / ${labels.correct} ${correctCount}`} />
-          <InventoryTile icon={Inbox} label={labels.mixedHubDataWorkflow} value={captures.length + drafts.length} detail={`${labels.dataCapturesTab} ${pendingCaptureCount + processedCaptureCount} / ${labels.dataDraftsTab} ${drafts.length}`} />
-          <InventoryTile icon={NotebookTabs} label={labels.mixedHubDataBanks} value={listeningQuestions.length + readingQuestions.length} detail={`${labels.navReading} ${readingQuestions.length} / ${labels.navListening} ${listeningQuestions.length}`} />
-        </div>
-        <dl className="ledger-inventory-lines">
-          <InventoryLine label={labels.mixedHubDataProgress} value={`${progressCount}`} detail={`${labels.mixedHubWeakItems} ${weakCount}`} />
-          <InventoryLine label={labels.mixedHubDataDrafts} value={`${activeDraftCount}/${drafts.length}`} detail={`${labels.mixedHubDataArchived}: ${archivedDraftCount}`} />
-          <InventoryLine label={labels.mixedHubDataPlan} value={`${doneTaskCount}/${plannedTaskCount}`} detail={studyPlan.status} />
-        </dl>
-      </section>
-
-      <section className="ledger-mixed-sources">
-        <header><p>{labels.mixedHubSourceModules}</p><h2>{labels.mixedHubChooseSource}</h2></header>
-        <div>
-          {modules.filter((module) => module.view !== 'mixed').map((module) => {
-            const Icon = moduleIcon(module.view);
-            return (
-              <button key={module.view} type="button" onClick={() => onNavigate(module.view)}>
-                <span><Icon size={19} /></span><span><strong>{module.title}</strong><small>{module.body}</small></span><b>{module.count}</b><ArrowRight size={16} />
-              </button>
-            );
-          })}
-        </div>
-      </section>
     </main>
+  );
+}
+
+function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
+  const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [status, setStatus] = useState('all');
+  const [sort, setSort] = useState('recent');
+  const [page, setPage] = useState(0);
+  const filtered = entries.filter((entry) =>
+    (status === 'all' || entry.status === status)
+    && entry.title.normalize('NFKC').toLocaleLowerCase().includes(query.trim().normalize('NFKC').toLocaleLowerCase())
+  ).sort((a, b) => sort === 'title'
+    ? a.title.localeCompare(b.title, 'zh-CN', { numeric: true })
+    : (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+  const pageSize = 8;
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, pages - 1);
+  const mobileList = useMobileList(filtered.length, `${query}|${status}|${sort}`);
+  const visibleEntries = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const mobilePageEnd = Math.min(mobileList.visible, filtered.length);
+  return (
+    <section className="topic-library" aria-label="专项练习列表">
+      <div className={`topic-library-tools${searchOpen || query ? ' is-search-open' : ''}`}>
+        <label className="topic-library-search"><span className="sr-only">搜索专项练习</span><input type="search" placeholder="搜索标题，如汉字、N1、限定" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} /></label>
+        <label><span className="sr-only">排序</span><select aria-label="排序" value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">最近更新</option><option value="title">标题顺序</option></select></label>
+        <button type="button" className="topic-library-search-toggle" aria-label={searchOpen || query ? '关闭搜索' : '搜索专项练习'} aria-pressed={searchOpen || Boolean(query)} onClick={() => {
+          if (searchOpen || query) {
+            setQuery('');
+            setPage(0);
+            setSearchOpen(false);
+            return;
+          }
+          setSearchOpen(true);
+        }}>{searchOpen || query ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}</button>
+      </div>
+      <div className="topic-library-filters" aria-label="练习状态">
+        {[['all', '全部'], ['ready', '可练习'], ['pending', '待确认']].map(([value, label]) => <button key={value} type="button" aria-pressed={status === value} onClick={() => { setStatus(value); setPage(0); }}>{label}</button>)}
+        <span role="status">{filtered.length} 套</span>
+      </div>
+      {filtered.length ? <ul className="topic-library-rows">
+        {visibleEntries.map((entry) => {
+          const isReady = entry.status === 'ready';
+          const actionLabel = isReady ? '开始' : '查看';
+          const statusLabel = isReady ? '可练习' : '待确认';
+          const Icon = isReady ? PlayCircle : CheckCircle2;
+          return <li key={entry.key}>
+          <button className="topic-library-row" type="button" onClick={entry.action}>
+            <span className={`topic-library-icon is-${entry.status ?? 'pending'}`}><Icon size={26} aria-hidden="true" /></span>
+            <span className="topic-library-copy">
+              <strong>{entry.title}</strong>
+              <small>
+                <span>{entry.body}</span>
+                {entry.updatedAt ? <time dateTime={entry.updatedAt}>{new Date(entry.updatedAt).toLocaleDateString('zh-CN')}</time> : null}
+              </small>
+            </span>
+            <span className={`topic-library-status is-${entry.status ?? 'pending'}`}>{statusLabel}</span>
+            <span className="topic-library-action">{actionLabel}<ChevronRight size={18} aria-hidden="true" /></span>
+          </button>
+        </li>;
+        })}
+      </ul> : <p className="topic-library-empty">{entries.length ? '没有找到匹配的练习，试试其他关键词或状态。' : '还没有专项练习。根据想练的内容生成草稿，确认后就可以开始。'}</p>}
+      {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="mobile-list-end topic-library-mobile-end" role="status">{mobilePageEnd < filtered.length ? '上拉查看更多' : '已经到底了'}</div> : null}
+      {!mobileList.mobile && pages > 1 ? <nav className="topic-library-pager" aria-label="专项练习分页"><button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>上一页</button><span aria-live="polite">{currentPage + 1} / {pages}</span><button type="button" disabled={currentPage === pages - 1} onClick={() => setPage(currentPage + 1)}>下一页</button></nav> : null}
+    </section>
+  );
+}
+
+function PracticeCenterCard({ icon: Icon, title, body, tone, isActive, onClick }: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  count: number;
+  tone: string;
+  isActive?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className={`ledger-practice-card is-${tone}${isActive ? ' is-active' : ''}`} onClick={onClick}>
+      <span><Icon size={28} /></span>
+      <strong>{title}</strong>
+      <small>{body}</small>
+      <ArrowRight size={20} />
+    </button>
   );
 }
 
@@ -337,24 +429,4 @@ function ModuleBadge({ module, labels }: { module: AppView; labels: Record<strin
         ? labels.navReading
         : labels.navVocabulary;
   return <span className="rounded bg-[#fff8df] px-2 py-1 text-xs font-bold text-[#775516]">{text}</span>;
-}
-
-function MixedMetric({ icon: Icon, label, value, tone = 'indigo' }: { icon: LucideIcon; label: string; value: number; tone?: 'indigo' | 'green' | 'attention' }) {
-  return <div className={`ledger-mixed-metric is-${tone}`}><Icon size={18} /><span><strong>{value}</strong><small>{label}</small></span></div>;
-}
-
-function InventoryTile({ icon: Icon, label, value, detail }: { icon: LucideIcon; label: string; value: number; detail: string }) {
-  return <article><span><Icon size={18} /></span><strong>{value}</strong><h3>{label}</h3><p>{detail}</p></article>;
-}
-
-function InventoryLine({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <div><dt>{label}<small>{detail}</small></dt><dd>{value}</dd></div>;
-}
-
-function moduleIcon(view: AppView) {
-  if (view === 'vocabulary') return Languages;
-  if (view === 'grammar') return Brain;
-  if (view === 'listening') return Headphones;
-  if (view === 'reading') return BookOpenText;
-  return Layers3;
 }

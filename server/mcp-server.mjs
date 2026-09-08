@@ -144,7 +144,7 @@ async function callTool(name, args) {
     return getPlanGenerationContext(user.id);
   }
   if (name === 'save_generated_study_plan') {
-    return saveGeneratedStudyPlan(user.id, { tasks: args.tasks });
+    return saveGeneratedStudyPlan(user.id, { tasks: args.tasks, phases: args.phases });
   }
   if (name === 'list_due_reviews') {
     return listDueReviews(user.id, args.at);
@@ -308,7 +308,9 @@ function toolList() {
               module: { type: 'string', enum: ['grammar', 'reading', 'listening', 'vocabulary', 'other'] },
               minutes: { type: 'number' },
               detail: { type: 'string' },
+              sourceLabel: { type: 'string' },
               materialId: { type: 'string' },
+              workloadKind: { type: 'string', enum: ['standard', 'full_mock'], description: 'Use full_mock only for a formally timed full mock-exam day that may exceed the ordinary daily target.' },
             },
             required: ['date', 'title', 'module', 'minutes'],
           },
@@ -359,7 +361,7 @@ function toolList() {
     }, ['token', 'passage', 'question', 'choices', 'answerIndex']),
     tokenTool('analyze_weak_points', 'Analyze wrong answers, learning items, due items, and mastery totals.'),
     tokenTool('generate_daily_review_pack', 'Create a personalized daily review-pack draft that the user can preview and annotate.', { title: { type: 'string' }, minutes: { type: 'number' } }),
-    tokenTool('generate_daily_practice', 'Create a new version of today\'s personalized formal daily practice. The generated questions use answer history and can be answered in the app like normal practice.', { title: { type: 'string' }, minutes: { type: 'number' }, date: { type: 'string', description: 'YYYY-MM-DD. Defaults to today in Asia/Tokyo.' } }),
+    tokenTool('generate_daily_practice', 'Create a new version of today\'s personalized formal daily practice. Analyze the previous Asia/Tokyo day\'s answer history first, target weak question types with new same-type questions, and determine the appropriate amount of practice from the available evidence. If the previous day has no answers, fall back to broader answer history.', { title: { type: 'string' }, minutes: { type: 'number' }, date: { type: 'string', description: 'YYYY-MM-DD. Defaults to today in Asia/Tokyo.' } }),
     tokenTool('publish_draft_as_daily_practice', 'Publish one approved draft as a complete formal practice set in the Today workspace, preserving its question order and answer choices.', { draft_id: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD. Defaults to today in Asia/Tokyo.' }, title: { type: 'string' } }, ['token', 'draft_id']),
     tokenTool('list_daily_practices', 'List generated formal daily practices for the authenticated user.'),
     tokenTool('get_daily_practice', 'Read one formal daily practice with its generated questions.', { practice_id: { type: 'string' } }, ['token', 'practice_id']),

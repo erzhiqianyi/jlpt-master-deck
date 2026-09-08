@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T15:43:37.085Z",
+  "generated_at": "2026-09-03T13:41:25.498Z",
   "archive_month": "2026/08",
   "data_source": "sqlite-export",
   "items": [
@@ -68,7 +68,8 @@
           "ja": "機械の性能を正確に測定する。",
           "zh": "准确测量机器的性能。"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n1-認定",
@@ -107,7 +108,8 @@
           "zh": "被认定为工伤。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-年々",
@@ -146,7 +148,8 @@
           "zh": "技术逐年进步。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-経過",
@@ -247,7 +250,8 @@
           "zh": "本章将概览近代文学的发展脉络。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-養成",
@@ -286,7 +290,8 @@
           "zh": "培养判断力。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-踏んで",
@@ -439,7 +444,8 @@
           "kind": "negative",
           "form": "踏まない"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n1-豊富",
@@ -541,7 +547,8 @@
           "zh": "会议后我向服部先生提了问题。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-智里",
@@ -573,7 +580,8 @@
           "zh": "我请前台叫了智里女士。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-佐野",
@@ -605,7 +613,8 @@
           "zh": "佐野先生也计划出席明天的会议。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-智子",
@@ -637,7 +646,8 @@
           "zh": "我约好周末和智子女士一起去美术馆。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-新谷",
@@ -669,7 +679,8 @@
           "zh": "这份资料是新谷先生制作的。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-新谷遥",
@@ -701,7 +712,8 @@
           "zh": "表彰仪式上念到了新谷遥女士的名字。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-遥",
@@ -733,7 +745,8 @@
           "zh": "这封信是遥女士寄来的。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "n1-辛抱",
@@ -800,7 +813,8 @@
           "ja": "今は辛抱の時だ。",
           "zh": "现在是需要忍耐的时候。"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "n1-目次",
@@ -839,7 +853,8 @@
           "zh": "详细内容请查看目录。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-28-001",
@@ -1130,7 +1145,8 @@
       },
       "source_chat_summary": "用户给出「あの子は支払うたびに電話がかかる」并附上教材图片，要求整理成原始语法点「Vるたびに / Nのたびに」，再按语法特点扩展 JLPT 练习。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-bun-kumitate-ni-tomonau-001",
@@ -1218,7 +1234,8 @@
       "verification_status": "verified",
       "source_chat_summary": "JLPT 文法第二种题型：文の組み立て。重点：先排完整顺序，再回答 ★ 位置对应的选项编号。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-bun-kumitate-to-areba-001",
@@ -1324,7 +1341,8 @@
       "verification_status": "verified",
       "source_chat_summary": "JLPT 文法第二种题型：文の組み立て。重点：先排完整顺序，再回答 ★ 位置对应的选项编号。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-bun-kumitate-zehi-001",
@@ -1484,7 +1502,8 @@
       "verification_status": "verified",
       "source_chat_summary": "JLPT 文法第二种题型：文の組み立て。重点：先排完整顺序，再回答 ★ 位置对应的选项编号。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-ga-hayai-ka",
@@ -1588,7 +1607,8 @@
           "difference_zh": "「が早いか」强调下一动作立刻发生；「てからというもの」强调从某个时间点以后，某种状态一直持续。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-a-wo-b-to-kangaeru",
@@ -1658,7 +1678,8 @@
       "verification_status": "needs_review",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "analysis": "原题第5空的选项疑似转写错误；本条只保存自然句型和复盘结论，不声称原选项无误。"
+      "analysis": "原题第5空的选项疑似转写错误；本条只保存自然句型和复盘结论，不声称原选项无误。",
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-ba-ii",
@@ -1747,7 +1768,8 @@
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-nino-tsugi",
@@ -1819,7 +1841,8 @@
       "content_origin": "ai_generated",
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
-      "review_status": "new"
+      "review_status": "new",
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-soreni-taishite",
@@ -1908,7 +1931,8 @@
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-to-shimasu-to-suru",
@@ -1997,7 +2021,8 @@
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-language-types-tsumari",
@@ -2069,7 +2094,8 @@
       "content_origin": "ai_generated",
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
-      "review_status": "new"
+      "review_status": "new",
+      "collocations": []
     },
     {
       "id": "2026-08-30-mono-nara",
@@ -2189,7 +2215,8 @@
           "difference_zh": "「ものなら」是假设条件；「てからというもの」以已经发生的事情为起点，表示此后的状态一直持续。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-ta-ga-saigo",
@@ -2295,7 +2322,8 @@
           "difference_zh": "「たが最後」表示一旦发生就会造成坏结果；「てからというもの」只表示从那以后某种状态持续，不一定带负面或不可挽回的语气。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-ta-totan-ni",
@@ -2399,7 +2427,8 @@
           "difference_zh": "「とたんに」强调某件事刚结束时后项立刻发生；「てからというもの」强调从那以后某种状态一直持续。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-te-kara-to-iu-mono",
@@ -2518,7 +2547,8 @@
           "difference_zh": "「てからというもの」强调从那以后一直如此；「とたんに」强调刚做完前项，后项就突然发生。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-houri-001",
@@ -2613,7 +2643,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-tentou-001",
@@ -2679,7 +2710,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-rakugaki-001",
@@ -2745,7 +2777,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-bareru-001",
@@ -2825,7 +2858,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-wakareta-001",
@@ -2922,7 +2956,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-daikoubutsu-001",
@@ -2996,7 +3031,8 @@
       ],
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-hatsubai-001",
@@ -3101,7 +3137,8 @@
           "translation_zh": "新游戏下个月发售。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-shutsudou-001",
@@ -3206,7 +3243,8 @@
           "translation_zh": "接到火灾报警后消防车出动了。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-koutei-001",
@@ -3311,7 +3349,8 @@
           "translation_zh": "午休时孩子们在操场上玩。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-shuugou-001",
@@ -3416,7 +3455,8 @@
           "translation_zh": "请上午九点在车站前集合。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-rentaru-shop-001",
@@ -3499,7 +3539,8 @@
           "translation_zh": "我在车站前的租赁店借了电影。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-muchuu-001",
@@ -3604,7 +3645,8 @@
           "translation_zh": "孩子沉迷于游戏。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-donari-001",
@@ -3739,7 +3781,8 @@
           "explanation_zh": "「怒鳴」的读音是「どな」。",
           "translation_zh": "老师没有吼学生，而是提醒了他。"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-monooto-001",
@@ -3844,7 +3887,8 @@
           "translation_zh": "半夜厨房里有动静。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-ikioi-001",
@@ -3949,7 +3993,8 @@
           "translation_zh": "队伍在下半场找回了势头。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-30-capture-manseishikkan-001",
@@ -4054,7 +4099,8 @@
           "translation_zh": "随着老龄化，患有慢性疾病的人在增加。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-inori-001",
@@ -4159,7 +4205,8 @@
           "translation_zh": "一直祈愿家人平安。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-boshuu-001",
@@ -4264,7 +4311,8 @@
           "translation_zh": "正在招募志愿者参加者。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-chikoku-001",
@@ -4369,7 +4417,8 @@
           "translation_zh": "电车晚点，所以上课迟到了。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-mezurashii-001",
@@ -4506,7 +4555,8 @@
           "explanation_zh": "「珍しい」的读音是「めずらしい」。",
           "translation_zh": "这个地区下雪很少见。"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-nite-001",
@@ -4645,7 +4695,8 @@
           "explanation_zh": "「似て」的读音是「にて」。",
           "translation_zh": "他长得像父亲。"
         }
-      ]
+      ],
+      "collocations": []
     },
     {
       "id": "2026-08-31-capture-musuko-001",
@@ -4750,7 +4801,8 @@
           "translation_zh": "我儿子今年上小学了。"
         }
       ],
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-totan",
@@ -4797,19 +4849,25 @@
           "ja": "玄関のドアを開けたとたん、犬が飛び出してきた。",
           "zh": "刚一打开玄关门，狗就冲了出来。",
           "form_analysis_zh": "「開ける」是动词辞书形，「開けた」是た形；「とたん」前接た形。",
-          "analysis_zh": "后项「飛び出してきた」是突然发生的事实，符合「とたん」的意外感。"
+          "analysis_zh": "后项「飛び出してきた」是突然发生的事实，符合「とたん」的意外感。",
+          "spoken_ja": "玄関のドアを開けたらすぐ、犬が飛び出してきた。",
+          "spoken_zh": "一打开玄关门，狗马上就冲了出来。"
         },
         {
           "ja": "外に出たとたん、雨が降り出した。",
           "zh": "刚一出门，雨就下起来了。",
           "form_analysis_zh": "「出る」变为た形「出た」后接「とたん」。",
-          "analysis_zh": "后项是自然现象突然开始，不是人的计划。"
+          "analysis_zh": "后项是自然现象突然开始，不是人的计划。",
+          "spoken_ja": "外に出たらすぐ、雨が降り出した。",
+          "spoken_zh": "一出门，雨马上就下起来了。"
         },
         {
           "ja": "薬を飲んだとたん、眠くなった。",
           "zh": "刚吃完药，马上就困了。",
           "form_analysis_zh": "「飲む」的た形是「飲んだ」。",
-          "analysis_zh": "后项是身体状态的即时变化。"
+          "analysis_zh": "后项是身体状态的即时变化。",
+          "spoken_ja": "薬を飲んだらすぐ、眠くなった。",
+          "spoken_zh": "一吃药，马上就困了。"
         }
       ],
       "exam_register_zh": "N1/N2常见时间关系语法，考试里重点看前接た形和后项的突然性。",
@@ -4949,7 +5007,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-to-omou-to",
@@ -4996,19 +5055,25 @@
           "ja": "空が急に暗くなったと思うと、大粒の雨が降って来た。",
           "zh": "刚觉得天空突然暗下来，大颗雨点就落了下来。",
           "form_analysis_zh": "「暗くなる」的た形是「暗くなった」。这里的「と思うと」不是“我想”，而是时间关系。",
-          "analysis_zh": "后项是紧接着观察到的自然变化。"
+          "analysis_zh": "后项是紧接着观察到的自然变化。",
+          "spoken_ja": "空が急に暗くなったらすぐ、大粒の雨が降って来た。",
+          "spoken_zh": "天空一突然暗下来，大颗雨点马上就落了下来。"
         },
         {
           "ja": "赤ちゃんは泣いたと思ったら、もう笑っている。",
           "zh": "宝宝刚哭起来，转眼又在笑。",
           "form_analysis_zh": "「泣く」的た形是「泣いた」，接「と思ったら」。",
-          "analysis_zh": "前后状态快速变化。"
+          "analysis_zh": "前后状态快速变化。",
+          "spoken_ja": "赤ちゃんは泣いたと思ったら、もう笑っている。",
+          "spoken_zh": "宝宝刚哭起来，转眼又在笑。"
         },
         {
           "ja": "雨がやんだと思うと、今度は強い風が吹き始めた。",
           "zh": "刚觉得雨停了，这次又刮起强风。",
           "form_analysis_zh": "「やむ」的た形是「やんだ」。",
-          "analysis_zh": "后项是另一种天气变化马上出现。"
+          "analysis_zh": "后项是另一种天气变化马上出现。",
+          "spoken_ja": "雨がやんだらすぐ、今度は強い風が吹き始めた。",
+          "spoken_zh": "雨一停，这次又马上刮起强风。"
         }
       ],
       "exam_register_zh": "N1常考。考试里看前接た形和后项是否为紧接着出现的变化。",
@@ -5149,7 +5214,8 @@
       "content_origin": "ai_generated",
       "usage_register": "both",
       "usage_register_zh": "书面和口语都能使用，但语感有差别：「〜たと思うと」偏叙述、书面描写；「〜たと思ったら」在日常口语中更自然、更常见。",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-irai",
@@ -5202,19 +5268,25 @@
           "ja": "このまちに引っ越してきて以来、毎日駅まで20分歩いています。",
           "zh": "自从搬到这个城市以来，每天步行20分钟到车站。",
           "form_analysis_zh": "「引っ越してくる」的て形是「引っ越してきて」。",
-          "analysis_zh": "后项「歩いています」是持续习惯。"
+          "analysis_zh": "后项「歩いています」是持续习惯。",
+          "spoken_ja": "このまちに引っ越してきてから、毎日駅まで20分歩いています。",
+          "spoken_zh": "搬到这个城市以后，每天步行20分钟到车站。"
         },
         {
           "ja": "卒業して以来、彼には一度も会っていません。",
           "zh": "自从毕业以来，一次也没见过他。",
           "form_analysis_zh": "「卒業する」的て形是「卒業して」。",
-          "analysis_zh": "后项是否定持续状态。"
+          "analysis_zh": "后项是否定持续状态。",
+          "spoken_ja": "卒業してから、彼には一度も会っていません。",
+          "spoken_zh": "毕业以后，一次也没见过他。"
         },
         {
           "ja": "入社以来、この部署で働いている。",
           "zh": "入职以来一直在这个部门工作。",
           "form_analysis_zh": "「入社」是名词，可直接接「以来」。",
-          "analysis_zh": "后项从入职这个起点持续到现在。"
+          "analysis_zh": "后项从入职这个起点持续到现在。",
+          "spoken_ja": "入社してからずっと、この部署で働いている。",
+          "spoken_zh": "入职以后一直在这个部门工作。"
         }
       ],
       "exam_register_zh": "考试里常和「からというもの」对比：两者都可持续，但「からというもの」更强调某事后发生明显变化。",
@@ -5353,7 +5425,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-ga-hayai-ka",
@@ -5400,25 +5473,33 @@
           "ja": "うちの子は学校から帰ってきて、カバンを放り出すが早いか、遊びに行ってしまう。",
           "zh": "我家孩子从学校一回来，刚把书包一扔，就跑出去玩了。",
           "form_analysis_zh": "「放り出す」是动词辞书形，直接接「が早いか」。",
-          "analysis_zh": "后项是孩子马上去玩的事实，不是命令或请求。"
+          "analysis_zh": "后项是孩子马上去玩的事实，不是命令或请求。",
+          "spoken_ja": "うちの子は学校から帰ってきて、カバンを放り出したらすぐ、遊びに行ってしまう。",
+          "spoken_zh": "我家孩子从学校一回来，把书包一扔就马上跑出去玩了。"
         },
         {
           "ja": "今朝、寝坊した夫は、朝ご飯を口に押し込むが早いか、玄関を出て行った。",
           "zh": "今天早上睡过头的丈夫刚把早饭塞进嘴里，就出了门。",
           "form_analysis_zh": "「押し込む」是动词辞书形。",
-          "analysis_zh": "后项是一次性快速动作。"
+          "analysis_zh": "后项是一次性快速动作。",
+          "spoken_ja": "今朝、寝坊した夫は、朝ご飯を口に押し込んだらすぐ、玄関を出て行った。",
+          "spoken_zh": "今天早上睡过头的丈夫刚把早饭塞进嘴里，就马上出了门。"
         },
         {
           "ja": "話題のその本は、店頭に並べられるが早いか、飛ぶように売れていった。",
           "zh": "那本热门书刚一摆到店头，就飞快卖出去了。",
           "form_analysis_zh": "「並べる」的被动辞书形是「並べられる」；也可用た形「並べられた」。",
-          "analysis_zh": "后项是销售迅速发生的事实。"
+          "analysis_zh": "后项是销售迅速发生的事实。",
+          "spoken_ja": "話題のその本は、店頭に並べられるとすぐ、飛ぶように売れていった。",
+          "spoken_zh": "那本热门书一摆到店头，就飞快卖出去了。"
         },
         {
           "ja": "彼は不正がばれるが早いか、退職した。",
           "zh": "他的不正行为刚一败露，就辞职了。",
           "form_analysis_zh": "「ばれる」一般写假名，是辞书形，表示“败露”。",
-          "analysis_zh": "后项「退職した」是立刻发生的一次性事实。"
+          "analysis_zh": "后项「退職した」是立刻发生的一次性事实。",
+          "spoken_ja": "彼は不正がばれたらすぐ、退職した。",
+          "spoken_zh": "他的不正行为一败露，就马上辞职了。"
         }
       ],
       "exam_register_zh": "N1常考且偏书面。考试中重点排除后项的请求、命令、意志、劝诱。",
@@ -5557,7 +5638,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-ya",
@@ -5614,37 +5696,49 @@
           "ja": "私はその人の顔を一目見るや、30年前に別れた恋人だと気がついた。",
           "zh": "我一眼看到那个人的脸，就意识到是30年前分手的恋人。",
           "form_analysis_zh": "「見る」是动词辞书形；「一目見る」整体表示“看一眼”。",
-          "analysis_zh": "后项是马上意识到的事实。"
+          "analysis_zh": "后项是马上意识到的事实。",
+          "spoken_ja": "私はその人の顔を一目見るとすぐ、30年前に別れた恋人だと気がついた。",
+          "spoken_zh": "我一眼看到那个人的脸，就马上意识到是30年前分手的恋人。"
         },
         {
           "ja": "子供たちは唐揚げが大好物で、食卓に出すや、あっという間になくなってしまう。",
           "zh": "孩子们最喜欢炸鸡块，一端上餐桌，转眼就没了。",
           "form_analysis_zh": "「出す」是动词辞书形，接「や」。",
-          "analysis_zh": "后项表示马上被吃光的结果。"
+          "analysis_zh": "后项表示马上被吃光的结果。",
+          "spoken_ja": "子供たちは唐揚げが大好物で、食卓に出したらすぐ、あっという間になくなってしまう。",
+          "spoken_zh": "孩子们最喜欢炸鸡块，一端上餐桌，很快就没了。"
         },
         {
           "ja": "行方不明の子が見つかったという知らせが入るや、家族は泣き出した。",
           "zh": "失踪孩子被找到的消息一传来，家人就哭了出来。",
           "form_analysis_zh": "「知らせが入る」是固定搭配，意为“消息传来”；「入る」是辞书形。",
-          "analysis_zh": "后项是家人立刻哭出来的事实。"
+          "analysis_zh": "后项是家人立刻哭出来的事实。",
+          "spoken_ja": "行方不明の子が見つかったという知らせが入るとすぐ、家族は泣き出した。",
+          "spoken_zh": "失踪孩子被找到的消息一传来，家人马上就哭了出来。"
         },
         {
           "ja": "選挙戦が始まるや否や、あちこちから賑やかな声が聞こえてきた。",
           "zh": "选战刚一开始，各处就传来了热闹的声音。",
           "form_analysis_zh": "「始まる」是自动词辞书形，表示“开始”。",
-          "analysis_zh": "后项几乎同时发生，适合「や否や」。"
+          "analysis_zh": "后项几乎同时发生，适合「や否や」。",
+          "spoken_ja": "選挙戦が始まるとすぐ、あちこちから賑やかな声が聞こえてきた。",
+          "spoken_zh": "选战一开始，各处就马上传来了热闹的声音。"
         },
         {
           "ja": "この病気の新しい治療法が発表されるや否や、全国の病院から問い合わせが殺到した。",
           "zh": "这种病的新治疗法刚一发表，全国医院的咨询就蜂拥而至。",
           "form_analysis_zh": "「発表する」的被动辞书形是「発表される」。",
-          "analysis_zh": "后项「殺到した」是事实，新闻语体很自然。"
+          "analysis_zh": "后项「殺到した」是事实，新闻语体很自然。",
+          "spoken_ja": "この病気の新しい治療法が発表されるとすぐ、全国の病院から問い合わせが殺到した。",
+          "spoken_zh": "这种病的新治疗法一发表，全国医院的咨询就蜂拥而至。"
         },
         {
           "ja": "太郎はアニメを一本見終わるや否や、別のアニメを借りにレンタルショップに行った。",
           "zh": "太郎刚看完一部动画，就去租另一部了。",
           "form_analysis_zh": "「見終わる」是复合动词辞书形，表示“看完”。",
-          "analysis_zh": "后项是马上去租的动作。"
+          "analysis_zh": "后项是马上去租的动作。",
+          "spoken_ja": "太郎はアニメを一本見終わったらすぐ、別のアニメを借りにレンタルショップに行った。",
+          "spoken_zh": "太郎刚看完一部动画，就马上去租另一部了。"
         }
       ],
       "exam_register_zh": "N1常考，偏书面。「や否や」比「や」更强调立刻和几乎同时；两者后项都要看事实描写。",
@@ -5787,7 +5881,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-nari",
@@ -5834,25 +5929,33 @@
           "ja": "彼はコーヒーを一口飲むなり、吐き出してしまった。",
           "zh": "他刚喝一口咖啡，就吐了出来。",
           "form_analysis_zh": "「飲む」是动词辞书形；「一口」は「ひとくち」，不是「人口」。",
-          "analysis_zh": "后项是第三人称突然动作。"
+          "analysis_zh": "后项是第三人称突然动作。",
+          "spoken_ja": "彼はコーヒーを一口飲んだらすぐ、吐き出してしまった。",
+          "spoken_zh": "他刚喝一口咖啡，就马上吐了出来。"
         },
         {
           "ja": "課長は部屋に入ってくるなり、大声で怒鳴った。",
           "zh": "课长一进房间，就大声吼了。",
           "form_analysis_zh": "「入ってくる」是复合表达的辞书形，表示“进来”。",
-          "analysis_zh": "说话人从外部观察到课长的突然动作。"
+          "analysis_zh": "说话人从外部观察到课长的突然动作。",
+          "spoken_ja": "課長は部屋に入ってくるとすぐ、大声で怒鳴った。",
+          "spoken_zh": "课长一进房间，就马上大声吼了。"
         },
         {
           "ja": "田中さんは携帯電話を切るなり、私を呼びつけた。",
           "zh": "田中先生刚挂断手机，就把我叫了过去。",
           "form_analysis_zh": "「切る」是辞书形；「電話を切る」表示挂电话。",
-          "analysis_zh": "「呼びつける」有命令式叫人的语感，符合突然动作。"
+          "analysis_zh": "「呼びつける」有命令式叫人的语感，符合突然动作。",
+          "spoken_ja": "田中さんは携帯電話を切ったらすぐ、私を呼びつけた。",
+          "spoken_zh": "田中先生刚挂断手机，就马上把我叫了过去。"
         },
         {
           "ja": "ゆきさんは駅に着くなり、駅員室に駆け込んだ。",
           "zh": "Yuki一到车站，就冲进站务员室。",
           "form_analysis_zh": "「着く」是动词辞书形，表示到达。",
-          "analysis_zh": "「駆け込んだ」是急促动作，比普通「切符を買った」更适合。"
+          "analysis_zh": "「駆け込んだ」是急促动作，比普通「切符を買った」更适合。",
+          "spoken_ja": "ゆきさんは駅に着いたらすぐ、駅員室に駆け込んだ。",
+          "spoken_zh": "Yuki一到车站，就马上冲进站务员室。"
         }
       ],
       "exam_register_zh": "N1常考，偏书面。题目常用第三人称和突然、急促的动作来提示。",
@@ -5995,7 +6098,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-soba-kara",
@@ -6042,31 +6146,41 @@
           "ja": "毎日返事を書くそばから、次々に新しいメールが来る。",
           "zh": "每天刚回复邮件，新的邮件就接二连三地来。",
           "form_analysis_zh": "「書く」是动词辞书形，接「そばから」。",
-          "analysis_zh": "回信想减少未处理邮件，但新邮件又来，形成反复抵消。"
+          "analysis_zh": "回信想减少未处理邮件，但新邮件又来，形成反复抵消。",
+          "spoken_ja": "毎日返事を書いても書いても、次々に新しいメールが来る。",
+          "spoken_zh": "每天邮件怎么回都回不完，新的邮件又接二连三地来。"
         },
         {
           "ja": "このテキストは漢字が多くて大変だ。調べたそばから、新しい漢字が出てくる。",
           "zh": "这篇教材汉字很多，很辛苦。刚查完，新的汉字又出现。",
           "form_analysis_zh": "「調べる」的た形是「調べた」。",
-          "analysis_zh": "查完一个又出现新的，学习负担反复增加。"
+          "analysis_zh": "查完一个又出现新的，学习负担反复增加。",
+          "spoken_ja": "このテキストは漢字が多くて大変だ。調べたばかりなのに、また新しい漢字が出てくる。",
+          "spoken_zh": "这篇教材汉字很多，很辛苦。刚查完，又出现新的汉字。"
         },
         {
           "ja": "月末になると、払ったそばからまた別の請求書が来る。",
           "zh": "一到月底，刚付完账单，马上又来另一张账单。",
           "form_analysis_zh": "「払う」的た形是「払った」。",
-          "analysis_zh": "付款的成果被新账单抵消，有追不上的语感。"
+          "analysis_zh": "付款的成果被新账单抵消，有追不上的语感。",
+          "spoken_ja": "月末になると、払ったばかりなのに、また別の請求書が来る。",
+          "spoken_zh": "一到月底，刚付完账单，又来另一张账单。"
         },
         {
           "ja": "片付けるそばから、子供たちがまた部屋を散らかす。",
           "zh": "刚收拾，孩子们又把房间弄乱。",
           "form_analysis_zh": "「片付ける」是动词辞书形。",
-          "analysis_zh": "收拾与弄乱正好是对抗关系。"
+          "analysis_zh": "收拾与弄乱正好是对抗关系。",
+          "spoken_ja": "片付けても片付けても、子供たちがまた部屋を散らかす。",
+          "spoken_zh": "怎么收拾，孩子们都会又把房间弄乱。"
         },
         {
           "ja": "服を買ったそばから、新しいのが欲しくなる。",
           "zh": "刚买了衣服，就又想要新的。",
           "form_analysis_zh": "「買う」的た形是「買った」。",
-          "analysis_zh": "刚满足的购买欲又被新的欲望抵消。"
+          "analysis_zh": "刚满足的购买欲又被新的欲望抵消。",
+          "spoken_ja": "服を買ったばかりなのに、また新しいのが欲しくなる。",
+          "spoken_zh": "明明刚买了衣服，又想要新的。"
         }
       ],
       "exam_register_zh": "N1常考。做题看后项是否反复抵消前项，常有「また」「次々に」「どんどん」。",
@@ -6205,7 +6319,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-time-kara-to-iu-mono",
@@ -6252,31 +6367,41 @@
           "ja": "娘が大学に入り家を出ていってからというもの、家の中が寂しくなった。",
           "zh": "自从女儿上大学离开家以后，家里就变得冷清了。",
           "form_analysis_zh": "「出ていく」的て形是「出ていって」。",
-          "analysis_zh": "女儿离家是契机，后项状态持续。"
+          "analysis_zh": "女儿离家是契机，后项状态持续。",
+          "spoken_ja": "娘が大学に入って家を出ていってから、家の中がずっと寂しい。",
+          "spoken_zh": "女儿上大学离开家以后，家里一直很冷清。"
         },
         {
           "ja": "子供が生まれてからというもの、子供のおもちゃばかり見て歩いています。",
           "zh": "自从孩子出生以后，我就总是到处看儿童玩具。",
           "form_analysis_zh": "「生まれる」的て形是「生まれて」；考试中常写「生まれる」。",
-          "analysis_zh": "关注点发生变化，并持续到现在。"
+          "analysis_zh": "关注点发生变化，并持续到现在。",
+          "spoken_ja": "子供が生まれてから、子供のおもちゃばかり見て歩いています。",
+          "spoken_zh": "孩子出生以后，我就总是到处看儿童玩具。"
         },
         {
           "ja": "日本に来てからというもの、故郷の家族のことを思わない日はない。",
           "zh": "自从来到日本以后，没有一天不想家乡的家人。",
           "form_analysis_zh": "「来る」的て形是「来て」。",
-          "analysis_zh": "「思わない日はない」是双重否定，表示每天都想。"
+          "analysis_zh": "「思わない日はない」是双重否定，表示每天都想。",
+          "spoken_ja": "日本に来てから、故郷の家族のことを思わない日はない。",
+          "spoken_zh": "来到日本以后，没有一天不想家乡的家人。"
         },
         {
           "ja": "タバコをやめてからというもの、体の調子がいい。",
           "zh": "自从戒烟以后，身体状态一直很好。",
           "form_analysis_zh": "「やめる」的て形是「やめて」。",
-          "analysis_zh": "戒烟是明显契机，身体状态持续改善。"
+          "analysis_zh": "戒烟是明显契机，身体状态持续改善。",
+          "spoken_ja": "タバコをやめてから、体の調子がずっといい。",
+          "spoken_zh": "戒烟以后，身体状态一直很好。"
         },
         {
           "ja": "ワールドカップを一度見てからというもの、僕はサッカーに夢中になっている。",
           "zh": "自从看过一次世界杯以后，我就一直迷上足球。",
           "form_analysis_zh": "「見る」的て形是「見て」。",
-          "analysis_zh": "「夢中になっている」是持续状态，所以不能用「見るや否や」。"
+          "analysis_zh": "「夢中になっている」是持续状态，所以不能用「見るや否や」。",
+          "spoken_ja": "ワールドカップを一度見てから、僕はサッカーに夢中になっている。",
+          "spoken_zh": "看过一次世界杯以后，我就迷上足球了。"
         }
       ],
       "exam_register_zh": "N1常考。题目中若后项是持续状态，选它；若后项是一次性动作，多半不选。",
@@ -6415,7 +6540,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     },
     {
       "id": "2026-08-31-n1-context-ni-atte",
@@ -6462,31 +6588,41 @@
           "ja": "らくだは乾燥地にあって、こぶに栄養を蓄えることによって生き延びている。",
           "zh": "骆驼处于干燥地区，通过在驼峰里储存营养来生存。",
           "form_analysis_zh": "「乾燥地」是名词，直接接「にあって」。",
-          "analysis_zh": "这里强调处于干燥地区这一环境。"
+          "analysis_zh": "这里强调处于干燥地区这一环境。",
+          "spoken_ja": "らくだは乾燥地で、こぶに栄養を蓄えることで生き延びている。",
+          "spoken_zh": "骆驼在干燥地区，通过在驼峰里储存营养来生存。"
         },
         {
           "ja": "明治時代の初め、日本はまさに発展途上期にあって、みんな生き生きとしていた。",
           "zh": "明治时代初期，日本正处于发展阶段，大家都充满活力。",
           "form_analysis_zh": "「発展途上期」是名词，表示发展中的阶段。",
-          "analysis_zh": "后项说明在这个时代背景中的状态。"
+          "analysis_zh": "后项说明在这个时代背景中的状态。",
+          "spoken_ja": "明治時代の初め、日本はまさに発展途上の時期で、みんな生き生きとしていた。",
+          "spoken_zh": "明治时代初期，日本正处于发展阶段，大家都充满活力。"
         },
         {
           "ja": "最近の不況下にあっても、この会社の製品は売れ行きが落ちていない。",
           "zh": "即使在最近经济不景气的情况下，这家公司的产品销量也没有下降。",
           "form_analysis_zh": "「不況下」是名词，表示不景气的状况下；后接「にあっても」。",
-          "analysis_zh": "「も」带逆接，即使处于不利环境也如此。"
+          "analysis_zh": "「も」带逆接，即使处于不利环境也如此。",
+          "spoken_ja": "最近の不況の中でも、この会社の製品は売れ行きが落ちていない。",
+          "spoken_zh": "即使在最近经济不景气的情况下，这家公司的产品销量也没有下降。"
         },
         {
           "ja": "木村氏は一国の指導者という立場にあって、日々多忙なスケジュールをこなしている。",
           "zh": "木村先生处于一国领导者的立场，每天处理繁忙日程。",
           "form_analysis_zh": "「一国の指導者という立場」整体是名词短语。",
-          "analysis_zh": "不是单纯「指導者にあって」，而是“处于……立场”。"
+          "analysis_zh": "不是单纯「指導者にあって」，而是“处于……立场”。",
+          "spoken_ja": "木村氏は一国の指導者という立場で、日々多忙なスケジュールをこなしている。",
+          "spoken_zh": "木村先生作为一国领导者，每天处理繁忙日程。"
         },
         {
           "ja": "このような緊急時にあっても、彼は落ち着いている。",
           "zh": "即使在这样的紧急时刻，他也很冷静。",
           "form_analysis_zh": "「緊急時」是名词，接「にあっても」。",
-          "analysis_zh": "后项体现即使在紧急状况下仍保持冷静。"
+          "analysis_zh": "后项体现即使在紧急状况下仍保持冷静。",
+          "spoken_ja": "このような緊急時でも、彼は落ち着いている。",
+          "spoken_zh": "即使在这样的紧急时刻，他也很冷静。"
         }
       ],
       "exam_register_zh": "N1常考，偏正式。考试看前项是否是名词化的立场/状况/时期，后项是否说明在该背景中的状态。",
@@ -6527,9 +6663,9 @@
           "や否や"
         ],
         "meaning": [
-          "刚一A立刻B",
-          "自从A以后一直B",
-          "刚A就又被抵消"
+          "ある動作の直後に別の出来事が起こること。",
+          "ある時点から現在まで同じ状態が続くこと。",
+          "終わったそばから同じことが繰り返されること。"
         ]
       },
       "practice_questions": [
@@ -6629,7 +6765,8 @@
       "review_status": "new",
       "verification_status": "verified",
       "content_origin": "ai_generated",
-      "conjugations": []
+      "conjugations": [],
+      "collocations": []
     }
   ],
   "daily_packs": []

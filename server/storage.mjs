@@ -1435,6 +1435,29 @@ function answerHistoryFor(state) {
   }));
 }
 
+function answersByDate(answers, targetDate) {
+  if (!targetDate) return [];
+  return answers.filter((answer) => dateInTokyo(answer.answeredAt ?? '') === targetDate);
+}
+
+function yesterdaysDateKey(reference) {
+  const today = dateInTokyo(reference ?? new Date());
+  const anchor = new Date(`${today}T00:00:00+09:00`);
+  anchor.setDate(anchor.getDate() - 1);
+  return dateInTokyo(anchor);
+}
+
+function estimateDailyQuestionCount(analysisAnswers, minutes) {
+  const answers = Array.isArray(analysisAnswers) ? analysisAnswers : [];
+  const wrongAnswers = answers.filter((answer) => !answer.correct);
+  const uniqueWrongItems = new Set(wrongAnswers.map((answer) => answer.itemId).filter(Boolean)).size;
+  const repeatedMistakes = Math.max(0, wrongAnswers.length - uniqueWrongItems);
+  const baseByTime = Math.max(8, Math.round((Number(minutes) || 30) / 2));
+  const activityCoverage = Math.ceil(answers.length * 0.15);
+  const reinforcementCoverage = uniqueWrongItems * 2 + repeatedMistakes;
+  return clampInteger(Math.max(baseByTime, activityCoverage, reinforcementCoverage), 8, 60);
+}
+
 function compareIsoDesc(a, b) {
   return String(b ?? '').localeCompare(String(a ?? ''));
 }
@@ -1455,7 +1478,7 @@ function summarizeKindPerformance(answers) {
     .sort((a, b) => b.wrong - a.wrong || a.accuracy - b.accuracy || compareIsoDesc(a.lastAnsweredAt, b.lastAnsweredAt));
 }
 
-function recentWrongAnswers(answers, limit = 12) {
+function recentWrongAnswers(answers, limit = Infinity) {
   return answers
     .filter((answer) => !answer.correct)
     .sort((a, b) => compareIsoDesc(a.answeredAt, b.answeredAt))
@@ -1526,7 +1549,9 @@ function isKanaReading(value) {
 function generatedMeaningQuestion(item, index) {
   const answer = item.paraphrase_ja ?? item.meaning_ja;
   if (!answer) return null;
-  const choices = choiceList(answer, item.question_distractors?.meaning, [
+  const japaneseDistractors = (item.question_distractors?.meaning ?? [])
+    .filter((choice) => /[\u3040-\u30ff]/u.test(String(choice)));
+  const choices = choiceList(answer, japaneseDistractors, [
     '重要さや優先順位が第一ではなく、後回しであること。',
     '前の内容を言い換えたり、要点をまとめたりすること。',
     'ある条件なら当然そうするという判断を表すこと。',
@@ -1561,6 +1586,9 @@ function generatedGrammarQuestion(item, index) {
       choices: practice.choices,
       answer: practice.answer,
       explanation_zh: practice.explanation_zh ?? item.explanation_zh ?? '',
+      form_analysis_zh: practice.form_analysis_zh,
+      translation_zh: practice.translation_zh,
+      tested_expression: practice.tested_expression,
       full_order: practice.full_order,
       target_blank_index: practice.target_blank_index,
     };
@@ -1602,9 +1630,13 @@ function generatedMojiGoiQuestion(item, index) {
 }
 
 function generatedQuestionForKind(item, kind, index) {
+  const isGrammarItem = item.deck === 'grammar_expression'
+    || item.type === 'expression'
+    || item.type === 'grammar'
+    || (item.practice_questions ?? []).some((question) => question.kind === 'grammar' || question.kind === '文の組み立て');
   if (kind === 'kanji_to_kana') return generatedKanjiToKanaQuestion(item, index);
   if (kind === 'meaning') return generatedMeaningQuestion(item, index);
-  if (kind === 'grammar') return generatedGrammarQuestion(item, index);
+  if (kind === 'grammar') return isGrammarItem ? generatedGrammarQuestion(item, index) : null;
   if (kind === 'moji_goi') return generatedMojiGoiQuestion(item, index);
   return generatedMeaningQuestion(item, index) ?? generatedGrammarQuestion(item, index) ?? generatedKanjiToKanaQuestion(item, index);
 }
@@ -1642,23 +1674,45 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
   const data = loadReviewData();
   const state = getStudyState(userId);
   const allAnswers = answerHistoryFor(state);
-  const kindPerformance = summarizeKindPerformance(allAnswers);
-  const wrongAnswers = recentWrongAnswers(allAnswers);
+  const yesterdayDate = yesterdaysDateKey();
+  const analysisAnswers = answersByDate(allAnswers, yesterdayDate);
+  const focusedAnswers = analysisAnswers.length ? analysisAnswers : allAnswers;
   const dueItems = listDueReviews(userId);
+  const questionTargetCount = estimateDailyQuestionCount(focusedAnswers, minutes);
+  const kindPerformance = summarizeKindPerformance(focusedAnswers);
+  const wrongAnswers = recentWrongAnswers(focusedAnswers, questionTargetCount);
   const candidates = targetedItems(data, state, dueItems, wrongAnswers);
   const priorityKinds = kindPerformance.filter((kind) => kind.wrong > 0).map((kind) => kind.kind);
   if (!priorityKinds.length) priorityKinds.push('meaning', 'grammar', 'kanji_to_kana');
 
   const generatedPractice = [];
   const seenQuestion = new Set();
-  for (const kind of priorityKinds) {
+  const warmupLimit = Math.min(10, questionTargetCount);
+  const kindPools = new Map(priorityKinds.map((kind) => {
     const sameKindWrongItems = wrongAnswers
       .filter((answer) => answer.kind === kind)
       .map((answer) => candidates.find((item) => item.id === answer.itemId))
       .filter(Boolean);
-    const itemPool = sameKindWrongItems.length ? [...sameKindWrongItems, ...candidates] : candidates;
-    for (const item of itemPool) {
-      if (generatedPractice.length >= 12) break;
+    const seenItems = new Set();
+    const itemPool = [...sameKindWrongItems, ...candidates].filter((item) => {
+      if (!item?.id || seenItems.has(item.id)) return false;
+      seenItems.add(item.id);
+      return true;
+    });
+    return [kind, { items: itemPool, cursor: 0 }];
+  }));
+  const kindSchedule = priorityKinds.flatMap((kind) => {
+    const wrongCount = kindPerformance.find((entry) => entry.kind === kind)?.wrong ?? 1;
+    return Array.from({ length: Math.max(1, wrongCount) }, () => kind);
+  });
+  while (generatedPractice.length < questionTargetCount) {
+    let addedThisRound = false;
+    for (const kind of kindSchedule) {
+      if (generatedPractice.length >= questionTargetCount) break;
+      const pool = kindPools.get(kind);
+      if (!pool) continue;
+      while (pool.cursor < pool.items.length) {
+        const item = pool.items[pool.cursor++];
       const question = generatedQuestionForKind(item, kind, generatedPractice.length);
       if (!question) continue;
       const key = `${question.type}|${question.prompt}|${question.answer}|${(question.choices ?? []).join('|')}`;
@@ -1670,11 +1724,14 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
         itemId: question.item_id,
         kind,
       });
+        addedThisRound = true;
+        break;
+      }
     }
-    if (generatedPractice.length >= 12) break;
+    if (!addedThisRound) break;
   }
 
-  const focusItems = candidates.slice(0, 12).map((item) => {
+  const focusItems = candidates.slice(0, questionTargetCount).map((item) => {
     const progress = state.progress[item.id] ?? {};
     return {
       id: item.id,
@@ -1689,7 +1746,7 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
     };
   });
 
-  const warmup = candidates.slice(0, 10).map((item) => {
+  const warmup = candidates.slice(0, warmupLimit).map((item) => {
     const isGrammar = item.deck === 'grammar_expression' || item.type === 'expression' || item.type === 'grammar';
     return {
       item_id: item.id,
@@ -1713,7 +1770,11 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
       { minutes: Math.max(5, minutes - Math.min(8, minutes) - Math.max(10, Math.round(minutes * 0.55))), task: 'Error log：错题写下题型、误选原因、正确判断步骤。' },
     ],
     diagnosis: {
-      total_answers: allAnswers.length,
+      analysis_date: analysisAnswers.length ? yesterdayDate : null,
+      used_history_fallback: !analysisAnswers.length,
+      analyzed_answers: focusedAnswers.length,
+      all_history_answers: allAnswers.length,
+      target_question_count: questionTargetCount,
       recent_wrong_answers: wrongAnswers.slice(0, 8).map((answer) => ({
         questionId: answer.questionId,
         itemId: answer.itemId,
@@ -1727,7 +1788,7 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
     warmup,
     quiz: generatedPractice,
     focus_items: focusItems,
-    due_items: dueItems.slice(0, 12).map((item) => ({ id: item.id, original: item.original, deck: item.deck })),
+      due_items: dueItems.slice(0, questionTargetCount).map((item) => ({ id: item.id, original: item.original, deck: item.deck })),
     generated_practice: generatedPractice,
     sections: [
       {
@@ -1743,7 +1804,7 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
       {
         title: 'Due review',
         body: 'Use these items for spaced repetition after the targeted set.',
-        items: dueItems.slice(0, 12).map((item) => ({ id: item.id, original: item.original, deck: item.deck })),
+        items: dueItems.slice(0, questionTargetCount).map((item) => ({ id: item.id, original: item.original, deck: item.deck })),
       },
     ],
     next_step: '先完成 same-type practice；错题只记录题型、误选原因和正确判断步骤。',
@@ -1765,14 +1826,16 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
   const id = `daily-${practiceDate}-${randomBytes(6).toString('base64url')}`;
   const now = new Date().toISOString();
   const version = nextDailyPracticeVersion(userId, practiceDate);
+  const practiceTitle = formatDailyPracticeTitle(practiceDate);
   const practice = {
     id,
     date: practiceDate,
     version,
-    title: String(title || `${practiceDate} JLPT 今日练习 v${version}`).slice(0, 120),
+    title: practiceTitle,
     minutes: Number.isFinite(Number(minutes)) ? Math.max(5, Math.min(240, Math.round(Number(minutes)))) : 30,
     strategy: content.strategy,
     generated_at: now,
+    source_title: typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : undefined,
     diagnosis: content.diagnosis,
     practice_plan: content.practice_plan,
     questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id),
@@ -1787,6 +1850,10 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
     `)
     .run(id, userId, practiceDate, version, practice.title, practice.minutes, JSON.stringify(practice), now, now);
   return getDailyPractice(userId, id);
+}
+
+function formatDailyPracticeTitle(practiceDate) {
+  return `${practiceDate} 练习`;
 }
 
 export function createDailyPracticeFromDraft(userId, draftId, { date, title } = {}) {
@@ -1825,6 +1892,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
   const id = `daily-${practiceDate}-${randomBytes(6).toString('base64url')}`;
   const now = new Date().toISOString();
   const version = nextDailyPracticeVersion(userId, practiceDate);
+  const practiceTitle = formatDailyPracticeTitle(practiceDate);
   const questions = sourceQuestions.map(({ section, question }, index) => {
     const choices = Array.isArray(question.choices) ? question.choices.map((choice) => String(choice)) : [];
     const answerIndex = Number.isInteger(question.answerIndex)
@@ -1869,7 +1937,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     id,
     date: practiceDate,
     version,
-    title: String(title || draft.title).slice(0, 120),
+    title: String(title || practiceTitle).slice(0, 120),
     minutes: Number.isFinite(Number(content.time_limit_minutes))
       ? Math.max(5, Math.min(240, Math.round(Number(content.time_limit_minutes))))
       : 30,
@@ -1941,6 +2009,52 @@ export function getDailyPractice(userId, id) {
   return row ? rowToDailyPractice(row) : null;
 }
 
+export function refreshDailyPracticeExplanations(userId, id) {
+  const row = getDb()
+    .prepare(`
+      SELECT id, practice_date, version, title, minutes, practice_json, created_at, updated_at
+      FROM daily_practices
+      WHERE user_id = ? AND id = ?
+    `)
+    .get(userId, id);
+  if (!row) return null;
+
+  const practice = JSON.parse(row.practice_json);
+  const reviewItems = loadReviewData().items;
+  practice.questions = (practice.questions ?? []).map((question) => {
+    const choices = Array.isArray(question.choices) ? question.choices : [];
+    if (!choices.includes(question.answer)) return question;
+    const sourceItem = reviewItems.find((item) => item.id === question.itemId);
+    return {
+      ...question,
+      choiceAnalysis: choices.map((choice) => {
+        const existing = question.choiceAnalysis?.find((entry) => entry.choice === choice)?.explanation;
+        const generic = !existing || /(?:不符合本题(?:目标|语境)|是本题正确答案|是正确答案)/u.test(existing);
+        return {
+          choice,
+          correct: choice === question.answer,
+          explanation: generic
+            ? dailyPracticeChoiceExplanation({
+              choice,
+              correct: choice === question.answer,
+              kind: question.kind,
+              prompt: question.prompt,
+              correctReason: question.correctReason,
+              sourceItem,
+              reviewItems,
+            })
+            : existing,
+        };
+      }),
+    };
+  });
+  const now = new Date().toISOString();
+  getDb()
+    .prepare('UPDATE daily_practices SET practice_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')
+    .run(JSON.stringify(practice), now, userId, id);
+  return getDailyPractice(userId, id);
+}
+
 function rowToDailyPracticeSummary(row) {
   const practice = JSON.parse(row.practice_json);
   return {
@@ -1951,15 +2065,52 @@ function rowToDailyPracticeSummary(row) {
     minutes: row.minutes,
     strategy: practice.strategy ?? 'targeted_by_history',
     questionCount: Array.isArray(practice.questions) ? practice.questions.length : 0,
+    summary: dailyPracticeSummaryText(practice),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
 }
 
+function dailyPracticeSummaryText(practice) {
+  const questions = Array.isArray(practice?.questions) ? practice.questions : [];
+  const sourceCounts = new Map();
+  const kindCounts = new Map();
+  for (const question of questions) {
+    const source = String(question.sourceMaterial ?? question.generated_from ?? '').trim();
+    if (source) sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1);
+    const kind = normalizeQuestionKind(question.kind);
+    if (kind) kindCounts.set(kind, (kindCounts.get(kind) ?? 0) + 1);
+  }
+  const parts = [];
+  const inputCount = sourceCounts.get('yesterday_input') ?? 0;
+  const reviewCardCount = (sourceCounts.get('review_card') ?? 0) + (sourceCounts.get('review_card_and_wrong_answer') ?? 0);
+  if (inputCount) parts.push(`复盘昨天输入 ${inputCount} 题`);
+  if (reviewCardCount) parts.push(`复习卡片补强 ${reviewCardCount} 题`);
+  const topKinds = [...kindCounts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 2)
+    .map(([kind]) => questionKindSummaryLabel(kind));
+  if (topKinds.length) parts.push(`重点：${topKinds.join('、')}`);
+  const fallback = practice?.diagnosis?.weak_question_types?.[0]?.kind;
+  if (!parts.length && fallback) parts.push(`针对 ${questionKindSummaryLabel(fallback)} 做同题型练习`);
+  return parts.join('；') || '根据最近学习记录生成的今日练习。';
+}
+
+function questionKindSummaryLabel(kind) {
+  if (kind === 'kanji_to_kana') return '汉字读音';
+  if (kind === 'kana_to_kanji') return '假名表记';
+  if (kind === 'grammar') return '语法';
+  if (kind === 'moji_goi') return '文字词汇';
+  if (kind === 'meaning') return '词义辨析';
+  return String(kind || '综合');
+}
+
 function rowToDailyPractice(row) {
+  const practice = JSON.parse(row.practice_json);
   return {
     ...rowToDailyPracticeSummary(row),
-    ...JSON.parse(row.practice_json),
+    ...practice,
+    questions: (practice.questions ?? []).map(repairDailyPracticeQuestionAnswer),
     id: row.id,
     date: row.practice_date,
     version: row.version ?? 1,
@@ -1991,21 +2142,25 @@ function normalizePracticeDate(value) {
 }
 
 function dailyPracticeQuestions(generatedPractice, practiceId) {
+  const reviewItems = loadReviewData().items;
   return generatedPractice
-    .map((question, index) => normalizeDailyPracticeQuestion(question, practiceId, index))
+    .map((question, index) => normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems))
     .filter(Boolean);
 }
 
-function normalizeDailyPracticeQuestion(question, practiceId, index) {
+function normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems) {
   if (!question || typeof question !== 'object') return null;
   const kind = normalizeQuestionKind(question.kind ?? question.type);
   const choices = Array.isArray(question.choices) ? question.choices.map((choice) => String(choice)).filter(Boolean) : [];
-  const answer = String(question.answer ?? '').trim();
+  const rawAnswer = String(question.answer ?? '').trim();
+  const answer = resolveDailyPracticeAnswer(question, choices, rawAnswer);
   const itemId = String(question.itemId ?? question.item_id ?? '').trim();
   const prompt = String(question.prompt ?? '').trim();
   if (!kind || !choices.length || !answer || !itemId || !prompt) return null;
   const id = `${practiceId}-q${String(index + 1).padStart(2, '0')}`;
   const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
+  const sourceItem = reviewItems.find((item) => item.id === itemId);
+  const correctReason = explanation || `正确答案是「${answer}」。`;
   return {
     id,
     sourceQuestionId: question.id,
@@ -2018,14 +2173,101 @@ function normalizeDailyPracticeQuestion(question, practiceId, index) {
     choices,
     answer,
     context: prompt,
-    correctReason: explanation || `正确答案是「${answer}」。`,
+    translationZh: String(question.translation_zh ?? '').trim() || undefined,
+    correctReason,
     memoryPoint: explanation || `复习目标：${question.promptTarget ?? answer}`,
     choiceAnalysis: choices.map((choice) => ({
       choice,
       correct: choice === answer,
-      explanation: choice === answer ? `「${choice}」是本题正确答案。` : `「${choice}」不符合本题目标。`,
+      explanation: dailyPracticeChoiceExplanation({
+        choice,
+        correct: choice === answer,
+        kind,
+        prompt,
+        correctReason,
+        sourceItem,
+        reviewItems,
+      }),
     })),
   };
+}
+
+function resolveDailyPracticeAnswer(question, choices, rawAnswer) {
+  const sourceKind = String(question.kind ?? question.type ?? '');
+  const isSentenceAssembly = sourceKind.includes('文の組み立て') || String(question.prompt ?? '').includes('★');
+  if (!isSentenceAssembly || choices.includes(rawAnswer) || !/^\d+$/u.test(rawAnswer)) {
+    return rawAnswer;
+  }
+  return choices[Number(rawAnswer) - 1] ?? rawAnswer;
+}
+
+function repairDailyPracticeQuestionAnswer(question) {
+  const choices = Array.isArray(question?.choices) ? question.choices.map((choice) => String(choice)) : [];
+  const rawAnswer = String(question?.answer ?? '').trim();
+  const answer = resolveDailyPracticeAnswer(question, choices, rawAnswer);
+  if (!answer || answer === rawAnswer) return question;
+  return {
+    ...question,
+    answer,
+    choiceAnalysis: choices.map((choice) => {
+      const existing = question.choiceAnalysis?.find((entry) => entry.choice === choice);
+      const correct = choice === answer;
+      return {
+        ...existing,
+        choice,
+        correct,
+        explanation: correct
+          ? `「${choice}」符合本句的排序和 ★ 位置。${question.correctReason ?? ''}`
+          : existing?.explanation ?? `「${choice}」不是 ★ 位置对应的选项。`,
+      };
+    }),
+  };
+}
+
+function dailyPracticeChoiceExplanation({ choice, correct, kind, prompt, correctReason, sourceItem, reviewItems }) {
+  if (correct) {
+    return `「${choice}」符合本句的接续和语义。${correctReason}`;
+  }
+  if (kind !== 'grammar' || !sourceItem) {
+    const candidate = reviewItems.find((item) => item.original === choice || item.paraphrase_ja === choice || item.reading === choice);
+    const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.explanation_zh ?? '');
+    return usage
+      ? `「${choice}」表示“${usage}”，与本题要求的词义、读音或句子结构不一致。`
+      : `「${choice}」与本题要求的词义、读音或句子结构不一致。`;
+  }
+
+  const normalizedChoice = normalizeDailyGrammarExpression(choice);
+  const candidate = reviewItems.find((item) => {
+    const expressions = [item.original, item.grammar_point, item.source_grammar_point]
+      .filter(Boolean)
+      .flatMap((value) => String(value).split(/[／/]/u));
+    return expressions.some((value) => normalizeDailyGrammarExpression(value) === normalizedChoice);
+  });
+  const comparison = [...(sourceItem.comparison_notes ?? []), ...(sourceItem.comparisons ?? [])]
+    .find((entry) => normalizeDailyGrammarExpression(entry.target ?? '') === normalizedChoice);
+  const form = candidate?.grammar_forms?.[0]?.form;
+  const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.core_memory ?? candidate?.explanation_zh ?? '');
+  const normalUse = candidate
+    ? `「${choice}」的使用范围：${form ? `接「${form}」，` : ''}${usage ? `表示“${usage}”` : '用于另一种接续和语义场景'}。`
+    : `「${choice}」有自己的接续形式和语义范围。`;
+  const contrast = comparison?.difference_zh ? `${comparison.difference_zh.replace(/[。！？!?]+$/u, '')}。` : '';
+  const required = firstExplanationSentence(sourceItem.meaning_zh ?? sourceItem.core_memory ?? correctReason);
+  return `${normalUse}${contrast}本句「${prompt}」需要表达“${required}”，所以「${choice}」在接续或语义上不能成立。`;
+}
+
+function normalizeDailyGrammarExpression(value) {
+  const normalized = String(value)
+    .replace(/[〜～~]/gu, '')
+    .replace(/^[VN]\s*(?:て|た)?\s*\+\s*/u, '')
+    .replace(/^た(?=が最後$)/u, '')
+    .trim();
+  if (normalized === 'とたん') return 'とたんに';
+  if (normalized === 'てからというもの') return 'からというもの';
+  return normalized;
+}
+
+function firstExplanationSentence(value) {
+  return String(value).split(/[。\n]/u)[0].replace(/[；;。]+$/u, '').trim();
 }
 
 function normalizeQuestionKind(value) {
@@ -2458,14 +2700,17 @@ function normalizeStudyPlanTasks(value, profile, required = true) {
     const title = String(task?.title ?? '').trim().slice(0, 160);
     if (!title) throw new Error(`Task ${index + 1} needs a title`);
     const id = isIdentifier(task?.id) ? task.id : `task-${date}-${index + 1}`;
+    const workloadKind = task?.workloadKind === 'full_mock' ? 'full_mock' : 'standard';
     return {
       id,
       date,
       title,
       module: ['grammar', 'reading', 'listening', 'vocabulary', 'other'].includes(task?.module) ? task.module : 'other',
-      minutes: clampInteger(task?.minutes, 5, profile.dailyMinutes, Math.min(30, profile.dailyMinutes)),
+      minutes: clampInteger(task?.minutes, 5, workloadKind === 'full_mock' ? 240 : profile.dailyMinutes, Math.min(30, profile.dailyMinutes)),
       detail: String(task?.detail ?? '').trim().slice(0, 1000),
+      ...(String(task?.sourceLabel ?? '').trim() ? { sourceLabel: String(task.sourceLabel).trim().slice(0, 160) } : {}),
       ...(task?.materialId && /^[a-z0-9_-]{1,100}$/i.test(task.materialId) ? { materialId: task.materialId } : {}),
+      ...(workloadKind === 'full_mock' ? { workloadKind } : {}),
       status: ['pending', 'completed', 'skipped', 'missed'].includes(task?.status) ? task.status : 'pending',
       ...(task?.completedAt ? { completedAt: normalizeTimestamp(task.completedAt) } : {}),
     };
@@ -2477,7 +2722,11 @@ function normalizeStudyPlanTasks(value, profile, required = true) {
   for (const task of tasks) {
     minutesByDate.set(task.date, (minutesByDate.get(task.date) ?? 0) + task.minutes);
   }
-  const overloadedDate = [...minutesByDate.entries()].find(([, minutes]) => minutes > profile.dailyMinutes);
+  const overloadedDate = [...minutesByDate.entries()].find(([date, minutes]) => {
+    if (minutes <= profile.dailyMinutes) return false;
+    const dayTasks = tasks.filter((task) => task.date === date);
+    return !dayTasks.some((task) => task.workloadKind === 'full_mock') || minutes > 240;
+  });
   if (overloadedDate) {
     throw new Error(`Tasks on ${overloadedDate[0]} exceed the daily limit of ${profile.dailyMinutes} minutes`);
   }

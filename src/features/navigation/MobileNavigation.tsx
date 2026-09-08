@@ -1,11 +1,11 @@
-import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, FileText, Filter, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, UserRound, X } from 'lucide-react';
+import { ArrowLeft, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
 
 export type MobileStudyPanel = 'task' | 'filter' | null;
 
 type NavItem = { view: AppView; label: string };
-type RouteNavItem = NavItem & { page?: StudyPage; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'study' | 'review' | 'record' | 'manage' };
+type RouteNavItem = NavItem & { page?: StudyPage; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
 
 export function MobileAppHeader({ title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
   title: string;
@@ -255,6 +255,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
 }) {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   let previousGroup: RouteNavItem['group'] | undefined;
+  const showSidebarBack = !isFirstLevelRoute(route, items);
   const navigateFromSidebar = (view: AppView, page?: StudyPage) => {
     onNavigate(view, page);
     if (mobileOpen && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
@@ -279,10 +280,12 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
     <aside className={`desktop-sidebar flex ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : 'is-mobile-closed'}`} aria-label={labels.mobileNavigation}>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="desktop-sidebar-header">
-          <button type="button" onClick={() => navigateFromSidebar('home')} className="desktop-sidebar-brand cute-focus" aria-label={brand} title={brand}>
-            <span className="desktop-sidebar-brand-mark">J</span>
-            <span className="desktop-sidebar-text">{brand}</span>
-          </button>
+          {showSidebarBack ? (
+            <button type="button" onClick={() => window.history.back()} className="desktop-sidebar-brand cute-focus" aria-label={labels.back ?? "返回上一页"} title={labels.back ?? "返回上一页"}>
+              <span className="desktop-sidebar-brand-mark"><ChevronLeft size={34} strokeWidth={2.8} /></span>
+              <span className="desktop-sidebar-text">{brand}</span>
+            </button>
+          ) : null}
           <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? labels.mobileMenu : labels.mobileClose} title={collapsed ? labels.mobileMenu : labels.mobileClose}>
             {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -298,10 +301,10 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
             const expanded = hasChildren ? (expandedItems[itemKey] ?? active) : false;
             previousGroup = item.group;
             return (
-              <div key={`${item.view}-${item.page ?? 'index'}-${item.label}`} className="desktop-sidebar-group">
+              <div key={`${item.view}-${item.page ?? 'index'}-${item.label}`} className={`desktop-sidebar-group ${item.group ? `desktop-sidebar-group-${item.group}` : ''}`}>
                 {showGroupLabel ? (
                   <p className="desktop-sidebar-section-label">
-                    <span className="desktop-sidebar-text">{item.group === 'study' ? '学习' : item.group === 'review' ? '复习' : item.group === 'record' ? '记录' : ''}</span>
+                    <span className="desktop-sidebar-text">{item.group === 'today' ? '今天' : item.group === 'study' ? '学习' : item.group === 'review' ? '练习' : item.group === 'record' ? '记录' : '工具'}</span>
                   </p>
                 ) : null}
                 {hasChildren ? (
@@ -310,6 +313,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                     onClick={() => setExpandedItems((current) => ({ ...current, [itemKey]: !(current[itemKey] ?? active) }))}
                     aria-current={active ? 'page' : undefined}
                     aria-expanded={expanded}
+                    aria-label={item.label}
                     title={collapsed ? item.label : undefined}
                     className={`desktop-sidebar-parent cute-focus ${active ? 'is-active' : ''}`}
                   >
@@ -322,6 +326,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                     type="button"
                     onClick={() => navigateFromSidebar(item.view, item.page)}
                     aria-current={active ? 'page' : undefined}
+                    aria-label={item.label}
                     title={collapsed ? item.label : undefined}
                     className={`desktop-sidebar-item cute-focus ${active ? 'is-active' : ''}`}
                   >
@@ -386,6 +391,13 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
       </div>
     </aside>
   );
+}
+
+function isFirstLevelRoute(route: AppRoute, items: RouteNavItem[]) {
+  if (route.itemId) {
+    return false;
+  }
+  return items.some((item) => item.view === route.view && !item.page);
 }
 
 function isRouteItemActive(item: RouteNavItem, route: AppRoute) {
@@ -533,7 +545,17 @@ function mobileNavIcon(view: AppView) {
       return SlidersHorizontal;
     case 'news-cycle':
       return Newspaper;
+    case 'history':
+      return History;
+    case 'captures':
+      return NotebookPen;
     case 'insights':
+      return NotebookPen;
+    case 'mistakes':
+      return Target;
+    case 'question-types':
+      return Shuffle;
+    case 'settings':
       return UserRound;
     default:
       return FileText;

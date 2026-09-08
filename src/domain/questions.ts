@@ -8,6 +8,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
 
   items.forEach((item, index) => {
     const allowedKinds = new Set(questionKindsForItem(item));
+    const seededMojiGoiQuestions = (item.practice_questions ?? []).filter((seed) => seed.kind === 'moji_goi');
     if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
       item.practice_questions.forEach((seed, seedIndex) => {
         if (seed.kind && seed.kind !== 'grammar') return;
@@ -15,6 +16,10 @@ export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
       });
       return;
     }
+
+    seededMojiGoiQuestions.forEach((seed, seedIndex) => {
+      questions.push(buildSeededMojiGoiQuestion(item, seed, seedIndex, locale));
+    });
 
     const sentence = questionSentence(item);
     const kanaSentence = item.reading ? questionSentence(item, item.reading) : sentence;
@@ -24,7 +29,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
       questions.push(buildGrammarQuestion(item, items, index, locale));
     }
 
-    if (allowedKinds.has('moji_goi')) {
+    if (allowedKinds.has('moji_goi') && seededMojiGoiQuestions.length === 0) {
       questions.push(buildMojiGoiQuestion(item, items, index, locale));
     }
 
@@ -282,6 +287,44 @@ function buildSeededGrammarQuestion(
           context,
           seed.tested_expression ?? seed.form_analysis_zh ?? '',
         ),
+    })),
+  };
+}
+
+function buildSeededMojiGoiQuestion(
+  item: VocabItem,
+  seed: NonNullable<VocabItem['practice_questions']>[number],
+  index: number,
+  locale: Locale,
+): Question {
+  const labels = translations[locale];
+  const answer = seed.answer ?? item.original;
+  const explicitChoices = unique((seed.choices ?? []).filter(Boolean));
+  const choiceList = explicitChoices.length === 4 && explicitChoices.includes(answer)
+    ? explicitChoices
+    : choices(answer, explicitChoices, index, fallbackChoicesForKind(item, 'moji_goi'));
+  const prompt = seed.prompt ?? questionSentence(item).replace(item.original, '（　）');
+  const context = [seed.instruction, prompt].filter(Boolean).join(' ');
+
+  return {
+    id: seed.id ?? `${item.id}-moji-goi-seed-${index + 1}`,
+    itemId: item.id,
+    kind: 'moji_goi',
+    title: labels.mojiGoiTitle,
+    instruction: seed.instruction ?? labels.mojiGoiInstruction,
+    prompt,
+    choices: choiceList,
+    answer,
+    translationZh: seed.translation_zh,
+    context,
+    correctReason: seed.explanation_zh ?? `正确答案是「${answer}」。`,
+    memoryPoint: memoryPointFor(item, locale),
+    choiceAnalysis: choiceList.map((choice) => ({
+      choice,
+      correct: choice === answer,
+      explanation: choice === answer
+        ? seed.explanation_zh ?? `「${answer}」符合本句的词义、词形和搭配。`
+        : `「${choice}」不符合本句需要的词义、词形或自然搭配。`,
     })),
   };
 }

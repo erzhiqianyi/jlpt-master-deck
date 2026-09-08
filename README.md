@@ -1,15 +1,92 @@
 # JLPT Master Deck
 
-A local-first JLPT learning record and review tool. Its primary purpose is to capture words, grammar, sentences, audio, or reading points that a learner does not understand, turn those records into focused practice, and make later review, history management, and progress observation straightforward. The app runs with a local Node backend: public study resources stay in JSON, while accounts, sessions, captured questions, settings, answers, and review progress are stored in local SQLite.
+你要的不只是“做题”，而是每天知道自己该复习什么。  
+JLPT Master Deck 会把错题、不会的词、文法疑问、阅读和听力难点整理成可执行的今日任务，让复习从“凭感觉刷题”变成“看得见进步”。
 
-The main learning loop is:
+![JLPT Master Deck 海报](public/promotions/jlpt-review-hero.png)
 
-1. Record something you do not understand in the web app, or add it through MCP.
-2. Let Codex or another MCP client read the pending records and organize them into structured review material.
-3. Practice by module or as a mixed review; answers update the local review schedule.
-4. Use History to revisit inputs and attempts, and Data to observe workload and accuracy.
+## 面向 JLPT 学习者的宣传文案
 
-General study generation remains available as a secondary workflow: give `jlpt-study-generator` a target level, available days, daily study time, and focus modules when no source notes are available.
+### 首页主标题
+
+每天知道该复习什么，错题不再白做。
+
+### 首页副标题
+
+把不会的词、文法和阅读听力问题，变成今天能完成的复习任务。
+
+### 首页三大功能
+
+- **今日任务**：打开首页就知道今天先做什么。  
+- **错题沉淀**：不会的题和句子不会散落在聊天记录、截图或笔记里。  
+- **复盘进度**：做完不只看对错，还能看到薄弱项和下一步安排。
+
+### CTA
+
+开始今日复习。
+
+## 项目特点
+
+- 数据本地优先：公开题库资源可更新（JSON），个人账号、历史、进度、草稿、生成记录都保存在本机 SQLite（`.local/jlpt.sqlite`）。  
+- 学习闭环清晰：`捕获` -> `任务生成` -> `复习` -> `复盘` -> `计划更新`。  
+- 可解释反馈：每题可给出完整解释、错误原因分析和记忆点，支持日常复习迭代。  
+- 支持多模式复习：按词汇/文法/听力/阅读模块练习，支持混合复习与问答日历。  
+- 强化本地化：多语言界面与解释文案可独立配置，支持 JLPT 学习场景常见的日中双语表达。  
+- 可扩展任务链：既支持直接在站内操作，也支持通过 MCP/Agent 生成草稿、修订题目并回写到本地库。  
+
+## 项目能做到的事情
+
+- 统一采集学习输入：词汇、句子、文法、听力文本、阅读片段都可入库，形成 `学习捕获`。  
+- 自动生成复习材料：把待处理输入转成结构化题目/项，支持 JSONL 或 SQLite 库的导入策略。  
+- 个性化安排：根据做题记录生成日历式任务与短期复习计划，支持偏差修正（错题强化、标记未知词等）。  
+- 复习与纠错：模块内练习与混合练习都能即时给出判断，并记录复习间隔（简化 Anki/SM-2）。  
+- 历史和数据面板：查看当日任务、完成率、正确率、耗时、题型分布和薄弱点。  
+- 草稿驱动优化：生成复习草稿后可人工批注，再次提交让 Agent/Model 迭代为更贴合当前学习节奏的版本。  
+- 多入口使用：可直接在网页操作，也可交给 Agent 自动化处理；适合作为个人学习知识库的主工作流。  
+
+## MCP 技能与可直接使用的提示词
+
+仓库内内置的 Agent 技能：
+
+- `skills/jlpt-chat-review/`：从用户学习素材生成/修订 review items（词汇、文法、阅读、听力）以及题目草稿。
+- `skills/jlpt-study-generator/`：无原始素材时生成阶段化学习计划和首周内容。
+
+建议直接复制到自己的 Agent 使用：
+
+```text
+角色：你是 JLPT 学习助理，请严格按项目约定生成 review_items。
+任务：读取我给的材料，把它转成 JLPT 复习用条目并标注 category / meaning_ja / reading / ruby_terms / options / explanation。
+约束：
+1) 保留我给出的原文，不要改写成“看起来像官方答案”的语气。
+2) 给出日语解释+中文解释，保留错误选项的干扰点理由。
+3) 标注 source 与 content_origin，并把不可确认内容设为 unverified。
+4) 生成后输出可直接落库的 JSONL。
+```
+
+```text
+角色：你是学习教练，基于用户当前学习记录和错题，输出 7 天复习计划。
+任务：读取我的学习记录，输出可执行的每日任务（模块/题数/重点），并给出调整建议。
+要求：
+1) 覆盖目标日期范围内的计划与备选题量。
+2) 指出薄弱题型与优先补救顺序。
+3) 输出可直接提交给 jlpt_review MCP 的任务清单。
+```
+
+```text
+如果你已连接本地 MCP，请直接调用以下能力完成数据流：
+- 登录后调用 get_study_record 读取我近况
+- 用 analyze_weak_points 生成薄弱分析
+- 用 requestReview 生成复习草稿
+- 用 reviewProcessingNotice 提示我异步生成结果位置
+```
+
+使用现有 Web + MCP 流程的主循环是：
+
+1. 在网页里记录或导入内容 -> 形成学习捕获
+2. 调 `jlpt_review` MCP 生成/更新草稿
+3. 在草稿页确认后回写 SQLite 本地库
+4. 继续按任务页和复习页完成练习
+5. 每次练习后由 MCP 重新分析并优化下一阶段计划
 
 ## Features
 

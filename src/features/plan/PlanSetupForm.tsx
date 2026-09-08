@@ -33,7 +33,7 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
 
   return (
     <div className="space-y-5">
-      <FormSection icon={Target} title={labels.planBasicInfo} body={labels.planProfileOverviewBody}>
+      <FormSection initiallyOpen icon={Target} title={labels.planBasicInfo} body={labels.planProfileOverviewBody}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Field label={labels.planLevel}>
             <select value={draft.level} onChange={(event) => setDraft({ ...draft, level: event.target.value as StudyPlanProfile['level'] })} className={inputClass}>
@@ -121,10 +121,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="block text-xs font-semibold text-[#5c675f]">{label}<span className="mt-1.5 block">{children}</span></label>;
 }
 
-function FormSection({ icon: Icon, title, body, children }: { icon: typeof Target; title: string; body: string; children: ReactNode }) {
+function FormSection({ icon: Icon, title, body, children, initiallyOpen = false }: { initiallyOpen?: boolean; icon: typeof Target; title: string; body: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-[#dfe5dc] bg-white p-4 shadow-sm md:p-5">
-      <div className="mb-4 flex items-start gap-3">
+    <details className="gentle-details" open={initiallyOpen || undefined}>
+      <summary>{title}</summary><div className="mb-4 flex items-start gap-3">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#edf4ef] text-[#31564c]">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
@@ -133,8 +133,8 @@ function FormSection({ icon: Icon, title, body, children }: { icon: typeof Targe
           <p className="mt-1 text-sm leading-6 text-[#68716b]">{body}</p>
         </div>
       </div>
-      <div className="space-y-4">{children}</div>
-    </section>
+      <div className="space-y-4 pb-4">{children}</div>
+    </details>
   );
 }
 

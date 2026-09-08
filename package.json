@@ -16,6 +16,7 @@
     "tunnel": "cloudflared tunnel --config ~/.cloudflared/config.yml run satori-local",
     "dev:tunnel": "bash scripts/dev-with-tunnel.sh",
     "data:blank": "node scripts/create-blank-data.mjs",
+    "plan:migrate-prototype": "node scripts/migrate-prototype-study-plan.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {

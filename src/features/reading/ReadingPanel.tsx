@@ -1,4 +1,6 @@
-import { ChevronLeft, ChevronRight, Clipboard, Lightbulb, Plus, ScrollText, Sparkles, Target, Trash2, X } from 'lucide-react';
+import { useMobileList } from '../../hooks/useMobileList';
+import { useConfirmation } from '../../components/confirmation';
+import { ChevronLeft, ChevronRight, Clipboard, ExternalLink, Lightbulb, Plus, RotateCcw, ScrollText, Sparkles, Target, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Locale, ReadingQuestion, ReadingQuestionInput } from '../../types';
 
@@ -28,13 +30,15 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showAiForm, setShowAiForm] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
   const [pageIndex, setPageIndex] = useState(0);
+  const mobileList = useMobileList(questions.length, 'library');
   const pageCount = Math.max(1, Math.ceil(questions.length / READING_LIBRARY_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * READING_LIBRARY_PAGE_SIZE;
-  const pageItems = questions.slice(pageStart, pageStart + READING_LIBRARY_PAGE_SIZE);
+  const pageItems = questions.slice(mobileList.mobile ? 0 : pageStart, mobileList.mobile ? mobileList.visible : pageStart + READING_LIBRARY_PAGE_SIZE);
   const pageEnd = pageStart + pageItems.length;
 
   useEffect(() => {
@@ -84,13 +88,57 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
   }
 
   return (
-    <section className="min-w-0 rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] shadow-sm">
-      <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#e1e7df] px-4 py-4 md:px-6">
+    <section className="ledger-word-index ledger-entry-index min-w-0">
+      {!showLibrary ? (
+        <div className="ledger-entry-hub">
+          <div className="ledger-section-hero ledger-entry-hub-heading">
+            <div>
+              <h2 className="ledger-entry-page-title">选择阅读训练</h2>
+            </div>
+          </div>
+          <div className="ledger-entry-actions" aria-label="阅读主要入口">
+            {onPractice ? (
+              <button type="button" className="ledger-entry-action is-coral" onClick={onPractice}>
+                <RotateCcw size={22} aria-hidden="true" />
+                <span>开始练习</span>
+                <strong>按当前阅读题库顺序练一轮</strong>
+              </button>
+            ) : null}
+            {onTips ? (
+              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
+                <Lightbulb size={22} aria-hidden="true" />
+                <span>学习方法</span>
+                <strong>先看阅读题型和解法提示</strong>
+              </button>
+            ) : null}
+            <button type="button" className="ledger-entry-action is-ink" onClick={() => setShowLibrary(true)}>
+              <ExternalLink size={22} aria-hidden="true" />
+              <span>阅读材料</span>
+              <strong>打开文章、题目和解析列表</strong>
+            </button>
+            <button type="button" className="ledger-entry-action is-green" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }}>
+              {showAiForm ? <X size={22} aria-hidden="true" /> : <Sparkles size={22} aria-hidden="true" />}
+              <span>从链接准备练习</span>
+              <strong>请 AI 根据链接准备题目</strong>
+            </button>
+            <button type="button" className="ledger-entry-action is-blue" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }}>
+              {showForm ? <X size={22} aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
+              <span>添加阅读材料</span>
+              <strong>录入文章、题目和选项</strong>
+            </button>
+          </div>
+        </div>
+      ) : (
+      <div className="ledger-word-toolbar mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#e1e7df] px-4 py-4 md:px-6">
         <div>
           <h2 className="text-2xl font-semibold text-[#27312c]">{labels.readingLibrary}</h2>
           <p className="mt-1 text-sm text-[#68716b]">{questions.length} {labels.questions}</p>
         </div>
         <div className="mobile-action-row flex flex-wrap gap-2">
+          <button type="button" onClick={() => { setShowLibrary(false); setShowForm(false); setShowAiForm(false); setMessage(''); }} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b9c9c1] bg-white px-4 text-sm font-semibold text-[#24473f] hover:bg-[#f2f6f1]">
+            <ChevronLeft size={17} />
+            返回入口
+          </button>
           <button type="button" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b9c9c1] bg-white px-4 text-sm font-semibold text-[#24473f] hover:bg-[#f2f6f1]">
             {showAiForm ? <X size={17} /> : <Sparkles size={17} />}
             {showAiForm ? labels.mobileClose : labels.aiGenerateFromLink}
@@ -101,8 +149,9 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
           </button>
         </div>
       </div>
+      )}
 
-      <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} />
+      {showLibrary ? <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} /> : null}
 
       {message ? <p role="status" className="border-b border-[#e1e7df] px-4 py-3 text-sm font-semibold text-[#5a654f] md:px-6">{message}</p> : null}
 
@@ -177,13 +226,14 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
         </form>
       ) : null}
 
-      <div className="px-4 py-5 md:px-6">
+      {showLibrary ? <div className="px-4 py-5 md:px-6">
         {questions.length ? (
           <>
             <div className="grid gap-4">
               {pageItems.map((item) => <ReadingQuestionItem key={item.id} item={item} labels={labels} locale={locale} onDelete={onDelete} />)}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e]">
+            {mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < questions.length ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
+            <div className="desktop-list-pagination mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e]">
               <span className="font-semibold">{pageStart + 1}-{pageEnd} / {questions.length} {labels.questions}</span>
               <Pagination labels={labels} currentPage={currentPage} pageCount={pageCount} setPageIndex={setPageIndex} />
             </div>
@@ -191,7 +241,7 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
         ) : (
           <p className="text-sm leading-6 text-[#68716b]">{labels.readingEmpty}</p>
         )}
-      </div>
+      </div> : null}
     </section>
   );
 }
@@ -206,7 +256,7 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
 
   if (!questions.length || !activeQuestion) {
     return (
-      <section className="cute-practice-card min-w-0 border p-5 md:p-6">
+      <section className="cute-practice-card mobile-page-surface min-w-0 border p-5 md:p-6">
         <h2 className="text-2xl font-black text-[#3d3036]">{labels.readingPracticeTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-[#74646b]">{labels.readingPracticeEmpty}</p>
         {onOpenLibrary ? (
@@ -219,7 +269,7 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
   }
 
   return (
-    <section className="cute-practice-card min-w-0 border">
+    <section className="cute-practice-card mobile-page-surface min-w-0 border">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-5">
         <p className="text-sm font-bold text-[#a84269]">{labels.readingPracticeTitle}</p>
         <div className="flex items-center gap-2">
@@ -273,10 +323,11 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const confirm = useConfirmation();
   const [deleting, setDeleting] = useState(false);
 
   async function remove() {
-    if (!window.confirm(labels.readingDeleteConfirm)) return;
+    if (!(await confirm({ title: labels.readingDelete, description: labels.readingDeleteConfirm, confirmLabel: labels.readingDelete, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeleting(true);
     try {
       await onDelete(item.id);

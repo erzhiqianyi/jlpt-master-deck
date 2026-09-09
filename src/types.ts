@@ -413,6 +413,7 @@ export type PracticeQuestionSeed = {
   explanation_zh?: string;
   tested_expression?: string;
   form_analysis_zh?: string;
+  distractor_notes?: Record<string, string>;
 };
 
 export type ConjugationForm = {

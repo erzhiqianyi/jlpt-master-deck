@@ -108,6 +108,7 @@ export function StudyPlanPanel({
       {section === 'daily' ? <PlanCalendar labels={labels} locale={locale} tasks={plan.tasks} summaries={plan.dailySummaries} evidence={evidence} onTaskStatus={onTaskStatus} /> : null}
       {section === 'overview' ? <>
         <PlanOverviewPanel labels={labels} locale={locale} plan={plan} phases={phases} />
+        <a className="gentle-direct-link" href="#/mock-exams">{locale === 'zh-CN' ? '模拟考试' : locale === 'ja' ? '模擬試験' : 'Mock exams'}<ArrowRight size={20} aria-hidden="true" /></a>
         <PlanReferencePanel labels={labels} locale={locale} plan={plan} phases={phases} mode="phases" />
       </> : null}
       {section === 'adjust' ? <>

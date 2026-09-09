@@ -1,5 +1,9 @@
 import { ArrowRight, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, NotebookTabs, PlayCircle, RotateCcw, Search, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { DialoguePracticePanel } from './DialoguePracticePanel';
+import { OpinionPracticePanel } from './OpinionPracticePanel';
+import { opinionPractices } from '../../data/opinionPractice';
+import { dialoguePractices } from '../../data/dialoguePractice';
 import { useMobileList } from '../../hooks/useMobileList';
 import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
@@ -47,15 +51,20 @@ export function MixedPracticeHub({
   const plannedTaskCount = studyPlan.tasks.length;
   const syncedWorkCount = captures.length + drafts.length;
   const moduleCount = (view: AppView) => modules.find((module) => module.view === view)?.count ?? 0;
-  const activeGroupKey = groupKey ?? null;
+  const activeGroupKey = groupKey?.split('/')[0] ?? null;
+  const opinionTopicId = activeGroupKey === 'opinion' ? groupKey?.split('/')[1] : undefined;
+  const opinionTopic = opinionPractices.find((item) => item.id === opinionTopicId);
   const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
   const moduleEntries: PracticeEntry[] = [
     { key: 'vocabulary', title: labels.navVocabulary, body: '单词、汉字、读音', count: vocabularyCount || moduleCount('vocabulary'), icon: Languages, tone: 'green', action: () => onNavigate('vocabulary') },
     { key: 'grammar', title: labels.navGrammar, body: '学习句子怎么说', count: grammarCount || moduleCount('grammar'), icon: Brain, tone: 'orange', action: () => onNavigate('grammar') },
     { key: 'listening', title: labels.navListening, body: '听一听，选出答案', count: listeningQuestions.length || moduleCount('listening'), icon: Headphones, tone: 'blue', action: () => onNavigate('listening') },
     { key: 'reading', title: labels.navReading, body: '读一读，回答问题', count: readingQuestions.length || moduleCount('reading'), icon: BookOpenText, tone: 'mint', action: () => onNavigate('reading') },
+    { key: 'mixed', title: '综合练习', body: '单词和句子一起练', count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
   ];
   const groups: PracticeGroup[] = [
+    { key: 'opinion', title: '意见表达', body: '用约2分钟说清立场、理由和例子', count: opinionPractices.length, icon: BookOpenText, tone: 'mint', entries: [] },
+    { key: 'dialogue', title: '对话练习', body: '按人物关系练习开场、回应和收尾', count: dialoguePractices.length, icon: Languages, tone: 'blue', entries: [] },
     {
       key: 'topics', title: '专项练习', body: '按教材、汉字或语法主题练一套',
       count: topicEntries.length, icon: BookOpenText, tone: 'mint',
@@ -79,7 +88,7 @@ export function MixedPracticeHub({
       tone: 'purple',
       entries: [
         { key: 'daily', title: '今日练习', body: '开始今天准备好的题目', count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
-        { key: 'drafts', title: '待确认的练习', body: '先检查新题目，确认后再开始', count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
+        { key: 'drafts', title: '练习草稿', body: '查看和确认准备好的题目', count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
         { key: 'mixed', title: '综合练习', body: '单词和句子一起练', count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
         { key: 'mock', title: '模拟考试', body: '按考试节奏练一套', count: plannedTaskCount, icon: FileCheck2, tone: 'gray', action: onStartMock },
       ],
@@ -97,22 +106,24 @@ export function MixedPracticeHub({
       ],
     },
   ];
+  const primaryGroups = ['modules', 'topics', 'materials', 'dialogue', 'opinion']
+    .flatMap((key) => groups.filter((group) => group.key === key));
   const activeGroup = activeGroupKey ? groups.find((group) => group.key === activeGroupKey) ?? null : null;
 
   return (
     <main className="ledger-mixed ledger-practice-center">
       <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
-        {activeGroup ? <button type="button" aria-label="返回练习" onClick={() => setActiveGroupKey(null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
+        {activeGroup ? <button type="button" aria-label={opinionTopicId ? '返回意见表达' : '返回练习'} onClick={() => setActiveGroupKey(opinionTopicId ? 'opinion' : null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
         <div>
           <p>练习</p>
-          <h1>{activeGroup ? activeGroup.title : '你想练什么？'}</h1>
+          <h1>{opinionTopic?.title ?? (activeGroup ? activeGroup.title : '你想练什么？')}</h1>
           {!activeGroup ? <span>选一种方式开始。</span> : null}
         </div>
       </header>
 
       {activeGroup ? (
         <>
-          {activeGroup.key === 'topics' ? <TopicPracticeList entries={topicEntries} /> : (
+          {activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : activeGroup.key === 'topics' ? <TopicPracticeList entries={topicEntries} /> : (
             <section className="ledger-practice-center-grid" aria-label={`${activeGroup.title}入口`}>
               {activeGroup.entries.map((card) => (
                 <PracticeCenterCard key={card.key} icon={card.icon} title={card.title} body={card.body} count={card.count} tone={card.tone} onClick={card.action} />
@@ -121,8 +132,9 @@ export function MixedPracticeHub({
           )}
         </>
       ) : (
+        <>
         <section className="ledger-practice-center-grid" aria-label="练习分类">
-          {groups.map((group) => (
+          {primaryGroups.map((group) => (
             <PracticeCenterCard
               key={group.key}
               icon={group.icon}
@@ -134,6 +146,7 @@ export function MixedPracticeHub({
             />
           ))}
         </section>
+        </>
       )}
 
     </main>

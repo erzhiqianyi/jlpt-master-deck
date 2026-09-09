@@ -155,6 +155,11 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, onOpenT
         <span><strong>{locale === 'zh-CN' ? '输入记录' : locale === 'ja' ? '入力履歴' : 'Input records'}</strong><small>{capturesMeta}</small></span>
         <ChevronRight size={20} />
       </a>
+      <a className="record-home-card" href="#/drafts">
+        <span className="record-home-icon"><ListChecks size={24} aria-hidden="true" /></span>
+        <span><strong>{locale === 'zh-CN' ? '练习草稿' : locale === 'ja' ? '練習の下書き' : 'Practice drafts'}</strong><small>{locale === 'zh-CN' ? '查看准备好的题目，确认后再练习' : locale === 'ja' ? '準備された問題を確認する' : 'Check prepared questions before practice'}</small></span>
+        <ChevronRight size={20} aria-hidden="true" />
+      </a>
     </nav>
   );
 }

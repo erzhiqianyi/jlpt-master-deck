@@ -798,7 +798,7 @@ function AnswerPanel({
 
         <div className="answer-note-block">
           <p className="text-sm font-black text-[#27312c]">{labels.memoryPointLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-[#3f4944]">
+          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#3f4944]">
             <RubyText text={question.memoryPoint} items={items} enabled={showRuby} />
           </p>
         </div>
@@ -1661,7 +1661,7 @@ function VocabCard({
       </div>
       <section className="mt-5 border-t border-[#f0d4dd] pt-5">
         <h4 className="text-xs font-bold text-[#a84269]">{labels.examQuickNote}</h4>
-        <p className="mt-2 text-sm leading-7 text-[#3d3036]">{coreMemory}</p>
+        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{coreMemory}</p>
       </section>
       {item.collocations?.length ? (
         <section className="mt-5 border-t border-[#f0d4dd] pt-5">

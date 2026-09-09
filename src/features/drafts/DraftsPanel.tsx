@@ -2,7 +2,7 @@ import { isTopicDraft } from '../../domain/practicePurpose';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
 import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
-import { ArrowLeft, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, ChevronRight, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DraftSummary, ReviewPackDraft } from '../../types';
 
@@ -34,7 +34,6 @@ export function DraftsPanel({
   activeDraft,
   annotation,
   onAnnotationChange,
-  onCreateDailyDraft,
   onSelectDraft,
   onSaveAnnotation,
   onCopyRevisionContext,
@@ -202,10 +201,8 @@ export function DraftsPanel({
   return (
     <section className="min-w-0 space-y-4">
       {embedded ? (!showingDetail ? (
-        <div className="mobile-action-row flex justify-end">
-          <button type="button" onClick={onCreateDailyDraft} className="h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white">
-            {labels.createDailyDraft}
-          </button>
+        <div className="mobile-action-row flex justify-end gap-3">
+          {!manageList ? <button type="button" className="gentle-back" onClick={() => setManageList(true)}>管理</button> : null}
         </div>
       ) : null) : <div className="min-w-0 rounded-lg border border-[#d7dfd6] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -213,9 +210,6 @@ export function DraftsPanel({
             <h2 className="text-2xl font-semibold">{labels.draftsTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-[#5f625b]">{labels.draftsBody}</p>
           </div>
-          <button type="button" onClick={onCreateDailyDraft} className="h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white">
-            {labels.createDailyDraft}
-          </button>
         </div>
       </div>}
 
@@ -341,26 +335,24 @@ export function DraftsPanel({
             </div>
           )}
         </article>
-      ) : mobileList.mobile && !manageList ? (
+      ) : !manageList ? (
         <section className="gentle-draft-list">
-          <div className="gentle-draft-list-tools"><button type="button" onClick={() => setManageList(true)}>管理草稿</button></div>
-          {orderedDrafts.slice(0, mobileList.visible).map((draft) => (
+          {!embedded ? <div className="gentle-draft-list-tools"><button type="button" onClick={() => setManageList(true)}>管理</button></div> : null}
+          {orderedDrafts.slice(0, mobileList.mobile ? mobileList.visible : orderedDrafts.length).map((draft) => (
             <button key={draft.id} type="button" className="gentle-draft-list-row" onClick={() => openDraft(draft.id)}>
-              <span className="gentle-draft-list-meta"><span>{draftStatusText(draft.status)}</span><time>{formatDate(draft.updated_at)}</time></span>
-              <strong>{draft.title}</strong>
-              <span className="gentle-draft-list-open">{['draft', 'needs_revision'].includes(draft.status) ? '查看并审核' : '查看内容'} →</span>
+              <span className="gentle-draft-copy">
+                <strong>{draft.title}</strong>
+                <span className="gentle-draft-list-meta"><time>{formatDate(draft.updated_at)}</time><span className={['draft', 'needs_revision'].includes(draft.status) ? 'is-pending' : ''}>{draftStatusText(draft.status)}</span></span>
+              </span>
+              <ChevronRight size={20} aria-hidden="true" />
             </button>
           ))}
-          {drafts.length ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < drafts.length ? '上拉查看更多' : '已经到底了'}</div> : <p>{labels.noDrafts}</p>}
+          {drafts.length ? mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < drafts.length ? '上拉查看更多' : ''}</div> : null : <p>{labels.noDrafts}</p>}
         </section>
       ) : (
         <section className="min-w-0 space-y-4">
-          {mobileList.mobile ? <button type="button" className="gentle-back" onClick={() => { setManageList(false); setSelectedDraftIds([]); }}>完成管理</button> : null}
-          <div className="mobile-action-header flex flex-col gap-3 rounded-lg border border-[#d7dfd6] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-[#27312c]">{labels.draftListTitle}</h3>
-              <p className="mt-1 text-sm leading-6 text-[#68716b]">{labels.draftListBody}</p>
-            </div>
+          <button type="button" className="gentle-back" onClick={() => { setManageList(false); setSelectedDraftIds([]); }}>完成</button>
+          <div className="mobile-action-header flex flex-wrap items-center gap-3">
             {selectedCount ? (
               <div className="mobile-action-row flex flex-wrap items-center gap-3 text-sm">
                 <span className="font-semibold text-[#31564c]">{labels.draftSelectedCount}: {selectedCount}</span>

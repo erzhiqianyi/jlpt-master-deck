@@ -3,6 +3,7 @@
 import { isTopicDraft, topicDraftForPractice } from './domain/practicePurpose';
 import { ArrowLeft, BookOpenText } from 'lucide-react';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { useBrowserHash } from './hooks/useBrowserHash';
 import { itemAnalysis, itemMeaning, itemMemory } from './domain/items';
 import { defaultMemoryCardBackFields, defaultMemoryCardFrontFields, normalizeMemoryCardFields } from './domain/memoryCards';
 import { buildQuestions, deckLabelsFor } from './domain/questions';
@@ -135,7 +136,8 @@ export default function App() {
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
   const [settings, setSettings] = useState<DisplaySettings>(defaultSettings);
   const [searchQuery, setSearchQuery] = useState('');
-  const [route, setRoute] = useState<AppRoute>(() => routeFromHash(typeof window === 'undefined' ? '' : window.location.hash));
+  const browserHash = useBrowserHash();
+  const route = routeFromHash(browserHash);
   const [dataTab, setDataTab] = useState<DataTab>(() => dataTabForRoute(route.view));
   const [activeCaptureDetailId, setActiveCaptureDetailId] = useState<string | null>(null);
   const [activeDraftDetailId, setActiveDraftDetailId] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export default function App() {
         applyStudyState(studyState);
         setDrafts(draftList.drafts ?? []);
         setDailyPractices(dailyPracticeList.practices ?? []);
-        const dailyPracticeDetails = await Promise.all((dailyPracticeList.practices ?? []).map(async (practice) => {
+        const dailyPracticeDetails = await Promise.all((dailyPracticeList.practices ?? []).filter((practice) => practice.date === todayDateKey()).map(async (practice) => {
           const response = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${practice.id}`, { token: authToken });
           return response.practice;
         }));
@@ -246,8 +248,14 @@ export default function App() {
       if (document.hidden || refreshing) return;
       refreshing = true;
       try {
-        const result = await apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken });
-        if (!cancelled) setDrafts(result.drafts ?? []);
+        const [result, practiceList] = await Promise.all([
+          apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
+          apiRequest<{ practices: DailyPracticeSummary[] }>('/api/daily-practices', { token: authToken }),
+        ]);
+        if (!cancelled) {
+          setDrafts(result.drafts ?? []);
+          setDailyPractices(practiceList.practices ?? []);
+        }
       } catch {
         // Retain the last successful list during a temporary connection failure.
       } finally {
@@ -284,19 +292,10 @@ export default function App() {
 
   useEffect(() => {
     if (!window.location.hash) {
-      window.history.replaceState(null, '', routeHash('home', 'questions'));
+      window.location.replace(routeHash('home', 'questions'));
     }
-
-    function handleHashChange() {
-      startTransition(() => {
-        setRoute(routeFromHash(window.location.hash));
-      });
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    }
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [browserHash]);
 
   const items = useMemo(
     () => moduleItems(data.items, activeView, selectedDeck, activeView === 'vocabulary' ? selectedWordbookId : 'all'),
@@ -304,7 +303,8 @@ export default function App() {
   );
 
   const locale = normalizeLocale(settings.locale);
-  const needsActiveQuestions = activeView !== 'daily-practice' && (studyPage === 'questions' || studyPage === 'review');
+  const needsActiveQuestions = supportsStudyPage(activeView) && activeView !== 'daily-practice'
+    && (studyPage === 'questions' || studyPage === 'review' || (activeView === 'grammar' && studyPage === 'words'));
   const questionItems = useMemo(
     () => {
       if (!needsActiveQuestions) {
@@ -317,6 +317,27 @@ export default function App() {
   const allQuestions = useMemo(() => buildQuestions(questionItems, locale), [questionItems, locale]);
   const needsHistoryQuestions = ['mistakes', 'memory', 'data', 'mcp'].includes(activeView)
     || (['history', 'insights'].includes(activeView) && Boolean(activeAttemptDetailId));
+  const needsPracticeDetails = needsHistoryQuestions || activeView === 'home'
+    || (activeView === 'mixed' && studyPage === 'tips' && route.itemId === 'topics');
+  useEffect(() => {
+    if (!authToken || authLoading || !needsPracticeDetails) return;
+    let cancelled = false;
+    const missing = dailyPractices.filter((entry) =>
+      (activeView !== 'home' || entry.date === todayDateKey())
+      && !dailyPracticeDetails.some((detail) => detail.id === entry.id && detail.updated_at === entry.updated_at));
+    if (!missing.length) return;
+    Promise.all(missing.map(async (entry) => {
+      const result = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${entry.id}`, { token: authToken });
+      return result.practice;
+    })).then((loaded) => {
+      if (!cancelled) setDailyPracticeDetails((previous) => [
+        ...previous.filter((entry) => !loaded.some((next) => next.id === entry.id)), ...loaded,
+      ]);
+    }).catch((error) => {
+      if (!cancelled) setAuthError(error instanceof Error ? error.message : 'Failed to load practice details');
+    });
+    return () => { cancelled = true; };
+  }, [activeView, authLoading, authToken, dailyPractices, dailyPracticeDetails, needsPracticeDetails]);
   const historyQuestions = useMemo(() => {
     if (!needsHistoryQuestions) {
       return [];
@@ -660,9 +681,6 @@ export default function App() {
     const nextRoute = { view, page: supportsStudyPage(view) || isOfficialSampleModule(view) ? requestedPage : 'questions' as StudyPage };
     const nextHash = routeHash(nextRoute.view, nextRoute.page);
     if (window.location.hash === nextHash) {
-      startTransition(() => {
-        setRoute(nextRoute);
-      });
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       return;
     }
@@ -807,7 +825,7 @@ export default function App() {
     const list = await apiRequest<{ practices: DailyPracticeSummary[] }>('/api/daily-practices', { token: authToken });
     const nextPractices = list.practices ?? [];
     setDailyPractices(nextPractices);
-    const nextDetails = await Promise.all(nextPractices.map(async (practice) => {
+    const nextDetails = await Promise.all(nextPractices.filter((practice) => practice.id === selectId || practice.id === activeDailyPractice?.id || practice.date === todayDateKey()).map(async (practice) => {
       const response = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${practice.id}`, { token: authToken });
       return response.practice;
     }));
@@ -1670,7 +1688,7 @@ export default function App() {
 }
 
 function routeFromHash(hash: string): AppRoute {
-  const [viewValue, pageValue, itemValue] = hash.replace(/^#\/?/, '').split('/');
+  const [viewValue, pageValue, itemValue, detailValue] = hash.replace(/^#\/?/, '').split('/');
   const view = isAppView(viewValue) ? viewValue : 'home';
   if (view === 'plan') {
     return { view, page: 'questions', itemId: ['daily', 'overview', 'adjust', 'textbooks'].includes(pageValue) ? pageValue : undefined };
@@ -1694,10 +1712,13 @@ function routeFromHash(hash: string): AppRoute {
     return { view, page: 'samples', itemId: itemValue ? decodeURIComponent(itemValue) : undefined };
   }
   if (view === 'mixed') {
+    if (pageValue === 'tips' && itemValue === 'opinion' && detailValue) {
+      return { view, page: 'tips', itemId: `opinion/${detailValue}` };
+    }
     const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
     const itemId = page === 'words' && itemValue
       ? decodeURIComponent(itemValue)
-      : page === 'tips' && ['modules', 'exam', 'materials', 'today', 'topics'].includes(itemValue)
+      : page === 'tips' && ['modules', 'exam', 'materials', 'today', 'topics', 'dialogue', 'opinion'].includes(itemValue)
         ? itemValue
         : undefined;
     return { view, page, itemId };
@@ -1715,6 +1736,7 @@ function routeFromHash(hash: string): AppRoute {
 }
 
 function routeHash(view: AppView, page: StudyPage, itemId?: string) {
+  if (view === 'mixed' && page === 'tips' && itemId?.startsWith('opinion/')) return `#/mixed/tips/${itemId}`;
   if (view === 'history') {
     return itemId ? `#/history/${encodeURIComponent(itemId)}` : '#/history';
   }
@@ -2135,6 +2157,8 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
   }
   if (activeView === 'mixed' && route.page === 'tips' && route.itemId) {
     if (route.itemId === 'topics') return '专项练习';
+    if (route.itemId === 'dialogue') return '对话练习';
+    if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return '意见表达';
     if (route.itemId === 'modules') return '分项学习';
     if (route.itemId === 'exam') return '做题练习';
     if (route.itemId === 'materials') return '新闻学习';
@@ -2175,6 +2199,7 @@ function isMobileTabRoute(route: AppRoute) {
 }
 
 function mobileBackRoute(route: AppRoute): AppRoute {
+  if (route.view === 'mixed' && route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
   if (route.view === 'history' && route.itemId) return { view: 'history', page: 'questions' };
   if (route.view === 'mixed' && route.page === 'tips' && route.itemId) return { view: 'mixed', page: 'tips' };
   if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) {

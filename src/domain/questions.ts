@@ -279,7 +279,7 @@ function buildSeededGrammarQuestion(
       correct: choice === answer,
       explanation: choice === answer
         ? seededGrammarCorrectChoice(seed, locale)
-        : grammarDistractorExplanation(
+        : (locale === 'zh-CN' ? seed.distractor_notes?.[choice] : undefined) ?? grammarDistractorExplanation(
           choice,
           item,
           locale,

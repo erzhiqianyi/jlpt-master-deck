@@ -42,7 +42,7 @@ jobs:
     timeout-minutes: 10
     environment:
       name: production
-      url: https://jlpt-master-deck.pages.dev
+      url: https://jlpt.erzhiqian.cc
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,5 +68,5 @@ jobs:
         run: npx --no-install wrangler pages deploy dist --project-name jlpt-master-deck --branch main --commit-hash "$GITHUB_SHA"
       - name: Verify deployed frontend
         run: |
-          curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt-master-deck.pages.dev/ -o /dev/null
-          curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt-master-deck.pages.dev/api/deployment
+          curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt.erzhiqian.cc/ -o /dev/null
+          curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt.erzhiqian.cc/api/deployment

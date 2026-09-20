@@ -4,7 +4,7 @@
 
 ## 当前发布与自动化
 
-- Pages 项目：`jlpt-master-deck`，生产入口 `https://jlpt-master-deck.pages.dev`。
+- Pages 项目：`jlpt-master-deck`，生产入口 `https://jlpt.erzhiqian.cc`（Pages 默认地址 `https://jlpt-master-deck.pages.dev`）。
 - Pages Worker 把 `/api/*` 和 `/.well-known/*` 同源代理到 `https://jlpt-local.erzhiqian.cc`；OAuth 使用访问者实际站点域名。代理不缓存账号数据。
 - `npm run build:cloudflare` 构建应用并从产物剔除 `data/`；Worker 也拒绝匿名静态数据路径。源 JSON 和 SQLite 不会被修改或上传。
 - `.github/workflows/cloudflare.yml`：PR 检查；推送 `main` 或在 main 上手动运行时，经安装、lint、测试、构建后部署。其他分支不会发布生产站。
@@ -12,7 +12,7 @@
 - `@ninomae/mcp-app-server` 固定为仓库内 0.2.0 包，来源提交及重建方法见 `vendor/README.md`。
 - 本机需要 API（4221）、Web/代理（4220）和现有共享 Tunnel 均在线。前端更新由 Actions 自动发布，本机 Node 后端的更新仍需要更新本机代码后单独重启，Actions 不会远程更新此服务。
 - `/api/deployment` 只证明 Pages Worker 在线；`/api/health` 才检查上游服务。不能把前端部署成功等同于数据库已迁移或后端永远在线。
-- Firebase 项目需要将实际生产域加入 Authentication 的 Authorized domains 后才能在该域完成 Google 登录。
+- Firebase 项目已将 `jlpt.erzhiqian.cc` 加入 Authentication 的 Authorized domains；线上使用这个正式域登录。
 
 手动发布：`npm run deploy:cloudflare`。若当前工作区存在旧框架生成的 `.wrangler/deploy/config.json`，请在干净检出中构建和发布，避免它重定向到不存在的旧配置。
 

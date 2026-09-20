@@ -9,7 +9,7 @@
 - `npm run build:cloudflare` 构建应用并从产物剔除 `data/`；Worker 也拒绝匿名静态数据路径。源 JSON 和 SQLite 不会被修改或上传。
 - `.github/workflows/cloudflare.yml`：PR 检查；推送 `main` 或在 main 上手动运行时，经安装、lint、测试、构建后部署。其他分支不会发布生产站。
 - GitHub 仓库变量 `CLOUDFLARE_ACCOUNT_ID` 为目标账号 ID；仓库 Secret `CLOUDFLARE_API_TOKEN` 需使用该账户的 Pages:Edit Token。不要使用短期 Wrangler OAuth Token 作为长期 CI 凭据。
-- `@ninomae/mcp-app-server` 固定为仓库内 0.2.0 包，来源提交及重建方法见 `vendor/README.md`。
+- `@ninomae/mcp-app-server` 使用 npm 正式发布的精确版本 `0.2.0`，由 package-lock.json 锁定；无需仓库内压缩包或相邻项目目录。
 - 本机需要 API（4221）、Web/代理（4220）和现有共享 Tunnel 均在线。前端更新由 Actions 自动发布，本机 Node 后端的更新仍需要更新本机代码后单独重启，Actions 不会远程更新此服务。
 - `/api/deployment` 只证明 Pages Worker 在线；`/api/health` 才检查上游服务。不能把前端部署成功等同于数据库已迁移或后端永远在线。
 - Firebase 项目已将 `jlpt.erzhiqian.cc` 加入 Authentication 的 Authorized domains；线上使用这个正式域登录。
@@ -63,7 +63,7 @@ python3 scripts/prepare-cloudflare-data.py
 ## 发布前仍须完成
 
 1. 将同步 SQLite 存储适配到异步 D1，处理事务、迁移、账号密码验证、Firebase 验证和 MCP OAuth 存储；确认 Workers 运行时兼容性。
-2. 已将 MCP 依赖固定到仓库内构建包；后续升级时维持固定版本和干净检出验证。
+2. 已将 MCP 依赖固定到 npm 正式版 0.2.0；后续升级时维持固定版本和干净检出验证。
 3. 实现 R2 读写与授权，完成新闻和本地素材范围核对。
 4. 添加真实 Worker 入口与 Wrangler D1/R2 绑定；配置预发布域名、Firebase 授权域、OAuth public origin 和回调。不能仅添加一个 wrangler 配置就视为后端已适配。
 5. 审核静态公开数据、公开注册策略、API 错误/health 中本机路径暴露及代理信任边界；普通构建包含 public/data；Cloudflare 专用构建已剔除 data/。

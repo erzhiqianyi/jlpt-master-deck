@@ -1,3 +1,5 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ChevronRight, ExternalLink, Headphones, LoaderCircle, Newspaper, PlayCircle, ShieldCheck, Volume2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -109,27 +111,7 @@ function NewsDailyIndex({ locale, token, cycles, onOpen }: { locale: Locale; tok
   if (failed) return <div><p>{t.unavailable}</p><button className="gentle-direct-link" onClick={() => setRetry((value) => value + 1)}>{text.retry}</button></div>;
   if (!days) return <p role="status">{t.loading}</p>;
   const pageCount = Math.max(1, Math.ceil(days.length / 6));
-  return <section className="gentle-news-index">
-    <header><h1>{text.title}</h1><p>{text.intro}</p></header>
-    <p className="gentle-news-note">{text.notice}</p>
-    {!days.length ? <p>{t.empty}</p> : <nav className="plan-entry-list" aria-label={text.title}>
-      {days.slice(mobile ? 0 : page * 6, mobile ? visibleCount : page * 6 + 6).map(({ cycleId, day }) => <button key={`${cycleId}:${day.date}`} type="button" className="plan-entry-link" onClick={() => onOpen(cycleId, day.date)}>
-        <span className="plan-entry-icon"><Newspaper size={28} aria-hidden="true" /></span>
-        <span><strong>{formatDate(day.date, locale)} · {weekday(day.date, t)}</strong><small>{day.questionCount} {t.total} · {day.sourceCount} {t.sources}</small></span>
-        <ChevronRight size={22} aria-hidden="true" />
-      </button>)}
-    </nav>}
-    {mobile && days.length > 0 ? <div ref={loadMoreRef} className="gentle-news-load-more" role="status">
-      {visibleCount < days.length
-        ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? 'スクロールして続きを表示' : 'Scroll for more')
-        : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'You’re all caught up')}
-    </div> : null}
-    {!mobile && pageCount > 1 ? <nav className="gentle-news-pagination" aria-label={text.title}>
-      <button disabled={page === 0} onClick={() => setPage((value) => value - 1)}>{text.previous}</button>
-      <span>{page + 1} / {pageCount}</span>
-      <button disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}>{text.next}</button>
-    </nav> : null}
-  </section>;
+  return <LearningCatalog title={text.title} items={days} locale={locale} notice={text.notice} searchText={({ day }) => `${day.date} ${weekday(day.date, t)}`} renderRow={({ cycleId, day }) => <LearningListRow key={`${cycleId}:${day.date}`} title={`${formatDate(day.date, locale)} · ${weekday(day.date, t)}`} description={`${day.questionCount} ${t.total} · ${day.sourceCount} ${t.sources}`} locale={locale} onOpen={() => onOpen(cycleId, day.date)}/>}/>;
 }
 
 function NewsWeekCatalog({ locale, cycles, onOpen, onPractice }: { locale: Locale; cycles: NewsCycleSummary[]; onOpen: (cycleId: string) => void; onPractice: (questionId: string) => void }) {
@@ -149,19 +131,8 @@ function NewsWeekCatalog({ locale, cycles, onOpen, onPractice }: { locale: Local
       <SummaryMetric label={t.audio} value={`${totalAudio} ${t.playable}`} />
       <SummaryMetric label={t.formal} value={`${totalFormal} ${t.total}`} />
     </div>
-    <div className="mobile-list md:hidden">{cycles.map((cycle, index) => <MobileWeekRow key={cycle.id} cycle={cycle} latest={index === 0} locale={locale} onOpen={onOpen} onPractice={onPractice} />)}</div>
-    <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[920px] border-collapse text-left text-sm"><thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]"><tr><th className="px-5 py-3">{t.week}</th><th className="px-4 py-3">{t.range}</th><th className="px-4 py-3">{t.coverage}</th><th className="px-4 py-3">{t.questions}</th><th className="px-4 py-3">{t.audio}</th><th className="px-4 py-3">{t.status}</th><th className="px-5 py-3 text-right"><span className="sr-only">{t.openWeek}</span></th></tr></thead><tbody className="divide-y divide-[#ece4d8]">{cycles.map((cycle, index) => <WeekRow key={cycle.id} cycle={cycle} latest={index === 0} locale={locale} onOpen={onOpen} onPractice={onPractice} />)}</tbody></table></div>
+    <LearningList>{cycles.map((cycle) => <LearningListRow key={cycle.id} inlineActions title={cycleLabel(cycle.id, locale)} description={formatRange(cycle.range, locale)} status={`${cycle.totalQuestions} ${t.total}`} locale={locale} onOpen={() => onOpen(cycle.id)} secondary={<button type="button" aria-label={t.practiceWeek} title={t.practiceWeek} onClick={() => onPractice(cycle.id)}><PlayCircle size={20} aria-hidden="true"/></button>}/>)}</LearningList>
   </section>;
-}
-
-function WeekRow({ cycle, latest, locale, onOpen, onPractice }: { cycle: NewsCycleSummary; latest: boolean; locale: Locale; onOpen: (cycleId: string) => void; onPractice: (cycleId: string) => void }) {
-  const t = copy[locale];
-  return <tr className="bg-white hover:bg-[#fbf8f2]"><td className="px-5 py-4"><button type="button" onClick={() => onOpen(cycle.id)} className="text-left"><span className="flex items-center gap-2"><strong className="text-base text-[#173d35]">{cycleLabel(cycle.id, locale)}</strong>{latest ? <span className="rounded-full bg-[#fff0f5] px-2 py-0.5 text-[11px] font-bold text-[#a84269]">{t.latest}</span> : null}</span><small className="mt-1 block font-mono text-xs text-[#7a6a70]">{cycle.id}</small></button></td><td className="px-4 py-4 font-semibold text-[#4d5751]">{formatRange(cycle.range, locale)}</td><td className="px-4 py-4"><CycleModulePills cycle={cycle} t={t} /></td><td className="px-4 py-4 font-semibold text-[#4d5751]">{cycle.totalQuestions}</td><td className="px-4 py-4"><span className="inline-flex items-center gap-1 rounded-full bg-[#eaf3ec] px-2.5 py-1 text-xs font-bold text-[#315f45]"><Headphones size={14} />{cycle.audioCount}</span></td><td className="px-4 py-4"><CycleStatus cycle={cycle} t={t} /></td><td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => onPractice(cycle.id)} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#31564c] px-3 text-xs font-bold text-white hover:bg-[#24473f]"><PlayCircle size={16} />{t.practiceWeek}</button><button type="button" aria-label={`${t.openWeek}: ${cycle.id}`} onClick={() => onOpen(cycle.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#b9c9c1] bg-white text-[#24473f] hover:bg-[#f2f6f1]"><ChevronRight size={18} /></button></div></td></tr>;
-}
-
-function MobileWeekRow({ cycle, latest, locale, onOpen, onPractice }: { cycle: NewsCycleSummary; latest: boolean; locale: Locale; onOpen: (cycleId: string) => void; onPractice: (cycleId: string) => void }) {
-  const t = copy[locale];
-  return <div className="border-b border-[#ece4d8] bg-white p-3"><button type="button" onClick={() => onOpen(cycle.id)} className="mobile-list-item mobile-list-link cute-focus w-full"><span className="mobile-list-main"><span className="mobile-list-title">{cycleLabel(cycle.id, locale)}{latest ? ` · ${t.latest}` : ''}</span><span className="mobile-list-subtitle">{formatRange(cycle.range, locale)}</span></span><span className="mobile-list-tags"><span className="mobile-list-pill">{cycle.totalQuestions} {t.total}</span><span className="mobile-list-pill is-soft"><Headphones size={14} />{cycle.audioCount}</span></span><ChevronRight className="mobile-list-cue" size={18} /></button><button type="button" onClick={() => onPractice(cycle.id)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#31564c] px-3 py-2.5 text-sm font-bold text-white"><PlayCircle size={17} />{t.practiceWeek} · {cycle.totalQuestions}</button></div>;
 }
 
 function NewsWeekPractice({ locale, token, data, onBack }: { locale: Locale; token: string; data: NewsCycleData; onBack: () => void }) {
@@ -210,26 +181,8 @@ function NewsDayCatalog({ locale, cycleId, data, onOpen, onPractice, onBack }: {
       <SummaryMetric label={t.audio} value={`${data.summary?.direct_audio_question_count ?? data.days.reduce((sum, day) => sum + day.audioCount, 0)} ${t.audioReady}`} />
       <SummaryMetric label={t.needsReview} value={`${data.summary?.needs_audio_review_count ?? 0} ${t.reviewPending}`} />
     </div>
-    <div className="mobile-list md:hidden">
-      {data.days.map((day) => <MobileDayRow key={day.date} day={day} locale={locale} onOpen={onOpen} />)}
-    </div>
-    <div className="hidden overflow-x-auto md:block">
-      <table className="w-full min-w-[780px] border-collapse text-left text-sm">
-        <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]"><tr><th className="px-5 py-3">{t.date}</th><th className="px-4 py-3">{t.coverage}</th><th className="px-4 py-3">{t.sources}</th><th className="px-4 py-3">{t.questions}</th><th className="px-4 py-3">{t.audio}</th><th className="px-5 py-3 text-right"><span className="sr-only">{t.open}</span></th></tr></thead>
-        <tbody className="divide-y divide-[#ece4d8]">{data.days.map((day) => <DayRow key={day.date} day={day} locale={locale} onOpen={onOpen} />)}</tbody>
-      </table>
-    </div>
+    <LearningList>{data.days.map((day) => <LearningListRow key={day.date} title={`${weekday(day.date, t)} · ${formatDate(day.date, locale)}`} description={`${day.questionCount} ${t.total} · ${day.sourceCount} ${t.sources}`} locale={locale} onOpen={() => onOpen(day.date)}/>)}</LearningList>
   </section>;
-}
-
-function DayRow({ day, locale, onOpen }: { day: NewsCycleDay; locale: Locale; onOpen: (date: string) => void }) {
-  const t = copy[locale];
-  return <tr className="bg-white hover:bg-[#fbf8f2]"><td className="px-5 py-4"><button type="button" onClick={() => onOpen(day.date)} className="text-left"><span className="block text-xs font-bold text-[#a84269]">{weekday(day.date, t)}</span><strong className="mt-1 block text-base text-[#173d35]">{formatDate(day.date, locale)}</strong></button></td><td className="px-4 py-4"><ModulePills day={day} t={t} /></td><td className="px-4 py-4 font-semibold text-[#4d5751]">{day.sourceCount}</td><td className="px-4 py-4 font-semibold text-[#4d5751]">{day.questionCount}</td><td className="px-4 py-4"><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${day.audioCount ? 'bg-[#eaf3ec] text-[#315f45]' : 'bg-[#f5eee5] text-[#7b6653]'}`}><Headphones size={14} />{day.audioCount}</span></td><td className="px-5 py-4 text-right"><button type="button" aria-label={`${t.practiceDay}: ${formatDate(day.date, locale)}`} onClick={() => onOpen(day.date)} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#b9c9c1] bg-white px-3 text-xs font-bold text-[#24473f] hover:bg-[#f2f6f1]"><PlayCircle size={16} />{t.practiceDay}</button></td></tr>;
-}
-
-function MobileDayRow({ day, locale, onOpen }: { day: NewsCycleDay; locale: Locale; onOpen: (date: string) => void }) {
-  const t = copy[locale];
-  return <button type="button" onClick={() => onOpen(day.date)} className="mobile-list-item mobile-list-link cute-focus"><span className="mobile-list-main"><span className="mobile-list-title">{weekday(day.date, t)} · {formatDate(day.date, locale)}</span><span className="mobile-list-subtitle">{day.sourceCount} {t.sources}</span></span><span className="mobile-list-tags"><span className="mobile-list-pill">{day.questionCount} {t.total}</span><span className="mobile-list-pill is-soft"><Headphones size={14} />{day.audioCount}</span></span><span className="mobile-list-cue inline-flex items-center gap-1 text-xs font-bold"><PlayCircle size={16} />{t.practiceDay}</span></button>;
 }
 
 const reviewLabels = {

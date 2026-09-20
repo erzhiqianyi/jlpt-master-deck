@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>JLPT Master Deck</title>
+  <rect x="5" y="5" width="54" height="54" rx="17" fill="#E7F4EC"/>
+  <rect x="16" y="12" width="34" height="42" rx="7" transform="rotate(10 16 12)" fill="#A4CFB7"/>
+  <rect x="16" y="10" width="34" height="42" rx="7" fill="#27654D"/>
+  <text x="33" y="38" text-anchor="middle" fill="#FFFFFF" font-family="Hiragino Sans,Noto Sans JP,sans-serif" font-size="25" font-weight="600">あ</text>
+  <path d="M26 45h14" stroke="#A4CFB7" stroke-width="2" stroke-linecap="round"/>
+</svg>

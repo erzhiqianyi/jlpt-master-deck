@@ -1,8 +1,22 @@
 export type DialogueRegister = 'plain' | 'polite' | 'mixed';
 export type DialogueRole = { name: string; identity: string; register: DialogueRegister; reason: string };
-export type DialogueGuidance = { roles: DialogueRole[]; keywords: [string, string][]; illustration: string };
+export type DialogueGuidance = { roles: DialogueRole[]; keywords: [string, string][]; illustration?: string };
 
 export const dialogueGuidance: Record<string, DialogueGuidance> = {
+  'hotel-facilities': {
+    roles: [
+      { name: '林', identity: '向帮忙订酒店的朋友询问设施', register: 'plain', reason: '熟悉朋友之间用普通体。「どんなところ？」「あとさ」自然展开话题；听完介绍先回应，再追问。用「予約してくれてありがとう」感谢对方为自己做的事。' },
+      { name: '美咲', identity: '为朋友预订酒店，介绍查到的信息', register: 'plain', reason: '用「〜もあるし」列举设施，用「そうでしょ？」接住朋友的反应。「ありそう」「あるみたい」表示从资料推测或了解到的信息，不把尚未体验的内容说得过于肯定。' },
+    ],
+    keywords: [['予約してくれる', '对方为自己预订'], ['屋内プール', '室内游泳池'], ['朝食付き', '含早餐'], ['ビュッフェ形式', '自助餐形式'], ['〜そう／〜みたい', '看起来会……／似乎……']],
+  },
+  'hotel-reservation': {
+    roles: [
+      { name: '田中', identity: '打电话预订三晚单人房的顾客', register: 'polite', reason: '对初次联系的工作人员用です・ます体即可。「予約したいんですが」柔和地提出需求，再用「お願いします」确认方案。顾客无需照搬工作人员的接客敬语。' },
+      { name: 'スタッフ', identity: '确认空房并受理预订的酒店工作人员', register: 'polite', reason: '在礼貌体基础上使用接客敬语：「ございます」礼貌说明情况；「確認いたします」「伺う」「承りました」谦逊表达自己的行为；「お越し」尊重顾客的到来。报价格后用「よろしいでしょうか」征求同意。' },
+    ],
+    keywords: [['三泊（さんぱく）', '住三晚'], ['シングルルーム', '单人房'], ['空室（くうしつ）', '空房'], ['一泊あたり', '每晚'], ['承る（うけたまわる）', '接受、受理（谦让语）']],
+  },
   'ski-advice': {
     roles: [
       { name: '林', identity: '向熟悉的同学请教旅行安排', register: 'plain', reason: '双方是熟悉、地位平等的同学。用普通体自然亲近，例如「相談したいんだけど」「どうしたの？」；请求时仍要留有余地。' },
@@ -71,6 +85,8 @@ export const dialogueGuidance: Record<string, DialogueGuidance> = {
 };
 
 export const dialogueSummaries: Record<string, string> = {
+  'hotel-facilities': '向帮忙预订的朋友了解酒店设施和早餐，自然回应并表达感谢。',
+  'hotel-reservation': '致电酒店预订单人房，确认入住日期、晚数、价格和联系方式。',
   'ski-advice': '熟悉的同学之间，请教滑雪旅行的交通安排。',
   platform: '在站台向陌生乘客问路，确认哪班列车先到。',
   furniture: '回国前向朋友赠送家具，确认需要并约定交接。',

@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jlpt-master-deck",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-20",
+  "vars": {
+    "API_ORIGIN": "https://jlpt-local.erzhiqian.cc"
+  }
+}

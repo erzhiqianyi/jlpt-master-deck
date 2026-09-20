@@ -1,0 +1,146 @@
+/* Final shared layout contract: entry/list 1120px; focused content 920px.
+   Scoped to the app shell so content-specific panels keep their own internals. */
+.app-content { --page-width: 1120px; --page-gap: 24px; }
+.app-content[data-page-kind='detail'],
+.app-content[data-page-kind='practice'],
+.app-content[data-page-kind='function'] { --page-width: 920px; }
+.app-content > section.mx-auto,
+.app-content > .gentle-home {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: calc(var(--page-width) + 64px) !important;
+  margin-inline: auto !important;
+  padding: 28px 32px 48px !important;
+}
+.app-content .today-dashboard,
+.app-content .gentle-plan,
+.app-content .gentle-settings,
+.app-content .ledger-practice-center,
+.app-content .data-management-panel,
+.app-content .discovery-panel {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  padding-top: 0 !important;
+}
+.app-content .gentle-settings {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.app-content .settings-root-title { display: none; }
+.app-content .settings-desktop-content > .settings-profile-card { margin-top: 0; }
+.app-content .history-panel { padding-top: 0 !important; }
+.app-content .navigation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.app-content .navigation-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dce5dd;
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+}
+.app-content .navigation-card-open {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  flex: 1;
+  min-height: 112px;
+  padding: 20px;
+  color: #294b3e;
+  text-align: left;
+  text-decoration: none;
+}
+.navigation-card-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #edf5ef;
+  color: #426954;
+}
+.navigation-card-copy { min-width: 0; }
+.navigation-card-copy strong { display: block; font-size: 17px; font-weight: 600; line-height: 1.5; }
+.navigation-card-copy small { display: block; margin-top: 4px; color: #60746a; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.navigation-card-open > svg { color: #60746a; }
+.navigation-card-open:hover { background: #f5f9f5; }
+.navigation-card:focus-within { border-color: #39805b; }
+.navigation-card-open:focus-visible,
+.navigation-card-start:focus-visible { outline: 3px solid #39805b; outline-offset: -3px; }
+.app-content .navigation-card.has-start { flex-direction: row; align-items: center; }
+.app-content .navigation-card.has-start .navigation-card-open { grid-template-columns: 44px minmax(0, 1fr); min-width: 0; width: auto; padding-right: 12px; }
+.navigation-card-start { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 6px; min-height: 44px; margin-right: 16px; padding: 0 12px; border: 1px solid #dce5dd; border-radius: 10px; background: #f5f9f5; color: #306449; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.navigation-card-start:hover { background: #e6f1e8; }
+.navigation-section { margin-top: 28px; }
+.navigation-section > h2 { margin: 0 0 14px; color: #294b3e; font-size: 17px; font-weight: 600; }
+.settings-navigation { margin-top: 24px; }
+.app-content .today-feature { border-radius: 16px; }
+.app-content .today-secondary { background: #fff; border-color: #dce5dd; }
+.app-content .today-card-icon { background: #edf5ef; color: #426954; }
+.app-content .module-action-primary { background: #306449; }
+.app-content .module-action-primary:hover { background: #244c38; }
+.app-content .cute-practice-card.practice-swipe-surface > .practice-question-section > .practice-question-toolbar button {
+  border-color: #dce5dd !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #426954 !important;
+}
+.app-content .cute-practice-card .practice-question-toolbar > div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  width: 100%;
+}
+.app-content .cute-practice-card.practice-swipe-surface > .practice-question-section > .practice-question-toolbar .practice-progress-button {
+  width: auto !important;
+  min-width: 100px !important;
+  white-space: nowrap;
+  background: #edf5ef !important;
+  color: #306449 !important;
+}
+@media (max-width: 767px) {
+  .app-content > section.mx-auto,
+  .app-content > .gentle-home { padding: 20px 16px 32px !important; }
+  .app-content .navigation-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .app-content .navigation-card-open { min-height: 100px; padding: 16px; gap: 12px; }
+  .navigation-card-copy strong { font-size: 16px; }
+  .navigation-card-copy small { font-size: 13px; }
+  .navigation-card-start { margin-right: 12px; padding: 0 10px; font-size: 13px; }
+  .app-content .practice-core-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-content .practice-core-grid .navigation-card.has-start { flex-direction: column; align-items: stretch; }
+  .app-content .practice-core-grid .navigation-card-open {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    width: 100%;
+    min-height: 0;
+    padding: 14px 12px 10px;
+    gap: 8px;
+  }
+  .practice-core-grid .navigation-card-start { margin: 0 12px 12px; }
+  .app-content > section.mx-auto:has(.practice-question-toolbar) {
+    padding-top: 0 !important;
+  }
+  .app-content .cute-practice-card.practice-swipe-surface > .practice-question-section > .practice-question-toolbar {
+    padding-block: 20px !important;
+  }
+  .app-content .cute-practice-card .practice-question-toolbar > div {
+    justify-content: center !important;
+  }
+  .app-content .cute-practice-card .practice-question-toolbar > div > button {
+    flex: 0 0 auto;
+  }
+  .app-content .cute-practice-card .practice-wordbook-filter {
+    flex: 0 0 100%;
+    max-width: none;
+    width: 100%;
+  }
+}

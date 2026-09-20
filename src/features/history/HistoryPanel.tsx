@@ -1,5 +1,8 @@
+import './RecordHome.css';
+import { NavigationCard } from '../../components/NavigationCard';
+import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, History, ListChecks, NotebookPen, Percent } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -55,6 +58,12 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   const pageCount = Math.max(1, Math.ceil(count / 6));
   const currentPage = Math.min(page, pageCount - 1);
   const start = currentPage * 6;
+  // Same footer for both record lists: infinite scroll on phones, shared pagination on desktop.
+  const listFooter = count > 0 && mobileList.mobile
+    ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible < count ? null : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div>
+    : count > 0 && pageCount > 1
+      ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${start + 1}-${Math.min(start + 6, count)} / ${count}`} previous={locale === 'zh-CN' ? '上一页' : locale === 'ja' ? '前へ' : 'Previous'} next={locale === 'zh-CN' ? '下一页' : locale === 'ja' ? '次へ' : 'Next'} />
+      : null;
   const detailOpen = activeView === 'captures' ? Boolean(selectedCapture) : Boolean(selectedAttempt);
   const openRecordSection = (section: 'today' | 'history') => {
     if (mode === 'practice' && typeof window !== 'undefined') {
@@ -65,7 +74,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   };
 
   return (
-    <section className={`${embedded ? 'py-2' : 'mx-auto w-full max-w-4xl py-2 md:py-5'} history-panel`}>
+    <section className={`${embedded ? 'py-0' : 'mx-auto w-full max-w-4xl py-2 md:py-5'} history-panel`}>
       {!embedded ? <><p className="text-sm font-semibold text-[#7d6032]">{labels.historyEyebrow}</p><h1 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.historyPageTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#68716b]">{labels.historyPageBody}</p></> : null}
 
       {mode === 'both' ? <div className="mt-5 flex border-b border-[#d7dfd6]" role="tablist">
@@ -73,7 +82,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <HistoryTab active={view === 'practice'} label={`${labels.historyPracticeTab} ${sortedAttempts.length}`} onClick={() => setView('practice')} />
       </div> : null}
 
-      {detailOpen ? <button type="button" className="gentle-back" onClick={() => { setSelectedCaptureId(null); setSelectedAttemptId(null); }}><ArrowLeft size={18} />{activeView === 'captures' ? labels.historyBackToCaptures : labels.historyBackToAttempts}</button> : null}
+      {detailOpen && !embedded ? <button type="button" className="gentle-back" onClick={() => { setSelectedCaptureId(null); setSelectedAttemptId(null); }}><ArrowLeft size={18} />{activeView === 'captures' ? labels.historyBackToCaptures : labels.historyBackToAttempts}</button> : null}
       {activeView === 'captures' ? (
         selectedCapture ? (
           <CaptureDetail
@@ -82,9 +91,13 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
             capture={selectedCapture}
             onToggleStatus={() => onCaptureStatus(selectedCapture.id, selectedCapture.status === 'processed' ? 'inbox' : 'processed')}
           />
-        ) : captures.length ? (
-          <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} />
-        ) : <Empty text={labels.historyNoCaptures} />
+        ) : (
+          <LearningListFrame className="learning-catalog mt-4" label={labels.historyCaptureTab}>
+            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`} />
+            {captures.length ? <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} /> : <p className="list-empty" role="status">{labels.historyNoCaptures}</p>}
+            {listFooter}
+          </LearningListFrame>
+        )
       ) : selectedAttempt ? (
         <PracticeAttemptDetail labels={labels} locale={locale} attempt={selectedAttempt} questions={questions} onBack={() => setSelectedAttemptId(null)} showBack={!embedded} questionDetailOpen={attemptQuestionDetailOpen} onQuestionDetailChange={onAttemptQuestionDetailChange} />
       ) : (
@@ -97,25 +110,19 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
           ) : null}
           {showAttemptHistory ? (
             <>
-              <details className="study-log-filter-panel mt-4">
-                <summary>{labels.filters}</summary>
-                <div className="study-log-filters"><label><input type="checkbox" checked={attemptFilter.result === 'wrong'} onChange={(event) => { setAttemptFilter({ ...attemptFilter, result: event.target.checked ? 'wrong' : 'all' }); setPage(0); }} />{locale === 'zh-CN' ? '只看有错题的练习' : locale === 'ja' ? '誤答のある練習のみ' : 'Only practices with mistakes'}</label></div>
-                <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} filteredCount={filteredAttempts.length} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
-              </details>
-              <p className="study-log-summary">{locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} · {sortedAttempts.length}{locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · {sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}{locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}</p>
-              {filteredAttempts.length ? (
-                <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
-              ) : <Empty text={labels.historyNoFilteredPractice} />}
+              <LearningListFrame className="learning-catalog mt-4" label={labels.historyPracticeTab}>
+                <LearningListHeader title={locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} count={`${filteredAttempts.length} / ${sortedAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`}>
+                  <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
+                </LearningListHeader>
+                {filteredAttempts.length ? (
+                  <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
+                ) : <p className="list-empty" role="status">{labels.historyNoFilteredPractice}</p>}
+                {listFooter}
+              </LearningListFrame>
             </>
           ) : null}
         </>
       )}
-      {!detailOpen && count > 0 && mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < count ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
-      {!detailOpen && count > 0 && !mobileList.mobile ? <nav className="gentle-pagination" aria-label={labels.navStatsHome}>
-        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} aria-label={locale === 'zh-CN' ? '上一页' : locale === 'ja' ? '前のページ' : 'Previous page'}><ChevronLeft size={20} /></button>
-        <span aria-live="polite">{currentPage + 1} / {pageCount}</span>
-        <button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)} aria-label={locale === 'zh-CN' ? '下一页' : locale === 'ja' ? '次のページ' : 'Next page'}><ChevronRight size={20} /></button>
-      </nav> : null}
     </section>
   );
 }
@@ -132,35 +139,39 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, onOpenT
   const todayTotal = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
   const todayCorrect = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter((answer) => answer.correct).length), 0);
   const todayAccuracy = todayTotal ? Math.round(todayCorrect / todayTotal * 100) : 0;
-  const todayMeta = todayAttempts.length
-    ? `${todayAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${todayTotal}${locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'} · ${todayAccuracy}%`
-    : (locale === 'zh-CN' ? '今天还没有完成练习' : locale === 'ja' ? '今日はまだ練習がありません' : 'No completed practice today');
-  const historyMeta = `${attempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`;
-  const capturesMeta = `${captures.length}${locale === 'zh-CN' ? ' 条输入记录' : locale === 'ja' ? ' 件の入力履歴' : ' captures'}`;
+  const copy = locale === 'zh-CN'
+    ? { today: '今天的积累', detail: '查看统计', practices: '完成练习', questions: '作答题数', accuracy: '正确率', review: '回顾与巩固', history: '练习历史', historySub: '回看每次练习与解析', mistakes: '错题集', mistakesSub: '找到需要再练的知识点', saved: '学习资料', captures: '输入记录', drafts: '练习草稿', draftsSub: '查看准备好的题目', empty: '今天还没有完成练习，按自己的节奏开始。', total: '次练习', answers: '次作答', entries: '条记录' }
+    : locale === 'ja'
+      ? { today: '今日の積み重ね', detail: '統計を見る', practices: '完了した練習', questions: '解答数', accuracy: '正答率', review: '振り返りと復習', history: '練習履歴', historySub: '練習結果と解説を振り返る', mistakes: '間違いノート', mistakesSub: 'もう一度練習したい項目を確認', saved: '学習資料', captures: '入力履歴', drafts: '練習の下書き', draftsSub: '準備された問題を確認', empty: '今日はまだ練習がありません。自分のペースで始めましょう。', total: '回の練習', answers: '解答', entries: '件' }
+      : { today: 'Today’s progress', detail: 'View statistics', practices: 'Practices', questions: 'Answers', accuracy: 'Accuracy', review: 'Review and improve', history: 'Practice history', historySub: 'Revisit results and explanations', mistakes: 'Mistake notebook', mistakesSub: 'Find learning points to practice again', saved: 'Study materials', captures: 'Input records', drafts: 'Practice drafts', draftsSub: 'Check prepared questions', empty: 'No completed practice today. Start at your own pace.', total: 'practices', answers: 'answers', entries: 'records' };
 
   return (
-    <nav className="record-home-grid" aria-label={labels.navStatsHome}>
-      <button type="button" className="record-home-card is-primary" onClick={onOpenToday}>
-        <span className="record-home-icon"><ListChecks size={25} /></span>
-        <span><strong>{locale === 'zh-CN' ? '今天统计' : locale === 'ja' ? '今日の統計' : 'Today'}</strong><small>{todayMeta}</small></span>
-        <ChevronRight size={20} />
-      </button>
-      <button type="button" className="record-home-card" onClick={onOpenHistory}>
-        <span className="record-home-icon"><History size={25} /></span>
-        <span><strong>{locale === 'zh-CN' ? '历史练习记录' : locale === 'ja' ? '練習履歴' : 'Practice history'}</strong><small>{historyMeta}</small></span>
-        <ChevronRight size={20} />
-      </button>
-      <a className="record-home-card" href="#/captures">
-        <span className="record-home-icon"><NotebookPen size={25} /></span>
-        <span><strong>{locale === 'zh-CN' ? '输入记录' : locale === 'ja' ? '入力履歴' : 'Input records'}</strong><small>{capturesMeta}</small></span>
-        <ChevronRight size={20} />
-      </a>
-      <a className="record-home-card" href="#/drafts">
-        <span className="record-home-icon"><ListChecks size={24} aria-hidden="true" /></span>
-        <span><strong>{locale === 'zh-CN' ? '练习草稿' : locale === 'ja' ? '練習の下書き' : 'Practice drafts'}</strong><small>{locale === 'zh-CN' ? '查看准备好的题目，确认后再练习' : locale === 'ja' ? '準備された問題を確認する' : 'Check prepared questions before practice'}</small></span>
-        <ChevronRight size={20} aria-hidden="true" />
-      </a>
-    </nav>
+    <div className="record-home" aria-label={labels.navStatsHome}>
+      <section className="record-home-today" aria-labelledby="record-today-title">
+        <header><div><span>{formatTodayLabel(locale)}</span><h2 id="record-today-title">{copy.today}</h2></div><button type="button" onClick={onOpenToday}>{copy.detail}<ArrowRight size={16} aria-hidden="true" /></button></header>
+        <dl className="record-home-stats">
+          <div><dt>{copy.practices}</dt><dd>{todayAttempts.length}</dd></div>
+          <div><dt>{copy.questions}</dt><dd>{todayTotal}</dd></div>
+          <div><dt>{copy.accuracy}</dt><dd>{todayTotal ? `${todayAccuracy}%` : '—'}</dd></div>
+        </dl>
+        {!todayAttempts.length && <p className="record-home-empty">{copy.empty}</p>}
+      </section>
+      <section className="record-home-review" aria-labelledby="record-review-title">
+        <h2 id="record-review-title">{copy.review}</h2>
+        <div className="navigation-grid">
+          <NavigationCard icon={<History size={23} />} title={copy.history} description={copy.historySub} onOpen={onOpenHistory} />
+          <NavigationCard icon={<CircleAlert size={23} />} title={copy.mistakes} description={copy.mistakesSub} href="#/mistakes" />
+        </div>
+        <p className="record-home-total">{attempts.length} {copy.total}<span aria-hidden="true"> · </span>{attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)} {copy.answers}</p>
+      </section>
+      <section className="record-home-materials" aria-labelledby="record-materials-title">
+        <h2 id="record-materials-title">{copy.saved}</h2>
+        <div className="record-home-links">
+          <a href="#/captures"><NotebookPen size={21} aria-hidden="true" /><span><strong>{copy.captures}</strong><small>{captures.length} {copy.entries}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
+          <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{copy.draftsSub}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -184,33 +195,22 @@ function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
   const title = locale === 'zh-CN' ? '今天结果' : locale === 'ja' ? '今日の結果' : 'Today';
   const empty = locale === 'zh-CN' ? '今天还没有完成练习。' : locale === 'ja' ? '今日はまだ完了した練習がありません。' : 'No completed practice today.';
 
+  const unit = locale === 'zh-CN' ? '次练习' : locale === 'ja' ? '回' : 'practices';
   return (
-    <section className="today-practice-summary" aria-label={title}>
-      <div className="today-practice-summary-heading">
-        <h2>{title}</h2>
-        <span>{formatTodayLabel(locale)}</span>
-      </div>
+    <LearningListFrame className="learning-catalog mt-4" label={title}>
+      <LearningListHeader title={title} count={`${formatTodayLabel(locale)} · ${attempts.length} ${unit}`} />
       {attempts.length ? (
         <>
-          <dl className="today-practice-stats">
-            <div><dt><ListChecks size={15} />{locale === 'zh-CN' ? '练习' : locale === 'ja' ? '練習' : 'Practices'}</dt><dd>{attempts.length}</dd></div>
-            <div><dt><Percent size={15} />{locale === 'zh-CN' ? '正确率' : locale === 'ja' ? '正答率' : 'Accuracy'}</dt><dd>{accuracy}%</dd></div>
-            <div><dt><Clock3 size={15} />{locale === 'zh-CN' ? '用时' : locale === 'ja' ? '時間' : 'Time'}</dt><dd>{formatDuration(totals.elapsedMs)}</dd></div>
+          <dl className="list-stats">
+            <div><dt>{locale === 'zh-CN' ? '练习' : locale === 'ja' ? '練習' : 'Practices'}</dt><dd>{attempts.length}</dd></div>
+            <div><dt>{locale === 'zh-CN' ? '作答' : locale === 'ja' ? '解答' : 'Answers'}</dt><dd>{totals.total}</dd></div>
+            <div><dt>{locale === 'zh-CN' ? '正确率' : locale === 'ja' ? '正答率' : 'Accuracy'}</dt><dd>{accuracy}%</dd></div>
+            <div><dt>{locale === 'zh-CN' ? '用时' : locale === 'ja' ? '時間' : 'Time'}</dt><dd>{formatDuration(totals.elapsedMs)}</dd></div>
           </dl>
-          <div className="today-practice-results" aria-label={locale === 'zh-CN' ? '今天最近结果' : locale === 'ja' ? '今日の最近の結果' : 'Recent results today'}>
-            {latestAttempts.map((attempt) => (
-              <button key={attempt.id} type="button" onClick={() => onSelect(attempt.id)}>
-                <span>
-                  <strong>{moduleLabel(labels, attempt.view)}</strong>
-                  <small>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · {attempt.summary?.total ?? attempt.answers.length}{locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'}</small>
-                </span>
-                <b>{summaryText(attempt)}</b>
-              </button>
-            ))}
-          </div>
+          <LearningList>{latestAttempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · ${attempt.summary?.total ?? attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
         </>
-      ) : <p>{empty}</p>}
-    </section>
+      ) : <p className="list-empty" role="status">{empty}</p>}
+    </LearningListFrame>
   );
 }
 
@@ -220,17 +220,8 @@ function CaptureTable({ labels, locale, captures, onSelect }: {
   captures: LearningCapture[];
   onSelect: (id: string) => void;
 }) {
-  return (
-    <div className="gentle-capture-list mt-4 overflow-hidden rounded-2xl border border-[#d7dfd6] bg-white divide-y divide-[#e3e8e2]">
-      {captures.map((capture) => <button key={capture.id} type="button" onClick={() => onSelect(capture.id)} className="flex min-h-20 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#f8faf7]">
-        <span className="min-w-0">
-          <span className="block truncate text-base font-semibold text-[#27312c]">{captureSummary(capture).title}</span>
-          <span className="mt-1 block text-sm text-[#526960]">{labels[`captureCategory_${capture.category}`]} · {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(new Date(capture.createdAt))}</span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-2 text-sm text-[#526960]">{captureStatusLabel(labels, capture.status)}<ChevronRight size={18} aria-hidden="true" /></span>
-      </button>)}
-    </div>
-  );
+  return <LearningList>{captures.map((capture) => <LearningListRow key={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
+
 }
 
 function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
@@ -351,48 +342,31 @@ function HistoryTab({ active, label, onClick }: { active: boolean; label: string
   return <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`min-h-11 border-b-2 px-4 text-sm font-semibold ${active ? 'border-[#31564c] text-[#31564c]' : 'border-transparent text-[#707a74]'}`}>{label}</button>;
 }
 
-function Empty({ text }: { text: string }) {
-  return <p className="py-12 text-center text-sm text-[#7a807b]">{text}</p>;
-}
-
-function PracticeAttemptFilters({ labels, value, attempts, filteredCount, onChange }: {
+function PracticeAttemptFilters({ labels, value, attempts, onChange }: {
   labels: Record<string, string>;
   value: AttemptFilter;
   attempts: PracticeAttempt[];
-  filteredCount: number;
   onChange: (value: AttemptFilter) => void;
 }) {
   const modules = unique(attempts.map((attempt) => attempt.view));
   return (
-    <div className="history-attempt-filters mt-4 rounded-lg border border-[#d7dfd6] bg-white p-3">
-      <div className="history-attempt-filter-grid flex flex-wrap items-end gap-3">
-        <label className="history-attempt-filter grid gap-1 text-xs font-semibold text-[#68716b]">
-          <span>{labels.historyFilterModule}</span>
-          <select value={value.module} onChange={(event) => onChange({ ...value, module: event.target.value as AttemptFilter['module'] })} className="h-10 rounded-md border border-[#d7dfd6] bg-white px-3 text-sm text-[#27312c]">
-            <option value="all">{labels.historyFilterAllModules}</option>
-            {modules.map((module) => <option key={module} value={module}>{moduleLabel(labels, module)}</option>)}
-          </select>
-        </label>
-        <label className="history-attempt-filter grid gap-1 text-xs font-semibold text-[#68716b]">
-          <span>{labels.historyFilterResult}</span>
-          <select value={value.result} onChange={(event) => onChange({ ...value, result: event.target.value as AttemptFilter['result'] })} className="h-10 rounded-md border border-[#d7dfd6] bg-white px-3 text-sm text-[#27312c]">
-            <option value="all">{labels.historyFilterAllResults}</option>
-            <option value="wrong">{labels.historyFilterHasWrong}</option>
-            <option value="perfect">{labels.historyFilterPerfect}</option>
-          </select>
-        </label>
-        <label className="history-attempt-filter grid gap-1 text-xs font-semibold text-[#68716b]">
-          <span>{labels.historyFilterRange}</span>
-          <select value={value.range} onChange={(event) => onChange({ ...value, range: event.target.value as AttemptFilter['range'] })} className="h-10 rounded-md border border-[#d7dfd6] bg-white px-3 text-sm text-[#27312c]">
-            <option value="all">{labels.historyFilterAllTime}</option>
-            <option value="today">{labels.historyFilterToday}</option>
-            <option value="week">{labels.historyFilterWeek}</option>
-            <option value="month">{labels.historyFilterMonth}</option>
-          </select>
-        </label>
-        <p className="history-attempt-filter-count ml-auto pb-2 text-xs font-semibold text-[#68716b]">{labels.historyFilterCount.replace('{shown}', String(filteredCount)).replace('{total}', String(attempts.length))}</p>
-      </div>
-    </div>
+    <>
+      <LearningListSelect label={labels.historyFilterModule} value={value.module} onChange={(module) => onChange({ ...value, module: module as AttemptFilter['module'] })}>
+        <option value="all">{labels.historyFilterAllModules}</option>
+        {modules.map((module) => <option key={module} value={module}>{moduleLabel(labels, module)}</option>)}
+      </LearningListSelect>
+      <LearningListSelect label={labels.historyFilterResult} value={value.result} onChange={(result) => onChange({ ...value, result: result as AttemptFilter['result'] })}>
+        <option value="all">{labels.historyFilterAllResults}</option>
+        <option value="wrong">{labels.historyFilterHasWrong}</option>
+        <option value="perfect">{labels.historyFilterPerfect}</option>
+      </LearningListSelect>
+      <LearningListSelect label={labels.historyFilterRange} value={value.range} onChange={(range) => onChange({ ...value, range: range as AttemptFilter['range'] })}>
+        <option value="all">{labels.historyFilterAllTime}</option>
+        <option value="today">{labels.historyFilterToday}</option>
+        <option value="week">{labels.historyFilterWeek}</option>
+        <option value="month">{labels.historyFilterMonth}</option>
+      </LearningListSelect>
+    </>
   );
 }
 
@@ -402,15 +376,10 @@ function PracticeAttemptTable({ labels, locale, attempts, onSelect }: {
   attempts: PracticeAttempt[];
   onSelect: (id: string) => void;
 }) {
-  const dateKey = (attempt: PracticeAttempt) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
-  return <div className="study-log-list">
-    {attempts.map((attempt, index) => <div key={attempt.id}>
-      {index === 0 || dateKey(attempts[index - 1]) !== dateKey(attempt) ? <h2>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt))}</h2> : null}
-      <button type="button" onClick={() => onSelect(attempt.id)}>
-        <span><strong>{moduleLabel(labels, attempt.view)}</strong><small>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · {attempt.summary?.total ?? attempt.answers.length}{locale === 'zh-CN' ? ' 题' : locale === 'ja' ? ' 問' : ' questions'} · {formatDuration(attempt.summary?.elapsedMs)}</small></span>
-        <span className="study-log-result">{summaryText(attempt)}<ChevronRight size={18} /></span>
-      </button>
-    </div>)}
+  // One flat list; the date moves into each row instead of splitting the list into day sections.
+  const attemptDate = (attempt: PracticeAttempt) => new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
+  return <div className="learning-history-list">
+    <LearningList>{attempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
   </div>;
 }
 
@@ -461,6 +430,7 @@ function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, sho
     return (
       <AttemptQuestionDetail
         labels={labels}
+        locale={locale}
         entry={selectedEntry}
         position={selectedPosition}
         total={filteredAnswers.length}
@@ -480,7 +450,7 @@ function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, sho
       <div className="mt-4 rounded-lg border border-[#d7dfd6] bg-white p-3 sm:p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-[#27312c]">{labels.historyAttemptDetail}</h2>
+            <h2 className="text-lg font-semibold text-[#27312c]">{attempt.title?.trim() || labels.historyAttemptDetail}</h2>
             <p className="mt-1 text-sm text-[#68716b]">{moduleLabel(labels, attempt.view)} · {formatDate(attempt.completedAt ?? attempt.startedAt, locale)}</p>
           </div>
           <p className="text-sm font-semibold text-[#31564c]">{summaryText(attempt)}</p>
@@ -512,82 +482,16 @@ function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, sho
           </span>
         </div>
         {filteredAnswers.length ? <>
-        <div className="mt-3 hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead className="bg-[#f6f8f5] text-xs font-semibold text-[#68716b]">
-              <tr>
-                <th className="w-12 px-3 py-3">#</th>
-                <th className="px-3 py-3">{labels.historyAttemptQuestion}</th>
-                <th className="px-3 py-3">{labels.yourAnswer}</th>
-                <th className="px-3 py-3">{labels.rightAnswer}</th>
-                <th className="px-3 py-3">{labels.historyAttemptResult}</th>
-                <th className="px-3 py-3">{labels.elapsed}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e3e8e2]">
-              {filteredAnswers.map(({ answer, index }) => {
-                const question = questionMap.get(answer.questionId);
-                return (
-                  <tr key={`${answer.questionId}-${index}`} className="cursor-pointer hover:bg-[#f8faf7]" tabIndex={0} onClick={() => openQuestion(index)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openQuestion(index); }}>
-                    <td className="px-3 py-3 text-[#7a807b]">{index + 1}</td>
-                    <td className="max-w-[24rem] px-3 py-3">
-                      <p className="font-semibold text-[#34413b]">{questionKeyText(question, answer)}</p>
-                      {question?.prompt ? <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#68716b]">{question.prompt}</p> : null}
-                    </td>
-                    <td className="px-3 py-3 text-[#4f5b55]">{answer.selected || '-'}</td>
-                    <td className="px-3 py-3 text-[#31564c]">{question?.answer ?? '-'}</td>
-                    <td className={`px-3 py-3 font-semibold ${answer.correct ? 'text-[#356146]' : 'text-[#a84269]'}`}>{answer.correct ? labels.correct : labels.wrong}</td>
-                    <td className="px-3 py-3 text-[#4f5b55]">{formatDuration(answer.elapsedMs)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-3 divide-y divide-[#e3e8e2] overflow-hidden rounded-md border border-[#e3e8e2] md:hidden">
-          {filteredAnswers.map(({ answer, index }) => {
-            const question = questionMap.get(answer.questionId);
-            return (
-              <article key={`${answer.questionId}-${index}`} role="button" tabIndex={0} aria-label={`${labels.historyAttemptQuestion} ${index + 1}: ${questionKeyText(question, answer)}`} onClick={() => openQuestion(index)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openQuestion(index); }} className="cursor-pointer bg-white px-3 py-3.5 transition-colors hover:bg-[#f8faf7] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#31564c]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="text-xs font-semibold text-[#7a807b]">#{index + 1}</span>
-                    <h3 className="mt-1 break-words text-base font-semibold leading-6 text-[#27312c]">{questionKeyText(question, answer)}</h3>
-                  </div>
-                  <span className="inline-flex shrink-0 items-center gap-1.5">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${answer.correct ? 'bg-[#edf4ef] text-[#356146]' : 'bg-[#fff0f5] text-[#a84269]'}`}>
-                      {answer.correct ? labels.correct : labels.wrong}
-                    </span>
-                    <ChevronRight size={17} className="text-[#7a807b]" aria-hidden="true" />
-                  </span>
-                </div>
-                {question?.prompt ? <p className="mt-2 break-words text-sm leading-6 text-[#68716b]">{question.prompt}</p> : null}
-                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 rounded-md bg-[#f6f8f5] p-3 text-sm">
-                  <div className="min-w-0">
-                    <dt className="text-xs text-[#707a74]">{labels.yourAnswer}</dt>
-                    <dd className="mt-1 break-words font-semibold text-[#4f5b55]">{answer.selected || '-'}</dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-xs text-[#707a74]">{labels.rightAnswer}</dt>
-                    <dd className="mt-1 break-words font-semibold text-[#31564c]">{question?.answer ?? '-'}</dd>
-                  </div>
-                  <div className="col-span-2 border-t border-[#dfe5de] pt-2">
-                    <dt className="inline text-xs text-[#707a74]">{labels.elapsed}</dt>
-                    <dd className="ml-2 inline font-semibold text-[#4f5b55]">{formatDuration(answer.elapsedMs)}</dd>
-                  </div>
-                </dl>
-              </article>
-            );
-          })}
-        </div>
+        <LearningList>{filteredAnswers.map(({ answer, index }) => <LearningListRow key={`${answer.questionId}-${index}`} title={questionKeyText(questionMap.get(answer.questionId), answer)} description={questionMap.get(answer.questionId)?.prompt} statusKind={answer.correct ? 'correct' : 'incorrect'} status={answer.correct ? labels.correct : labels.wrong} locale={locale} onOpen={() => openQuestion(index)}/>)}</LearningList>
         </> : <p className="py-10 text-center text-sm text-[#7a807b]">{labels.historyNoFilteredAnswers}</p>}
       </div>
     </div>
   );
 }
 
-export function AttemptQuestionDetail({ labels, entry, position, total, question, onBack, onPrevious, onNext }: {
+export function AttemptQuestionDetail({ labels, locale, entry, position, total, question, onBack, onPrevious, onNext }: {
   labels: Record<string, string>;
+  locale: Locale;
   entry: { answer: PracticeAttempt['answers'][number]; index: number };
   position: number;
   total: number;
@@ -619,6 +523,8 @@ export function AttemptQuestionDetail({ labels, entry, position, total, question
           <QuestionDetailValue label={labels.yourAnswer} value={answer.selected || '-'} tone={answer.correct ? 'correct' : 'wrong'} />
           <QuestionDetailValue label={labels.rightAnswer} value={question?.answer ?? '-'} tone="correct" />
           <QuestionDetailValue label={labels.elapsed} value={formatDuration(answer.elapsedMs)} />
+          <QuestionDetailValue label={locale === 'zh-CN' ? '开始时间' : locale === 'ja' ? '開始時刻' : 'Started'} value={formatClock(answer.startedAt, locale)} />
+          <QuestionDetailValue label={locale === 'zh-CN' ? '作答时间' : locale === 'ja' ? '回答時刻' : 'Answered'} value={formatClock(answer.answeredAt, locale)} />
         </dl>
 
         {question?.correctReason ? <QuestionExplanation title={labels.correctReasonLabel} body={question.correctReason} /> : null}
@@ -751,6 +657,11 @@ function formatDuration(ms: number | undefined) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function formatClock(value: string | undefined, locale: Locale) {
+  if (!value || !dateValue(value)) return '-';
+  return new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(value));
 }
 
 function dateValue(value: string) {

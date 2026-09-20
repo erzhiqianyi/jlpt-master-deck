@@ -1,0 +1,89 @@
+/* Desktop navigation retains large targets in both modes. */
+@media (min-width: 768px) {
+ .app-frame > .desktop-sidebar { display: flex !important; width: 216px !important; flex: 0 0 216px !important; position: sticky; top: 0; height: 100dvh; padding: 16px 12px; }
+ .app-frame > .desktop-sidebar.is-collapsed { width: 88px !important; flex-basis: 88px !important; }
+ .desktop-sidebar > div { justify-content: flex-start !important; gap: 16px !important; }
+ .desktop-sidebar .desktop-sidebar-header { display: flex; justify-content: flex-end; padding: 0 !important; min-height: 44px !important; }
+ .desktop-sidebar .desktop-sidebar-brand { display: none !important; }
+ .desktop-sidebar .desktop-sidebar-toggle { display: grid !important; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: #36594b; background: #edf5ef; }
+ .desktop-sidebar .desktop-sidebar-nav { flex: 1; align-content: start; overflow-y: auto; padding: 0 !important; gap: 10px !important; }
+ .desktop-sidebar .desktop-sidebar-group { width: 100%; }
+ .desktop-sidebar .desktop-sidebar-nav :is(.desktop-sidebar-item,.desktop-sidebar-parent) { display: flex !important; flex-direction: row !important; justify-content: flex-start; gap: 14px; width: 100% !important; min-height: 60px !important; padding: 12px !important; border-radius: 12px !important; }
+ .desktop-sidebar .desktop-sidebar-nav .desktop-sidebar-text { display: block !important; font-size: 16px; font-weight: 600; }
+ .desktop-sidebar .desktop-sidebar-nav .desktop-sidebar-icon { width: 28px !important; height: 28px !important; flex-shrink: 0; }
+ .desktop-sidebar.is-collapsed .desktop-sidebar-nav .desktop-sidebar-text { display: none !important; }
+ .desktop-sidebar.is-collapsed .desktop-sidebar-nav :is(.desktop-sidebar-item,.desktop-sidebar-parent) { justify-content: center; padding-inline: 4px !important; }
+ .desktop-sidebar .desktop-sidebar-nav :is(.desktop-sidebar-item,.desktop-sidebar-parent)::after { display: none !important; }
+ .workspace-page-title { flex: 1; min-width: 0; margin: 0; font: 600 20px/1.4 system-ui, sans-serif !important; color: #283d33; }
+ .workspace-topbar { display: flex; align-items: center; gap: 24px; min-height: 72px; padding: 10px 32px; position: sticky; top: 0; z-index: 35; background: #ffffffed; backdrop-filter: blur(16px); border-bottom: 1px solid #dce7df; }
+ .workspace-topbar button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; border-radius: 10px; color: #486358; font-size: 15px; font-weight: 600; white-space: nowrap; }
+ .workspace-topbar button:hover { background: #edf5ef; }
+ .workspace-topbar .workspace-back { width: 44px; flex-shrink: 0; border: 1px solid #e0e9e2; }
+ .workspace-topbar .workspace-back:disabled { opacity: .3; cursor: default; }
+ .workspace-topbar .workspace-search { padding: 10px 16px; border: 1px solid #e0e9e2; }
+ .app-content > section.mx-auto { width: 100% !important; max-width: none !important; padding-inline: 32px !important; }
+ .ledger-entry-index .ledger-entry-hub, .ledger-practice-center { width: 100% !important; max-width: none !important; margin-inline: 0 !important; padding-top: 24px !important; }
+ .ledger-entry-index .ledger-entry-hub-heading, .ledger-practice-center .practice-simple-heading { margin: 0 0 20px !important; padding: 0 !important; }
+ .ledger-entry-index .ledger-entry-page-title, .ledger-practice-center .practice-simple-heading h1 { font: 700 26px/1.4 system-ui, sans-serif !important; }
+ .ledger-entry-index .ledger-entry-actions, .ledger-practice-center .ledger-practice-center-grid { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 18px !important; }
+ .ledger-entry-index .ledger-entry-action, .ledger-practice-center .ledger-practice-card { display: grid !important; grid-template-columns: 48px minmax(0,1fr) !important; grid-template-rows: auto auto !important; align-content: center; gap: 6px 16px !important; min-height: 156px !important; padding: 24px !important; border-radius: 20px !important; text-align: left; }
+ .ledger-entry-index .ledger-entry-action > svg, .ledger-practice-center .ledger-practice-card > span { grid-column: 1 !important; grid-row: 1 / span 2 !important; width: 48px !important; height: 48px !important; align-self: center; }
+ .ledger-entry-index .ledger-entry-action > svg { padding: 12px; background: white; border-radius: 16px; }
+ .ledger-entry-index .ledger-entry-action > span, .ledger-practice-center .ledger-practice-card > strong { grid-column: 2 !important; grid-row: 1 !important; margin: 0 !important; font-size: 20px !important; }
+ .ledger-entry-index .ledger-entry-action > strong, .ledger-practice-center .ledger-practice-card > small { grid-column: 2 !important; grid-row: 2 !important; margin: 0 !important; padding: 0 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 1.6; }
+ .ledger-practice-center .ledger-practice-card > svg { display: none; }
+}
+
+@media (min-width: 768px) and (max-width: 1000px) {
+ .workspace-topbar { gap: 12px; padding-inline: 20px; }
+ .app-content > section.mx-auto { padding-inline: 20px !important; }
+}
+@media (max-width: 767px) { .workspace-topbar { display: none; } }
+
+/* Shared page rhythm: navigation owns titles; content owns controls and tasks. */
+.app-content .discovery-heading,
+.app-content .ledger-practice-center > .practice-simple-heading,
+.app-content .gentle-plan.gentle-entry-page > .plan-page-heading,
+.app-content .data-management-panel:has(.record-home-grid) > .gentle-records-heading { display: none !important; }
+.app-content .gentle-home > .gentle-heading > :is(p,h1) { display: none; }
+.app-content .topic-practice-list .list-title h1 { display: none; }
+@media (min-width: 768px) {
+ .app-content > .gentle-home { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 24px 32px !important; }
+ .app-content > section.mx-auto { padding-top: 24px !important; }
+ .app-content :is(.gentle-plan.gentle-entry-page,.data-management-panel,.data-management-panel .history-panel,.discovery-panel,.ledger-practice-center) { width: 100% !important; max-width: none !important; margin-inline: 0 !important; padding-top: 0 !important; }
+ .app-content .gentle-home > .gentle-heading { margin: 0 0 20px !important; padding: 0 !important; }
+ .app-content :is(.gentle-start,.record-home-grid,.plan-entry-list,.ledger-practice-center-grid) { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 18px !important; margin-top: 0 !important; }
+ .app-content :is(.gentle-choice,.record-home-card,.plan-entry-link) { display: grid !important; grid-template-columns: 48px minmax(0,1fr) 20px !important; grid-template-rows: auto !important; align-items: center !important; align-content: center; gap: 16px !important; min-height: 156px !important; padding: 24px !important; border-radius: 20px !important; text-align: left; }
+ .app-content :is(.gentle-choice-icon,.record-home-icon,.plan-entry-icon) { grid-column: 1 !important; grid-row: 1 !important; width: 48px !important; height: 48px !important; border-radius: 16px !important; }
+ .app-content :is(.gentle-choice,.record-home-card,.plan-entry-link) > span:nth-child(2) { grid-column: 2 !important; grid-row: 1 !important; align-self: center !important; }
+ .app-content :is(.gentle-choice,.record-home-card,.plan-entry-link) > svg { grid-column: 3 !important; grid-row: 1 !important; align-self: center !important; width: 18px; }
+ .app-content :is(.gentle-choice-copy > strong,.record-home-card strong,.plan-entry-link strong) { font: 600 20px/1.4 system-ui,sans-serif !important; }
+ .app-content :is(.gentle-choice-copy > span,.record-home-card small,.plan-entry-link small) { display: block; margin-top: 6px !important; font: 400 15px/1.6 system-ui,sans-serif !important; color: #52645b; }
+ .app-content .gentle-choice-copy > small { display: none; }
+}
+@media (min-width: 768px) and (max-width: 1000px) { .app-content > .gentle-home { padding-inline: 20px !important; } }
+@media (min-width: 768px) {
+ .app-content .gentle-plan.gentle-entry-page .plan-entry-list,
+ .app-content .data-management-panel .record-home-grid { gap: 18px !important; padding-top: 0 !important; }
+}
+.app-content .discovery-panel > .topic-library { margin-top: 0; }
+@media (min-width: 768px) {
+ .app-content .ledger-practice-center .ledger-practice-card { grid-template-columns: 48px minmax(0,1fr) 20px !important; }
+ .app-content .ledger-practice-center .ledger-practice-card > svg { display: block; grid-column: 3 !important; grid-row: 1 / span 2 !important; width: 18px; align-self: center; }
+ .app-content .ledger-practice-center .ledger-practice-card > strong { font-weight: 600 !important; }
+ .app-content .ledger-practice-center .ledger-practice-card > small { font-weight: 400 !important; }
+}
+
+/* Brand stays legible at both sidebar widths. */
+.workspace-brand { display: flex; align-items: center; gap: 8px; min-width: 0; text-align: left; color: #244c3c; }
+.workspace-brand > img { width: 40px; height: 40px; flex-shrink: 0; }
+.workspace-brand-name { display: grid; gap: 2px; white-space: nowrap; }
+.workspace-brand-name > strong { font: 750 17px/1.1 system-ui,sans-serif; letter-spacing: .06em; }
+.workspace-brand-name > span { font: 500 11px/1.3 system-ui,sans-serif; color: #65786c; }
+@media (min-width: 768px) {
+ .desktop-sidebar .desktop-sidebar-header { align-items: center; justify-content: space-between; gap: 4px; min-height: 44px !important; }
+ .desktop-sidebar .desktop-sidebar-toggle { width: 28px; min-width: 28px; height: 40px; flex-shrink: 0; background: transparent; }
+ .desktop-sidebar .desktop-sidebar-toggle:hover { background: #edf5ef; }
+ .desktop-sidebar.is-collapsed .desktop-sidebar-header { flex-direction: column; gap: 8px; }
+ .desktop-sidebar.is-collapsed .workspace-brand-name { display: none; }
+}

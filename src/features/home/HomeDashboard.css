@@ -1,0 +1,86 @@
+.today-dashboard { max-width: 1080px; margin-inline: auto; color: #294b3e; }
+.today-welcome { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px 14px 10px 10px; border: 1px solid transparent; border-radius: 999px; color: #294b3e; text-decoration: none; width: fit-content; max-width: 100%; }
+.today-welcome:hover { border-color: #c4dacb; background: #f3f8f3; }
+.today-welcome-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #dfeee3; color: #34805a; }
+.today-welcome-text { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 15px; }
+.today-welcome-text span { color: #60746a; }
+.today-welcome-text strong { font-size: 17px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.today-welcome-chevron { color: #8aa79a; }
+.today-summary { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 18px; margin-bottom: 18px; }
+.today-summary > section { min-width: 0; padding: 22px 24px; border: 1px solid #dce5dd; border-radius: 16px; background: #fbfdf9; }
+.today-progress { max-width: 100%; }
+.today-date { margin: 0 0 18px; color: #60746a; font-size: 14px; }
+.today-progress-label { display: flex; justify-content: space-between; max-width: 360px; gap: 12px; align-items: baseline; font-size: 14px; }
+.today-progress-label strong { font-size: 16px; }
+.today-progress progress { display: block; width: min(100%, 360px); height: 6px; margin-top: 12px; border: 0; border-radius: 8px; overflow: hidden; appearance: none; background: #dce9e0; }
+.today-progress progress::-webkit-progress-bar { background: #dce9e0; }
+.today-progress progress::-webkit-progress-value { background: #34805a; border-radius: 8px; }
+.today-progress progress::-moz-progress-bar { background: #34805a; }
+.today-progress > small { display: block; margin-top: 6px; color: #60746a; }
+.today-countdown { display: flex; align-items: center; gap: 16px; }
+.today-countdown div { display: grid; gap: 2px; }
+.today-countdown span,.today-countdown small { font-size: 12px; color: #60746a; }
+.today-countdown strong { font-size: 15px; font-weight: 500; }
+.today-countdown b { font-size: 28px; font-weight: 700; }
+.today-learning { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 18px; }
+.today-feature { display: flex; flex-direction: column; align-items: flex-start; padding: 30px; min-height: 290px; border: 1px solid #c4dacb; border-radius: 20px; background: #edf6ed; text-align: left; color: #294b3e; }
+.today-feature-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #426954; }
+.today-feature-title { display: block; margin-top: 24px; font-size: clamp(22px,2.2vw,28px); line-height: 1.5; font-weight: 650; overflow-wrap: anywhere; }
+.today-feature-meta { display: block; margin: 10px 0 24px; font-size: 14px; line-height: 1.7; color: #526a5c; }
+.today-feature-action { display: inline-flex; align-items: center; gap: 20px; padding: 12px 18px; margin-top: auto; border-radius: 10px; background: #306449; color: white; font-size: 14px; font-weight: 600; }
+.today-side { display: grid; grid-template-rows: 1fr 1fr; gap: 14px; min-width: 0; }
+.today-secondary { display: grid; grid-template-columns: 44px minmax(0,1fr); align-items: center; gap: 14px; padding: 22px; min-height: 130px; border: 1px solid #e6dfd1; border-radius: 16px; background: #fffbf3; color: #294b3e; text-align: left; text-decoration: none; }
+.today-secondary strong { display: block; font-size: 17px; }
+.today-secondary small { display: block; margin-top: 6px; font-size: 14px; line-height: 1.6; color: #607064; }
+.today-card-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #f5ecd9; color: #8c6a35; }
+.today-textbooks { background: #faf9fd; border-color: #e3deed; }
+.today-textbooks .today-card-icon { background: #eee9f6; color: #79609a; }
+.today-textbook-hint { display: block; margin-top: 4px; color: #79609a; font-size: 12px; }
+.today-ai-tip { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; align-items: center; gap: 14px; margin-top: 18px; padding: 18px 22px; border: 1px solid #d5e3d9; border-radius: 16px; background: #f4f9f6; color: #294b3e; }
+.today-ai-tip .today-card-icon { background: #dfeee3; color: #34805a; }
+.today-ai-tip-body { display: grid; gap: 4px; min-width: 0; }
+.today-ai-tip-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #327561; }
+.today-ai-tip q { quotes: '“' '”'; font-size: 15px; line-height: 1.6; font-weight: 600; }
+.today-ai-tip small { font-size: 12px; color: #60746a; }
+.today-ai-tip-more { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 13px; font-weight: 700; color: #24473f; text-decoration: none; white-space: nowrap; }
+@media (max-width: 700px) { .today-ai-tip { grid-template-columns: 40px minmax(0,1fr); padding: 14px 16px; } .today-ai-tip-more { grid-column: 2; justify-self: start; min-height: 32px; } }
+.today-dashboard :is(button,a) { cursor: pointer; }
+.today-dashboard :is(button,a):focus-visible { outline: 3px solid #39805b; outline-offset: 4px; }
+.today-feature:hover { border-color: #709d7f; }
+.today-secondary:hover { border-color: #a2b6a4; }
+@media (max-width: 1050px) { .today-summary, .today-learning { grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); } .today-secondary { padding: 18px; gap: 10px; } }
+@media (max-width: 700px) {
+ .today-summary { grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); gap: 12px; margin-bottom: 14px; }
+ .today-summary > section { padding: 16px; }
+ .today-progress { flex: 1; min-width: 0; }
+ .today-date { margin-bottom: 14px; }
+ .today-progress-label { flex-wrap: wrap; gap: 3px 10px; }
+ .today-countdown { gap: 0; }
+ .today-countdown > svg { display: none; }
+ .today-countdown b { font-size: 24px; }
+ .today-learning { grid-template-columns: minmax(0,1fr); gap: 14px; }
+ .today-feature { min-height: 250px; padding: 24px; }
+ .today-feature-title { font-size: 23px; margin-top: 18px; }
+ .today-secondary { min-height: 108px; }
+}
+
+.today-progress-label > span, .today-textbooks small { display: inline-flex; align-items: center; gap: 7px; }
+.today-progress-label > span { font-variant-numeric: tabular-nums; }
+.today-textbooks .learning-status-icon { width: 20px; height: 20px; }
+
+.today-discovery { margin-top: 24px; padding: 22px 24px; border: 1px solid #dce5dd; border-radius: 16px; background: #fbfdf9; }
+.today-discovery header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.today-discovery h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px; font-weight: 600; }
+.today-discovery header a { padding-block: 10px; font-size: 13px; color: #526a5c; }
+.today-discovery ul { list-style: none; margin: 10px 0 0; padding: 0; }
+.today-discovery li + li { border-top: 1px solid #e4ebe3; }
+.today-discovery li a { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 16px 0; text-decoration: none; color: #294b3e; }
+.today-discovery li strong { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.today-discovery li small,.today-discovery > p { color: #60746a; font-size: 13px; }
+.today-discovery-icon { color: #60746a; }
+.today-discovery a:hover { color: #235b3d; text-decoration: underline; }
+@media (max-width: 700px) {
+ .today-discovery { padding: 16px; margin-top: 14px; }
+ .today-discovery li a { grid-template-columns: 24px minmax(0,1fr); gap: 5px 10px; }
+ .today-discovery li small { grid-column: 2; }
+}

@@ -1,0 +1,99 @@
+/* Entry navigation: sidebar sub-menus, hub cards, the practice home and module action bars.
+   Loaded after WorkspaceLayout.css so it owns the final say on these surfaces. */
+
+/* ---- Hub card colour semantics: one tone means one kind of action everywhere. ---- */
+.entry-card.entry-tone-coral { background: #fff1ea !important; border-color: #f3d3c3 !important; }
+.entry-card.entry-tone-amber { background: #fff7df !important; border-color: #ebdfb4 !important; }
+.entry-card.entry-tone-green { background: #eaf6ee !important; border-color: #c9e2d3 !important; }
+.entry-card.entry-tone-blue { background: #edf4ff !important; border-color: #ccdaed !important; }
+.entry-card.entry-tone-purple { background: #efeafa !important; border-color: #dcd3ee !important; }
+.entry-card.entry-tone-gray { background: #f4f6f2 !important; border-color: #dfe5dc !important; }
+.entry-card.entry-tone-coral :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #d1562f !important; }
+.entry-card.entry-tone-amber :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #a67417 !important; }
+.entry-card.entry-tone-green :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #2f7a55 !important; }
+.entry-card.entry-tone-blue :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #365f94 !important; }
+.entry-card.entry-tone-purple :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #6a4fa0 !important; }
+.entry-card.entry-tone-gray :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { color: #4d5f56 !important; }
+.entry-card :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { background: #fff !important; }
+.entry-card:hover { border-color: #6b9683 !important; }
+
+@media (min-width: 768px) {
+ /* Three narrower rows read as a menu rather than a poster; odd counts no longer leave half a row empty. */
+ .app-content :is(.gentle-start, .record-home-grid, .gentle-plan.gentle-entry-page .plan-entry-list, .data-management-panel .record-home-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-auto-rows: auto !important; gap: 14px !important; }
+ .app-content :is(.gentle-choice, .record-home-card, .plan-entry-link) { grid-template-columns: 44px minmax(0, 1fr) 18px !important; gap: 14px !important; min-height: 108px !important; padding: 18px 20px !important; border-radius: 16px !important; }
+ .app-content :is(.gentle-choice-icon, .record-home-icon, .plan-entry-icon) { width: 44px !important; height: 44px !important; border-radius: 13px !important; }
+ .app-content :is(.gentle-choice-copy > strong, .record-home-card strong, .plan-entry-link strong) { font-size: 17px !important; }
+ .app-content :is(.gentle-choice-copy > span, .record-home-card small, .plan-entry-link small) { margin-top: 4px !important; font-size: 14px !important; line-height: 1.5 !important; }
+ .app-content :is(.gentle-choice, .record-home-card, .plan-entry-link) > svg { width: 16px; color: #52645b; }
+}
+@media (min-width: 768px) and (max-width: 1100px) {
+ .app-content :is(.gentle-start, .record-home-grid, .gentle-plan.gentle-entry-page .plan-entry-list, .data-management-panel .record-home-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* ---- Sidebar sub-menus (desktop and the mobile drawer). ---- */
+.desktop-sidebar-parent-row { position: relative; width: 100%; min-width: 0; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-parent { grid-template-columns: 28px minmax(0, 1fr) !important; padding-right: 40px !important; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure { position: absolute; top: 50%; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: #6e8479; transform: translateY(-50%); transition: transform 160ms ease; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure:hover { background: #dbeadf; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure[aria-expanded='true'] { transform: translateY(-50%) rotate(90deg); }
+.desktop-sidebar-nav .desktop-sidebar-subnav.is-root-subnav { display: grid; gap: 2px; padding: 4px 0 6px 40px; }
+.desktop-sidebar-nav .desktop-sidebar-subitem { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px; border-radius: 9px; color: #52645b; font-size: 14px; font-weight: 600; text-align: left; }
+.desktop-sidebar-nav .desktop-sidebar-subitem:hover { background: #edf5ef; color: #244c3c; }
+.desktop-sidebar-nav .desktop-sidebar-subitem.is-active { background: #e2f0e7; color: #1f5c43; }
+.desktop-sidebar-nav .desktop-sidebar-subdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
+.desktop-sidebar-nav .desktop-sidebar-subitem.is-active .desktop-sidebar-subdot { opacity: 1; }
+.desktop-sidebar.is-collapsed .desktop-sidebar-subnav,
+.desktop-sidebar.is-collapsed .desktop-sidebar-parent-row > .desktop-sidebar-disclosure { display: none !important; }
+.desktop-sidebar.is-collapsed .desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-parent { grid-template-columns: minmax(0, 1fr) !important; padding-right: 4px !important; justify-content: center; }
+
+/* ---- Practice home: four module cards with a direct start, then one flat list. ---- */
+.practice-module-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.practice-module-card { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; border: 1px solid #dce7df; border-radius: 16px; background: #fff; overflow: hidden; }
+.practice-module-card.is-green { background: #eaf6ee; border-color: #c9e2d3; }
+.practice-module-card.is-orange { background: #fff1ea; border-color: #f3d3c3; }
+.practice-module-card.is-blue { background: #edf4ff; border-color: #ccdaed; }
+.practice-module-card.is-mint { background: #eef9f4; border-color: #c9e6d8; }
+.practice-module-open { display: grid; gap: 4px; min-width: 0; padding: 18px 18px 12px; text-align: left; color: #24473f; }
+.practice-module-open:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.practice-module-icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 13px; background: #fff; color: #2f7a55; }
+.practice-module-card.is-orange .practice-module-icon { color: #d1562f; }
+.practice-module-card.is-blue .practice-module-icon { color: #365f94; }
+.practice-module-card.is-mint .practice-module-icon { color: #2a7f6b; }
+.practice-module-open strong { font: 600 18px/1.4 system-ui, sans-serif; }
+.practice-module-open small { font-size: 13px; line-height: 1.5; color: #52645b; }
+.practice-module-start { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; margin: 0 14px 14px; border-radius: 10px; background: #24473f; color: #fff; font-size: 14px; font-weight: 600; }
+.practice-module-start:hover { background: #1b3a33; }
+.practice-module-start:focus-visible, .practice-module-open:focus-visible { outline: 3px solid #34745f; outline-offset: -3px; }
+.practice-more-list .list-item-action { background: transparent; color: #52645b; }
+@media (min-width: 768px) and (max-width: 1100px) { .practice-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+ .ledger-practice-center > .practice-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
+ .practice-module-open { padding: 14px 14px 8px; }
+ .practice-module-open strong { font-size: 16px; }
+ .practice-module-start { min-height: 40px; margin: 0 10px 10px; }
+}
+
+/* ---- Module action bar: the primary CTA and its helpers sit above the module's list. ---- */
+.ledger-module-page > .module-action-bar { display: grid; gap: 14px; padding: 20px 22px 18px; border-bottom: 1px solid #e4ece6; }
+.module-action-bar-heading { display: flex; align-items: baseline; gap: 12px; }
+.module-action-bar-heading h2 { margin: 0; color: #24473f; font: 700 24px/1.4 system-ui, sans-serif; }
+.module-action-bar-heading span { font-size: 14px; color: #68776e; }
+.module-action-bar-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.module-action-primary { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 12px; min-height: 56px; padding: 10px 18px; border-radius: 12px; background: #d1562f; color: #fff; text-align: left; }
+.module-action-primary:hover { background: #b9481f; }
+.module-action-primary strong { grid-column: 1; font-size: 16px; font-weight: 700; }
+.module-action-primary small { grid-column: 1; grid-row: 2; font-size: 12px; opacity: .85; }
+.module-action-primary > svg { grid-column: 2; grid-row: 1 / span 2; }
+.module-action-secondary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; font-weight: 600; }
+.module-action-secondary:hover { background: #edf5ef; }
+.module-action-secondary.is-active { background: #24473f; border-color: #24473f; color: #fff; }
+.module-action-secondary svg { flex-shrink: 0; }
+.module-action-primary:focus-visible, .module-action-secondary:focus-visible { outline: 3px solid #34745f; outline-offset: 2px; }
+.module-action-bar > .ledger-focused-practice-panel { margin: 0; }
+@media (max-width: 767px) {
+ .ledger-module-page > .module-action-bar { padding: 16px; gap: 12px; }
+ .module-action-bar-heading h2 { font-size: 21px; }
+ .module-action-primary { width: 100%; min-height: 52px; }
+ .module-action-secondary { flex: 1 1 calc(50% - 5px); justify-content: center; min-height: 42px; padding: 6px 10px; font-size: 13px; }
+ .module-action-bar > .ledger-focused-practice-panel { grid-template-columns: 1fr; }
+}

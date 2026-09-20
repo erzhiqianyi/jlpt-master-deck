@@ -1,3 +1,5 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { isTopicDraft } from '../../domain/practicePurpose';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
@@ -69,7 +71,6 @@ export function DraftsPanel({
     return priority(a.status) - priority(b.status) || b.updated_at.localeCompare(a.updated_at);
   }), [drafts]);
   const draftStatusText = (status: string) => ({ draft: '待审核', needs_revision: '待修改', approved: '已确认', archived: '已归档' }[status] ?? status);
-  const groupedDrafts = useMemo(() => groupDraftsByDate(drafts), [drafts]);
   const selectedCount = selectedDraftIds.length;
   const currentDetailDraftId = detailDraftId === undefined ? internalDetailDraftId : detailDraftId;
   const showingDetail = Boolean(currentDetailDraftId);
@@ -101,12 +102,10 @@ export function DraftsPanel({
     setSelectedDraftIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
-  function toggleDateGroup(date: string, ids: string[]) {
+  function toggleAllDrafts() {
+    const ids = orderedDrafts.map((draft) => draft.id);
     const allSelected = ids.every((id) => selectedDraftIdSet.has(id));
-    setSelectedDraftIds((current) => {
-      if (allSelected) return current.filter((id) => !ids.includes(id));
-      return [...new Set([...current, ...ids])];
-    });
+    setSelectedDraftIds(allSelected ? [] : ids);
   }
 
   async function organizeSelectedDrafts() {
@@ -336,19 +335,8 @@ export function DraftsPanel({
           )}
         </article>
       ) : !manageList ? (
-        <section className="gentle-draft-list">
-          {!embedded ? <div className="gentle-draft-list-tools"><button type="button" onClick={() => setManageList(true)}>管理</button></div> : null}
-          {orderedDrafts.slice(0, mobileList.mobile ? mobileList.visible : orderedDrafts.length).map((draft) => (
-            <button key={draft.id} type="button" className="gentle-draft-list-row" onClick={() => openDraft(draft.id)}>
-              <span className="gentle-draft-copy">
-                <strong>{draft.title}</strong>
-                <span className="gentle-draft-list-meta"><time>{formatDate(draft.updated_at)}</time><span className={['draft', 'needs_revision'].includes(draft.status) ? 'is-pending' : ''}>{draftStatusText(draft.status)}</span></span>
-              </span>
-              <ChevronRight size={20} aria-hidden="true" />
-            </button>
-          ))}
-          {drafts.length ? mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < drafts.length ? '上拉查看更多' : ''}</div> : null : <p>{labels.noDrafts}</p>}
-        </section>
+        <LearningCatalog title="练习草稿" items={orderedDrafts} tools={!embedded ? <button type="button" onClick={() => setManageList(true)}>管理</button> : undefined} searchText={(draft) => `${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
+
       ) : (
         <section className="min-w-0 space-y-4">
           <button type="button" className="gentle-back" onClick={() => { setManageList(false); setSelectedDraftIds([]); }}>完成</button>
@@ -369,50 +357,19 @@ export function DraftsPanel({
           </div>
 
           {drafts.length ? (
-            <div className="space-y-5">
-              {groupedDrafts.map((group) => {
-                const ids = group.drafts.map((draft) => draft.id);
-                const allSelected = ids.every((id) => selectedDraftIdSet.has(id));
-                return (
-                  <section key={group.date} className="rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
-                    <div className="flex flex-col gap-2 border-b border-[#e0e6df] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <label className="flex min-w-0 items-center gap-3">
-                        <input type="checkbox" checked={allSelected} onChange={() => toggleDateGroup(group.date, ids)} className="h-4 w-4 accent-[#31564c]" />
-                        <span className="font-semibold text-[#27312c]">{group.date}</span>
-                      </label>
-                      <span className="text-sm font-semibold text-[#68716b]">{group.drafts.length} {labels.draftItemsUnit}</span>
-                    </div>
-                    <div className="divide-y divide-[#edf0ec]">
-                      {group.drafts.map((draft) => (
-                        <div key={draft.id} className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                          <label className="flex min-w-0 items-start gap-3">
-                            <input type="checkbox" checked={selectedDraftIdSet.has(draft.id)} onChange={() => toggleDraft(draft.id)} className="mt-1 h-4 w-4 shrink-0 accent-[#31564c]" />
-                            <span className="min-w-0">
-                              <span className="block text-base font-semibold leading-6 text-[#27312c]">{draft.title}</span>
-                              <span className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-[#68716b]">
-                                <span>{draftStatusText(draft.status)}</span>
-                                <span>{labels.updatedAt}: {formatDate(draft.updated_at)}</span>
-                              </span>
-                            </span>
-                          </label>
-                          <div className="mobile-action-row flex flex-wrap gap-2 md:justify-end">
-                            <button type="button" onClick={() => openDraft(draft.id)} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-4 text-sm font-semibold text-[#24473f] hover:bg-[#f8faf7]">
-                              {labels.viewDraft}
-                            </button>
-                            {onDeleteDraft ? (
-                              <button type="button" onClick={() => deleteDraft(draft.id)} disabled={deletingDraftId === draft.id} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#d7b9ad] bg-white px-3 text-sm font-semibold text-[#8f3d2e] hover:bg-[#fff8f5] disabled:cursor-wait disabled:opacity-60">
-                                <Trash2 className="h-4 w-4" aria-hidden="true" />
-                                {deletingDraftId === draft.id ? labels.processing : labels.deleteDraft}
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
+            <section className="rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-3 border-b border-[#e0e6df] px-4 py-3">
+                <label className="flex min-w-0 items-center gap-3">
+                  <input type="checkbox" checked={orderedDrafts.every((draft) => selectedDraftIdSet.has(draft.id))} onChange={toggleAllDrafts} className="h-4 w-4 accent-[#31564c]" />
+                  <span className="font-semibold text-[#27312c]">{labels.draftSelectAll}</span>
+                </label>
+                <span className="text-sm font-semibold text-[#68716b]">{orderedDrafts.length} {labels.draftItemsUnit}</span>
+              </div>
+              <LearningList>{orderedDrafts.map((draft) => <LearningListRow key={draft.id} inlineActions title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)} secondary={<div className="learning-list-manage-actions">
+                <label><input type="checkbox" checked={selectedDraftIdSet.has(draft.id)} onChange={() => toggleDraft(draft.id)} aria-label={`选择: ${draft.title}`}/></label>
+                {onDeleteDraft ? <button type="button" aria-label={deletingDraftId === draft.id ? labels.processing : labels.deleteDraft} title={labels.deleteDraft} onClick={() => deleteDraft(draft.id)} disabled={deletingDraftId === draft.id}><Trash2 size={20} aria-hidden="true"/></button> : null}
+              </div>}/>)}</LearningList>
+            </section>
           ) : (
             <div className="rounded-md bg-[#f5f7f3] p-4">
               <h3 className="text-xl font-semibold">{labels.noDrafts}</h3>
@@ -427,20 +384,6 @@ export function DraftsPanel({
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short' }).format(new Date(value));
-}
-
-function groupDraftsByDate(drafts: DraftSummary[]) {
-  const groups = new Map<string, DraftSummary[]>();
-  for (const draft of [...drafts].sort((first, second) => dateValue(second.updated_at) - dateValue(first.updated_at))) {
-    const date = formatDate(draft.updated_at);
-    groups.set(date, [...(groups.get(date) ?? []), draft]);
-  }
-  return [...groups.entries()].map(([date, groupDrafts]) => ({ date, drafts: groupDrafts }));
-}
-
-function dateValue(value: string) {
-  const timestamp = new Date(value).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 type GrammarItem = {
@@ -522,6 +465,7 @@ type OriginalQuestion = {
 };
 
 type GrammarReviewPack = {
+  description?: string;
   kind?: string;
   strategy?: string;
   minutes?: number;
@@ -656,6 +600,7 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
       <div className="gentle-draft-meta flex flex-wrap gap-2 text-xs font-semibold">
         {draft.kind ? <span className="rounded bg-[#edf4ef] px-2 py-1 text-[#31564c]">{readableKind(draft.kind, labels)}</span> : null}
         {draft.jlpt_level ? <span className="rounded bg-[#f1eee8] px-2 py-1 text-[#584f43]">{draft.jlpt_level}</span> : null}
+        {draft.description ? <p className="w-full text-sm text-[#4f5b55]">{draft.description}</p> : null}
         {draft.topic ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.topic}</span> : null}
         
         {draft.minutes ? <span className="rounded bg-[#f5f7f3] px-2 py-1 text-[#4f5b55]">{draft.minutes} 分钟</span> : null}

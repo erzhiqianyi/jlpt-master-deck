@@ -1,11 +1,33 @@
+import type { QuestionReference } from '../../domain/questions';
+import { ShareButton } from '../../components/ShareButton';
+import { ModuleActionBar } from '../../components/ModuleActionBar';
+import { normalizePracticeExplanations } from '../../domain/practiceExplanations.mjs';
+import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
-import { ChevronLeft, ChevronRight, ExternalLink, House, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Target, X } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight, House, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
-import { localized } from '../../domain/items';
+import { localized, itemMeaning } from '../../domain/items';
+import { filterableTags, itemInWordbook, itemTagList, itemWordbookId, wordbookFamily, wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
 import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
 
-function QuestionPrompt({ text, target }: { text: string; target?: string }) {
+function QuestionPrompt({ text, target, locale }: { text: string; target?: string; locale: Locale }) {
+  // Legacy passage questions append the specific blank instruction to the passage.
+  // Only split when that same numbered blank exists in the preceding text.
+  const blankQuestion = text.match(/(【[0-9０-９]+】)\s*に入る(?:最もよい)?ものを選びなさい[。．.]?\s*$/u);
+  const passage = blankQuestion ? text.slice(0, blankQuestion.index).trimEnd() : '';
+  if (blankQuestion && passage.includes(blankQuestion[1])) {
+    const marker = blankQuestion[1];
+    const label = locale === 'zh-CN' ? `本题填写空格 ${marker}` : locale === 'ja' ? `解答する空欄 ${marker}` : `Choose an answer for blank ${marker}`;
+    const parts = passage.split(marker);
+    return <>
+      <span className="whitespace-pre-line">{parts.map((part, index) => <span key={index}>
+        {index > 0 ? <mark className="practice-active-blank" aria-label={label}>{marker}</mark> : null}
+        <QuestionPrompt text={part} target={target} locale={locale} />
+      </span>)}</span>
+      <span className="practice-blank-instruction">{label}</span>
+    </>;
+  }
   if (!target) return text;
   const targetIndex = text.indexOf(target);
   if (targetIndex < 0) return text;
@@ -49,26 +71,20 @@ function shouldAutoAdvanceAfterBatchAnswer() {
   return window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
 }
 
-function entryTags(item: VocabItem) {
-  return itemTagList(item).slice(0, 3);
-}
-
-function itemTagList(item: VocabItem) {
-  const tags = new Set<string>();
-  item.tags?.forEach((tag) => {
-    if (tag !== 'mcp-draft' && tag !== 'codex-chat-review') {
-      tags.add(tag);
-    }
-  });
-  return [...tags].filter(Boolean);
-}
-
-function isUsefulGrammarTag(tag: string) {
-  if (/^N[1-5](?:\/N[1-5])?$/.test(tag)) return false;
-  if (/^教材・第\d+週$/.test(tag)) return false;
-  if (tag.includes('単語') || tag.includes('单词')) return false;
-  if (tag.includes('待整理')) return false;
-  return tag.length > 1;
+/** Both libraries share the wordbook UI; the grammar library only swaps the wording. */
+function bookLabels(labels: Record<string, string>, family: WordbookFamily) {
+  if (family === 'vocabulary') return labels;
+  return {
+    ...labels,
+    wordbookFilter: labels.grammarbookFilter,
+    wordbookAll: labels.grammarbookAll,
+    wordbookManage: labels.grammarbookManage,
+    wordbookManageHint: labels.grammarbookManageHint,
+    wordbookNewName: labels.grammarbookNewName,
+    wordbookCreatePlaceholder: labels.grammarbookCreatePlaceholder,
+    wordbookRenameTitle: labels.grammarbookRenameTitle,
+    wordbookManageEmpty: labels.grammarbookManageEmpty,
+  };
 }
 
 function reviewItemTime(item: VocabItem) {
@@ -135,6 +151,7 @@ export function PracticeReviewPanel({
         kind: question.kind,
         selected: answers[question.id].selected,
         correct: answers[question.id].correct,
+        startedAt: answers[question.id].startedAt,
         answeredAt: answers[question.id].answeredAt ?? '',
         elapsedMs: answers[question.id].elapsedMs ?? 0,
       }));
@@ -148,7 +165,7 @@ export function PracticeReviewPanel({
     correct: reviewCorrectCount,
     wrong: reviewAnswers.length - reviewCorrectCount,
     accuracy: reviewAnswers.length ? reviewCorrectCount / reviewAnswers.length : 0,
-    elapsedMs: attempt?.summary?.elapsedMs ?? reviewAnswers.at(-1)?.elapsedMs ?? 0,
+    elapsedMs: attempt?.summary?.elapsedMs ?? reviewAnswers.reduce((sum, answer) => sum + (answer.elapsedMs ?? 0), 0),
   };
   const orderedAnswers = questions.flatMap((question) => {
     const answer = reviewAnswers.find((entry) => entry.questionId === question.id);
@@ -158,12 +175,12 @@ export function PracticeReviewPanel({
   const activeAnswer = orderedAnswers[activeIndex];
   const activeQuestion = activeAnswer ? questionMap.get(activeAnswer.questionId) : undefined;
   const activeAnswerCorrect = activeQuestion && activeAnswer ? activeAnswer.selected === activeQuestion.answer : false;
-  const genericPracticeTitle = practiceTitle
+  const genericPracticeTitle = !attempt?.title && practiceTitle
     ? /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)\s*(?:练习|練習|practice)?$/iu.test(practiceTitle.trim())
     : false;
   const reviewTitle = genericPracticeTitle
     ? activeQuestion?.title ?? practiceTitle ?? labels.reviewSummaryTitle
-    : practiceTitle ?? activeQuestion?.title ?? labels.reviewSummaryTitle;
+    : attempt?.title ?? practiceTitle ?? activeQuestion?.title ?? labels.reviewSummaryTitle;
   const showQuestionTitle = Boolean(activeQuestion?.title && activeQuestion.title !== reviewTitle);
   const answeredCount = orderedAnswers.length;
   const copy = locale === 'zh-CN'
@@ -209,7 +226,7 @@ export function PracticeReviewPanel({
           <article key={activeQuestion.id} className="attempt-review-question">
             {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion.title}</h2> : null}
             {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
-            <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} /></p>
+            <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {activeQuestion.choices.map((choice, index) => {
                 const correct = choice === activeQuestion.answer;
@@ -273,12 +290,10 @@ export function PracticePanel({
   onPrepareReview,
   onReview,
   analysisStatus,
-  wordbooks,
-  selectedWordbookId = 'all',
-  onWordbookChange,
+  loading = false,
 }: {
   activeQuestion?: Question;
-  questions: Question[];
+  questions: QuestionReference[];
   questionsLength: number;
   activeIndex: number;
   answeredCount: number;
@@ -298,11 +313,10 @@ export function PracticePanel({
   onPrepareReview: () => Promise<void>;
   onReview: () => void;
   analysisStatus: PracticeAttempt['analysisStatus'];
-  wordbooks?: Wordbook[];
-  selectedWordbookId?: string;
-  onWordbookChange?: (id: string) => void;
+  loading?: boolean;
 }) {
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
+  const [answerSheetPage, setAnswerSheetPage] = useState(0);
   const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewPreparing, setReviewPreparing] = useState(false);
@@ -348,7 +362,7 @@ export function PracticePanel({
   async function requestReview() {
     if (reviewPreparing) return;
     setReviewDialogOpen(true);
-    if (analysisStatus === 'processing' || analysisStatus === 'completed') return;
+    if (analysisStatus === 'completed') return;
     setReviewPreparing(true);
     try {
       await onPrepareReview();
@@ -412,7 +426,7 @@ export function PracticePanel({
       : [{ key: 'correct' as const, label: labels.practiceAnswered }]),
     { key: 'unanswered' as const, label: labels.practiceUnanswered },
   ];
-  const visibleAnswerSheetQuestions = questions
+  const visibleAnswerSheetQuestions = (answerSheetOpen ? questions : [])
     .map((question, index) => ({ question, index, answer: answers[question.id] }))
     .filter(({ index, answer }) => {
       if (answerSheetFilter === 'all') return true;
@@ -473,22 +487,17 @@ export function PracticePanel({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={() => { touchStartRef.current = null; }}
     >
+      {loading ? <p role="status" className="py-6 text-center">正在加载题目…</p> : null}
       <div className="practice-question-section">
         <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
           <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-            {wordbooks && onWordbookChange ? <label className="practice-wordbook-filter">
-              <span className="sr-only">{labels.wordbookFilter}</span>
-              <select aria-label={labels.wordbookFilter} value={selectedWordbookId} onChange={(event) => onWordbookChange(event.target.value)}>
-                <option value="all">{labels.wordbookAll}</option>
-                {wordbooks.filter((book) => book.deck !== 'grammar_expression').map((book) => <option key={book.id} value={book.id}>{book.title}</option>)}
-              </select>
-            </label> : null}
+
 
             {questionsLength > 1 ? <ArrowButton label={labels.prev} direction="left" shortcut="ArrowLeft" onClick={onPrev} /> : null}
             <button
               type="button"
-              onClick={() => setAnswerSheetOpen(true)}
+              onClick={() => { setAnswerSheetFilter('all'); setAnswerSheetPage(Math.floor(activeIndex / 100)); setAnswerSheetOpen(true); }}
               aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`}
               className="practice-progress-button flex min-h-10 min-w-24 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-2 py-1 text-[#a84269] transition hover:bg-[#ffe6ef] md:min-w-32 md:px-3"
             >
@@ -511,7 +520,7 @@ export function PracticePanel({
             <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
           ) : null}
           <p className={`${activeQuestion?.instruction ? 'mt-4' : 'mt-3'} break-words text-lg leading-8 text-[#3d3036]`}>
-            {activeQuestion ? <QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} /> : labels.noQuestionBody}
+            {activeQuestion ? <QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} /> : loading ? null : labels.noQuestionBody}
           </p>
         </div>
 
@@ -618,7 +627,7 @@ export function PracticePanel({
                     type="button"
                     key={option.key}
                     aria-pressed={active}
-                    onClick={() => setAnswerSheetFilter(option.key)}
+                    onClick={() => { setAnswerSheetFilter(option.key); setAnswerSheetPage(0); }}
                     className={`rounded-full border px-3 py-1 font-bold ${tone} ${active ? 'ring-2 ring-[#d95f8a] ring-offset-1' : ''}`}
                   >
                     {option.label}
@@ -626,8 +635,13 @@ export function PracticePanel({
                 );
               })}
             </div>
+            {visibleAnswerSheetQuestions.length > 100 ? <nav className="mt-3 flex items-center justify-between gap-3" aria-label="答题卡分页">
+              <button type="button" disabled={answerSheetPage === 0} onClick={() => setAnswerSheetPage((page) => page - 1)} className="rounded-xl border px-3 py-2 disabled:opacity-40">上一页</button>
+              <span>{answerSheetPage + 1} / {Math.ceil(visibleAnswerSheetQuestions.length / 100)}</span>
+              <button type="button" disabled={(answerSheetPage + 1) * 100 >= visibleAnswerSheetQuestions.length} onClick={() => setAnswerSheetPage((page) => page + 1)} className="rounded-xl border px-3 py-2 disabled:opacity-40">下一页</button>
+            </nav> : null}
             <div className="practice-answer-sheet-grid mt-3 grid grid-cols-5 gap-2">
-              {visibleAnswerSheetQuestions.map(({ question, index, answer }) => {
+              {visibleAnswerSheetQuestions.slice(answerSheetPage * 100, (answerSheetPage + 1) * 100).map(({ question, index, answer }) => {
                 const answered = Boolean(answer);
                 const current = index === activeIndex;
                 const resultClass = answerSheetShowsResults && answer
@@ -678,7 +692,7 @@ export function PracticePanel({
               </span>
               <div className="min-w-0 flex-1">
                 <h2 id="review-processing-title" className="text-lg font-black text-[#3d3036]">{labels.reviewProcessingTitle}</h2>
-                <p id="review-processing-description" className="mt-2 text-sm leading-6 text-[#74646b]">{labels.reviewProcessingNotice}</p>
+                <p id="review-processing-description" className="mt-2 text-sm leading-6 text-[#74646b]">{analysisStatus === 'completed' ? labels.analysisCompleted : reviewPreparing || analysisStatus === 'processing' ? labels.reviewProcessingNotice : labels.reviewRetryNotice}</p>
               </div>
               <button type="button" onClick={() => setReviewDialogOpen(false)} aria-label={labels.close} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#8f6f7b] hover:bg-[#fff0f5]">
                 <X size={19} />
@@ -690,6 +704,7 @@ export function PracticePanel({
               </p>
             ) : analysisStatus === 'completed' ? <p role="status" className="mt-4 rounded-2xl bg-[#f2fff6] px-4 py-3 text-xs font-bold text-[#285d47]">{labels.analysisCompleted}</p> : null}
             <div className="mt-5 grid gap-2.5">
+              {!reviewPreparing && analysisStatus !== 'processing' && analysisStatus !== 'completed' ? <button type="button" onClick={requestReview} className="cute-button-secondary min-h-12 rounded-2xl border px-4 text-sm font-bold">{labels.reviewRetry}</button> : null}
               <button type="button" onClick={() => runReviewDialogAction(onReview)} className="cute-button-primary flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-white">
                 <ScrollText size={18} /> {labels.reviewViewHistory}
               </button>
@@ -728,6 +743,7 @@ function AnswerPanel({
     return null;
   }
 
+  const explanationDetails = normalizePracticeExplanations(question);
   const sourceItem = items.find((item) => item.id === question.itemId);
   const needsHumanReview = sourceItem?.content_origin === 'ai_generated' && sourceItem.verification_status !== 'verified';
   const isCorrect = answer.selected === question.answer;
@@ -762,14 +778,14 @@ function AnswerPanel({
         <div className="answer-note-block">
           <p className="text-sm font-black text-[#27312c]">{labels.correctReasonLabel}</p>
           <p className="mt-2 text-sm leading-6 text-[#3f4944]">
-            <RubyText text={question.correctReason} items={items} enabled={showRuby} />
+            <RubyText text={explanationDetails.correctReason} items={items} enabled={showRuby} />
           </p>
         </div>
 
         <details open={compact ? undefined : true} className="answer-note-block">
           <summary className="cursor-pointer text-sm font-bold text-[#27312c]">{labels.choiceAnalysisLabel}</summary>
           <div className="answer-choice-analysis mt-3 grid gap-2">
-            {question.choiceAnalysis.map((choice) => {
+            {explanationDetails.choiceAnalysis.map((choice) => {
               const linkedItem = choice.correct ? sourceItem : itemForChoice(choice.choice, question.kind, items);
               const selected = choice.choice === answer.selected;
               return (
@@ -832,7 +848,7 @@ function EntryLink({ item, label, compact = false }: { item: VocabItem; label: s
   );
 }
 
-export function WordIndexPanel({ items, questions, answers, progress, labels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange }: {
+export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange }: {
   items: VocabItem[];
   questions: Question[];
   answers: AnswerState;
@@ -852,28 +868,32 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   onManageWordbooks?: () => void;
   onOpenPendingCaptures?: () => void;
   onSaveCapture?: (input: { body: string; category: LearningCaptureCategory; context?: string; targetDeck?: Deck; targetWordbookId?: string }) => Promise<void>;
-  onCreateWordbook?: (title: string) => Promise<Wordbook | null>;
+  onCreateWordbook?: (title: string, deck?: Deck) => Promise<Wordbook | null>;
   onWordbookChange?: (wordbookId: string) => void;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
   const [showCaptureForm, setShowCaptureForm] = useState(false);
-  const [showEntryLibrary, setShowEntryLibrary] = useState(!captureCategory || !['word', 'grammar'].includes(captureCategory));
+  // The library is always visible; the action bar above it replaces the old entry hub.
+  const showEntryLibrary = true;
   const [showFocusedPractice, setShowFocusedPractice] = useState(false);
   const [captureBody, setCaptureBody] = useState('');
   const [captureContext, setCaptureContext] = useState('');
-  const [targetWordbookId, setTargetWordbookId] = useState(defaultTargetDeck);
+  const [targetWordbookId, setTargetWordbookId] = useState<string>(defaultTargetDeck);
   const [newWordbookTitle, setNewWordbookTitle] = useState('');
   const [creatingWordbook, setCreatingWordbook] = useState(false);
   const [wordbookError, setWordbookError] = useState('');
   const [captureSaving, setCaptureSaving] = useState(false);
   const [captureSaved, setCaptureSaved] = useState(false);
-  const [selectedGrammarTag, setSelectedGrammarTag] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   const allTagValue = '__all__';
-  const vocabularyWordbooks = wordbooks.filter((wordbook) => wordbook.deck !== 'grammar_expression');
   const isGrammarLibrary = captureCategory === 'grammar';
   const isVocabularyLibrary = captureCategory === 'word';
   const showEntryHub = isGrammarLibrary || isVocabularyLibrary;
+  const labels = bookLabels(baseLabels, isGrammarLibrary ? 'grammar' : 'vocabulary');
+  // Both libraries share one design: the wordbooks offered here are the ones of the active family.
+  const libraryWordbooks = wordbooksForFamily(wordbooks, isGrammarLibrary ? 'grammar' : 'vocabulary');
+  const selectedWordbook = libraryWordbooks.find((wordbook) => wordbook.id === selectedWordbookId);
   const questionsByItem = useMemo(() => questions.reduce<Record<string, Question[]>>((groups, question) => {
     groups[question.itemId] = [...(groups[question.itemId] ?? []), question];
     return groups;
@@ -886,29 +906,22 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
     return (Object.entries(counts) as [QuestionKind, number][])
       .sort((left, right) => right[1] - left[1]);
   }, [questions]);
-  const grammarTagOptions = useMemo(() => {
-    if (captureCategory !== 'grammar') return [] as string[];
-    const tagSet = new Set<string>();
-    items.forEach((item) => itemTagList(item).filter(isUsefulGrammarTag).forEach((tag) => tagSet.add(tag)));
-    return Array.from(tagSet).sort((left, right) => left.localeCompare(right, locale));
-  }, [captureCategory, items, locale]);
-  const focusedContentOptions = useMemo(() => {
-    if (captureCategory !== 'grammar') return [] as { tag: string; count: number }[];
-    return grammarTagOptions
-      .map((tag) => ({
-        tag,
-        count: items.filter((item) => itemTagList(item).filter(isUsefulGrammarTag).includes(tag)).length,
-      }))
-      .filter((option) => option.count > 0)
-      .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag, locale))
-      .slice(0, 8);
-  }, [captureCategory, grammarTagOptions, items, locale]);
+  const tagOptions = useMemo(() => {
+    if (!showEntryHub) return [] as { tag: string; count: number }[];
+    const counts = new Map<string, number>();
+    items.forEach((item) => filterableTags(item).forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1)));
+    return [...counts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag, locale));
+  }, [showEntryHub, items, locale]);
+  const focusedContentOptions = useMemo(() => tagOptions.slice(0, 8), [tagOptions]);
+  const [listSearch, setListSearch] = useState('');
   const sortedItems = useMemo(() => {
-    const hasTagFilter = captureCategory === 'grammar' && selectedGrammarTag && selectedGrammarTag !== allTagValue;
+    const hasTagFilter = showEntryHub && selectedTag && selectedTag !== allTagValue;
     const baseItems = hasTagFilter
-      ? items.filter((item) => itemTagList(item).filter(isUsefulGrammarTag).includes(selectedGrammarTag))
+      ? items.filter((item) => filterableTags(item).includes(selectedTag))
       : items;
-    return [...baseItems].sort((left, right) => {
+    return baseItems.filter((item) => `${item.original} ${item.reading ?? ''} ${itemMeaning(item, locale)}`.toLocaleLowerCase().includes(listSearch.trim().toLocaleLowerCase())).sort((left, right) => {
       const leftQuestions = questionsByItem[left.id]?.length ?? 0;
       const rightQuestions = questionsByItem[right.id]?.length ?? 0;
       const leftAnswered = questionsByItem[left.id]?.filter((question) => answers[question.id]).length ?? 0;
@@ -925,43 +938,42 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
       if (sortKey === 'progress-asc') return leftProgress - rightProgress || fallback;
       return fallback;
     });
-  }, [answers, items, questionsByItem, selectedGrammarTag, sortKey]);
+  }, [answers, items, questionsByItem, selectedTag, showEntryHub, sortKey, listSearch, locale]);
   const pageCount = Math.max(1, Math.ceil(sortedItems.length / WORD_INDEX_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * WORD_INDEX_PAGE_SIZE;
   const pageItems = sortedItems.slice(pageStart, pageStart + WORD_INDEX_PAGE_SIZE);
-  const mobileList = useMobileList(sortedItems.length, JSON.stringify([captureCategory, selectedWordbookId, sortKey, selectedGrammarTag]), WORD_INDEX_PAGE_SIZE);
+  const mobileList = useMobileList(sortedItems.length, JSON.stringify([captureCategory, selectedWordbookId, sortKey, selectedTag, listSearch]), WORD_INDEX_PAGE_SIZE);
   const mobileVisibleCount = mobileList.visible;
   const mobileItems = sortedItems.slice(0, mobileVisibleCount);
   const pageEnd = pageStart + pageItems.length;
   const mobilePageEnd = Math.min(mobileVisibleCount, sortedItems.length);
-  const showTagFilteredEmpty = captureCategory === 'grammar' && selectedGrammarTag && selectedGrammarTag !== allTagValue && !sortedItems.length;
+  const showTagFilteredEmpty = showEntryHub && selectedTag && selectedTag !== allTagValue && !sortedItems.length;
 
   useEffect(() => {
     setPageIndex((index) => Math.min(index, pageCount - 1));
   }, [pageCount]);
 
   useEffect(() => {
-    if (captureCategory !== 'grammar') {
-      setSelectedGrammarTag('');
+    if (!showEntryHub) {
+      setSelectedTag('');
       return;
     }
-    if (!selectedGrammarTag || (selectedGrammarTag !== allTagValue && !grammarTagOptions.includes(selectedGrammarTag))) {
-      setSelectedGrammarTag(allTagValue);
+    if (!selectedTag || (selectedTag !== allTagValue && !tagOptions.some((option) => option.tag === selectedTag))) {
+      setSelectedTag(allTagValue);
     }
-  }, [captureCategory, selectedGrammarTag, grammarTagOptions, allTagValue]);
+  }, [showEntryHub, selectedTag, tagOptions, allTagValue]);
 
   useEffect(() => {
     setPageIndex(0);
-  }, [sortKey, selectedGrammarTag]);
+  }, [sortKey, selectedTag, selectedWordbookId]);
 
 
   useEffect(() => {
-    setTargetWordbookId(defaultTargetDeck);
-  }, [defaultTargetDeck]);
+    setTargetWordbookId(selectedWordbook?.id ?? defaultTargetDeck);
+  }, [defaultTargetDeck, selectedWordbook?.id]);
 
   useEffect(() => {
-    setShowEntryLibrary(!captureCategory || !['word', 'grammar'].includes(captureCategory));
     setShowFocusedPractice(false);
   }, [captureCategory]);
 
@@ -973,13 +985,13 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
     setCaptureSaving(true);
     setCaptureSaved(false);
     try {
-      const targetWordbook = vocabularyWordbooks.find((wordbook) => wordbook.id === targetWordbookId);
+      const targetWordbook = libraryWordbooks.find((wordbook) => wordbook.id === targetWordbookId);
       await onSaveCapture({
         body: captureBody.trim(),
         category: captureCategory,
         context: captureContext.trim() || labels.entryCaptureContextDefault,
-        targetDeck: captureCategory === 'word' ? targetWordbook?.deck ?? 'n1_vocab' : undefined,
-        targetWordbookId: captureCategory === 'word' ? targetWordbook?.id ?? 'n1_vocab' : undefined,
+        targetDeck: targetWordbook?.deck ?? defaultTargetDeck,
+        targetWordbookId: targetWordbook?.id ?? defaultTargetDeck,
       });
       setCaptureBody('');
       setCaptureContext('');
@@ -1001,7 +1013,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
     setCreatingWordbook(true);
     setWordbookError('');
     try {
-      const wordbook = await onCreateWordbook(newWordbookTitle.trim());
+      const wordbook = await onCreateWordbook(newWordbookTitle.trim(), isGrammarLibrary ? 'grammar_expression' : defaultTargetDeck);
       if (wordbook) {
         setTargetWordbookId(wordbook.id);
         setNewWordbookTitle('');
@@ -1014,64 +1026,20 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
   }
 
   return (
-    <section className={showEntryHub ? 'ledger-word-index ledger-entry-index min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
-      {showEntryHub && !showEntryLibrary ? (
-        <div className="ledger-entry-hub">
-          {!showFocusedPractice ? <>
-          <div className="ledger-section-hero ledger-entry-hub-heading">
-            <div>
-              <h2 className="ledger-entry-page-title">{isGrammarLibrary ? '选择语法训练' : '选择单词训练'}</h2>
-            </div>
-          </div>
-          <div className="ledger-entry-actions" aria-label={isGrammarLibrary ? '语法主要入口' : '单词主要入口'}>
-            {onPractice ? (
-              <button type="button" className="ledger-entry-action is-coral" onClick={() => onPractice({ kind: 'random' })}>
-                <RotateCcw size={22} aria-hidden="true" />
-                <span>开始练习</span>
-                <strong>{isGrammarLibrary ? '随机做一组语法题' : '随机做一组单词题'}</strong>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="ledger-entry-action is-blue"
-              onClick={() => { setShowFocusedPractice(true); setShowEntryLibrary(false); setShowCaptureForm(false); window.scrollTo({ top: 0 }); }}
-            >
-              <Target size={22} aria-hidden="true" />
-              <span>按题型练习</span>
-              <strong>{isGrammarLibrary ? '按题型或内容先选范围' : '按题型先选范围'}</strong>
-            </button>
-            {onTips ? (
-              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
-                <Lightbulb size={22} aria-hidden="true" />
-                <span>学习方法</span>
-                <strong>先看题型和解法提示</strong>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="ledger-entry-action is-ink"
-              onClick={() => { setShowEntryLibrary((value) => !value); setShowFocusedPractice(false); }}
-            >
-              <ExternalLink size={22} aria-hidden="true" />
-              <span>{isGrammarLibrary ? '语法笔记' : '单词本'}</span>
-              <strong>{isGrammarLibrary ? '查找学过的句型和例句' : '查找单词、读音和例句'}</strong>
-            </button>
-            {captureCategory && onSaveCapture ? (
-              <button
-                type="button"
-                className="ledger-entry-action is-green"
-                onClick={() => { setShowCaptureForm((value) => !value); setCaptureSaved(false); }}
-              >
-                <Plus size={22} aria-hidden="true" />
-                <span>{isGrammarLibrary ? '记一个句型' : '记一个单词'}</span>
-                <strong>{isGrammarLibrary ? '把今天看到的句型收进来' : '选择单词本后保存新词'}</strong>
-              </button>
-            ) : null}
-          </div>
-          </> : null}
+    <LearningListFrame className={showEntryHub ? 'ledger-word-index ledger-module-page min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
+      {showEntryHub ? (
+        <ModuleActionBar
+          label={isGrammarLibrary ? '语法' : '单词'}
+          primary={onPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
+          actions={[
+            { key: 'focused', label: '按题型练习', icon: <Target size={16} aria-hidden="true" />, active: showFocusedPractice, onClick: () => { setShowFocusedPractice((value) => !value); setShowCaptureForm(false); } },
+            ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
+            ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
+            ...(captureCategory && onSaveCapture ? [{ key: 'capture', label: isGrammarLibrary ? '记一个句型' : '记一个单词', icon: <Plus size={16} aria-hidden="true" />, active: showCaptureForm, onClick: () => { setShowCaptureForm((value) => !value); setShowFocusedPractice(false); setCaptureSaved(false); } }] : []),
+          ]}
+        >
           {showFocusedPractice ? (
             <div className="ledger-focused-practice-panel">
-              <button type="button" className="gentle-back" onClick={() => setShowFocusedPractice(false)}><ChevronLeft size={20} aria-hidden="true" />返回{isGrammarLibrary ? '语法' : '单词'}</button>
               <div>
                 <p>按题型练习</p>
                 <div className="ledger-focused-practice-options">
@@ -1086,77 +1054,82 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
               <div>
                 <p>按内容练习</p>
                 <div className="ledger-focused-practice-options">
-                  {isGrammarLibrary && focusedContentOptions.length ? focusedContentOptions.map((option) => (
-                    <button key={option.tag} type="button" onClick={() => onPractice?.({ kind: 'tag', tag: option.tag })}>
-                      <span>{option.tag}</span>
+                  {libraryWordbooks.length > 1 && onWordbookChange ? libraryWordbooks.slice(0, 8).map((wordbook) => (
+                    <button key={wordbook.id} type="button" onClick={() => { onWordbookChange(wordbook.id); setShowFocusedPractice(false); }}>
+                      <span>{wordbook.title}</span>
+                      <strong>{items.filter((item) => itemInWordbook(item, wordbook.id)).length} 项</strong>
+                    </button>
+                  )) : null}
+                  {focusedContentOptions.map((option) => (
+                    <button
+                      key={`tag:${option.tag}`}
+                      type="button"
+                      onClick={() => {
+                        if (isGrammarLibrary) { onPractice?.({ kind: 'tag', tag: option.tag }); return; }
+                        setSelectedTag(option.tag);
+                        setShowFocusedPractice(false);
+                      }}
+                    >
+                      <span>#{option.tag}</span>
                       <strong>{option.count} 项</strong>
                     </button>
-                  )) : isVocabularyLibrary && vocabularyWordbooks.length ? vocabularyWordbooks.slice(0, 8).map((wordbook) => (
-                    <button key={wordbook.id} type="button" onClick={() => { onWordbookChange?.(wordbook.id); setShowEntryLibrary(true); setShowFocusedPractice(false); }}>
-                      <span>{wordbook.title}</span>
-                      <strong>{items.filter((item) => item.wordbook_ids?.includes(wordbook.id) || (!item.wordbook_ids?.length && item.deck === wordbook.deck)).length} 项</strong>
-                    </button>
-                  )) : <span className="ledger-focused-empty">暂无可用分类</span>}
+                  ))}
+                  {!focusedContentOptions.length && !(libraryWordbooks.length > 1 && onWordbookChange) ? <span className="ledger-focused-empty">暂无可用分类</span> : null}
                 </div>
               </div>
             </div>
           ) : null}
-        </div>
+        </ModuleActionBar>
       ) : null}
-      <div className={`ledger-word-toolbar border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
+      <div className={showEntryLibrary ? "learning-list-controls" : undefined}>
+      {showEntryLibrary ? <LearningListHeader title={isGrammarLibrary ? (locale === 'zh-CN' ? '语法笔记' : locale === 'ja' ? '文法ノート' : 'Grammar') : (locale === 'zh-CN' ? '单词本' : locale === 'ja' ? '単語帳' : 'Wordbook')} count={`${sortedItems.length} ${labels.items}`} search={<LearningListSearch value={listSearch} locale={locale} label={locale === 'zh-CN' ? '查找当前列表' : locale === 'ja' ? 'リストを検索' : 'Search this list'} placeholder={locale === 'zh-CN' ? '搜索词语、读音或释义' : locale === 'ja' ? 'リストを検索' : 'Search this list'} onChange={(value) => { setListSearch(value); setPageIndex(0); }}/>} >
+        {showEntryHub && onManageWordbooks ? (
+          <button
+            type="button"
+            onClick={onManageWordbooks}
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]"
+          >
+            <Settings size={16} aria-hidden="true" />
+            <span>{labels.wordbookManage}</span>
+          </button>
+        ) : null}
+      </LearningListHeader> : null}
+      <details onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }} onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) event.currentTarget.open = false; }} className={`ledger-word-toolbar learning-list-more border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
+        <summary>{locale === 'zh-CN' ? '更多' : locale === 'ja' ? 'その他' : 'More'}</summary>
         <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3">
           <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
-            {showEntryHub ? (
-              <ModuleAction label="返回入口" onClick={() => { setShowEntryLibrary(false); setShowFocusedPractice(false); }}>
-                <ChevronLeft size={16} />
-              </ModuleAction>
-            ) : null}
-            {!showEntryHub && captureCategory && onSaveCapture ? (
-              <ModuleAction label={captureCategory === 'grammar' ? labels.entryAddGrammar : labels.entryAddWord} onClick={() => { setShowCaptureForm((value) => !value); setCaptureSaved(false); }}>
-                <Plus size={16} />
-              </ModuleAction>
-            ) : null}
             {!showEntryHub && onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
             {!showEntryHub && onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
             {!showEntryHub && onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
           </div>
           <div className="mobile-filter-row flex flex-wrap items-center gap-2">
-            {captureCategory === 'word' && onWordbookChange ? (
-              <label className="hidden min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e] md:flex">
+            {showEntryHub && onWordbookChange ? (
+              <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
                 <span className="shrink-0">{labels.wordbookFilter}</span>
                 <select
-                  value={selectedWordbookId}
+                  value={selectedWordbook ? selectedWordbookId : 'all'}
                   onChange={(event) => onWordbookChange(event.target.value)}
                   aria-label={labels.wordbookFilter}
                   className="h-9 max-w-56 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm font-semibold text-[#34443c] outline-none focus:border-[#24473f]"
                 >
                   <option value="all">{labels.wordbookAll}</option>
-                  {vocabularyWordbooks.map((wordbook) => (
+                  {libraryWordbooks.map((wordbook) => (
                     <option key={wordbook.id} value={wordbook.id}>{wordbook.title}</option>
                   ))}
                 </select>
               </label>
             ) : null}
-            {captureCategory === 'word' && onManageWordbooks ? (
-              <button
-                type="button"
-                onClick={onManageWordbooks}
-                className="h-9 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef]"
-              >
-                {labels.wordbookManage}
-              </button>
-            ) : null}
-            {captureCategory === 'grammar' && grammarTagOptions.length ? (
+            {showEntryHub && tagOptions.length ? (
               <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
                 <span className="shrink-0">{labels.entryTagFilter}</span>
                 <select
-                  value={selectedGrammarTag || allTagValue}
-                  onChange={(event) => setSelectedGrammarTag(event.target.value)}
+                  value={selectedTag || allTagValue}
+                  onChange={(event) => setSelectedTag(event.target.value)}
                   aria-label={labels.entryTagFilter}
                   className="h-9 max-w-56 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm font-semibold text-[#34443c] outline-none focus:border-[#24473f]"
                 >
                   <option value={allTagValue}>{labels.entryTagAll}</option>
-                  {grammarTagOptions.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                  {tagOptions.map((option) => <option key={option.tag} value={option.tag}>{option.tag} ({option.count})</option>)}
                 </select>
               </label>
             ) : null}
@@ -1185,6 +1158,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
             <span className="rounded-md bg-[#e8f0eb] px-3 py-1 text-sm font-semibold text-[#24473f]">{sortedItems.length} {labels.items}</span>
           </div>
         </div>
+      </details>
       </div>
       {showCaptureForm && captureCategory && onSaveCapture ? (
         <form onSubmit={saveCapture} className="grid gap-3 border-b border-[#e5ddd1] bg-[#fffafc] px-4 py-4 md:px-5">
@@ -1210,7 +1184,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
               className="mt-2 h-10 w-full rounded-md border border-[#e2c8d3] bg-white px-3 text-sm text-[#27312c] outline-none focus:border-[#d95f8a]"
             />
           </label>
-          {captureCategory === 'word' ? (
+          {showEntryHub ? (
             <label className="block text-sm font-semibold text-[#4b3b42]">
               {labels.entryAddTargetDeck}
               <select
@@ -1218,13 +1192,13 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
                 onChange={(event) => setTargetWordbookId(event.target.value)}
                 className="mt-2 h-10 w-full rounded-md border border-[#e2c8d3] bg-white px-3 text-sm text-[#27312c] outline-none focus:border-[#d95f8a]"
               >
-                {vocabularyWordbooks.map((wordbook) => (
+                {libraryWordbooks.map((wordbook) => (
                   <option key={wordbook.id} value={wordbook.id}>{wordbook.title}</option>
                 ))}
               </select>
             </label>
           ) : null}
-          {captureCategory === 'word' && onCreateWordbook ? (
+          {showEntryHub && onCreateWordbook ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 text-sm font-semibold text-[#4b3b42]">
                 {labels.wordbookNewName}
@@ -1252,118 +1226,10 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
       ) : null}
       {showEntryLibrary && sortedItems.length ? (
         <>
-        <div className="mobile-list md:hidden">
-          {mobileItems.map((item) => {
-            const itemProgress = progress[item.id];
-            return (
-              <button key={item.id} type="button" onClick={() => onOpen(item.id)} className="mobile-list-item mobile-list-link cute-focus" aria-label={`${labels.entryOpen}: ${item.original}`}>
-                <span className="mobile-list-main">
-                  <span className="mobile-list-title">{item.original}</span>
-                  {item.reading ? <span className="mobile-list-subtitle">{item.reading}</span> : null}
-                </span>
-                <span className="mobile-list-progress">
-                  <StatusPill status={itemProgress?.status ?? 'new'} labels={labels} />
-                </span>
-                <ChevronRight className="mobile-list-cue" size={18} aria-hidden="true" />
-              </button>
-            );
-          })}
-        </div>
-        <div className="hidden overflow-x-auto md:block md:overflow-x-visible">
-	          <table className="w-full min-w-[680px] table-fixed border-collapse text-left text-sm md:min-w-0">
-	            <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]">
-	              <tr>
-	                <th className="w-[26%] px-4 py-3">{labels.entryColumnItem}</th>
-	                <th className="w-[17%] px-3 py-3">{labels.entryColumnCreated}</th>
-	                <th className="w-[8%] px-3 py-3">{labels.entryColumnLevel}</th>
-	                <th className="w-[17%] px-3 py-3">{labels.entryColumnTags}</th>
-	                <th className="w-[8%] px-3 py-3">{labels.entryColumnQuestions}</th>
-	                <th className="w-[16%] px-3 py-3">{labels.entryColumnProgress}</th>
-	                <th className="w-[8%] px-3 py-3 text-right">
-	                  <span className="sr-only">{labels.entryOpen}</span>
-	                </th>
-	              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#ece4d8]">
-	              {pageItems.map((item) => {
-	                const itemQuestions = questionsByItem[item.id] ?? [];
-	                const itemAnswers = itemQuestions.filter((question) => answers[question.id]);
-	                const itemProgress = progress[item.id];
-                const tags = captureCategory === 'grammar' ? itemTagList(item).filter(isUsefulGrammarTag) : entryTags(item);
-                return (
-	                  <tr key={item.id} className="bg-white hover:bg-[#fbf8f2]">
-                    <td className="px-4 py-3 align-top">
-                      <button type="button" onClick={() => onOpen(item.id)} className="block min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]">
-                        <span className="block break-words text-base font-semibold text-[#173d35]">{item.original}</span>
-                        {item.reading ? <span className="mt-1 block text-xs font-semibold text-[#856033]">{item.reading}</span> : null}
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 align-top text-[#4d5751]">{formatDateTime(item.input_at ?? item.date, locale)}</td>
-	                    <td className="px-3 py-3 align-top">
-	                      <span className="rounded bg-[#f1eee8] px-2 py-1 text-xs font-semibold text-[#584f43]">{item.jlpt_level ?? '-'}</span>
-	                    </td>
-	                    <td className="px-3 py-3 align-top">
-	                      <div className="flex min-w-0 flex-wrap gap-1.5">
-	                        {tags.length ? tags.map((tag) => (
-	                          <span key={tag} className="max-w-full truncate rounded bg-[#e8f0eb] px-2 py-1 text-xs font-semibold text-[#31564c]" title={tag}>{tag}</span>
-	                        )) : <span className="text-xs font-semibold text-[#8a8175]">-</span>}
-	                      </div>
-	                    </td>
-	                    <td className="px-3 py-3 align-top font-semibold text-[#3f4b45]">
-	                      {itemQuestions.length}
-	                    </td>
-                    <td className="px-3 py-3 align-top text-[#3f4b45]">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="font-semibold">{itemQuestions.length ? `${itemAnswers.length}/${itemQuestions.length}` : labels.entryNoProgress}</span>
-                        <StatusPill status={itemProgress?.status ?? 'new'} labels={labels} />
-                      </div>
-                      {itemProgress?.nextReviewAt ? (
-                        <span className="mt-1 block break-words text-xs text-[#6c746f]">{labels.nextReview}: {formatDateTime(itemProgress.nextReviewAt, locale)}</span>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex justify-end gap-1">
-                        <IconAction label={`${labels.entryOpen}: ${item.original}`} title={labels.entryOpen} onClick={() => onOpen(item.id)}><ExternalLink size={16} /></IconAction>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e] md:px-5">
-          <span className="font-semibold">
-            <span className="md:hidden">{mobilePageEnd} / {sortedItems.length} {labels.items}</span>
-            <span className="hidden md:inline">{pageStart + 1}-{pageEnd} / {sortedItems.length} {labels.items}</span>
-          </span>
-          <div ref={mobileList.setSentinel} className="mobile-load-state md:hidden">
-            {mobilePageEnd >= sortedItems.length ? labels.mobileNoMore : null}
-          </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <button
-              type="button"
-              aria-label={labels.entryPagePrev}
-              title={labels.entryPagePrev}
-              disabled={currentPage === 0}
-              onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-            <button
-              type="button"
-              aria-label={labels.entryPageNext}
-              title={labels.entryPageNext}
-              disabled={currentPage >= pageCount - 1}
-              onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
+        <LearningList>{(mobileList.mobile ? mobileItems : pageItems).map((item) => <LearningListRow key={item.id} title={item.original} reading={item.reading} description={itemMeaning(item, locale)} statusKind={progress[item.id]?.status ?? "new"} status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew} locale={locale} onOpen={() => onOpen(item.id)}/>)}</LearningList>
+        {mobileList.mobile
+          ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd >= sortedItems.length ? labels.mobileNoMore : null}</div>
+          : <LearningListPagination page={currentPage} pages={pageCount} onChange={setPageIndex} summary={`${pageStart + 1}-${pageEnd} / ${sortedItems.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext}/>}
         </>
       ) : showEntryLibrary ? (
         <section className="cute-practice-card min-w-0 border border-dashed p-6">
@@ -1371,7 +1237,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels, lo
           <p className="mt-3 text-sm leading-7 text-[#74646b]">{showTagFilteredEmpty ? labels.entryNoFilteredItemsBody : labels.moduleEmptyBody}</p>
         </section>
       ) : null}
-    </section>
+    </LearningListFrame>
   );
 }
 
@@ -1392,17 +1258,41 @@ function IconAction({ label, title, children, onClick }: { label: string; title:
   );
 }
 
-export function WordbookManagerPanel({ labels, wordbooks, onRenameWordbook, onBack }: {
+export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, items = [], onCreateWordbook, onRenameWordbook, onShareWordbook, onBack }: {
   labels: Record<string, string>;
+  family: WordbookFamily;
   wordbooks: Wordbook[];
+  items?: VocabItem[];
+  onCreateWordbook?: (title: string, deck?: Deck) => Promise<Wordbook | null>;
   onRenameWordbook: (id: string, title: string) => Promise<Wordbook | null>;
+  onShareWordbook: (id: string, description: string) => Promise<void>;
   onBack: () => void;
 }) {
   const [editingWordbookId, setEditingWordbookId] = useState<string | null>(null);
   const [editingWordbookTitle, setEditingWordbookTitle] = useState('');
   const [renamingWordbook, setRenamingWordbook] = useState(false);
   const [renameWordbookError, setRenameWordbookError] = useState('');
-  const vocabularyWordbooks = wordbooks.filter((wordbook) => wordbook.deck !== 'grammar_expression');
+  const [newWordbookTitle, setNewWordbookTitle] = useState('');
+  const [creatingWordbook, setCreatingWordbook] = useState(false);
+  const [createWordbookError, setCreateWordbookError] = useState('');
+  const labels = bookLabels(baseLabels, family);
+  const familyWordbooks = wordbooksForFamily(wordbooks, family);
+  const isGrammar = family === 'grammar';
+
+  async function createWordbook(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!newWordbookTitle.trim() || creatingWordbook || !onCreateWordbook) return;
+    setCreatingWordbook(true);
+    setCreateWordbookError('');
+    try {
+      const wordbook = await onCreateWordbook(newWordbookTitle.trim(), isGrammar ? 'grammar_expression' : 'n1_vocab');
+      if (wordbook) setNewWordbookTitle('');
+    } catch (error) {
+      setCreateWordbookError(error instanceof Error ? error.message : labels.wordbookCreateFailed);
+    } finally {
+      setCreatingWordbook(false);
+    }
+  }
 
   function startRenamingWordbook(wordbook: Wordbook) {
     setEditingWordbookId(wordbook.id);
@@ -1441,11 +1331,27 @@ export function WordbookManagerPanel({ labels, wordbooks, onRenameWordbook, onBa
           </button>
         </div>
       </div>
-      <div className="grid gap-3 px-4 py-4 md:px-5">
-        {vocabularyWordbooks.length ? vocabularyWordbooks.map((wordbook) => (
-          <div key={wordbook.id} className="rounded-md border border-[#dce4de] bg-[#fbfdfb] px-3 py-3">
-            {editingWordbookId === wordbook.id ? (
-              <form onSubmit={renameWordbook} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {onCreateWordbook ? (
+        <form onSubmit={createWordbook} className="flex flex-col gap-2 border-b border-[#e5ddd1] px-4 py-4 sm:flex-row sm:items-end md:px-5">
+          <label className="min-w-0 flex-1 text-sm font-semibold text-[#4b3b42]">
+            {labels.wordbookNewName}
+            <input
+              value={newWordbookTitle}
+              onChange={(event) => setNewWordbookTitle(event.target.value)}
+              maxLength={60}
+              placeholder={labels.wordbookCreatePlaceholder}
+              className="mt-2 h-10 w-full rounded-md border border-[#d9d0c3] bg-white px-3 text-sm text-[#27312c] outline-none focus:border-[#24473f]"
+            />
+          </label>
+          <button type="submit" disabled={!newWordbookTitle.trim() || creatingWordbook} className="h-10 rounded-md bg-[#24473f] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-50">
+            {creatingWordbook ? labels.processing : labels.wordbookCreate}
+          </button>
+          {createWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{createWordbookError}</p> : null}
+        </form>
+      ) : null}
+      <div className="p-4">
+        <LearningList>{familyWordbooks.map((wordbook) => editingWordbookId === wordbook.id ? (
+<form key={wordbook.id} onSubmit={renameWordbook} className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   value={editingWordbookTitle}
                   onChange={(event) => setEditingWordbookTitle(event.target.value)}
@@ -1463,16 +1369,8 @@ export function WordbookManagerPanel({ labels, wordbooks, onRenameWordbook, onBa
                   </button>
                 </div>
               </form>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <span className="min-w-0 truncate text-base font-semibold text-[#34443c]">{wordbook.title}</span>
-                <button type="button" onClick={() => startRenamingWordbook(wordbook)} className="shrink-0 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#31564c] hover:bg-[#f7f4ef]">
-                  {labels.wordbookRename}
-                </button>
-              </div>
-            )}
-          </div>
-        )) : <p className="rounded-md border border-[#dce4de] bg-[#fbfdfb] px-3 py-3 text-sm text-[#68736d]">{labels.wordbookManageEmpty}</p>}
+        ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
+        {!familyWordbooks.length ? <p className="learning-list-empty">{labels.wordbookManageEmpty}</p> : null}
         {renameWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{renameWordbookError}</p> : null}
       </div>
     </section>
@@ -1504,6 +1402,8 @@ export function WordDetailPanel({
   showRuby,
   labels,
   locale,
+  wordbooks = [],
+  onOrganize,
   onShowRubyChange,
   onPrevious,
   onNext,
@@ -1515,6 +1415,8 @@ export function WordDetailPanel({
   showRuby: boolean;
   labels: Record<string, string>;
   locale: Locale;
+  wordbooks?: Wordbook[];
+  onOrganize?: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<VocabItem | null>;
   onShowRubyChange: (checked: boolean) => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -1570,6 +1472,75 @@ export function WordDetailPanel({
         labels={labels}
         locale={locale}
       />
+      {onOrganize ? <EntryOrganizer key={item.id} item={item} wordbooks={wordbooks} labels={labels} onOrganize={onOrganize} /> : null}
+    </section>
+  );
+}
+
+/** One wordbook per entry, any number of tags. */
+function EntryOrganizer({ item, wordbooks, labels: baseLabels, onOrganize }: {
+  item: VocabItem;
+  wordbooks: Wordbook[];
+  labels: Record<string, string>;
+  onOrganize: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<VocabItem | null>;
+}) {
+  const family = wordbookFamily(item.deck);
+  const labels = bookLabels(baseLabels, family);
+  const familyWordbooks = wordbooksForFamily(wordbooks, family);
+  const tags = itemTagList(item);
+  const [newTag, setNewTag] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save(input: { wordbookId?: string; tags?: string[] }) {
+    if (saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      await onOrganize(item.id, input);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : labels.entryOrganizeFailed);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function addTag(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const tag = newTag.trim();
+    if (!tag || tags.includes(tag)) { setNewTag(''); return; }
+    setNewTag('');
+    void save({ tags: [...tags, tag] });
+  }
+
+  const selectClass = 'h-9 max-w-64 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm font-semibold text-[#34443c] outline-none focus:border-[#24473f] disabled:opacity-60';
+  return (
+    <section className="mt-4 rounded-lg border border-[#e5ddd1] bg-white p-4" aria-label={labels.entryOrganize}>
+      <h3 className="text-sm font-black text-[#26352f]">{labels.entryOrganize}</h3>
+      <p className="mt-1 text-xs leading-5 text-[#68736d]">{labels.entryOrganizeHint}</p>
+      <label className="mt-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#59645e]">
+        <span className="shrink-0">{labels.wordbookFilter}</span>
+        <select value={itemWordbookId(item)} disabled={saving} onChange={(event) => void save({ wordbookId: event.target.value })} className={selectClass}>
+          {familyWordbooks.map((wordbook) => <option key={wordbook.id} value={wordbook.id}>{wordbook.title}</option>)}
+          {familyWordbooks.some((wordbook) => wordbook.id === itemWordbookId(item)) ? null : <option value={itemWordbookId(item)}>{itemWordbookId(item)}</option>}
+        </select>
+      </label>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-[#59645e]">{labels.entryTags}</span>
+        {tags.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-[#e8f0eb] py-1 pl-3 pr-1 text-sm font-semibold text-[#24473f]">
+            #{tag}
+            <button type="button" disabled={saving} aria-label={`${labels.entryTagRemove}: ${tag}`} onClick={() => void save({ tags: tags.filter((current) => current !== tag) })} className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-[#d5e3da] disabled:opacity-60">
+              <X size={14} aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+        <form onSubmit={addTag} className="flex items-center gap-1">
+          <input value={newTag} onChange={(event) => setNewTag(event.target.value)} maxLength={40} disabled={saving} placeholder={labels.entryTagAddPlaceholder} aria-label={labels.entryTagAdd} className="h-9 w-40 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm outline-none focus:border-[#24473f] disabled:opacity-60" />
+          <button type="submit" disabled={!newTag.trim() || saving} className="h-9 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef] disabled:opacity-50">{labels.entryTagAdd}</button>
+        </form>
+      </div>
+      {error ? <p role="alert" className="mt-2 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
     </section>
   );
 }

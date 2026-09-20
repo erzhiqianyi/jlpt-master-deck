@@ -2,15 +2,46 @@ import { itemAnalysis, itemMeaning, itemMemory } from './items';
 import { translations } from '../i18n/translations';
 import type { Deck, Locale, Question, QuestionKind, VocabItem } from '../types';
 
-export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
+export type QuestionReference = Pick<Question, 'id' | 'itemId' | 'kind'>;
+
+// Counting and navigation do not require choices or explanations.
+export function buildQuestionIndex(items: VocabItem[]): QuestionReference[] {
+  return items.flatMap((item) => {
+    if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
+      return item.practice_questions.flatMap((seed, index) => !seed.kind || seed.kind === 'grammar'
+        ? [{ id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`, itemId: item.id, kind: 'grammar' as const }] : []);
+    }
+    const seeded = (item.practice_questions ?? []).filter((seed) => seed.kind === 'moji_goi');
+    const result: QuestionReference[] = seeded.map((seed, index) => ({
+      id: seed.id ?? `${item.id}-moji-goi-seed-${index + 1}`, itemId: item.id, kind: 'moji_goi',
+    }));
+    const allowed = new Set(questionKindsForItem(item));
+    const suffixes = {
+      grammar: 'grammar-jlpt-v1', moji_goi: 'moji-goi-jlpt-v1', meaning: 'meaning-jlpt-v1',
+      kanji_to_kana: item.deck === 'name_reading' || item.type === 'proper_name' ? 'name-reading-v1' : 'kanji-to-kana-jlpt-v1',
+      kana_to_kanji: 'kana-to-kanji-jlpt-v1',
+    };
+    for (const kind of ['grammar', 'moji_goi', 'meaning', 'kanji_to_kana', 'kana_to_kanji'] as const) {
+      if (!allowed.has(kind) || (kind === 'moji_goi' && seeded.length)) continue;
+      if (kind === 'meaning' && !(item.paraphrase_ja ?? item.meaning_ja)) break;
+      if ((kind === 'kanji_to_kana' || kind === 'kana_to_kanji') && !item.reading) continue;
+      result.push({ id: `${item.id}-${suffixes[kind]}`, itemId: item.id, kind });
+    }
+    return result;
+  });
+}
+
+export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions = Infinity, selectedItemIds?: ReadonlySet<string>): Question[] {
   const labels = translations[locale];
   const questions: Question[] = [];
 
   items.forEach((item, index) => {
+    if (questions.length >= maxQuestions || (selectedItemIds && !selectedItemIds.has(item.id))) return;
     const allowedKinds = new Set(questionKindsForItem(item));
     const seededMojiGoiQuestions = (item.practice_questions ?? []).filter((seed) => seed.kind === 'moji_goi');
     if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
       item.practice_questions.forEach((seed, seedIndex) => {
+        if (questions.length >= maxQuestions) return;
         if (seed.kind && seed.kind !== 'grammar') return;
         questions.push(buildSeededGrammarQuestion(item, seed, seedIndex, locale, items));
       });
@@ -18,6 +49,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
     }
 
     seededMojiGoiQuestions.forEach((seed, seedIndex) => {
+      if (questions.length >= maxQuestions) return;
       questions.push(buildSeededMojiGoiQuestion(item, seed, seedIndex, locale));
     });
 
@@ -87,7 +119,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale): Question[] {
     }
   });
 
-  return questions;
+  return questions.slice(0, maxQuestions);
 }
 
 function questionKindsForItem(item: VocabItem): QuestionKind[] {

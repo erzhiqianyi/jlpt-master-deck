@@ -1,3 +1,5 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
@@ -62,76 +64,9 @@ function OfficialSampleIndex({ module, labels, locale, onOpen }: SharedProps & {
   const meta = officialModuleMeta[module];
   const localSamples = useLocalOfficialSamples(module);
   const samples = [...localSamples, ...samplesForModule(module)];
-  const [pageIndex, setPageIndex] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(samples.length / SAMPLE_INDEX_PAGE_SIZE));
-  const currentPage = Math.min(pageIndex, pageCount - 1);
-  const pageStart = currentPage * SAMPLE_INDEX_PAGE_SIZE;
-  const pageItems = samples.slice(pageStart, pageStart + SAMPLE_INDEX_PAGE_SIZE);
-  const pageEnd = pageStart + pageItems.length;
-
-  useEffect(() => {
-    setPageIndex((index) => Math.min(index, pageCount - 1));
-  }, [pageCount]);
-
   return (
     <section className="min-w-0">
-      <header className="border-b border-[#d7dfd6] pb-5">
-        <p className="text-sm font-semibold text-[#7d6032]">JLPT N1 · {labels.sampleOriginalBadge}</p>
-        <h1 className="mt-1 text-2xl font-semibold text-[#27312c]">{meta.title[locale]}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#68716b]">{meta.body[locale]}</p>
-        {localSamples.length ? <p className="mt-2 max-w-3xl text-xs leading-5 text-[#7a5a25]">{localOfficialNotice[locale]}</p> : null}
-
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#53605a]">
-          <span><strong className="text-[#27312c]">{meta.officialTypeCount}</strong> {labels.sampleOfficialTypeCount}</span>
-          <span>{meta.officialTiming[locale]}</span>
-          <span><strong className="text-[#27312c]">{samples.length}</strong> {labels.sampleIncludedCount}</span>
-        </div>
-      </header>
-
-      <div className="overflow-x-auto border-b border-[#dfe5dc] md:overflow-x-visible">
-        <table className="w-full min-w-[560px] table-fixed border-collapse text-left text-sm md:min-w-0">
-          <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]">
-            <tr>
-              <th className="w-[44%] px-4 py-3">{labels.questions}</th>
-              <th className="w-[26%] px-3 py-3">{labels.questionTypeQuestionForm}</th>
-              <th className="w-[22%] px-3 py-3">{labels.entryColumnCreated}</th>
-              <th className="w-[8%] px-4 py-3 text-right"><span className="sr-only">{labels.entryOpen}</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#dfe5dc]">
-            {pageItems.map((sample) => (
-              <tr key={sample.id} className="bg-white hover:bg-[#f7f9f5]">
-                <td className="px-4 py-3 align-top">
-                  <button type="button" onClick={() => onOpen(sample.id)} className="block min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#31564c]">
-                    <span className="block break-words text-base font-semibold text-[#27312c]">{sample.title[locale]}</span>
-                    <span className="mt-1 block break-words text-xs font-semibold text-[#7d6032]">{sample.officialName}</span>
-                    {sample.sourceKind === 'local_official' ? <span className="mt-1 block text-xs text-[#7a807b]">{sample.sourceLabel?.[locale]}</span> : null}
-                  </button>
-                </td>
-                <td className="px-3 py-3 align-top text-[#4f5b55]">{labels[`questionTypeSection_${sample.module}`]}</td>
-                <td className="px-3 py-3 align-top text-[#4f5b55]">{labels.sampleEstimatedMinutes.replace('{minutes}', String(sample.estimatedMinutes))}</td>
-                <td className="px-4 py-3 text-right align-top">
-                  <button type="button" aria-label={`${labels.entryOpen}: ${sample.title[locale]}`} title={labels.entryOpen} onClick={() => onOpen(sample.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#b9c9c1] bg-white text-[#24473f] hover:bg-[#f2f6f1]">
-                    <ExternalLink size={17} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e]">
-          <span className="font-semibold">{pageStart + 1}-{pageEnd} / {samples.length} {labels.questions}</span>
-          <div className="flex items-center gap-2">
-            <button type="button" aria-label={labels.entryPagePrev} title={labels.entryPagePrev} disabled={currentPage === 0} onClick={() => setPageIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-              <ChevronLeft size={18} />
-            </button>
-            <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-            <button type="button" aria-label={labels.entryPageNext} title={labels.entryPageNext} disabled={currentPage >= pageCount - 1} onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
+      <LearningCatalog title={meta.title[locale]} items={samples} locale={locale} notice={<>{meta.body[locale]} {localSamples.length ? localOfficialNotice[locale] : ''}</>} searchText={(sample) => `${sample.title[locale]} ${sample.officialName}`} renderRow={(sample) => <LearningListRow key={sample.id} title={sample.title[locale]} reading={sample.officialName} description={labels.sampleEstimatedMinutes.replace('{minutes}', String(sample.estimatedMinutes))} locale={locale} onOpen={() => onOpen(sample.id)}/>}/>
 
       <OfficialSourceFooter labels={labels} />
     </section>

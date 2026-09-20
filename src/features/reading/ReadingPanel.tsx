@@ -1,12 +1,17 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { ModuleActionBar } from '../../components/ModuleActionBar';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
-import { ChevronLeft, ChevronRight, Clipboard, ExternalLink, Lightbulb, Plus, RotateCcw, ScrollText, Sparkles, Target, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clipboard, Lightbulb, Plus, ScrollText, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Locale, ReadingQuestion, ReadingQuestionInput } from '../../types';
 
 const READING_LIBRARY_PAGE_SIZE = 8;
 
 type ReadingPanelProps = {
+  activeQuestionId?: string;
+  onBackToLibrary?: () => void;
   mode: 'practice' | 'library';
   labels: Record<string, string>;
   locale: Locale;
@@ -19,7 +24,7 @@ type ReadingPanelProps = {
   onReview?: () => void;
 };
 
-export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
+export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
   const [title, setTitle] = useState('');
   const [passage, setPassage] = useState('');
   const [question, setQuestion] = useState('');
@@ -30,7 +35,8 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showAiForm, setShowAiForm] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
+  // The library is always visible; the action bar above it replaces the old entry hub.
+  const showLibrary = true;
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
   const [pageIndex, setPageIndex] = useState(0);
@@ -47,6 +53,11 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
 
   if (mode === 'practice') {
     return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} onOpenLibrary={onOpenLibrary} />;
+  }
+
+  if (activeQuestionId) {
+    const item = questions.find((question) => question.id === activeQuestionId);
+    return <div className="space-y-4"><button type="button" onClick={onBackToLibrary} className="cute-focus rounded-full border px-4 py-2 text-sm">{labels.backToEntryList}</button>{item ? <ReadingQuestionItem key={item.id} item={item} labels={labels} locale={locale} onDelete={onDelete} /> : <p>{labels.noSearchResults}</p>}</div>;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -88,70 +99,17 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
   }
 
   return (
-    <section className="ledger-word-index ledger-entry-index min-w-0">
-      {!showLibrary ? (
-        <div className="ledger-entry-hub">
-          <div className="ledger-section-hero ledger-entry-hub-heading">
-            <div>
-              <h2 className="ledger-entry-page-title">选择阅读训练</h2>
-            </div>
-          </div>
-          <div className="ledger-entry-actions" aria-label="阅读主要入口">
-            {onPractice ? (
-              <button type="button" className="ledger-entry-action is-coral" onClick={onPractice}>
-                <RotateCcw size={22} aria-hidden="true" />
-                <span>开始练习</span>
-                <strong>按当前阅读题库顺序练一轮</strong>
-              </button>
-            ) : null}
-            {onTips ? (
-              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
-                <Lightbulb size={22} aria-hidden="true" />
-                <span>学习方法</span>
-                <strong>先看阅读题型和解法提示</strong>
-              </button>
-            ) : null}
-            <button type="button" className="ledger-entry-action is-ink" onClick={() => setShowLibrary(true)}>
-              <ExternalLink size={22} aria-hidden="true" />
-              <span>阅读材料</span>
-              <strong>打开文章、题目和解析列表</strong>
-            </button>
-            <button type="button" className="ledger-entry-action is-green" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }}>
-              {showAiForm ? <X size={22} aria-hidden="true" /> : <Sparkles size={22} aria-hidden="true" />}
-              <span>从链接准备练习</span>
-              <strong>请 AI 根据链接准备题目</strong>
-            </button>
-            <button type="button" className="ledger-entry-action is-blue" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }}>
-              {showForm ? <X size={22} aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
-              <span>添加阅读材料</span>
-              <strong>录入文章、题目和选项</strong>
-            </button>
-          </div>
-        </div>
-      ) : (
-      <div className="ledger-word-toolbar mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#e1e7df] px-4 py-4 md:px-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-[#27312c]">{labels.readingLibrary}</h2>
-          <p className="mt-1 text-sm text-[#68716b]">{questions.length} {labels.questions}</p>
-        </div>
-        <div className="mobile-action-row flex flex-wrap gap-2">
-          <button type="button" onClick={() => { setShowLibrary(false); setShowForm(false); setShowAiForm(false); setMessage(''); }} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b9c9c1] bg-white px-4 text-sm font-semibold text-[#24473f] hover:bg-[#f2f6f1]">
-            <ChevronLeft size={17} />
-            返回入口
-          </button>
-          <button type="button" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#b9c9c1] bg-white px-4 text-sm font-semibold text-[#24473f] hover:bg-[#f2f6f1]">
-            {showAiForm ? <X size={17} /> : <Sparkles size={17} />}
-            {showAiForm ? labels.mobileClose : labels.aiGenerateFromLink}
-          </button>
-          <button type="button" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }} className="inline-flex h-10 items-center gap-2 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white hover:bg-[#24473f]">
-            {showForm ? <X size={17} /> : <Plus size={17} />}
-            {showForm ? labels.mobileClose : labels.readingUploadTitle}
-          </button>
-        </div>
-      </div>
-      )}
-
-      {showLibrary ? <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} /> : null}
+    <section className="ledger-word-index ledger-module-page min-w-0">
+      <ModuleActionBar
+        label="阅读"
+        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: onPractice } : undefined}
+        actions={[
+          ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
+          ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
+          { key: 'ai', label: labels.aiGenerateFromLink, icon: <Sparkles size={16} aria-hidden="true" />, active: showAiForm, onClick: () => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); } },
+          { key: 'add', label: '添加阅读材料', icon: <Plus size={16} aria-hidden="true" />, active: showForm, onClick: () => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); } },
+        ]}
+      />
 
       {message ? <p role="status" className="border-b border-[#e1e7df] px-4 py-3 text-sm font-semibold text-[#5a654f] md:px-6">{message}</p> : null}
 
@@ -226,22 +184,7 @@ export function ReadingPanel({ mode, labels, locale, questions, onCreate, onDele
         </form>
       ) : null}
 
-      {showLibrary ? <div className="px-4 py-5 md:px-6">
-        {questions.length ? (
-          <>
-            <div className="grid gap-4">
-              {pageItems.map((item) => <ReadingQuestionItem key={item.id} item={item} labels={labels} locale={locale} onDelete={onDelete} />)}
-            </div>
-            {mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < questions.length ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
-            <div className="desktop-list-pagination mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e]">
-              <span className="font-semibold">{pageStart + 1}-{pageEnd} / {questions.length} {labels.questions}</span>
-              <Pagination labels={labels} currentPage={currentPage} pageCount={pageCount} setPageIndex={setPageIndex} />
-            </div>
-          </>
-        ) : (
-          <p className="text-sm leading-6 text-[#68716b]">{labels.readingEmpty}</p>
-        )}
-      </div> : null}
+      {showLibrary ? <LearningCatalog title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={questions} locale={locale} searchText={(item) => `${item.title} ${item.passage}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.passage} locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(item.id)}`; }}/>}/> : null}
     </section>
   );
 }
@@ -360,25 +303,6 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
   );
 }
 
-function LibraryActions({ labels, onPractice, onTips, onReview }: { labels: Record<string, string>; onPractice?: () => void; onTips?: () => void; onReview?: () => void }) {
-  if (!onPractice && !onTips && !onReview) return null;
-  return (
-    <div className="mobile-action-row flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-3 md:px-6">
-      {onPractice ? <LibraryAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></LibraryAction> : null}
-      {onTips ? <LibraryAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></LibraryAction> : null}
-      {onReview ? <LibraryAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></LibraryAction> : null}
-    </div>
-  );
-}
-
-function LibraryAction({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="inline-flex h-9 items-center gap-2 rounded-md border border-[#b9c9c1] bg-white px-3 text-sm font-semibold text-[#24473f] hover:bg-[#f2f6f1]">
-      {children}
-      <span>{label}</span>
-    </button>
-  );
-}
 
 function QuestionAction({ label, title, children, onClick, disabled }: { label: string; title: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
@@ -402,20 +326,6 @@ function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuest
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function Pagination({ labels, currentPage, pageCount, setPageIndex }: { labels: Record<string, string>; currentPage: number; pageCount: number; setPageIndex: (value: (index: number) => number) => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      <button type="button" aria-label={labels.entryPagePrev} title={labels.entryPagePrev} disabled={currentPage === 0} onClick={() => setPageIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-        <ChevronLeft size={18} />
-      </button>
-      <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-      <button type="button" aria-label={labels.entryPageNext} title={labels.entryPageNext} disabled={currentPage >= pageCount - 1} onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-        <ChevronRight size={18} />
-      </button>
     </div>
   );
 }

@@ -1,0 +1,36 @@
+.record-home { display: grid; gap: 28px; padding-top: 4px; }
+.record-home h2 { margin: 0; color: #304e43; font-size: 16px; font-weight: 650; }
+.record-home-today { padding: 24px; border-radius: 22px; background: #eaf3ed; border: 1px solid #dce8df; }
+.record-home-today header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.record-home-today header span { display: block; margin-bottom: 6px; font-size: 12px; color: #60776b; }
+.record-home-today header h2 { font-size: 20px; }
+.record-home-today button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #315c49; font-size: 13px; }
+.record-home-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 24px 0 0; }
+.record-home-stats > div { display: flex; flex-direction: column-reverse; gap: 5px; padding-left: 24px; border-left: 1px solid #cfdfd3; }
+.record-home-stats > div:first-child { padding-left: 0; border: 0; }
+.record-home-stats dt { color: #5b7164; font-size: 12px; }
+.record-home-stats dd { margin: 0; color: #294f3e; font-size: 34px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+.record-home-empty { margin: 18px 0 0; font-size: 13px; color: #5b7164; line-height: 1.6; }
+.record-home-review > h2, .record-home-materials > h2 { margin-bottom: 12px; }
+.record-home-review .navigation-grid { gap: 12px; }
+.record-home-review .navigation-card-open { min-height: 104px; }
+.record-home-total { margin: 12px 0 0; font-size: 12px; color: #68766d; }
+.record-home-links { border-top: 1px solid #dce4dd; }
+.record-home-links a { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 12px 4px; color: #496655; border-bottom: 1px solid #dce4dd; text-decoration: none; }
+.record-home-links a > span { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.record-home-links strong { font-size: 15px; font-weight: 600; }
+.record-home-links small { color: #68766d; font-size: 12px; }
+.record-home-links a:hover { background: #eef4ef; }
+.record-home a:focus-visible, .record-home button:focus-visible { outline: 2px solid #3e7758; outline-offset: 4px; }
+@media (max-width: 640px) {
+  .record-home { gap: 24px; }
+  .record-home-today { padding: 20px; }
+  .record-home-stats > div { padding-left: 16px; }
+  .record-home-stats dd { font-size: 30px; }
+  .record-home-review .navigation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .record-home-review .navigation-card-open { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 12px; padding: 16px; min-height: 150px; }
+  .record-home-review .navigation-card-icon { width: 32px; height: 32px; border-radius: 0; background: transparent; }
+  .record-home-review .navigation-card-copy strong { font-size: 15px; }
+  .record-home-review .navigation-card-copy small { font-size: 12px; line-height: 1.6; }
+  .record-home-review .navigation-card-open > svg { position: absolute; top: 23px; right: 14px; width: 16px; }
+}

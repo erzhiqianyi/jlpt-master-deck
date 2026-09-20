@@ -1,13 +1,18 @@
-import { ArrowLeft, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
+import { ArrowLeft, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
+import { wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
 
 export type MobileStudyPanel = 'task' | 'filter' | null;
 
 type NavItem = { view: AppView; label: string };
-type RouteNavItem = NavItem & { page?: StudyPage; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
+type RouteNavItem = NavItem & { page?: StudyPage; itemId?: string; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
 
-export function MobileAppHeader({ title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+export function MobileAppHeader({ onSearch, searchLabel, filterLabel, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+  onSearch?: () => void;
+  searchLabel?: string;
+  filterLabel?: string;
+  onHeaderFilter?: () => void;
   title: string;
   backLabel: string;
   showBack: boolean;
@@ -25,7 +30,7 @@ export function MobileAppHeader({ title, backLabel, showBack, onBack, navOpen, n
   filterActionAriaLabel?: string;
   onFilterAction?: () => void;
 }) {
-  if (!showBack && !onNavToggle) {
+  if (!showBack && !onNavToggle && !onSearch && !onHeaderFilter) {
     return null;
   }
 
@@ -43,6 +48,8 @@ export function MobileAppHeader({ title, backLabel, showBack, onBack, navOpen, n
           {title}
         </h1>
         <div className="flex min-w-0 items-center justify-end gap-1">
+          {onHeaderFilter ? <button type="button" onClick={onHeaderFilter} aria-label={`单词本筛选：${filterLabel}`} className="cute-focus flex h-10 min-w-0 max-w-full items-center gap-1 rounded-full px-2 text-[#a84269]"><Filter size={18} className="shrink-0" /><span className="truncate text-sm">{filterLabel}</span></button> : null}
+          {onSearch ? <button type="button" onClick={onSearch} aria-label={searchLabel} className="cute-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#a84269]"><Search size={21} /></button> : null}
           {onAction && actionLabel ? (
             <button type="button" onClick={onAction} aria-label={actionLabel} title={actionLabel} className="flex h-10 w-10 items-center justify-center rounded-full text-[#a84269] hover:bg-[#fff0f5]">
               <LogOut size={20} />
@@ -123,7 +130,7 @@ export function MobileHeader({
       </div>
 
       {panel ? (
-        <div className="cute-shell fixed inset-0 z-50 overflow-y-auto md:hidden" role="dialog" aria-modal="true" aria-label={panel === 'search' ? labels.searchOpen : labels.mobileNavigation}>
+        <div className="cute-shell fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-label={panel === 'search' ? labels.searchOpen : labels.mobileNavigation}>
           <div className="mx-auto min-h-full w-full max-w-lg px-4 pb-10">
             <header className="flex h-16 items-center justify-between border-b border-[#f0d4dd]">
               <div>
@@ -157,6 +164,7 @@ export function MobileStudyControls({
   selectedWordbookId,
   allowDeckFilter,
   allowWordbookFilter,
+  wordbookFamily = 'vocabulary',
   allowWords,
   wordsLabel,
   panel,
@@ -173,6 +181,7 @@ export function MobileStudyControls({
   selectedWordbookId: string;
   allowDeckFilter: boolean;
   allowWordbookFilter: boolean;
+  wordbookFamily?: WordbookFamily;
   allowWords: boolean;
   wordsLabel?: string;
   panel: MobileStudyPanel;
@@ -187,7 +196,7 @@ export function MobileStudyControls({
     ...(allowWords ? [{ value: 'words' as const, label: wordsLabel ?? labels.wordPage }] : []),
     { value: 'review', label: labels.reviewPage },
   ];
-  const vocabularyWordbooks = wordbooks.filter((wordbook) => wordbook.deck !== 'grammar_expression');
+  const familyWordbooks = wordbooksForFamily(wordbooks, wordbookFamily);
   useEffect(() => {
     document.body.style.overflow = panel ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -196,7 +205,7 @@ export function MobileStudyControls({
   return (
     <>
       {panel ? (
-        <div className="cute-shell fixed inset-0 z-50 overflow-y-auto md:hidden" role="dialog" aria-modal="true">
+        <div className="cute-shell fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="mx-auto min-h-full w-full max-w-lg px-4 pb-10">
             <header className="flex h-16 items-center justify-between border-b border-[#f0d4dd]">
               <h2 className="text-lg font-semibold text-[#3d3036]">{panel === 'task' ? labels.mobileSwitchTask : labels.filters}</h2>
@@ -219,7 +228,7 @@ export function MobileStudyControls({
                     <section className="py-3">
                       <p className="px-1 pb-2 text-xs font-bold text-[#8f6f7b]">{labels.wordbookFilter}</p>
                       <SheetChoice active={selectedWordbookId === 'all'} label={labels.wordbookAll} onClick={() => onWordbookChange('all')} />
-                      {vocabularyWordbooks.map((wordbook) => (
+                      {familyWordbooks.map((wordbook) => (
                         <SheetChoice
                           key={wordbook.id}
                           active={selectedWordbookId === wordbook.id}
@@ -239,6 +248,24 @@ export function MobileStudyControls({
   );
 }
 
+export function DesktopPageHeader({ title, labels, onBack, onSearch, showBack, filterLabel, onHeaderFilter }: {
+  title: string;
+  labels: Record<string, string>;
+  onBack: () => void;
+  onSearch?: () => void;
+  filterLabel?: string;
+  onHeaderFilter?: () => void;
+  showBack: boolean;
+}) {
+  return (
+    <header className="workspace-topbar">
+      {showBack ? <button type="button" className="workspace-back cute-focus" onClick={onBack} aria-label={labels.mobileBack ?? '返回上一页'} title="返回上一页"><ArrowLeft size={20} /></button> : null}
+      <h1 className="workspace-page-title">{title}</h1>
+      {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`单词本筛选：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button>}
+    </header>
+  );
+}
+
 export function DesktopSidebarNavigation({ brand, items, route, labels, username, collapsed, mobileOpen, onNavigate, onSettings, onLogout, onToggle, onMobileClose }: {
   brand: string;
   items: RouteNavItem[];
@@ -247,7 +274,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
   username: string;
   collapsed: boolean;
   mobileOpen?: boolean;
-  onNavigate: (view: AppView, page?: StudyPage) => void;
+  onNavigate: (view: AppView, page?: StudyPage, itemId?: string) => void;
   onSettings: () => void;
   onLogout: () => void;
   onToggle: () => void;
@@ -255,9 +282,8 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
 }) {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   let previousGroup: RouteNavItem['group'] | undefined;
-  const showSidebarBack = !isFirstLevelRoute(route, items);
-  const navigateFromSidebar = (view: AppView, page?: StudyPage) => {
-    onNavigate(view, page);
+  const navigateFromSidebar = (view: AppView, page?: StudyPage, itemId?: string) => {
+    onNavigate(view, page, itemId);
     if (mobileOpen && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
       onMobileClose?.();
     }
@@ -280,13 +306,11 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
     <aside className={`desktop-sidebar flex ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : 'is-mobile-closed'}`} aria-label={labels.mobileNavigation}>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="desktop-sidebar-header">
-          {showSidebarBack ? (
-            <button type="button" onClick={() => window.history.back()} className="desktop-sidebar-brand cute-focus" aria-label={labels.back ?? "返回上一页"} title={labels.back ?? "返回上一页"}>
-              <span className="desktop-sidebar-brand-mark"><ChevronLeft size={34} strokeWidth={2.8} /></span>
-              <span className="desktop-sidebar-text">{brand}</span>
-            </button>
-          ) : null}
-          <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? labels.mobileMenu : labels.mobileClose} title={collapsed ? labels.mobileMenu : labels.mobileClose}>
+          <button type="button" onClick={() => navigateFromSidebar('home')} className="workspace-brand cute-focus" aria-label={`${brand} · ${labels.navTaskHome ?? labels.navHome}`} title={brand}>
+            <img src="/jlpt-logo.svg" width="40" height="40" alt="" />
+            <span className="workspace-brand-name"><strong>JLPT</strong><span>Master Deck</span></span>
+          </button>
+          <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} title={collapsed ? '展开导航' : '收起导航'}>
             {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
@@ -308,19 +332,28 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                   </p>
                 ) : null}
                 {hasChildren ? (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedItems((current) => ({ ...current, [itemKey]: !(current[itemKey] ?? active) }))}
-                    aria-current={active ? 'page' : undefined}
-                    aria-expanded={expanded}
-                    aria-label={item.label}
-                    title={collapsed ? item.label : undefined}
-                    className={`desktop-sidebar-parent cute-focus ${active ? 'is-active' : ''}`}
-                  >
-                    <span className="desktop-sidebar-icon"><Icon size={18} strokeWidth={2.2} /></span>
-                    <span className="desktop-sidebar-text">{item.label}</span>
-                    <ChevronRight size={16} className="desktop-sidebar-disclosure" aria-hidden="true" />
-                  </button>
+                  <div className={`desktop-sidebar-parent-row ${active ? 'is-active' : ''}`}>
+                    <button
+                      type="button"
+                      onClick={() => { navigateFromSidebar(item.view, item.page, item.itemId); setExpandedItems({ [itemKey]: true }); }}
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={item.label}
+                      title={collapsed ? item.label : undefined}
+                      className={`desktop-sidebar-parent cute-focus ${active ? 'is-active' : ''}`}
+                    >
+                      <span className="desktop-sidebar-icon"><Icon size={18} strokeWidth={2.2} /></span>
+                      <span className="desktop-sidebar-text">{item.label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedItems((current) => ({ ...current, [itemKey]: !(current[itemKey] ?? active) }))}
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? '收起' : '展开'}${item.label}`}
+                      className="desktop-sidebar-disclosure cute-focus"
+                    >
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -342,7 +375,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                         <div key={`${child.view}-${child.page ?? 'index'}`} className="desktop-sidebar-subgroup">
                           <button
                             type="button"
-                            onClick={() => navigateFromSidebar(child.view, child.page)}
+                            onClick={() => navigateFromSidebar(child.view, child.page, child.itemId)}
                             aria-current={childActive && !child.children?.some((grandchild) => isRouteItemActive(grandchild, route)) ? 'page' : undefined}
                             title={collapsed ? child.label : undefined}
                             className={`desktop-sidebar-subitem cute-focus ${childActive ? 'is-active' : ''}`}
@@ -358,7 +391,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                                   <button
                                     key={`${grandchild.view}-${grandchild.page ?? 'index'}`}
                                     type="button"
-                                    onClick={() => navigateFromSidebar(grandchild.view, grandchild.page)}
+                                    onClick={() => navigateFromSidebar(grandchild.view, grandchild.page, grandchild.itemId)}
                                     aria-current={grandchildActive ? 'page' : undefined}
                                     title={collapsed ? grandchild.label : undefined}
                                     className={`desktop-sidebar-page-item cute-focus ${grandchildActive ? 'is-active' : ''}`}
@@ -393,13 +426,6 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
   );
 }
 
-function isFirstLevelRoute(route: AppRoute, items: RouteNavItem[]) {
-  if (route.itemId) {
-    return false;
-  }
-  return items.some((item) => item.view === route.view && !item.page);
-}
-
 function isRouteItemActive(item: RouteNavItem, route: AppRoute) {
   if (item.children?.some((child) => isRouteItemActive(child, route))) {
     return true;
@@ -407,6 +433,9 @@ function isRouteItemActive(item: RouteNavItem, route: AppRoute) {
   const viewActive = route.view === item.view || Boolean(item.activeViews?.includes(route.view));
   if (!viewActive) {
     return false;
+  }
+  if (item.itemId) {
+    return route.itemId === item.itemId || Boolean(route.itemId?.startsWith(`${item.itemId}/`));
   }
   return !item.page || route.page === item.page;
 }
@@ -557,6 +586,10 @@ function mobileNavIcon(view: AppView) {
       return Shuffle;
     case 'settings':
       return UserRound;
+    case 'market':
+      return Compass;
+    case 'about':
+      return Bot;
     default:
       return FileText;
   }

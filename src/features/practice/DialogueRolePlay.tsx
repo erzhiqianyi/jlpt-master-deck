@@ -47,14 +47,14 @@ export function DialogueRolePlay({ item, sceneIndex }: { item: DialoguePractice;
     <div className="mt-5 min-w-0">
       {!simulating ? (
         <div className="dialogue-study-content">
-          <section className="dialogue-study-overview" aria-label="场景要点">
+          <section className="dialogue-study-overview" aria-label="场景要点" style={guide.illustration ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
             <div>
               <p className="dialogue-study-lead">{dialogueSummaries[item.id]}</p>
               <p className="dialogue-study-register"><span>语体</span>{new Set(guide.roles.map((entry) => entry.register)).size === 1
                 ? `双方用${registers.find((register) => register.value === guide.roles[0].register)!.label}`
                 : guide.roles.map((entry) => `${entry.name}：${registers.find((register) => register.value === entry.register)!.label}`).join('；')}</p>
             </div>
-            <div role="img" aria-label={guide.illustration} className="dialogue-study-illustration" style={{ aspectRatio: '3 / 4', backgroundImage: 'url(/images/dialogue-scenes.png)', backgroundSize: '400% 200%', backgroundPosition: `${(sceneIndex % 4) * 100 / 3}% ${Math.floor(sceneIndex / 4) * 100}%` }} />
+            {guide.illustration && <div role="img" aria-label={guide.illustration} className="dialogue-study-illustration" style={{ aspectRatio: '3 / 4', backgroundImage: 'url(/images/dialogue-scenes.png)', backgroundSize: '400% 200%', backgroundPosition: `${(sceneIndex % 4) * 100 / 3}% ${Math.floor(sceneIndex / 4) * 100}%` }} />}
           </section>
           <details className="dialogue-study-details">
             <summary>场景与表达说明</summary>
@@ -88,8 +88,8 @@ export function DialogueRolePlay({ item, sceneIndex }: { item: DialoguePractice;
             <label>我扮演<select aria-label="选择模拟角色" value={roleName} onChange={(event) => changeRole(event.target.value)}>{guide.roles.map((entry) => <option key={entry.name}>{entry.name}</option>)}</select></label>
           </header>
           <div className="dialogue-chat-context">
-            <div role="img" aria-label={guide.illustration} style={{ aspectRatio: '3 / 4', backgroundImage: 'url(/images/dialogue-scenes.png)', backgroundSize: '400% 200%', backgroundPosition: `${(sceneIndex % 4) * 100 / 3}% ${Math.floor(sceneIndex / 4) * 100}%` }} />
-            <div><strong>{guide.roles.filter((entry) => entry.name !== roleName).map((entry) => entry.name).join('、')} 与你对话</strong><p>{registers.find((entry) => entry.value === role.register)!.label} · {visibleCount} / {item.turns.length} 句</p><small>对方按参考台词接话，轮到你时停下。</small></div>
+            {guide.illustration && <div role="img" aria-label={guide.illustration} style={{ aspectRatio: '3 / 4', backgroundImage: 'url(/images/dialogue-scenes.png)', backgroundSize: '400% 200%', backgroundPosition: `${(sceneIndex % 4) * 100 / 3}% ${Math.floor(sceneIndex / 4) * 100}%` }} />}
+            <div style={guide.illustration ? undefined : { width: 'auto', flexShrink: 1 }}><strong>{guide.roles.filter((entry) => entry.name !== roleName).map((entry) => entry.name).join('、')} 与你对话</strong><p>{registers.find((entry) => entry.value === role.register)!.label} · {visibleCount} / {item.turns.length} 句</p><small>对方按参考台词接话，轮到你时停下。</small></div>
           </div>
           <div className="dialogue-chat-messages" ref={chatRef} role="log" aria-label="模拟对话记录" aria-live="polite" tabIndex={0}>
             <p className="dialogue-chat-start">对话开始</p>

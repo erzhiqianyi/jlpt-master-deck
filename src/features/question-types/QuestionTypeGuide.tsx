@@ -1,3 +1,5 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ChevronLeft, ChevronRight, ExternalLink, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { officialN1QuestionTypes, type QuestionTypeSection } from '../../data/questionTypes';
@@ -144,80 +146,8 @@ export function QuestionTypeGuide({ labels, locale, customTips, customTipEntries
         </div>
       ) : null}
 
-      <div className="min-w-0">
-        <div className="mobile-list border-b border-[#dfe5dc] md:hidden">
-          {mobileItems.map((item) => (
-            <button key={item.id} type="button" onClick={() => onOpen(item.id)} className="mobile-list-item mobile-list-link cute-focus" aria-label={`${labels.entryOpen}: ${item.title}`}>
-              <span className="mobile-list-main">
-                <span className="mobile-list-title">{item.title}</span>
-                <span className="mobile-list-subtitle">{item.subtitle}</span>
-              </span>
-              <span className="mobile-list-note line-clamp-3">{item.tip}</span>
-              <span className="mobile-list-tags">
-                <span className={`rounded px-2 py-1 text-xs font-semibold ${item.statusClassName}`}>{item.status}</span>
-              </span>
-              <ChevronRight className="mobile-list-cue" size={18} aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e] md:hidden">
-          <span className="font-semibold">{mobilePageEnd} / {visibleTypes.length} {labels.questionType}</span>
-          <div ref={mobileLoadMoreRef} className="mobile-load-state">
-            {mobilePageEnd >= visibleTypes.length ? labels.mobileNoMore : null}
-          </div>
-        </div>
-        <div className="hidden min-w-0 overflow-x-auto border-b border-[#dfe5dc] md:block md:overflow-x-visible">
-          <table className="w-full min-w-[560px] table-fixed border-collapse text-left text-sm md:min-w-0">
-            <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]">
-              <tr>
-                <th className="w-[32%] px-4 py-3">{labels.questionType}</th>
-                <th className="w-[42%] px-3 py-3">{labels.questionTypeTipPreview}</th>
-                <th className="w-[18%] px-3 py-3">{labels.entryColumnStatus}</th>
-                <th className="w-[8%] px-4 py-3 text-right"><span className="sr-only">{labels.entryOpen}</span></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#dfe5dc]">
-              {pageItems.map((item) => {
-                return (
-                  <tr key={item.id} className="bg-white hover:bg-[#f7f9f5]">
-                    <td className="px-4 py-3 align-top">
-                      <button type="button" onClick={() => onOpen(item.id)} className="block min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#31564c]">
-                        <span className="block break-words text-base font-semibold text-[#27312c]">{item.title}</span>
-                        <span className="mt-1 block break-words text-xs font-semibold text-[#7d6032]">{item.subtitle}</span>
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 align-top text-[#4f5b55]">
-                      <button type="button" onClick={() => onOpen(item.id)} className="line-clamp-2 text-left text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#31564c]">
-                        {item.tip}
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 align-top">
-                      <span className={`rounded px-2 py-1 text-xs font-semibold ${item.statusClassName}`}>{item.status}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right align-top">
-                      <button type="button" aria-label={`${labels.entryOpen}: ${item.title}`} title={labels.entryOpen} onClick={() => onOpen(item.id)} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#b9c9c1] bg-white text-[#24473f] hover:bg-[#f2f6f1]">
-                        <ExternalLink size={17} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e]">
-            <span className="font-semibold">{pageStart + 1}-{pageEnd} / {visibleTypes.length} {labels.questionType}</span>
-            <div className="flex items-center gap-2">
-              <button type="button" aria-label={labels.entryPagePrev} title={labels.entryPagePrev} disabled={currentPage === 0} onClick={() => setPageIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronLeft size={18} />
-              </button>
-              <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-              <button type="button" aria-label={labels.entryPageNext} title={labels.entryPageNext} disabled={currentPage >= pageCount - 1} onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LearningCatalog title={labels[`questionTypeSection_${selectedSection}`]} items={visibleTypes} locale={locale} searchText={(item) => `${item.title} ${item.subtitle} ${item.tip}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} reading={item.subtitle} description={item.tip} status={item.status} locale={locale} onOpen={() => onOpen(item.id)}/>}/>
+
     </section>
   );
 }

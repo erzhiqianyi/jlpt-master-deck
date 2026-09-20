@@ -1,4 +1,5 @@
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound } from 'lucide-react';
+import { NavigationCard } from '../../components/NavigationCard';
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { configurableMemoryCardFields, type MemoryCardField } from '../../domain/memoryCards';
 import type { DisplaySettings, Locale } from '../../types';
@@ -7,6 +8,7 @@ type SettingsViewProps = {
   labels: Record<string, string>;
   settings: DisplaySettings;
   username: string;
+  authToken: string;
   activeSection?: string;
   onOpenSection?: (section: SettingsSectionId) => void;
   onLogout: () => void;
@@ -21,6 +23,8 @@ type SettingsCopy = {
   practiceExperience: string;
   feedbackTiming: string;
   profileEdit: string;
+  connectedAgents: string;
+  connectedAgentsHint: string;
   learningLanguage: string;
   nativeLanguage: string;
 };
@@ -32,6 +36,8 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     practiceExperience: '练习体验',
     feedbackTiming: '反馈时机',
     profileEdit: '学习档案',
+    connectedAgents: '已连接的 Agent',
+    connectedAgentsHint: 'MCP · OAuth 授权 · 断开连接',
     learningLanguage: '学习 日本语',
     nativeLanguage: '母语 中文',
   },
@@ -41,6 +47,8 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     practiceExperience: '練習体験',
     feedbackTiming: 'フィードバックのタイミング',
     profileEdit: '学習プロフィール',
+    connectedAgents: '接続済みエージェント',
+    connectedAgentsHint: 'MCP · OAuth 認可 · 接続解除',
     learningLanguage: '学習 日本語',
     nativeLanguage: '母語 中国語',
   },
@@ -50,45 +58,47 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     practiceExperience: 'Practice Experience',
     feedbackTiming: 'Feedback Timing',
     profileEdit: 'Learning Profile',
+    connectedAgents: 'Connected Agents',
+    connectedAgentsHint: 'MCP · OAuth consent · Disconnect',
     learningLanguage: 'Learning Japanese',
     nativeLanguage: 'Native Chinese',
   },
 };
 
-export function SettingsView({ labels, settings, username, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings }: SettingsViewProps) {
+export function SettingsView({ labels, settings, username, authToken, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings }: SettingsViewProps) {
   const copy = settingsPageCopy[settings.locale];
   const activeSection = isSettingsSection(activeSectionValue) ? activeSectionValue : undefined;
   const onOpenSection = openSection ?? (() => undefined);
   const profileCard = <SettingsProfileCard copy={copy} username={username} />;
 
   return (
-    <section className="gentle-settings mobile-settings-page mobile-page-surface mx-auto max-w-3xl min-w-0 rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:p-6">
-      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c]${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
+    <section className="gentle-settings mobile-settings-page mobile-page-surface mx-auto min-w-0 max-w-3xl rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:max-w-4xl md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c] md:hidden${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
 
       {!activeSection ? <div className="settings-home-only md:hidden">{profileCard}</div> : null}
       <div className="settings-mobile-detail md:hidden">
         {activeSection ? (
           <section className="settings-section-card settings-detail-card">
-            <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} onUpdateSettings={onUpdateSettings} />
+            <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </section>
         ) : (
           <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
         )}
       </div>
-      <div className="settings-desktop-content hidden md:block">
-        {!activeSection ? (
-          <>
-            {profileCard}
-            <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
-          </>
-        ) : (
-          <SettingsSection title={sectionTitle(activeSection, labels, copy, settings)} icon={sectionIcon(activeSection)}>
-            <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} onUpdateSettings={onUpdateSettings} />
+      {/* Desktop: every section on one page, top to bottom. No sub-pages. */}
+      <div className="settings-desktop-stack hidden md:grid">
+        {settingsSections.map((section) => (
+          <SettingsSection key={section} id={`settings-${section}`} title={sectionTitle(section, labels, copy, settings)} icon={sectionIcon(section)}>
+            <SettingsSectionContent section={section} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </SettingsSection>
-        )}
+        ))}
+        <div className="settings-desktop-footer">
+          <span>{labels.currentUser}: <strong>{username}</strong></span>
+          <button type="button" onClick={onLogout} className="settings-logout-button"><LogOut size={18} />{labels.logout}</button>
+        </div>
       </div>
 
-      {!activeSection ? <div className="settings-logout-area">
+      {!activeSection ? <div className="settings-logout-area md:hidden">
         <button type="button" onClick={onLogout} className="settings-logout-button">
           <LogOut size={18} />{labels.logout}
         </button>
@@ -96,6 +106,8 @@ export function SettingsView({ labels, settings, username, activeSection: active
     </section>
   );
 }
+
+const settingsSections: SettingsSectionId[] = ['display', 'practice', 'memory', 'account'];
 
 const memoryCardSettingsCopy: Record<Locale, {
   title: string;
@@ -157,14 +169,14 @@ function sectionTitle(section: SettingsSectionId, labels: Record<string, string>
   if (section === 'display') return copy.displayAndReading;
   if (section === 'practice') return copy.practiceExperience;
   if (section === 'memory') return memoryCardSettingsCopy[settings.locale].title;
-  return `${labels.account} / ${labels.aboutTitle}`;
+  return labels.account;
 }
 
-function sectionIcon(section: SettingsSectionId) {
-  if (section === 'display') return <Settings2 size={22} />;
-  if (section === 'practice') return <Sparkles size={22} />;
-  if (section === 'memory') return <PanelTop size={22} />;
-  return <MessageSquareText size={22} />;
+function sectionIcon(section: SettingsSectionId, size = 22) {
+  if (section === 'display') return <Settings2 size={size} />;
+  if (section === 'practice') return <Sparkles size={size} />;
+  if (section === 'memory') return <PanelTop size={size} />;
+  return <MessageSquareText size={size} />;
 }
 
 function SettingsProfileCard({ copy, username }: { copy: SettingsCopy; username: string }) {
@@ -189,34 +201,27 @@ function SettingsProfileCard({ copy, username }: { copy: SettingsCopy; username:
 
 function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: SettingsCopy; labels: Record<string, string>; settings: DisplaySettings; onOpenSection: (section: SettingsSectionId) => void }) {
   return (
-    <div className="settings-section-list mt-5">
+    <div className="navigation-grid settings-navigation">
       <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
       <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
       <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
-      <SettingsNavItem icon={<MessageSquareText size={22} />} title={`${labels.account} / ${labels.aboutTitle}`} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
+      <SettingsNavItem icon={<MessageSquareText size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
+      <NavigationCard icon={<Bot size={22} />} title={labels.aboutTitle} description={labels.settingsAboutBody} href="#/about" />
     </div>
   );
 }
 
 function SettingsNavItem({ icon, title, subtitle, onClick }: { icon: ReactNode; title: string; subtitle: string; onClick: () => void }) {
-  return (
-    <button type="button" className="settings-nav-item" onClick={onClick}>
-      <span className="settings-nav-icon">{icon}</span>
-      <span className="settings-nav-copy">
-        <strong>{title}</strong>
-        <small>{subtitle}</small>
-      </span>
-      <ChevronRight size={22} aria-hidden="true" />
-    </button>
-  );
+  return <NavigationCard icon={icon} title={title} description={subtitle} onOpen={onClick} />;
 }
 
-function SettingsSectionContent({ section, copy, labels, settings, username, onUpdateSettings }: {
+function SettingsSectionContent({ section, copy, labels, settings, username, authToken, onUpdateSettings }: {
   section: SettingsSectionId;
   copy: SettingsCopy;
   labels: Record<string, string>;
   settings: DisplaySettings;
   username: string;
+  authToken: string;
   onUpdateSettings: (settings: DisplaySettings) => void;
 }) {
   if (section === 'display') {
@@ -272,9 +277,9 @@ function SettingsSectionContent({ section, copy, labels, settings, username, onU
   );
 }
 
-function SettingsSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function SettingsSection({ id, title, icon, children }: { id?: string; title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="settings-section-card">
+    <section id={id} className="settings-section-card">
       <h3><span>{icon}</span>{title}</h3>
       <div className="settings-section-body">
         {children}

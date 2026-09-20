@@ -1,4 +1,5 @@
-import { BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
+import { LearningList, LearningListRow } from '../../components/LearningList';
+import { Undo2, SkipForward, BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { calendarDays, localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { Locale, StudyDailySummary, StudyPlanDayEvidence, StudyPlanTask, StudyPlanTaskStatus } from '../../types';
@@ -125,7 +126,7 @@ function DayFocus({ labels, locale, date, tasks, summary, evidence, updatingId, 
       <div className="mt-5 grid gap-4">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-[#46514c]">{labels.planDayPlanContents}</h3>
-          <TaskList labels={labels} tasks={tasks} updatingId={updatingId} onTaskStatus={onTaskStatus} />
+          <TaskList locale={locale} labels={labels} tasks={tasks} updatingId={updatingId} onTaskStatus={onTaskStatus} />
         </div>
 
         <details className="gentle-details"><summary>{labels.planDayDone}</summary>
@@ -137,30 +138,21 @@ function DayFocus({ labels, locale, date, tasks, summary, evidence, updatingId, 
   );
 }
 
-function TaskList({ labels, tasks, updatingId, onTaskStatus }: {
+function TaskList({ labels, locale, tasks, updatingId, onTaskStatus }: {
+  locale: Locale;
   labels: Record<string, string>;
   tasks: StudyPlanTask[];
   updatingId: string;
   onTaskStatus: (id: string, status: StudyPlanTaskStatus) => Promise<void>;
 }) {
-  return (
-    <div className="plan-task-list">
-      {tasks.length ? tasks.map((task) => (
-        <article key={task.id} className={`plan-task-row is-${task.status}`}>
-          <div className="flex items-start gap-3">
-            <input type="checkbox" aria-label={task.title} checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')} className="mt-1 h-5 w-5 shrink-0 accent-[#31564c]" />
-            <div className="min-w-0 flex-1">
-              <h3 className={`text-base font-semibold leading-6 ${task.status === 'completed' ? 'text-[#7a807b] line-through' : 'text-[#27312c]'}`}>{task.title}</h3>
-              <p className={`plan-task-meta module-${task.module}`}>{labels[`planModule_${task.module}`]} · {task.minutes} {labels.minutes}</p>
-              <details className="gentle-task-detail"><summary>{labels.planTaskHow}</summary>
-              {task.detail ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{task.detail}</p> : null}
-              <button type="button" disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')} className="mt-3 text-xs font-semibold text-[#7a5d43] hover:underline">{task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask}</button></details>
-            </div>
-          </div>
-        </article>
-      )) : <p className="rounded-lg border border-dashed border-[#dfe5dc] bg-[#fbfcf8] p-4 text-sm text-[#68716b]">{labels.planNoTasksForDay}</p>}
-    </div>
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  return <div className="plan-task-list">{tasks.length ? <LearningList>{tasks.map((task) => <LearningListRow key={task.id}
+    title={task.title} description={`${labels[`planModule_${task.module}`]} · ${task.minutes} ${labels.minutes}`}
+    statusKind={task.status} status={(locale === 'ja' ? { completed: '完了', skipped: 'スキップ', pending: 'これから', missed: '未完了' } : locale === 'en' ? { completed: 'Done', skipped: 'Skipped', pending: 'To do', missed: 'Missed' } : { completed: '已完成', skipped: '已跳过', pending: '待完成', missed: '未完成' })[task.status]} expanded={expandedId === task.id} locale={locale}
+    onOpen={() => setExpandedId(expandedId === task.id ? null : task.id)}
+    trailing={<label className="learning-list-task-check"><input type="checkbox" aria-label={`${labels.planCompletedTasks}: ${task.title}`} title={labels.planCompletedTasks} checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')}/></label>}
+    secondary={expandedId === task.id ? <div className="learning-list-task-detail">{task.detail ? <p>{task.detail}</p> : null}<button type="button" aria-label={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} title={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')}>{task.status === 'skipped' ? <Undo2 size={20}/> : <SkipForward size={20}/>}</button></div> : null}/>)}</LearningList> : <p className="learning-list-empty">{labels.planNoTasksForDay}</p>}</div>;
+
 }
 
 function DoneList({ labels, tasks, evidence }: { labels: Record<string, string>; tasks: StudyPlanTask[]; evidence: StudyPlanDayEvidence }) {

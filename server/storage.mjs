@@ -1,8 +1,12 @@
+import { normalizePracticeExplanations, assertPracticeExplanations } from '../src/domain/practiceExplanations.mjs';
+import { progressAfterAnswer } from '../src/domain/srs.mjs';
+import { restorePracticeName } from './practice-names.mjs';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { ensureQuerySchema } from './mcp-query-schema.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localDir = resolve(rootDir, '.local');
@@ -221,6 +225,12 @@ export function getDb() {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS user_review_items (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        item_json TEXT NOT NULL
+      );
     `);
     ensureColumn('listening_questions', 'question_type_id', "TEXT NOT NULL DEFAULT 'listening-task'");
     ensureColumn('listening_questions', 'library_number', 'INTEGER');
@@ -231,6 +241,7 @@ export function getDb() {
     ensureReviewItemsSeeded();
     migrateCanonicalReviewItems();
     migrateMemoryCardSettings();
+    ensureQuerySchema(db);
   }
   return db;
 }
@@ -301,13 +312,19 @@ function ensureDailyPracticesMultiVersion() {
   `);
 }
 
-export function loadReviewData() {
+export function loadReviewData(userId) {
   const rows = getDb()
     .prepare('SELECT item_json, updated_at FROM review_items')
     .all();
-  const items = rows
+  let items = rows
     .map((row) => normalizeStoredReviewItem(JSON.parse(row.item_json)))
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || (a.input_at ?? '').localeCompare(b.input_at ?? '') || a.id.localeCompare(b.id));
+  if (userId != null) {
+    const books = new Set(listWordbooks(userId).map((book) => book.id));
+    items = items.filter((item) => !item.wordbook_id?.startsWith('wordbook-') || books.has(item.wordbook_id));
+    getDb().exec('CREATE TABLE IF NOT EXISTS user_review_items (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), item_json TEXT NOT NULL)');
+    items.push(...getDb().prepare('SELECT item_json FROM user_review_items WHERE user_id = ?').all(userId).map((row) => normalizeStoredReviewItem(JSON.parse(row.item_json))));
+  }
   const generatedAt = rows
     .map((row) => row.updated_at)
     .filter(Boolean)
@@ -373,6 +390,33 @@ export function reviewItemById(id) {
   return row ? JSON.parse(row.item_json) : null;
 }
 
+/** Move an item into another wordbook of the same family and/or replace its tags. */
+export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
+  const itemId = String(id ?? '').trim();
+  const database = getDb();
+  const shared = database.prepare('SELECT item_json FROM review_items WHERE id = ?').get(itemId);
+  const own = shared ? null : database.prepare('SELECT item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
+  const row = shared ?? own;
+  if (!row) return null;
+  const item = normalizeStoredReviewItem(JSON.parse(row.item_json));
+  if (wordbookId !== undefined) {
+    const target = wordbookById(userId, String(wordbookId ?? '').trim());
+    if (!target) throw new Error('Wordbook not found');
+    if ((target.deck === 'grammar_expression') !== (item.deck === 'grammar_expression')) {
+      throw new Error('An entry can only be moved to a wordbook of the same kind');
+    }
+    item.wordbook_id = target.id;
+  }
+  if (tags !== undefined) item.tags = normalizeTags(tags);
+  const now = new Date().toISOString();
+  if (shared) {
+    database.prepare('UPDATE review_items SET item_json = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(item), now, itemId);
+  } else {
+    database.prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(item), itemId, userId);
+  }
+  return item;
+}
+
 export function exportReviewDataBackup() {
   const data = loadReviewData();
   const byMonth = new Map();
@@ -419,8 +463,9 @@ function normalizeReviewItem(item) {
   const original = deck === 'grammar_expression'
     ? submittedOriginal
     : submittedNormalized || submittedOriginal;
-  const canonicalItem = { ...item };
+  const canonicalItem = { ...item, ...normalizeItemOrganization(item) };
   delete canonicalItem.normalized;
+  delete canonicalItem.wordbook_ids;
   const examples = Array.isArray(item.examples)
     ? item.examples.filter((example) => String(example?.ja ?? '').trim())
     : [];
@@ -431,7 +476,7 @@ function normalizeReviewItem(item) {
   if (deck === 'n1_vocab' && type !== 'proper_name' && examples.some((example) => !String(example?.zh ?? '').trim())) {
     throw new Error('Every vocabulary example sentence requires a Chinese translation');
   }
-  if (deck === 'n1_vocab' && type !== 'proper_name' && examples.every((example) => /教材(?:の第\d+週)?では[「『].+[」』]という表現を学んだ/u.test(String(example?.ja ?? '')))) {
+  if (deck === 'n1_vocab' && type !== 'proper_name' && examples.every((example) => isMetaStudySentence(example?.ja))) {
     throw new Error('Vocabulary review items require a natural usage context, not only a sentence saying the expression was studied');
   }
   const meaningJa = String(item.meaning_ja ?? '').trim();
@@ -498,6 +543,7 @@ function migrateCanonicalReviewItems() {
         canonical.original = legacyNormalized;
       }
       delete canonical.normalized;
+      delete canonical.wordbook_ids;
       const nextJson = JSON.stringify(canonical);
       if (nextJson !== row.item_json) {
         update.run(nextJson, now, row.id);
@@ -514,7 +560,28 @@ function normalizeStoredReviewItem(item) {
   return {
     ...item,
     collocations: normalizeCollocations(item?.collocations),
+    ...normalizeItemOrganization(item),
   };
+}
+
+// An item lives in exactly one wordbook (legacy rows carried a wordbook_ids array; the
+// first entry wins) and can carry any number of tags.
+function normalizeItemOrganization(item) {
+  const legacy = Array.isArray(item?.wordbook_ids) ? item.wordbook_ids : [];
+  const wordbookId = String(item?.wordbook_id ?? legacy[0] ?? '').trim();
+  const organized = { tags: normalizeTags(item?.tags) };
+  if (wordbookId) organized.wordbook_id = wordbookId;
+  return organized;
+}
+
+export function normalizeTags(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((tag) => String(tag ?? '').trim().slice(0, 40)).filter(Boolean))];
+}
+
+/** The wordbook an item is filed in: its own wordbook_id, or the built-in one of its deck. */
+export function itemWordbookId(item) {
+  return item?.wordbook_id || item?.deck;
 }
 
 function normalizeCollocations(value) {
@@ -1080,7 +1147,7 @@ export function saveProgressEntry(userId, itemId, progressEntry) {
   return getStudyState(userId);
 }
 
-export function savePracticeState(userId, { answers, attemptHistory, activeAttempt }) {
+export function savePracticeState(userId, { answers, progress, answerItemIds, attemptHistory, activeAttempt }) {
   const database = getDb();
   const now = new Date().toISOString();
   database.exec('BEGIN');
@@ -1092,8 +1159,17 @@ export function savePracticeState(userId, { answers, attemptHistory, activeAttem
         VALUES (?, ?, ?, ?, ?, ?)
       `);
       for (const [questionId, answer] of Object.entries(answers)) {
-        const itemId = String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
+        const itemId = answerItemIds?.[questionId] ?? String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
         insert.run(userId, questionId, itemId, String(answer.selected ?? ''), answer.correct ? 1 : 0, answer.answeredAt ?? now);
+      }
+    }
+    if (progress && typeof progress === 'object') {
+      const saveProgress = database.prepare(`
+        INSERT INTO progress (user_id, item_id, progress_json, updated_at) VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id, item_id) DO UPDATE SET progress_json = excluded.progress_json, updated_at = excluded.updated_at
+      `);
+      for (const [itemId, entry] of Object.entries(progress)) {
+        saveProgress.run(userId, itemId, JSON.stringify(entry), now);
       }
     }
     upsertPracticeState(userId, attemptHistory, activeAttempt, now);
@@ -1105,7 +1181,7 @@ export function savePracticeState(userId, { answers, attemptHistory, activeAttem
 }
 
 export function buildStudyRecord(userId) {
-  const data = loadReviewData();
+  const data = loadReviewData(userId);
   const state = getStudyState(userId);
   const answered = Object.keys(state.answers).length;
   const correct = Object.values(state.answers).filter((answer) => answer.correct).length;
@@ -1302,13 +1378,16 @@ function normalizeCaptureCategory(value) {
 }
 
 function normalizeCaptureTargetWordbook(userId, { category, targetDeck, targetWordbookId }) {
-  if (category === 'grammar') return wordbookById(userId, 'grammar_expression');
-  if (category !== 'word') return null;
+  if (category !== 'word' && category !== 'grammar') return null;
+  const isGrammar = category === 'grammar';
   const requestedId = String(targetWordbookId ?? '').trim();
   if (requestedId) {
     const wordbook = wordbookById(userId, requestedId);
-    if (wordbook && wordbook.deck !== 'grammar_expression') return wordbook;
+    // A capture can only land in a wordbook of its own family: grammar captures in
+    // grammar wordbooks, word captures in vocabulary wordbooks.
+    if (wordbook && (wordbook.deck === 'grammar_expression') === isGrammar) return wordbook;
   }
+  if (isGrammar) return wordbookById(userId, 'grammar_expression');
   const deck = normalizeWordbookDeck(targetDeck);
   return wordbookById(userId, deck === 'name_reading' ? 'name_reading' : 'n1_vocab');
 }
@@ -1341,6 +1420,7 @@ function builtInWordbooks() {
   return [
     { id: 'n1_vocab', title: 'N1/N2 词汇', deck: 'n1_vocab', builtIn: true },
     { id: 'name_reading', title: '补充・人名读法', deck: 'name_reading', builtIn: true },
+    { id: 'grammar_expression', title: '语法・句型', deck: 'grammar_expression', builtIn: true },
   ];
 }
 
@@ -1365,7 +1445,7 @@ function normalizeWordbookDeck(value) {
 }
 
 export function listDueReviews(userId, at = new Date().toISOString()) {
-  const data = loadReviewData();
+  const data = loadReviewData(userId);
   const state = getStudyState(userId);
   const dueItemIds = new Set(
     Object.entries(state.progress)
@@ -1376,7 +1456,7 @@ export function listDueReviews(userId, at = new Date().toISOString()) {
 }
 
 export function analyzeWeakPoints(userId) {
-  const data = loadReviewData();
+  const data = loadReviewData(userId);
   const state = getStudyState(userId);
   const byItem = data.items.map((item) => {
     const progress = state.progress[item.id] ?? { correct: 0, wrong: 0, status: 'new' };
@@ -1503,13 +1583,19 @@ function targetedItems(data, state, dueItems, wrongAnswers) {
   });
 }
 
+// Sentences that merely say "we studied 「X」 in the textbook" are not a usage context and
+// must never be shown as a question prompt.
+function isMetaStudySentence(value) {
+  return /教材(?:の第\d+週)?では[「『].+[」』]という表現を学んだ/u.test(String(value ?? ''));
+}
+
 function firstQuestionContext(item) {
   const candidates = [
     ...(item.examples ?? []).map((entry) => entry.ja),
     item.example_ja,
     item.source_original_sentence,
     ...(item.collocations ?? []),
-  ].filter(Boolean);
+  ].filter((candidate) => candidate && !isMetaStudySentence(candidate));
   return candidates.find((candidate) => String(candidate).includes(item.original)) ?? candidates[0] ?? item.original;
 }
 
@@ -1671,7 +1757,7 @@ function readingDistractorsForPack(reading) {
 }
 
 function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
-  const data = loadReviewData();
+  const data = loadReviewData(userId);
   const state = getStudyState(userId);
   const allAnswers = answerHistoryFor(state);
   const yesterdayDate = yesterdaysDateKey();
@@ -1838,11 +1924,12 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
     source_title: typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : undefined,
     diagnosis: content.diagnosis,
     practice_plan: content.practice_plan,
-    questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id),
+    questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id).map(normalizePracticeExplanations),
   };
   if (!practice.questions.length) {
     throw new Error('No daily practice questions could be generated from the current study history');
   }
+  assertPracticeExplanations(practice.questions);
   getDb()
     .prepare(`
       INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
@@ -1850,6 +1937,222 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
     `)
     .run(id, userId, practiceDate, version, practice.title, practice.minutes, JSON.stringify(practice), now, now);
   return getDailyPractice(userId, id);
+}
+
+// ---- Agent-driven practice sessions --------------------------------------------------------
+// A topic practice is a daily_practices row generated on demand (by deck / kind / wordbook / due
+// state) so an MCP client can run the whole session — questions, answers, SRS — without the browser.
+// Answers land in the same `answers` / `progress` / attempt history the web app uses.
+
+export const PRACTICE_KINDS = ['meaning', 'grammar', 'kanji_to_kana', 'moji_goi'];
+
+export function createTopicPractice(userId, { title, deck, kinds, wordbookId, jlptLevel, onlyDue = false, statuses, count = 10, date } = {}) {
+  const practiceDate = normalizePracticeDate(date);
+  const state = getStudyState(userId);
+  const now = new Date();
+  const requestedKinds = (Array.isArray(kinds) ? kinds : []).filter((kind) => PRACTICE_KINDS.includes(kind));
+  const targetKinds = requestedKinds.length ? requestedKinds : PRACTICE_KINDS;
+  const targetCount = Math.max(1, Math.min(50, Math.round(Number(count) || 10)));
+  const statusFilter = new Set((Array.isArray(statuses) ? statuses : []).filter((status) => ['new', 'learning', 'review', 'mastered'].includes(status)));
+
+  const pool = loadReviewData(userId).items.filter((item) => {
+    if (deck && item.deck !== deck) return false;
+    if (wordbookId && itemWordbookId(item) !== wordbookId) return false;
+    if (jlptLevel && String(item.jlpt_level ?? '').toUpperCase() !== String(jlptLevel).toUpperCase()) return false;
+    const progress = state.progress[item.id];
+    if (statusFilter.size && !statusFilter.has(progress?.status ?? 'new')) return false;
+    if (onlyDue && progress?.nextReviewAt && new Date(progress.nextReviewAt) > now) return false;
+    return true;
+  });
+  // Due and weak items first, then untouched ones, then a shuffle so repeated sessions differ.
+  const ranked = pool
+    .map((item) => {
+      const progress = state.progress[item.id];
+      const due = progress?.nextReviewAt ? new Date(progress.nextReviewAt) <= now : false;
+      const weight = (due ? 3 : 0) + ((progress?.wrong ?? 0) > 0 ? 2 : 0) + (progress ? 0 : 1);
+      return { item, weight, random: Math.random() };
+    })
+    .sort((a, b) => b.weight - a.weight || a.random - b.random)
+    .map((entry) => entry.item);
+
+  const id = `topic-${practiceDate}-${randomBytes(6).toString('base64url')}`;
+  const generated = [];
+  const seenQuestion = new Set();
+  const seenItem = new Set();
+  let kindCursor = 0;
+  for (const item of ranked) {
+    if (generated.length >= targetCount) break;
+    // Rotate through the requested kinds, falling back to whichever kind the item supports.
+    let question = null;
+    let kind = null;
+    for (let offset = 0; offset < targetKinds.length && !question; offset += 1) {
+      kind = targetKinds[(kindCursor + offset) % targetKinds.length];
+      question = seededQuestionForKind(item, kind) ?? generatedQuestionForKind(item, kind, generated.length);
+    }
+    if (!question) continue;
+    const key = `${question.type}|${question.prompt}|${question.answer}|${(question.choices ?? []).join('|')}`;
+    if (seenQuestion.has(key) || seenItem.has(item.id)) continue;
+    seenQuestion.add(key);
+    seenItem.add(item.id);
+    kindCursor += 1;
+    generated.push({ ...question, id: `topic-${String(generated.length + 1).padStart(2, '0')}`, itemId: question.item_id, kind });
+  }
+
+  const filters = { deck: deck ?? null, kinds: targetKinds, wordbookId: wordbookId ?? null, jlptLevel: jlptLevel ?? null, onlyDue: Boolean(onlyDue), statuses: [...statusFilter], count: targetCount };
+  const practiceTitle = typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : topicPracticeTitle(filters);
+  const practice = {
+    id,
+    date: practiceDate,
+    version: nextDailyPracticeVersion(userId, practiceDate),
+    title: practiceTitle,
+    minutes: Math.max(5, Math.min(240, Math.round(generated.length * 1.5))),
+    strategy: 'agent_topic',
+    generated_at: now.toISOString(),
+    source_title: practiceTitle,
+    filters,
+    diagnosis: { summary: `专题训练：${practiceTitle}`, candidateItems: pool.length },
+    practice_plan: { totalQuestions: generated.length },
+    questions: dailyPracticeQuestions(generated, id).map(normalizePracticeExplanations),
+  };
+  if (!practice.questions.length) {
+    throw new Error('No practice questions match these filters; loosen deck / kinds / wordbook / onlyDue');
+  }
+  // No assertPracticeExplanations here: these questions are generated from the library, not
+  // authored by an agent, so distractor explanations may be generic.
+  getDb()
+    .prepare(`
+      INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    .run(id, userId, practiceDate, practice.version, practice.title, practice.minutes, JSON.stringify(practice), now.toISOString(), now.toISOString());
+  return getPracticeSession(userId, id);
+}
+
+// Agent-authored seeds on the item (practice_questions) carry real sentences; prefer them over
+// the synthetic generators when the item has one for the requested kind.
+function seededQuestionForKind(item, kind) {
+  const seed = (item.practice_questions ?? []).find((entry) => normalizeQuestionKind(entry.kind) === kind && Array.isArray(entry.choices) && entry.choices.length >= 2 && entry.answer && !isMetaStudySentence(entry.prompt));
+  if (!seed) return null;
+  return {
+    id: seed.id ?? `${item.id}-${kind}`,
+    item_id: item.id,
+    generated_from: 'item_seed',
+    type: seed.kind,
+    instruction: seed.instruction ?? '',
+    prompt: seed.prompt ?? item.original,
+    promptTarget: seed.target ?? seed.promptTarget,
+    choices: seed.choices,
+    answer: seed.answer,
+    explanation_zh: seed.explanation_zh ?? item.explanation_zh ?? '',
+    translation_zh: seed.translation_zh ?? '',
+  };
+}
+
+function topicPracticeTitle(filters) {
+  const deckLabel = { n1_vocab: 'N1 词汇', name_reading: '人名读法', grammar_expression: '语法・表达' }[filters.deck] ?? '综合';
+  const kindLabel = filters.kinds.length === PRACTICE_KINDS.length ? '' : ` · ${filters.kinds.map(questionTitleForKind).map((label) => label.replace('练习', '')).join('/')}`;
+  return `专题：${deckLabel}${kindLabel}${filters.onlyDue ? ' · 到期复习' : ''}`;
+}
+
+/** Practice plus the caller's answer state; explanations are only exposed for answered questions. */
+export function getPracticeSession(userId, practiceId) {
+  const practice = getDailyPractice(userId, practiceId);
+  if (!practice) return null;
+  const state = getStudyState(userId);
+  const questions = practice.questions.map((question) => sessionQuestionView(question, state.answers[question.id]));
+  const answered = questions.filter((question) => question.answered);
+  const correct = answered.filter((question) => question.correct).length;
+  return {
+    id: practice.id,
+    title: practice.title,
+    date: practice.date,
+    strategy: practice.strategy,
+    filters: practice.filters ?? null,
+    questions,
+    progress: { total: questions.length, answered: answered.length, correct, wrong: answered.length - correct },
+    completed: questions.length > 0 && answered.length === questions.length,
+  };
+}
+
+function sessionQuestionView(question, answer) {
+  const base = {
+    id: question.id,
+    itemId: question.itemId,
+    kind: question.kind,
+    title: question.title,
+    instruction: question.instruction,
+    prompt: question.prompt,
+    promptTarget: question.promptTarget,
+    choices: question.choices,
+    translationZh: question.translationZh,
+    answered: Boolean(answer),
+  };
+  if (!answer) return base;
+  return { ...base, selected: answer.selected, correct: Boolean(answer.correct), answer: question.answer, correctReason: question.correctReason, memoryPoint: question.memoryPoint, choiceAnalysis: question.choiceAnalysis };
+}
+
+export function submitPracticeAnswer(userId, { practiceId, questionId, selected }) {
+  const practice = getDailyPractice(userId, practiceId);
+  if (!practice) throw new Error('Practice not found');
+  const question = practice.questions.find((entry) => entry.id === questionId);
+  if (!question) throw new Error('Question not found in this practice');
+  const choice = String(selected ?? '').trim();
+  if (!question.choices.includes(choice)) throw new Error(`selected must be one of: ${question.choices.join(' | ')}`);
+  const state = getStudyState(userId);
+  const existing = state.answers[questionId];
+  const now = new Date();
+  if (!existing) {
+    const correct = choice === question.answer;
+    const attempt = attemptForPractice(state.attemptHistory, practice, now);
+    // Without a UI, a question "starts" when the previous one was answered (or when the attempt began).
+    const startedAt = attempt.answers.at(-1)?.answeredAt ?? attempt.startedAt;
+    attempt.answers = [
+      ...attempt.answers.filter((entry) => entry.questionId !== questionId),
+      { questionId, itemId: question.itemId, kind: question.kind, selected: choice, correct, startedAt, answeredAt: now.toISOString(), elapsedMs: Math.max(0, now.getTime() - new Date(startedAt).getTime()) },
+    ];
+    if (attempt.answers.length >= practice.questions.length) {
+      const correctCount = attempt.answers.filter((entry) => entry.correct).length;
+      const elapsedMs = attempt.answers.reduce((sum, entry) => sum + Math.max(0, entry.elapsedMs || 0), 0);
+      attempt.completedAt = now.toISOString();
+      attempt.summary = { total: practice.questions.length, correct: correctCount, wrong: practice.questions.length - correctCount, accuracy: practice.questions.length ? correctCount / practice.questions.length : 0, elapsedMs };
+    }
+    const attemptHistory = [attempt, ...state.attemptHistory.filter((entry) => entry.id !== attempt.id)].slice(0, 50);
+    saveAnswer(userId, {
+      questionId,
+      itemId: question.itemId,
+      selected: choice,
+      correct,
+      progressEntry: progressAfterAnswer(state.progress[question.itemId], correct, now),
+      attemptHistory,
+    });
+  }
+  const session = getPracticeSession(userId, practiceId);
+  return {
+    question: session.questions.find((entry) => entry.id === questionId),
+    alreadyAnswered: Boolean(existing),
+    progress: session.progress,
+    completed: session.completed,
+    next: session.questions.find((entry) => !entry.answered) ?? null,
+  };
+}
+
+// The web keeps one in-progress attempt per question set in attemptHistory (resumable); reuse it
+// rather than touching activeAttempt, which belongs to whatever the browser is doing right now.
+function attemptForPractice(history, practice, now) {
+  const questionIds = practice.questions.map((question) => question.id);
+  const open = history.find((attempt) => !attempt.completedAt && attempt.practiceId === practice.id);
+  if (open) return { ...open, answers: [...(open.answers ?? [])] };
+  return {
+    id: `attempt-${now.getTime()}-${randomBytes(4).toString('hex').slice(0, 6)}`,
+    title: practice.title,
+    practiceId: practice.id,
+    startedAt: now.toISOString(),
+    analysisStatus: 'idle',
+    view: 'daily-practice',
+    deck: 'all',
+    questionIds,
+    answers: [],
+  };
 }
 
 function formatDailyPracticeTitle(practiceDate) {
@@ -1887,7 +2190,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     throw new Error('Approved draft does not contain a complete question set');
   }
 
-  const reviewItems = loadReviewData().items;
+  const reviewItems = loadReviewData(userId).items;
   const practiceDate = normalizePracticeDate(date);
   const id = `daily-${practiceDate}-${randomBytes(6).toString('base64url')}`;
   const now = new Date().toISOString();
@@ -1908,7 +2211,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       )),
     );
     const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
-    return {
+    return normalizePracticeExplanations({
       id: `${id}-q${String(index + 1).padStart(2, '0')}`,
       sourceQuestionId: String(question.id ?? `draft-q${index + 1}`),
       sourceDraftId: draft.id,
@@ -1924,15 +2227,10 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       context: String(question.prompt ?? '').trim(),
       correctReason: explanation || `正确答案是「${answer}」。`,
       memoryPoint: String(question.tested ?? question.target ?? answer),
-      choiceAnalysis: choices.map((choice, choiceIndex) => ({
-        choice,
-        correct: choiceIndex === answerIndex,
-        explanation: choiceIndex === answerIndex
-          ? (explanation || `「${choice}」是正确答案。`)
-          : `「${choice}」不符合本题语境。`,
-      })),
-    };
+      choiceAnalysis: question.choiceAnalysis ?? question.choice_analysis ?? [],
+    });
   });
+  assertPracticeExplanations(questions);
   const practice = {
     id,
     date: practiceDate,
@@ -1943,6 +2241,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       : 30,
     strategy: 'approved_draft_full_set',
     sourceDraftId: draft.id,
+    description: String(content.description ?? '').trim().slice(0, 600),
     content_origin: 'ai_generated',
     verification_status: content.verification_status ?? 'needs_review',
     generated_at: now,
@@ -1998,6 +2297,33 @@ export function listDailyPractices(userId) {
     .map(rowToDailyPracticeSummary);
 }
 
+// Return only original questions referenced by this user's completed answers.
+// Questions behind the mistake notebook: only the ones tied to a wrong answer (or to an item
+// that was answered wrong somewhere), trimmed to the fields the notebook renders. The full
+// per-choice analysis lives in the practice detail pages, not here.
+export function getHistoryQuestions(userId) {
+  const state = getDb().prepare('SELECT attempt_history_json FROM practice_state WHERE user_id = ?').get(userId);
+  const answers = parseJson(state?.attempt_history_json, [])
+    .filter((attempt) => attempt.completedAt)
+    .flatMap((attempt) => attempt.answers ?? []);
+  const wrongItemIds = new Set(answers.filter((answer) => !answer.correct && answer.itemId).map((answer) => answer.itemId));
+  const ids = new Set(answers
+    .filter((answer) => !answer.correct || wrongItemIds.has(answer.itemId))
+    .map((answer) => answer.questionId));
+  const questions = new Map();
+  if (!ids.size) return [];
+  const rows = getDb().prepare('SELECT practice_json FROM daily_practices WHERE user_id = ? ORDER BY updated_at DESC').all(userId);
+  for (const row of rows) {
+    for (const question of JSON.parse(row.practice_json).questions ?? []) {
+      if (ids.has(question.id) && !questions.has(question.id)) {
+        const { id, itemId, kind, title, prompt, promptTarget, choices, answer, correctReason, memoryPoint } = question;
+        questions.set(question.id, { id, itemId, kind, title, prompt, promptTarget, choices, answer, correctReason, memoryPoint });
+      }
+    }
+  }
+  return [...questions.values()];
+}
+
 export function getDailyPractice(userId, id) {
   const row = getDb()
     .prepare(`
@@ -2020,7 +2346,7 @@ export function refreshDailyPracticeExplanations(userId, id) {
   if (!row) return null;
 
   const practice = JSON.parse(row.practice_json);
-  const reviewItems = loadReviewData().items;
+  const reviewItems = loadReviewData(userId).items;
   practice.questions = (practice.questions ?? []).map((question) => {
     const choices = Array.isArray(question.choices) ? question.choices : [];
     if (!choices.includes(question.answer)) return question;
@@ -2110,7 +2436,7 @@ function rowToDailyPractice(row) {
   return {
     ...rowToDailyPracticeSummary(row),
     ...practice,
-    questions: (practice.questions ?? []).map(repairDailyPracticeQuestionAnswer),
+    questions: (practice.questions ?? []).map(repairDailyPracticeQuestionAnswer).map(normalizePracticeExplanations),
     id: row.id,
     date: row.practice_date,
     version: row.version ?? 1,
@@ -2288,7 +2614,16 @@ function questionTitleForKind(kind) {
   return '言い換え练习';
 }
 
+function describePracticeContent(title, content) {
+  if (!content || typeof content !== 'object' || Array.isArray(content)) return content;
+  const sections = Array.isArray(content.sections) ? content.sections : [];
+  const names = sections.map((section) => section.title || section.name).filter(Boolean);
+  const count = sections.reduce((total, section) => total + (Array.isArray(section.questions) ? section.questions.length : 0), 0);
+  return { ...content, description: String(content.description || [title, names.join('、'), count ? `共 ${count} 题。` : ''].filter(Boolean).join('；')).trim().slice(0, 600) };
+}
+
 export function createReviewPackDraft(userId, { title, content, status = 'draft' }) {
+  content = describePracticeContent(title, content);
   if (!title || !content) {
     throw new Error('Draft title and content are required');
   }
@@ -2346,6 +2681,7 @@ export function getReviewPackDraft(userId, id) {
 }
 
 export function updateReviewPackDraft(userId, id, { title, content }) {
+  content = describePracticeContent(title, content);
   const draft = getReviewPackDraft(userId, id);
   if (!draft) {
     return null;
@@ -2851,9 +3187,16 @@ function getPracticeState(userId) {
   const row = getDb()
     .prepare('SELECT attempt_history_json, active_attempt_json FROM practice_state WHERE user_id = ?')
     .get(userId);
+  const attemptHistory = parseJson(row?.attempt_history_json, []);
+  const activeAttempt = row?.active_attempt_json ? parseJson(row.active_attempt_json, null) : null;
+  const needsNames = [...attemptHistory, activeAttempt].some((attempt) => attempt?.view === 'daily-practice' && !attempt.title?.trim());
+  const practices = needsNames ? getDb().prepare('SELECT id, title, practice_json FROM daily_practices WHERE user_id = ?').all(userId).map((entry) => {
+    const practice = parseJson(entry.practice_json, {});
+    return { id: entry.id, title: entry.title, questionIds: (practice.questions ?? []).map((question) => question.id) };
+  }) : [];
   return {
-    attemptHistory: parseJson(row?.attempt_history_json, []),
-    activeAttempt: row?.active_attempt_json ? parseJson(row.active_attempt_json, null) : null,
+    attemptHistory: attemptHistory.map((attempt) => restorePracticeName(attempt, practices)),
+    activeAttempt: restorePracticeName(activeAttempt, practices),
   };
 }
 

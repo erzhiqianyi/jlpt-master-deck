@@ -1,3 +1,5 @@
+import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importPackage, validatePackage } from './market.mjs';
+import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -27,6 +29,7 @@ import {
   deleteReviewPackDraft,
   getReviewPackDraft,
   getDailyPractice,
+  getHistoryQuestions,
   getStudyState,
   getStudyPlan,
   saveGeneratedStudyPlan,
@@ -37,6 +40,7 @@ import {
   listReadingQuestions,
   listLearningCaptures,
   listWordbooks,
+  organizeReviewItem,
   listeningAudioForUser,
   listeningRecordingAudioForUser,
   loadReviewData,
@@ -53,14 +57,24 @@ import {
   updateReviewPackDraft,
   userForToken,
 } from './storage.mjs';
+import { localConfig } from './local-config.mjs';
+import { getRequestListener } from '@hono/node-server';
+import { createJlptMcp, MCP_PATHS } from './mcp-app.mjs';
 
-const port = Number(process.env.JLPT_API_PORT ?? 8791);
+const { apiPort: port, host } = localConfig();
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localOfficialRoot = join(rootDir, '.local', 'official-jlpt');
 const localMockRoot = join(rootDir, '.local', 'mock-exams');
 const localNewsRoot = resolve(process.env.JLPT_NEWS_SOURCE_DIR ?? '/Users/itsuki/AI/knowledge-base/personal-knowledge/sources/jlpt-news');
 
+// OAuth 2.1 + MCP surface (/api/jlpt/mcp, /api/jlpt/oauth/*, /.well-known/oauth-*). It claims
+// its paths before the REST routes below; ensureSchema() runs once at startup.
+const mcp = createJlptMcp();
+await mcp.ensureSchema();
+const mcpListener = getRequestListener(async (request) => (await mcp.fetch(request)) ?? new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { 'content-type': 'application/json' } }));
+
 const server = createServer(async (req, res) => {
+  if (MCP_PATHS.test(req.url ?? '')) return mcpListener(req, res);
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     const token = bearerToken(req);
@@ -130,6 +144,20 @@ const server = createServer(async (req, res) => {
       return streamLocalOfficialFile(res, localOfficialMatch[1]);
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/auth/config') return json(res, 200, authConfiguration());
+    if (req.method === 'POST' && url.pathname === '/api/auth/firebase') {
+      try { return json(res, 200, await firebaseSession((await readJson(req)).idToken)); }
+      catch { return json(res, 401, { error: 'Firebase 登录验证失败，请重试' }); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/auth/firebase/link') {
+      if (!user) return json(res,401,{ error:'请先登录原来的本地账号' });
+      try { return json(res,200,await firebaseSession((await readJson(req)).idToken,user)); }
+      catch (error) { return json(res,400,{error:error.message}); }
+    }
+    if (authConfiguration().mode === 'firebase' && ['/api/auth/login', '/api/auth/register'].includes(url.pathname)) {
+      return json(res, 403, { error: '此部署使用 Firebase 登录' });
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/auth/register') {
       const body = await readJson(req);
       const created = createUser(body.username, body.password);
@@ -155,12 +183,33 @@ const server = createServer(async (req, res) => {
       return json(res, 401, { error: 'Authentication required' });
     }
 
+    if (url.pathname === '/api/auth/firebase/status' && req.method === 'GET') return json(res,200,firebaseIdentity(user.id));
+    if (url.pathname === '/api/market/sources' && req.method === 'GET') return json(res,200,sharingSources(user.id));
+    if (url.pathname === '/api/market/preview' && req.method === 'POST') return json(res,200,{ package:sourcePackage(user.id,await readJson(req)) });
+    if (url.pathname === '/api/market/validate' && req.method === 'POST') return json(res,200,{ package:validatePackage(await readJson(req)) });
+    if (url.pathname === '/api/market/import' && req.method === 'POST') return json(res,201,importPackage(user.id,await readJson(req)));
+    if (url.pathname === '/api/market' && req.method === 'GET') return json(res,200,{shares:listShares(user.id)});
+    if (url.pathname === '/api/market' && req.method === 'POST') return json(res,201,publishShare(user.id,await readJson(req)));
+    const shareMatch = /^\/api\/market\/([^/]+)$/.exec(url.pathname);
+    if (shareMatch && req.method === 'GET') return json(res,200,shareDetail(user.id,shareMatch[1]));
+    if (shareMatch && req.method === 'DELETE') return json(res,200,withdrawShare(user.id,shareMatch[1]));
+
     if (req.method === 'GET' && url.pathname === '/api/me') {
       return json(res, 200, { user });
     }
 
+    // Agents connected through OAuth (settings page): list and disconnect.
+    if (req.method === 'GET' && url.pathname === '/api/agents') {
+      return json(res, 200, { grants: await mcp.listGrants(String(user.id)) });
+    }
+    const revokeAgentMatch = /^\/api\/agents\/([^/]+)\/revoke$/.exec(url.pathname);
+    if (req.method === 'POST' && revokeAgentMatch) {
+      await mcp.revokeGrant(String(user.id), decodeURIComponent(revokeAgentMatch[1]));
+      return json(res, 200, { ok: true });
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/review-data') {
-      return json(res, 200, loadReviewData());
+      return json(res, 200, userReviewData(user.id));
     }
 
     if (req.method === 'GET' && url.pathname === '/api/wordbooks') {
@@ -169,6 +218,12 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'POST' && url.pathname === '/api/wordbooks') {
       return json(res, 201, { wordbook: createWordbook(user.id, await readJson(req)) });
+    }
+
+    const reviewItemMatch = /^\/api\/review-items\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'PATCH' && reviewItemMatch) {
+      const item = organizeReviewItem(user.id, decodeURIComponent(reviewItemMatch[1]), await readJson(req));
+      return item ? json(res, 200, { item }) : json(res, 404, { error: 'Review item not found' });
     }
 
     const wordbookMatch = /^\/api\/wordbooks\/([^/]+)$/.exec(url.pathname);
@@ -321,6 +376,10 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { drafts: listReviewPackDrafts(user.id) });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/history-questions') {
+      return json(res, 200, { questions: getHistoryQuestions(user.id) });
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/daily-practices') {
       return json(res, 200, { practices: listDailyPractices(user.id) });
     }
@@ -420,7 +479,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(port, () => {
+server.listen(port, host, () => {
   console.log(`JLPT local backend listening on http://localhost:${port}`);
   console.log(`SQLite: ${databasePath()}`);
 });
@@ -434,6 +493,7 @@ function buildHealthPayload() {
   const userConfig = readJsonFile(userConfigPath);
   const mcpStatus = readJsonFile(mcpStatusPath);
   const mcpServerReady = existsSync(mcpServerPath);
+  const mcpHttpPath = `${mcp.paths.mcp}`;
   const projectConfigReady = configIncludesJlptMcp(projectConfig, rootDir);
   const userConfigReady = configIncludesJlptMcp(userConfig, rootDir);
   const codexConfigReady = projectConfigReady || userConfigReady;
@@ -444,6 +504,7 @@ function buildHealthPayload() {
     databaseReady: existsSync(databasePath()),
     reviewDataReady: existsSync(reviewDataPath()),
     mcp: {
+      httpPath: mcpHttpPath,
       serverReady: mcpServerReady,
       codexConfigReady,
       projectConfigReady,
@@ -453,6 +514,7 @@ function buildHealthPayload() {
       lastSeenAt: typeof mcpStatus?.lastSeenAt === 'string' ? mcpStatus.lastSeenAt : null,
       lastMethod: typeof mcpStatus?.lastMethod === 'string' ? mcpStatus.lastMethod : null,
       lastTool: typeof mcpStatus?.lastTool === 'string' ? mcpStatus.lastTool : null,
+      lastClient: typeof mcpStatus?.lastClient === 'string' ? mcpStatus.lastClient : null,
     },
   };
 }

@@ -1,3 +1,4 @@
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileCheck2, Flag, Headphones, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LocalMockExam, Locale, MockExamQuestion } from '../../types';
@@ -55,6 +56,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
   const [loadingError, setLoadingError] = useState('');
   const [saved, setSaved] = useState<SavedExamState>(() => readSavedState(storageKey));
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [reviewQuestionId, setReviewQuestionId] = useState<string | null>(null);
   const [wrongOnly, setWrongOnly] = useState(true);
   const [timeUpNotice, setTimeUpNotice] = useState(false);
   const [confirmingSubmit, setConfirmingSubmit] = useState(false);
@@ -286,7 +288,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
           <button type="button" onClick={() => setWrongOnly((value) => !value)} className="h-9 rounded-md border border-[#c9d4cc] bg-white px-3 text-sm font-bold text-[#46514c]">{wrongOnly ? t.all : t.onlyWrong}</button>
         </div>
         <div className="mt-3 grid gap-4">
-          {reviewQuestions.map((item) => <ReviewQuestion key={item.id} item={item} selected={saved.answers[item.id]} t={t} />)}
+          <LearningList>{reviewQuestions.map((item) => <LearningListRow key={item.id} title={item.group} description={item.prompt} locale={locale} expanded={reviewQuestionId === item.id} statusKind={saved.answers[item.id] === undefined ? 'unanswered' : saved.answers[item.id] === item.answerIndex ? 'correct' : 'incorrect'} status={saved.answers[item.id] === undefined ? t.noAnswer : saved.answers[item.id] === item.answerIndex ? (locale === 'ja' ? '正解' : locale === 'en' ? 'Correct' : '正确') : (locale === 'ja' ? '不正解' : locale === 'en' ? 'Incorrect' : '错误')} onOpen={() => setReviewQuestionId(reviewQuestionId === item.id ? null : item.id)} secondary={reviewQuestionId === item.id ? <div className="w-full"><ReviewQuestion item={item} selected={saved.answers[item.id]} t={t}/></div> : undefined}/>)}</LearningList>
         </div>
       </section>
     );

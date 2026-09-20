@@ -1,15 +1,17 @@
 export type Deck = 'n1_vocab' | 'name_reading' | 'grammar_expression';
 export type QuestionKind = 'grammar' | 'moji_goi' | 'meaning' | 'kana_to_kanji' | 'kanji_to_kana';
 export type Locale = 'zh-CN' | 'ja' | 'en';
-export type AppView = 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'settings';
+export type AppView = 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'profile' | 'settings';
 export type StudyPage = 'tips' | 'questions' | 'words' | 'wordbooks' | 'review' | 'samples' | 'mock';
 export type AppRoute = { view: AppView; page: StudyPage; itemId?: string };
-export type AnswerRecord = { selected: string; correct: boolean; answeredAt?: string; elapsedMs?: number; attemptId?: string };
+export type AnswerRecord = { selected: string; correct: boolean; startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
 export type AnswerState = Record<string, AnswerRecord>;
 export type ReviewStatus = 'new' | 'learning' | 'review' | 'mastered';
 
 export type SearchResult = {
-  item: VocabItem;
+  item?: VocabItem;
+  id: string;
+  view: 'vocabulary' | 'grammar' | 'listening' | 'reading';
   title: string;
   subtitle: string;
   moduleLabel: string;
@@ -50,12 +52,15 @@ export type AttemptAnswer = {
   kind: QuestionKind;
   selected: string;
   correct: boolean;
+  startedAt?: string;
   answeredAt: string;
   elapsedMs: number;
 };
 
 export type PracticeAttempt = {
   id: string;
+  title?: string;
+  practiceId?: string;
   startedAt: string;
   completedAt?: string;
   analysisStatus?: 'idle' | 'processing' | 'completed';
@@ -112,6 +117,7 @@ export type DailyPracticeSummary = {
   updated_at: string;
 };
 export type DailyPractice = DailyPracticeSummary & {
+  description?: string;
   sourceDraftId?: string;
   generated_at: string;
   diagnosis?: unknown;
@@ -428,7 +434,8 @@ export type VocabItem = {
   id: string;
   date: string;
   input_at?: string;
-  wordbook_ids?: string[];
+  /** The single wordbook this entry is filed in; falls back to the built-in wordbook of its deck. */
+  wordbook_id?: string;
   deck: Deck;
   type: string;
   jlpt_level?: string;

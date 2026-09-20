@@ -1,4 +1,7 @@
-import { ArrowRight, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, NotebookTabs, PlayCircle, RotateCcw, Search, X, type LucideIcon } from 'lucide-react';
+import { NavigationCard } from '../../components/NavigationCard';
+import { ShareButton } from '../../components/ShareButton';
+import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
+import { Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, NotebookTabs, RotateCcw, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -8,7 +11,7 @@ import { useMobileList } from '../../hooks/useMobileList';
 import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
-type PracticeEntry = { status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void };
+type PracticeEntry = { description?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
 type PracticeGroup = { action?: () => void; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; entries: PracticeEntry[] };
 const MIXED_ENTRY_PAGE_SIZE = 8;
 
@@ -28,6 +31,7 @@ export function MixedPracticeHub({
   onStart,
   onStartMock,
   onNavigate,
+  onStartModule,
 }: {
   topicEntries?: PracticeEntry[];
   groupKey?: string;
@@ -44,6 +48,7 @@ export function MixedPracticeHub({
   onStart: () => void;
   onStartMock: () => void;
   onNavigate: (view: AppView) => void;
+  onStartModule: (view: AppView) => void;
 }) {
   const dueCount = Object.values(progress).filter((item) => !item.nextReviewAt || item.nextReviewAt <= new Date().toISOString()).length;
   const grammarCount = items.filter((item) => item.deck === 'grammar_expression').length;
@@ -56,96 +61,53 @@ export function MixedPracticeHub({
   const opinionTopic = opinionPractices.find((item) => item.id === opinionTopicId);
   const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
   const moduleEntries: PracticeEntry[] = [
-    { key: 'vocabulary', title: labels.navVocabulary, body: '单词、汉字、读音', count: vocabularyCount || moduleCount('vocabulary'), icon: Languages, tone: 'green', action: () => onNavigate('vocabulary') },
-    { key: 'grammar', title: labels.navGrammar, body: '学习句子怎么说', count: grammarCount || moduleCount('grammar'), icon: Brain, tone: 'orange', action: () => onNavigate('grammar') },
-    { key: 'listening', title: labels.navListening, body: '听一听，选出答案', count: listeningQuestions.length || moduleCount('listening'), icon: Headphones, tone: 'blue', action: () => onNavigate('listening') },
-    { key: 'reading', title: labels.navReading, body: '读一读，回答问题', count: readingQuestions.length || moduleCount('reading'), icon: BookOpenText, tone: 'mint', action: () => onNavigate('reading') },
+    { key: 'vocabulary', title: labels.navVocabulary, body: '单词、汉字、读音', count: vocabularyCount || moduleCount('vocabulary'), icon: Languages, tone: 'green', action: () => onNavigate('vocabulary'), start: () => onStartModule('vocabulary') },
+    { key: 'grammar', title: labels.navGrammar, body: '学习句子怎么说', count: grammarCount || moduleCount('grammar'), icon: Brain, tone: 'orange', action: () => onNavigate('grammar'), start: () => onStartModule('grammar') },
+    { key: 'listening', title: labels.navListening, body: '听一听，选出答案', count: listeningQuestions.length || moduleCount('listening'), icon: Headphones, tone: 'blue', action: () => onNavigate('listening'), start: () => onStartModule('listening') },
+    { key: 'reading', title: labels.navReading, body: '读一读，回答问题', count: readingQuestions.length || moduleCount('reading'), icon: BookOpenText, tone: 'mint', action: () => onNavigate('reading'), start: () => onStartModule('reading') },
+  ];
+  // Everything that is not one of the four core modules lives in one flat list below the module cards.
+  const moreEntries: PracticeEntry[] = [
     { key: 'mixed', title: '综合练习', body: '单词和句子一起练', count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
+    { key: 'topics', title: '专项练习', body: '按教材、汉字或语法主题练一套', count: topicEntries.length, icon: BookOpenText, tone: 'mint', action: () => setActiveGroupKey('topics') },
+    { key: 'daily', title: '今日练习', body: '开始今天准备好的题目', count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
+    { key: 'news', title: '新闻学习', body: '用新闻材料练阅读和听力', count: syncedWorkCount, icon: NotebookTabs, tone: 'yellow', action: () => onNavigate('news-cycle') },
+    { key: 'dialogue', title: '对话练习', body: '按人物关系练习开场、回应和收尾', count: dialoguePractices.length, icon: MessagesSquare, tone: 'blue', action: () => setActiveGroupKey('dialogue') },
+    { key: 'opinion', title: '意见表达', body: '用约 2 分钟说清立场、理由和例子', count: opinionPractices.length, icon: Mic, tone: 'mint', action: () => setActiveGroupKey('opinion') },
+    { key: 'mock', title: '模拟考试', body: '按考试节奏练一套', count: plannedTaskCount, icon: FileCheck2, tone: 'gray', action: onStartMock },
+    { key: 'drafts', title: '练习草稿', body: '查看和确认准备好的题目', count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
   ];
   const groups: PracticeGroup[] = [
-    { key: 'opinion', title: '意见表达', body: '用约2分钟说清立场、理由和例子', count: opinionPractices.length, icon: BookOpenText, tone: 'mint', entries: [] },
-    { key: 'dialogue', title: '对话练习', body: '按人物关系练习开场、回应和收尾', count: dialoguePractices.length, icon: Languages, tone: 'blue', entries: [] },
-    {
-      key: 'topics', title: '专项练习', body: '按教材、汉字或语法主题练一套',
-      count: topicEntries.length, icon: BookOpenText, tone: 'mint',
-      entries: topicEntries,
-    },
-    {
-      key: 'modules',
-      title: '分项学习',
-      body: '单词、语法、听力、阅读',
-      count: moduleEntries.reduce((total, entry) => total + entry.count, 0),
-      icon: Languages,
-      tone: 'green',
-      entries: moduleEntries,
-    },
-    {
-      key: 'exam',
-      title: '做题练习',
-      body: '今日练习、综合练习和模拟考试',
-      count: questions.length + plannedTaskCount,
-      icon: Layers3,
-      tone: 'purple',
-      entries: [
-        { key: 'daily', title: '今日练习', body: '开始今天准备好的题目', count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
-        { key: 'drafts', title: '练习草稿', body: '查看和确认准备好的题目', count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
-        { key: 'mixed', title: '综合练习', body: '单词和句子一起练', count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
-        { key: 'mock', title: '模拟考试', body: '按考试节奏练一套', count: plannedTaskCount, icon: FileCheck2, tone: 'gray', action: onStartMock },
-      ],
-    },
-    {
-      key: 'materials',
-      title: '新闻学习',
-      body: '用新闻练习阅读和听力',
-      action: () => onNavigate('news-cycle'),
-      count: syncedWorkCount + items.length,
-      icon: NotebookTabs,
-      tone: 'yellow',
-      entries: [
-        { key: 'news', title: '新闻练习', body: '用新闻材料练读听', count: syncedWorkCount, icon: NotebookTabs, tone: 'yellow', action: () => onNavigate('news-cycle') },
-      ],
-    },
+    { key: 'opinion', title: '意见表达', body: '用约2分钟说清立场、理由和例子', count: opinionPractices.length, icon: Mic, tone: 'mint', entries: [] },
+    { key: 'dialogue', title: '对话练习', body: '按人物关系练习开场、回应和收尾', count: dialoguePractices.length, icon: MessagesSquare, tone: 'blue', entries: [] },
+    { key: 'topics', title: '专项练习', body: '按教材、汉字或语法主题练一套', count: topicEntries.length, icon: BookOpenText, tone: 'mint', entries: topicEntries },
   ];
-  const primaryGroups = ['modules', 'topics', 'materials', 'dialogue', 'opinion']
-    .flatMap((key) => groups.filter((group) => group.key === key));
   const activeGroup = activeGroupKey ? groups.find((group) => group.key === activeGroupKey) ?? null : null;
 
   return (
-    <main className="ledger-mixed ledger-practice-center">
-      <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
+    <main className={`ledger-mixed ledger-practice-center${activeGroupKey === 'topics' ? ' topic-practice-page' : ''}`}>
+      {activeGroupKey !== 'topics' && activeGroupKey !== 'dialogue' && !(activeGroupKey === 'opinion' && !opinionTopicId) ? <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
         {activeGroup ? <button type="button" aria-label={opinionTopicId ? '返回意见表达' : '返回练习'} onClick={() => setActiveGroupKey(opinionTopicId ? 'opinion' : null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
         <div>
           <p>练习</p>
           <h1>{opinionTopic?.title ?? (activeGroup ? activeGroup.title : '你想练什么？')}</h1>
           {!activeGroup ? <span>选一种方式开始。</span> : null}
         </div>
-      </header>
+      </header> : null}
 
       {activeGroup ? (
-        <>
-          {activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : activeGroup.key === 'topics' ? <TopicPracticeList entries={topicEntries} /> : (
-            <section className="ledger-practice-center-grid" aria-label={`${activeGroup.title}入口`}>
-              {activeGroup.entries.map((card) => (
-                <PracticeCenterCard key={card.key} icon={card.icon} title={card.title} body={card.body} count={card.count} tone={card.tone} onClick={card.action} />
-              ))}
-            </section>
-          )}
-        </>
+        activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} />
       ) : (
         <>
-        <section className="ledger-practice-center-grid" aria-label="练习分类">
-          {primaryGroups.map((group) => (
-            <PracticeCenterCard
-              key={group.key}
-              icon={group.icon}
-              title={group.title}
-              body={group.body}
-              count={group.count}
-              tone={group.tone}
-              onClick={group.action ?? (() => setActiveGroupKey(group.key))}
-            />
-          ))}
-        </section>
+          <section className="navigation-grid practice-core-grid" aria-label="分项学习">
+            {moduleEntries.map((card) => <PracticeModuleCard key={card.key} entry={card} />)}
+          </section>
+          <section className="navigation-section" aria-labelledby="more-practice-title">
+            <h2 id="more-practice-title">更多练习</h2>
+            <div className="navigation-grid">
+              {moreEntries.map((entry) => <PracticeModuleCard key={entry.key} entry={entry} />)}
+            </div>
+          </section>
         </>
       )}
 
@@ -155,7 +117,6 @@ export function MixedPracticeHub({
 
 function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
   const [query, setQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState('recent');
   const [page, setPage] = useState(0);
@@ -172,69 +133,27 @@ function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
   const visibleEntries = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   const mobilePageEnd = Math.min(mobileList.visible, filtered.length);
   return (
-    <section className="topic-library" aria-label="专项练习列表">
-      <div className={`topic-library-tools${searchOpen || query ? ' is-search-open' : ''}`}>
-        <label className="topic-library-search"><span className="sr-only">搜索专项练习</span><input type="search" placeholder="搜索标题，如汉字、N1、限定" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} /></label>
-        <label><span className="sr-only">排序</span><select aria-label="排序" value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">最近更新</option><option value="title">标题顺序</option></select></label>
-        <button type="button" className="topic-library-search-toggle" aria-label={searchOpen || query ? '关闭搜索' : '搜索专项练习'} aria-pressed={searchOpen || Boolean(query)} onClick={() => {
-          if (searchOpen || query) {
-            setQuery('');
-            setPage(0);
-            setSearchOpen(false);
-            return;
-          }
-          setSearchOpen(true);
-        }}>{searchOpen || query ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}</button>
-      </div>
+    <LearningListFrame className="topic-library topic-practice-list" label="专项练习列表">
+      <LearningListHeader title="专项练习" count={`${entries.length} 套`} search={<LearningListSearch value={query} label="搜索专项练习" onChange={(value) => { setQuery(value); setPage(0); }}/> }>
       <div className="topic-library-filters" aria-label="练习状态">
         {[['all', '全部'], ['ready', '可练习'], ['pending', '待确认']].map(([value, label]) => <button key={value} type="button" aria-pressed={status === value} onClick={() => { setStatus(value); setPage(0); }}>{label}</button>)}
-        <span role="status">{filtered.length} 套</span>
+
       </div>
-      {filtered.length ? <ul className="topic-library-rows">
-        {visibleEntries.map((entry) => {
-          const isReady = entry.status === 'ready';
-          const actionLabel = isReady ? '开始' : '查看';
-          const statusLabel = isReady ? '可练习' : '待确认';
-          const Icon = isReady ? PlayCircle : CheckCircle2;
-          return <li key={entry.key}>
-          <button className="topic-library-row" type="button" onClick={entry.action}>
-            <span className={`topic-library-icon is-${entry.status ?? 'pending'}`}><Icon size={26} aria-hidden="true" /></span>
-            <span className="topic-library-copy">
-              <strong>{entry.title}</strong>
-              <small>
-                <span>{entry.body}</span>
-                {entry.updatedAt ? <time dateTime={entry.updatedAt}>{new Date(entry.updatedAt).toLocaleDateString('zh-CN')}</time> : null}
-              </small>
-            </span>
-            <span className={`topic-library-status is-${entry.status ?? 'pending'}`}>{statusLabel}</span>
-            <span className="topic-library-action">{actionLabel}<ChevronRight size={18} aria-hidden="true" /></span>
-          </button>
-        </li>;
-        })}
-      </ul> : <p className="topic-library-empty">{entries.length ? '没有找到匹配的练习，试试其他关键词或状态。' : '还没有专项练习。根据想练的内容生成草稿，确认后就可以开始。'}</p>}
-      {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="mobile-list-end topic-library-mobile-end" role="status">{mobilePageEnd < filtered.length ? '上拉查看更多' : '已经到底了'}</div> : null}
-      {!mobileList.mobile && pages > 1 ? <nav className="topic-library-pager" aria-label="专项练习分页"><button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>上一页</button><span aria-live="polite">{currentPage + 1} / {pages}</span><button type="button" disabled={currentPage === pages - 1} onClick={() => setPage(currentPage + 1)}>下一页</button></nav> : null}
-    </section>
+        <label className="topic-panel-sort"><span className="sr-only">排序</span><select aria-label="排序" value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">最近更新</option><option value="title">标题顺序</option></select></label>
+      </LearningListHeader>
+      {query || status !== 'all' ? <div className="topic-search-summary" role="status">找到 {filtered.length} 套练习<button type="button" onClick={() => { setQuery(''); setStatus('all'); setPage(0); }}>重置筛选</button></div> : null}
+      {filtered.length ? <LearningList>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} /> : undefined} description={entry.count ? `${entry.count} 题` : undefined} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? '练习' : '确认'} onOpen={entry.action}/>)}</LearningList> : <p className="topic-library-empty">{entries.length ? '没有找到匹配的练习，试试其他关键词或状态。' : '还没有专项练习。根据想练的内容生成草稿，确认后就可以开始。'}</p>}
+      {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd < filtered.length ? null : '已经到底了'}</div> : null}
+      {!mobileList.mobile && pages > 1 ? <LearningListPagination page={currentPage} pages={pages} onChange={setPage}/> : null}
+    </LearningListFrame>
   );
 }
 
-function PracticeCenterCard({ icon: Icon, title, body, tone, isActive, onClick }: {
-  icon: LucideIcon;
-  title: string;
-  body: string;
-  count: number;
-  tone: string;
-  isActive?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" className={`ledger-practice-card is-${tone}${isActive ? ' is-active' : ''}`} onClick={onClick}>
-      <span><Icon size={28} /></span>
-      <strong>{title}</strong>
-      <small>{body}</small>
-      <ArrowRight size={20} />
-    </button>
-  );
+function PracticeModuleCard({ entry }: { entry: PracticeEntry }) {
+  const Icon = entry.icon;
+  return <NavigationCard icon={<Icon size={24} />} title={entry.title}
+    description={entry.count ? `${entry.body} · ${entry.count} 项` : entry.body}
+    onOpen={entry.action} onStart={entry.start} />;
 }
 
 type CombinedEntry = {
@@ -282,98 +201,18 @@ export function MixedEntryIndexPanel({
   }, [pageCount]);
 
   return (
-    <section className="min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm">
-      <div className="border-b border-[#e5ddd1] px-4 py-4 md:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-[#a84269]">{labels.navMixed}</p>
-            <h2 className="text-xl font-black text-[#27312c]">{labels.mixedHubAllEntries}</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CountPill label={labels.navVocabulary} value={counts.vocabulary} />
-            <CountPill label={labels.navGrammar} value={counts.grammar} />
-            <CountPill label={labels.navListening} value={counts.listening} />
-            <CountPill label={labels.navReading} value={counts.reading} />
-          </div>
+    <LearningListFrame className="learning-catalog" label={labels.mixedHubAllEntries}>
+      <LearningListHeader title={labels.mixedHubAllEntries} count={`${entries.length} ${labels.items}`}>
+        <div className="list-tools">
+          <CountPill label={labels.navVocabulary} value={counts.vocabulary} />
+          <CountPill label={labels.navGrammar} value={counts.grammar} />
+          <CountPill label={labels.navListening} value={counts.listening} />
+          <CountPill label={labels.navReading} value={counts.reading} />
         </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
-          <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]">
-            <tr>
-              <th className="w-[12%] px-4 py-3">{labels.mixedHubEntryColumnModule}</th>
-              <th className="w-[28%] px-3 py-3">{labels.entryColumnItem}</th>
-              <th className="w-[17%] px-3 py-3">{labels.entryColumnCreated}</th>
-              <th className="w-[9%] px-3 py-3">{labels.entryColumnLevel}</th>
-              <th className="w-[20%] px-3 py-3">{labels.entryColumnTags}</th>
-              <th className="w-[7%] px-3 py-3">{labels.entryColumnQuestions}</th>
-              <th className="w-[7%] px-3 py-3 text-right"><span className="sr-only">{labels.entryOpen}</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#ece4d8]">
-            {pageItems.map((entry) => (
-              <tr key={`${entry.module}-${entry.id}`} className="bg-white hover:bg-[#fbf8f2]">
-                <td className="px-4 py-3 align-top">
-                  <ModuleBadge module={entry.module} labels={labels} />
-                </td>
-                <td className="px-3 py-3 align-top">
-                  <button type="button" onClick={() => onOpenModule(entry.module)} className="block min-w-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]">
-                    <span className="block break-words text-base font-semibold text-[#173d35]">{entry.title}</span>
-                    {entry.subtitle ? <span className="mt-1 block break-words text-xs font-semibold text-[#856033]">{entry.subtitle}</span> : null}
-                  </button>
-                </td>
-                <td className="px-3 py-3 align-top text-[#4d5751]">{formatEntryDate(entry.createdAt, locale)}</td>
-                <td className="px-3 py-3 align-top">
-                  <span className="rounded bg-[#f1eee8] px-2 py-1 text-xs font-semibold text-[#584f43]">{entry.level ?? '-'}</span>
-                </td>
-                <td className="px-3 py-3 align-top">
-                  <div className="flex min-w-0 flex-wrap gap-1.5">
-                    {entry.tags.length ? entry.tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="max-w-full truncate rounded bg-[#e8f0eb] px-2 py-1 text-xs font-semibold text-[#31564c]" title={tag}>{tag}</span>
-                    )) : <span className="text-xs font-semibold text-[#8a8175]">-</span>}
-                  </div>
-                </td>
-                <td className="px-3 py-3 align-top font-semibold text-[#3f4b45]">{entry.questionCount}</td>
-                <td className="px-3 py-3 align-top text-right">
-                  <button type="button" onClick={() => onOpenModule(entry.module)} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5]" aria-label={`${labels.entryOpen}: ${entry.title}`} title={labels.entryOpen}>
-                    <ArrowRight size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] px-4 py-3 text-sm text-[#59645e] md:px-5">
-        <span className="font-semibold">
-          {entries.length ? `${pageStart + 1}-${pageEnd}` : '0'} / {entries.length} {labels.items}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label={labels.entryPagePrev}
-            title={labels.entryPagePrev}
-            disabled={currentPage === 0}
-            onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-          <button
-            type="button"
-            aria-label={labels.entryPageNext}
-            title={labels.entryPageNext}
-            disabled={currentPage >= pageCount - 1}
-            onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-    </section>
+      </LearningListHeader>
+      <LearningList>{pageItems.map((entry) => <LearningListRow key={`${entry.module}-${entry.id}`} title={entry.title} description={entry.subtitle} status={<ModuleBadge module={entry.module} labels={labels}/>} locale={locale} onOpen={() => onOpenModule(entry.module)}/>)}</LearningList>
+      {pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={(next) => setPageIndex(next)} summary={`${entries.length ? `${pageStart + 1}-${pageEnd}` : '0'} / ${entries.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext} /> : null}
+    </LearningListFrame>
   );
 }
 

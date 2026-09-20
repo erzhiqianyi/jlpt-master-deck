@@ -1,4 +1,3 @@
-import { NotebookPen, History, FileCheck2 } from 'lucide-react';
 import { type ReactNode } from 'react';
 import type { LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question, VocabItem } from '../../types';
 import { HistoryPanel } from '../history/HistoryPanel';
@@ -28,30 +27,7 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
   onAttemptQuestionDetailChange?: (open: boolean) => void;
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
 }) {
-  const names = locale === 'zh-CN' ? ['学习笔记', '练习记录', '练习草稿'] : locale === 'ja' ? ['学習メモ', '練習履歴', '練習の下書き'] : ['My notes', 'Practice log', 'Practice drafts'];
-  const descriptions = locale === 'zh-CN' ? ['回看记下的单词、语法和学习笔记', '看看答过的题目和练习结果', '查看准备好的题目，确认后再练习'] : locale === 'ja' ? ['単語・文法・メモを振り返る', '解いた問題と結果を見る', '準備された問題を確認する'] : ['Revisit words, grammar and study notes', 'Review completed questions and results', 'Check prepared questions before practice'];
-  const entries = [
-    { tab: 'captures', route: 'captures', icon: NotebookPen },
-    { tab: 'practice', route: 'history', icon: History },
-    { tab: 'drafts', route: 'drafts', icon: FileCheck2 },
-  ];
   const visibleTab = isHome ? 'practice' : activeTab;
-  const activeIndex = entries.findIndex((entry) => entry.tab === visibleTab);
-  const heading = isHome
-    ? {
-        eyebrow: labels.navStatsHome,
-        title: labels.navStatsHome,
-        body: locale === 'zh-CN'
-          ? '查看今天、历史练习和输入记录。'
-          : locale === 'ja'
-            ? '今日・練習履歴・入力履歴を確認します。'
-            : 'Check today, practice history and input records.',
-      }
-    : {
-        eyebrow: labels.navStatsHome,
-        title: names[activeIndex],
-        body: descriptions[activeIndex],
-      };
   const selectedAttempt = attempts.find((attempt) => attempt.id === activeAttemptId);
   if (visibleTab === 'practice' && selectedAttempt) {
     const attemptQuestions = selectedAttempt.questionIds.flatMap((id) => {
@@ -65,11 +41,8 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
   }
   return (
     <section className={`data-management-panel mx-auto w-full max-w-5xl py-2 md:py-5`}>
-      {!detailOpen ? <header className="gentle-records-heading gentle-section-heading">
-        <p>{heading.eyebrow}</p>
-        <h1>{heading.title}</h1>
-        {isHome || (visibleTab !== 'captures' && visibleTab !== 'drafts') ? <span>{heading.body}</span> : null}
-        {!isHome && activeTab === 'captures' ? <a href="#/capture" className="gentle-back">{locale === 'zh-CN' ? '＋ 记一点新内容' : locale === 'ja' ? '学習メモを追加' : 'Add a study note'}</a> : null}
+      {!detailOpen && !isHome && activeTab === 'captures' ? <header className="gentle-records-heading gentle-section-heading">
+        <a href="#/capture" className="gentle-back">{locale === 'zh-CN' ? '＋ 记一点新内容' : locale === 'ja' ? '学習メモを追加' : 'Add a study note'}</a>
       </header> : null}
       <>
       {activeTab === 'captures' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} embedded mode="captures" selectedCaptureId={activeCaptureId} onSelectedCaptureChange={onActiveCaptureChange} /> : null}

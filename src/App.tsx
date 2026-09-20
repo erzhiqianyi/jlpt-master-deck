@@ -1,22 +1,30 @@
 'use client';
 
+import { LoginLanding } from './features/auth/LoginLanding';
+
+import { configureFirebase, googleIdToken, firebaseLogout, firebaseUser } from './lib/firebase';
+
 import { isTopicDraft, topicDraftForPractice } from './domain/practicePurpose';
-import { ArrowLeft, BookOpenText } from 'lucide-react';
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { GlobalSearch } from './features/search/GlobalSearch';
+import { ArrowLeft, BookOpenText, Search } from 'lucide-react';
+import { lazy, Suspense, startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuestionBatch } from './hooks/useQuestionBatch';
 import { useBrowserHash } from './hooks/useBrowserHash';
 import { itemAnalysis, itemMeaning, itemMemory } from './domain/items';
 import { defaultMemoryCardBackFields, defaultMemoryCardFrontFields, normalizeMemoryCardFields } from './domain/memoryCards';
-import { buildQuestions, deckLabelsFor } from './domain/questions';
+import { buildQuestionIndex, type QuestionReference, buildQuestions, deckLabelsFor } from './domain/questions';
 import { createDefaultStudyPlanProfile, localDateString } from './domain/studyPlan';
+import { nextSchedule, nextStatus } from './domain/srs.mjs';
 import type { OfficialSampleModule } from './data/officialModuleSamples';
-import { AboutPanel } from './features/about/AboutPanel';
+import { AboutPanel, aboutSectionTitle, isAboutSection } from './features/about/AboutPanel';
+import { UserProfilePanel } from './features/profile/UserProfilePanel';
 import { CapturePanel } from './features/capture/CapturePanel';
 import { DraftsPanel } from './features/drafts/DraftsPanel';
 import { HomeDashboard } from './features/home/HomeDashboard';
 import { AttemptQuestionDetail } from './features/history/HistoryPanel';
 import { DataManagementPanel, type DataTab } from './features/insights/DataManagementPanel';
 import { ListeningPanel } from './features/listening/ListeningPanel';
-import { DesktopSidebarNavigation, MobileAppHeader, MobileBottomNavigation, MobileStudyControls, type MobileStudyPanel } from './features/navigation/MobileNavigation';
+import { DesktopPageHeader, DesktopSidebarNavigation, MobileAppHeader, MobileBottomNavigation, MobileStudyControls, type MobileStudyPanel } from './features/navigation/MobileNavigation';
 import { OfficialModuleSamples } from './features/official-samples/OfficialModuleSamples';
 import { StudyPlanPanel } from './features/plan/StudyPlanPanel';
 import { MixedEntryIndexPanel, MixedPracticeHub } from './features/practice/MixedPracticeHub';
@@ -24,12 +32,14 @@ import { MockExamCatalog } from './features/practice/MockExamCatalog';
 import { MockExamPanel } from './features/practice/MockExamPanel';
 import { NewsCyclePanel } from './features/news/NewsCyclePanel';
 import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel, type WordIndexPracticeFocus } from './features/practice/StudyPanels';
+import { itemInWordbook, wordbookFamily } from './domain/wordbooks';
 import { QuestionTypeGuide } from './features/question-types/QuestionTypeGuide';
 import { QuestionTypeDetail } from './features/question-types/QuestionTypeDetail';
 import { ReadingPanel } from './features/reading/ReadingPanel';
 import { FocusedMemoryReview, type MemoryRating } from './features/review/FocusedMemoryReview';
 import { RecordsOverview } from './features/overview/RecordsOverview';
 import { SettingsView } from './features/settings/SettingsView';
+import { AgentConsentPage, isAgentConsentPage } from './features/agents/AgentConsentPage';
 import { PublicIntroPanel } from './features/about/PublicIntroPanel';
 import { translations } from './i18n/translations';
 import { apiRequest } from './lib/api';
@@ -72,6 +82,8 @@ import type {
   Wordbook,
 } from './types';
 
+const MarketPanel = lazy(() => import('./features/market/MarketPanel').then((module) => ({ default: module.MarketPanel })));
+
 const STORAGE_TOKEN = 'jlpt-auth-token-v1';
 const DEV_AUTH_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_DEV_AUTH_TOKEN : undefined;
 const MEMORY_CARD_FRONT_COMPAT_KEY = '_memory_card_front_fields';
@@ -85,6 +97,7 @@ const fallbackData: ReviewData = {
 const fallbackWordbooks: Wordbook[] = [
   { id: 'n1_vocab', title: 'N1/N2 词汇', deck: 'n1_vocab', builtIn: true },
   { id: 'name_reading', title: '补充・人名读法', deck: 'name_reading', builtIn: true },
+  { id: 'grammar_expression', title: '语法・句型', deck: 'grammar_expression', builtIn: true },
 ];
 
 const defaultSettings: DisplaySettings = {
@@ -103,6 +116,7 @@ type AppRouteNavItem = {
   view: AppView;
   label: string;
   page?: StudyPage;
+  itemId?: string;
   activeViews?: AppView[];
   children?: AppRouteNavItem[];
   group?: 'today' | 'study' | 'review' | 'record' | 'manage';
@@ -114,6 +128,34 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
+  const [cloudMarket, setCloudMarket] = useState(false);
+  const [authMode, setAuthMode] = useState<'local' | 'firebase' | null>(null);
+  const [firebaseLinked, setFirebaseLinked] = useState(false);
+  useEffect(() => {
+    if (!authToken || authMode !== 'firebase') { setFirebaseLinked(false); return; }
+    let cancelled = false;
+    apiRequest<{ uid: string | null }>('/api/auth/firebase/status', { token: authToken })
+      .then((status) => { if (!cancelled) setFirebaseLinked(Boolean(status.uid)); })
+      .catch(() => { if (!cancelled) setFirebaseLinked(false); });
+    return () => { cancelled = true; };
+  }, [authToken, authMode]);
+
+  useEffect(() => {
+    apiRequest<{ mode: 'local' | 'firebase'; market: 'local' | 'firestore'; firebase: import('firebase/app').FirebaseOptions | null }>('/api/auth/config')
+      .then((config) => { if (config.firebase) configureFirebase(config.firebase); setAuthMode(config.mode); setCloudMarket(config.market === 'firestore'); })
+      .catch(() => setAuthError('无法读取登录配置，请刷新页面重试'));
+  }, []);
+  async function handleGoogleLogin(linkExisting = false) {
+    setAuthLoading(true); setAuthError(''); setAuthNotice('');
+    try {
+      const idToken = await googleIdToken();
+      const session = await apiRequest<{ user: AuthUser; token: string }>(linkExisting ? '/api/auth/firebase/link' : '/api/auth/firebase', { method: 'POST', token: linkExisting ? authToken : undefined, body: { idToken } });
+      localStorage.setItem(STORAGE_TOKEN, session.token); setAuthToken(session.token); setUser(session.user);
+      if (linkExisting) { setFirebaseLinked(true); setAuthNotice('已绑定 Google，原来的学习记录已保留。'); }
+    } catch (error) { setAuthError(error instanceof Error ? error.message : 'Google 登录失败'); }
+    finally { setAuthLoading(false); }
+  }
   const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [dailyPractices, setDailyPractices] = useState<DailyPracticeSummary[]>([]);
   const [dailyPracticeDetails, setDailyPracticeDetails] = useState<DailyPractice[]>([]);
@@ -128,7 +170,12 @@ export default function App() {
   const [selectedDeck, setSelectedDeck] = useState<Deck | 'all'>('all');
   const [selectedWordbookId, setSelectedWordbookId] = useState('all');
   const [activeIndex, setActiveIndex] = useState(0);
+  const questionTimer = useRef<{ questionId: string; startedAt: number } | null>(null);
   const [wordIndex, setWordIndex] = useState(0);
+  const [mixedQuestionSeed, setMixedQuestionSeed] = useState(() => {
+    const saved = Number(sessionStorage.getItem('jlpt-mixed-question-seed'));
+    return saved > 0 && saved < 1 ? saved : 0.314159;
+  });
   const [questionShuffleSeed, setQuestionShuffleSeed] = useState(() => Math.random());
   const [answers, setAnswers] = useState<AnswerState>({});
   const [progress, setProgress] = useState<ProgressState>({});
@@ -136,19 +183,37 @@ export default function App() {
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
   const [settings, setSettings] = useState<DisplaySettings>(defaultSettings);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const restoreLastPage = useRef(!window.location.hash || window.location.hash === '#/');
   const browserHash = useBrowserHash();
   const route = routeFromHash(browserHash);
+  const [renderedHash, setRenderedHash] = useState<string | null>(null);
+  const routeReady = renderedHash === browserHash;
+  const [practiceLoadError, setPracticeLoadError] = useState<string | null>(null);
+  // Paint the destination header and loading state before computing its content.
+  useEffect(() => {
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => startTransition(() => setRenderedHash(browserHash)));
+    });
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(secondFrame); };
+  }, [browserHash]);
+  const practiceFailed = route.view === 'daily-practice' && Boolean(route.itemId) && practiceLoadError === route.itemId;
+  const pageLoading = !routeReady || authLoading
+    || (route.view === 'daily-practice' && Boolean(route.itemId)
+      && route.itemId !== activeDailyPractice?.id && practiceLoadError !== route.itemId);
   const [dataTab, setDataTab] = useState<DataTab>(() => dataTabForRoute(route.view));
   const [activeCaptureDetailId, setActiveCaptureDetailId] = useState<string | null>(null);
   const [activeDraftDetailId, setActiveDraftDetailId] = useState<string | null>(null);
   const [activeAttemptDetailId, setActiveAttemptDetailId] = useState<string | null>(null);
   const [attemptQuestionDetailOpen, setAttemptQuestionDetailOpen] = useState(false);
   const [practiceFocus, setPracticeFocus] = useState<WordIndexPracticeFocus | null>(null);
-  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(() => { try { return localStorage.getItem('jlpt.sidebar.collapsed') === 'true'; } catch { return false; } });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileStudyPanel, setMobileStudyPanel] = useState<MobileStudyPanel>(null);
   const lastPracticeEntryKey = useRef<string | null>(null);
   const processingAttemptIds = useRef(new Set<string>());
+  const pendingPracticeSave = useRef<Promise<unknown>>(Promise.resolve());
   const activeView = route.view;
   const studyPage = route.page;
 
@@ -162,6 +227,8 @@ export default function App() {
       }
       try {
         const me = await apiRequest<{ user: AuthUser }>('/api/me', { token: authToken });
+        if (cancelled) return;
+        setUser(me.user);
         const [reviewData, studyState, draftList, dailyPracticeList, listeningList, readingList, savedPlan, captureList, wordbookList] = await Promise.all([
           apiRequest<ReviewData>('/api/review-data', { token: authToken }),
           apiRequest<StudyState>('/api/study-state', { token: authToken }),
@@ -174,24 +241,35 @@ export default function App() {
           apiRequest<{ wordbooks: Wordbook[] }>('/api/wordbooks', { token: authToken }),
         ]);
         if (cancelled) return;
+        const resume = readPracticeResume(me.user.id);
+        if (restoreLastPage.current) {
+          restoreLastPage.current = false;
+          if (resume.hash) window.location.replace(resume.hash);
+        }
+        const requestedPracticeId = routeFromHash(window.location.hash).view === 'daily-practice'
+          ? routeFromHash(window.location.hash).itemId ?? resume.practiceId
+          : undefined;
         setUser(me.user);
         setData(normalizeReviewData(reviewData));
         applyStudyState(studyState);
         setDrafts(draftList.drafts ?? []);
         setDailyPractices(dailyPracticeList.practices ?? []);
-        const dailyPracticeDetails = await Promise.all((dailyPracticeList.practices ?? []).filter((practice) => practice.date === todayDateKey()).map(async (practice) => {
+        const dailyPracticeDetails = await Promise.all((dailyPracticeList.practices ?? []).filter((practice) => practice.date === todayDateKey() || practice.id === requestedPracticeId).map(async (practice) => {
           const response = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${practice.id}`, { token: authToken });
           return response.practice;
         }));
         if (!cancelled) {
           setDailyPracticeDetails(dailyPracticeDetails);
-          setActiveDailyPractice(dailyPracticeDetails.find((practice) => !topicDraftForPractice(practice, draftList.drafts ?? [])) ?? null);
+          setActiveDailyPractice(dailyPracticeDetails.find((practice) => practice.id === requestedPracticeId) ?? dailyPracticeDetails.find((practice) => !topicDraftForPractice(practice, draftList.drafts ?? [])) ?? null);
         }
+        if (cancelled) return;
         setListeningQuestions(listeningList.questions ?? []);
         setReadingQuestions(readingList.questions ?? []);
         setStudyPlan(savedPlan.plan ?? { profile: createDefaultStudyPlanProfile(), status: 'profile_only', tasks: [], phases: [], dailySummaries: [] });
         setCaptures(captureList.captures ?? []);
         setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
+        const importedBook = new URLSearchParams(window.location.search).get('wordbook');
+        if (importedBook && wordbookList.wordbooks.some((book) => book.id === importedBook)) setSelectedWordbookId(importedBook);
         setAuthError('');
       } catch (error) {
         if (!cancelled) {
@@ -233,9 +311,19 @@ export default function App() {
   }, [activeView, authToken]);
 
   useEffect(() => {
-    if (activeView !== 'daily-practice' || !authToken || activeDailyPractice) return;
+    if (activeView !== 'daily-practice' || !authToken || authLoading || route.itemId || activeDailyPractice) return;
     refreshDailyPractices().catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to load daily practice'));
-  }, [activeDailyPractice, activeView, authToken]);
+  }, [activeDailyPractice, activeView, authToken, authLoading, route.itemId]);
+
+  useEffect(() => {
+    if (authLoading || !authToken || activeView !== 'daily-practice' || !route.itemId || route.itemId === activeDailyPractice?.id) return;
+    let cancelled = false;
+    setPracticeLoadError(null);
+    apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${encodeURIComponent(route.itemId)}`, { token: authToken })
+      .then(({ practice }) => { if (!cancelled) setActiveDailyPractice(practice); })
+      .catch((error) => { if (!cancelled) { setPracticeLoadError(route.itemId ?? null); setAuthError(error instanceof Error ? error.message : 'Failed to load practice'); } });
+    return () => { cancelled = true; };
+  }, [authLoading, authToken, activeView, route.itemId, activeDailyPractice?.id]);
 
   // Drafts may be created by an external agent while the home page stays open.
   useEffect(() => {
@@ -298,12 +386,12 @@ export default function App() {
   }, [browserHash]);
 
   const items = useMemo(
-    () => moduleItems(data.items, activeView, selectedDeck, activeView === 'vocabulary' ? selectedWordbookId : 'all'),
+    () => moduleItems(data.items, activeView, selectedDeck, activeView === 'vocabulary' || activeView === 'grammar' ? selectedWordbookId : 'all'),
     [activeView, data.items, selectedDeck, selectedWordbookId],
   );
 
   const locale = normalizeLocale(settings.locale);
-  const needsActiveQuestions = supportsStudyPage(activeView) && activeView !== 'daily-practice'
+  const needsActiveQuestions = routeReady && supportsStudyPage(activeView) && activeView !== 'daily-practice'
     && (studyPage === 'questions' || studyPage === 'review' || (activeView === 'grammar' && studyPage === 'words'));
   const questionItems = useMemo(
     () => {
@@ -314,10 +402,24 @@ export default function App() {
     },
     [items, needsActiveQuestions, selectedDeck],
   );
-  const allQuestions = useMemo(() => buildQuestions(questionItems, locale), [questionItems, locale]);
-  const needsHistoryQuestions = ['mistakes', 'memory', 'data', 'mcp'].includes(activeView)
-    || (['history', 'insights'].includes(activeView) && Boolean(activeAttemptDetailId));
-  const needsPracticeDetails = needsHistoryQuestions || activeView === 'home'
+  const pagedVocabulary = activeView === 'vocabulary' && studyPage === 'questions';
+  const allQuestions = useMemo(() => pagedVocabulary ? [] : activeView === 'mixed'
+    ? shuffledBySeed(buildQuestions(shuffledBySeed(questionItems, mixedQuestionSeed), locale, 20), mixedQuestionSeed)
+    : buildQuestions(questionItems, locale), [questionItems, locale, activeView, mixedQuestionSeed, pagedVocabulary]);
+  const [mistakeQuestions, setMistakeQuestions] = useState<Question[]>([]);
+  const [mistakeQuestionsStatus, setMistakeQuestionsStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  useEffect(() => {
+    if (activeView !== 'mistakes' || !authToken || authLoading) return;
+    let cancelled = false;
+    setMistakeQuestionsStatus('loading');
+    apiRequest<{ questions: Question[] }>('/api/history-questions', { token: authToken })
+      .then((result) => { if (!cancelled) { setMistakeQuestions(result.questions); setMistakeQuestionsStatus('ready'); } })
+      .catch(() => { if (!cancelled) setMistakeQuestionsStatus('error'); });
+    return () => { cancelled = true; };
+  }, [activeView, authToken, authLoading, attemptHistory]);
+  const needsHistoryQuestions = routeReady && (activeView === 'mistakes'
+    || (['history', 'insights'].includes(activeView) && Boolean(activeAttemptDetailId)));
+  const needsPracticeDetails = (needsHistoryQuestions && activeView !== 'mistakes') || activeView === 'home'
     || (activeView === 'mixed' && studyPage === 'tips' && route.itemId === 'topics');
   useEffect(() => {
     if (!authToken || authLoading || !needsPracticeDetails) return;
@@ -342,12 +444,15 @@ export default function App() {
     if (!needsHistoryQuestions) {
       return [];
     }
+    // The mistake notebook only lists items answered wrong at least once, so only rebuild those.
+    const wrongItemIds = new Set(attemptHistory.flatMap((attempt) => attempt.answers.filter((answer) => !answer.correct).map((answer) => answer.itemId)));
     return uniqueById([
-      ...buildQuestions(data.items, locale),
+      ...buildQuestions(activeView === 'mistakes' ? data.items.filter((item) => wrongItemIds.has(item.id)) : data.items, locale),
+      ...(activeView === 'mistakes' ? mistakeQuestions : []),
       ...dailyPracticeDetails.flatMap((practice) => practice.questions ?? []),
     ]);
-  }, [dailyPracticeDetails, data.items, locale, needsHistoryQuestions]);
-  const questions = useMemo(
+  }, [dailyPracticeDetails, data.items, locale, needsHistoryQuestions, activeView, attemptHistory, mistakeQuestions]);
+  const materializedQuestions = useMemo(
     () => {
       if (activeView === 'daily-practice') {
         return activeDailyPractice?.questions ?? [];
@@ -363,7 +468,12 @@ export default function App() {
     },
     [activeDailyPractice, activeView, allQuestions, data.items, practiceFocus, questionShuffleSeed],
   );
-  const activeQuestion = questions[activeIndex % Math.max(questions.length, 1)];
+  const vocabularyIndex = useMemo(() => pagedVocabulary
+    ? shuffledBySeed(buildQuestionIndex(questionItems), questionShuffleSeed) : [],
+  [pagedVocabulary, questionItems, questionShuffleSeed]);
+  const questions: QuestionReference[] = pagedVocabulary ? vocabularyIndex : materializedQuestions;
+  const batch = useQuestionBatch(questionItems, vocabularyIndex, activeIndex, locale, pagedVocabulary && routeReady);
+  const activeQuestion = pagedVocabulary ? batch.question : materializedQuestions[activeIndex % Math.max(materializedQuestions.length, 1)];
   const practiceAnsweredCount = questions.filter((question) => Boolean(answers[question.id])).length;
   const practiceComplete = questions.length > 0 && practiceAnsweredCount === questions.length;
   const effectiveFeedbackMode = activeView === 'mixed' ? 'batch' : settings.feedbackMode;
@@ -371,7 +481,7 @@ export default function App() {
   const labels = translations[locale];
   const deckLabels = deckLabelsFor(locale);
   const today = useMemo(() => todayDateKey(), []);
-  const needsHomeMetrics = activeView === 'home';
+  const needsHomeMetrics = routeReady && activeView === 'home';
   const hasMemoryReview = needsHomeMetrics && data.items.length > 0;
   const homeTodayPractices = useMemo(() => {
     if (!needsHomeMetrics) {
@@ -390,11 +500,11 @@ export default function App() {
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
   }, [drafts, needsHomeMetrics, today]);
   const moduleStats = useMemo(
-    () => activeView === 'mixed' ? moduleSummaries(data.items, labels) : [],
-    [activeView, data.items, labels],
+    () => routeReady && activeView === 'mixed' ? moduleSummaries(data.items, labels) : [],
+    [routeReady, activeView, data.items, labels],
   );
   const memoryReviewItems = useMemo(() => {
-    if (activeView !== 'memory-review') {
+    if (!routeReady || activeView !== 'memory-review') {
       return [];
     }
     const now = new Date().toISOString();
@@ -402,16 +512,28 @@ export default function App() {
       .filter((item) => item.deck === 'grammar_expression' || item.deck === 'n1_vocab' || item.deck === 'name_reading')
       .filter((item) => !progress[item.id]?.nextReviewAt || (progress[item.id]?.nextReviewAt ?? '') <= now)
       .sort((left, right) => (progress[left.id]?.nextReviewAt ?? '9999').localeCompare(progress[right.id]?.nextReviewAt ?? '9999'));
-  }, [activeView, data.items, progress]);
+  }, [routeReady, activeView, data.items, progress]);
   const hasStudyControls = !['samples', 'wordbooks'].includes(studyPage) && supportsStudyPage(activeView) && activeView !== 'mixed' && activeView !== 'daily-practice';
   const hasLibraryPage = activeView === 'vocabulary' || activeView === 'grammar' || activeView === 'listening' || activeView === 'reading';
   const libraryPageLabel = activeView === 'listening' || activeView === 'reading' ? labels.questionBankPage : labels.wordPage;
-  const searchResults = useMemo(() => searchItems(data.items, searchQuery, locale, labels), [data.items, labels, locale, searchQuery]);
+  const searchResults = useMemo(() => searchItems(data.items, searchQuery, locale, labels, listeningQuestions, readingQuestions), [data.items, labels, locale, searchQuery, listeningQuestions, readingQuestions]);
   const needsReviewAttempt = studyPage === 'questions' || studyPage === 'review';
   const reviewAttempt = useMemo(
     () => needsReviewAttempt ? latestAttemptFor(attemptHistory, activeView, selectedDeck, questions) : undefined,
     [activeView, attemptHistory, needsReviewAttempt, questions, selectedDeck],
   );
+  async function shareLearningContent(kind: 'practice' | 'wordbook', sourceId: string, description: string) {
+    const body = { kind, sourceId, description };
+    if (cloudMarket) {
+      const { publishCloudShare } = await import('./lib/cloudMarket');
+      const identity = await apiRequest<{ uid: string | null }>('/api/auth/firebase/status', { token: authToken });
+      if (identity.uid !== (await firebaseUser()).uid) throw new Error('请先使用当前账号的 Google 登录');
+      const result = await apiRequest<{ package: { kind: string; title: string; description: string; questions?: unknown[]; items?: unknown[] } }>('/api/market/preview', { token: authToken, method: 'POST', body });
+      await publishCloudShare(result.package);
+    } else {
+      await apiRequest('/api/market', { token: authToken, method: 'POST', body });
+    }
+  }
   const topicPracticeEntries = useMemo(() => {
     if (activeView !== 'mixed' || studyPage !== 'tips' || route.itemId !== 'topics') {
       return [];
@@ -420,6 +542,8 @@ export default function App() {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
       return {
         key: draft.id, title: draft.title,
+        share: practice ? (description: string) => shareLearningContent('practice', practice.id, description) : undefined,
+        description: practice?.description ?? '',
         status: practice || ['approved', 'archived'].includes(draft.status) ? 'ready' as const : 'pending' as const,
         updatedAt: draft.updated_at,
         body: practice ? `${practice.questions.length} 题 · 开始练习` : ['approved', 'archived'].includes(draft.status) ? '已确认 · 查看并开始' : '待确认 · 查看题目',
@@ -430,8 +554,8 @@ export default function App() {
         },
       };
     });
-  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage]);
-  const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${activeView === 'vocabulary' ? questionShuffleSeed : ''}`;
+  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken, cloudMarket]);
+  const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : ''}`;
 
   useEffect(() => {
     setWordIndex(0);
@@ -448,19 +572,24 @@ export default function App() {
 
   useEffect(() => {
     if (selectedWordbookId === 'all') return;
-    if (!wordbooks.some((wordbook) => wordbook.id === selectedWordbookId && wordbook.deck !== 'grammar_expression')) {
+    const selected = wordbooks.find((wordbook) => wordbook.id === selectedWordbookId);
+    const isEntryLibrary = activeView === 'vocabulary' || activeView === 'grammar';
+    if (!selected || (isEntryLibrary && wordbookFamily(selected.deck) !== (activeView === 'grammar' ? 'grammar' : 'vocabulary'))) {
       setSelectedWordbookId('all');
     }
-  }, [selectedWordbookId, wordbooks]);
+  }, [activeView, selectedWordbookId, wordbooks]);
 
   useEffect(() => {
-    if (authLoading || lastPracticeEntryKey.current === practiceEntryKey) return;
+    if (!routeReady || authLoading || lastPracticeEntryKey.current === practiceEntryKey) return;
     lastPracticeEntryKey.current = practiceEntryKey;
     if (studyPage !== 'questions') return;
 
+    const saved = user ? readPracticeResume(user.id) : {};
+    const savedIndex = saved.hash === browserHash && saved.practiceId === activeDailyPractice?.id
+      ? questions.findIndex((question) => question.id === saved.questionId) : -1;
     const firstUnansweredIndex = questions.findIndex((question) => !answers[question.id]);
-    setActiveIndex(firstUnansweredIndex >= 0 ? firstUnansweredIndex : 0);
-  }, [answers, authLoading, practiceEntryKey, questions, studyPage]);
+    setActiveIndex(savedIndex >= 0 ? savedIndex : firstUnansweredIndex >= 0 ? firstUnansweredIndex : 0);
+  }, [answers, authLoading, routeReady, practiceEntryKey, questions, studyPage]);
 
   useEffect(() => {
     if (studyPage !== 'words' || !route.itemId) {
@@ -485,7 +614,7 @@ export default function App() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (studyPage !== 'words' || activeView === 'home' || activeView === 'about' || activeView === 'settings' || activeView === 'drafts' || activeView === 'listening' || activeView === 'reading') {
+      if (studyPage !== 'words' || activeView === 'home' || activeView === 'about' || activeView === 'profile' || activeView === 'settings' || activeView === 'drafts' || activeView === 'listening' || activeView === 'reading') {
         return;
       }
       if (event.key === 'ArrowLeft') {
@@ -499,17 +628,38 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeView, items.length, studyPage]);
 
+  // Per-question timing: the clock starts when a question is shown and pauses while the tab is hidden,
+  // so long breaks between sessions never inflate the recorded practice time.
+  useEffect(() => {
+    if (studyPage !== 'questions' || !activeQuestion) {
+      questionTimer.current = null;
+      return;
+    }
+    questionTimer.current = { questionId: activeQuestion.id, startedAt: Date.now() };
+    const onVisible = () => {
+      if (!document.hidden) questionTimer.current = { questionId: activeQuestion.id, startedAt: Date.now() };
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [activeQuestion?.id, studyPage, activeView]);
+
   function answerQuestion(question: Question, selected: string) {
     const correct = selected === question.answer;
     const now = new Date();
-    const attempt = currentAttemptFor(activeAttempt, attemptHistory, activeView, selectedDeck, questions, now);
-    const elapsedMs = Math.max(0, now.getTime() - new Date(attempt.startedAt).getTime());
+    const attempt = withPracticeName(currentAttemptFor(activeAttempt, attemptHistory, activeView, selectedDeck, questions, now));
+    const previous = answers[question.id]?.attemptId === attempt.id ? answers[question.id] : undefined;
+    const timer = questionTimer.current?.questionId === question.id ? questionTimer.current : null;
+    const segmentStart = timer?.startedAt ?? now.getTime();
+    const startedAt = previous?.startedAt ?? new Date(segmentStart).toISOString();
+    const elapsedMs = (previous?.elapsedMs ?? 0) + Math.max(0, now.getTime() - segmentStart);
+    questionTimer.current = { questionId: question.id, startedAt: now.getTime() };
     const nextAttemptAnswer: AttemptAnswer = {
       questionId: question.id,
       itemId: question.itemId,
       kind: question.kind,
       selected,
       correct,
+      startedAt,
       answeredAt: now.toISOString(),
       elapsedMs,
     };
@@ -517,18 +667,19 @@ export default function App() {
     const nextAttemptHistory = upsertAttemptHistory(attemptHistory, nextAttempt);
     const nextAnswers = {
       ...answers,
-      [question.id]: { selected, correct, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
+      [question.id]: { selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
     };
     if (effectiveFeedbackMode === 'batch') {
       setAnswers(nextAnswers);
       setActiveAttempt(nextAttempt);
       setAttemptHistory(nextAttemptHistory);
       if (authToken) {
-        apiRequest<StudyState>('/api/study-state/practice', {
+        pendingPracticeSave.current = pendingPracticeSave.current.catch(() => undefined).then(() => apiRequest<StudyState>('/api/study-state/practice', {
           method: 'PUT',
           token: authToken,
+          timeoutMs: 15000,
           body: { answers: nextAnswers, attemptHistory: nextAttemptHistory, activeAttempt: nextAttempt },
-        }).then(applyStudyState).catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save answer'));
+        })).catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save answer'));
       }
       return;
     }
@@ -571,9 +722,9 @@ export default function App() {
 
   async function submitPracticeReview(navigateToReview = true) {
     const now = new Date();
-    const attempt = attemptForReviewSubmission(activeAttempt, attemptHistory, answers, activeView, selectedDeck, questions, now);
-    if (attempt.analysisStatus === 'processing' || attempt.analysisStatus === 'completed' || processingAttemptIds.current.has(attempt.id)) {
-      if (navigateToReview) window.location.hash = routeHash(activeView, 'review');
+    const attempt = withPracticeName(attemptForReviewSubmission(activeAttempt, attemptHistory, answers, activeView, selectedDeck, questions, now));
+    if (attempt.analysisStatus === 'completed' || processingAttemptIds.current.has(attempt.id)) {
+      if (navigateToReview) window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? activeDailyPractice?.id : undefined);
       return;
     }
     processingAttemptIds.current.add(attempt.id);
@@ -591,69 +742,51 @@ export default function App() {
     setActiveAttempt(null);
 
     try {
-      if (authToken) {
-        await apiRequest<StudyState>('/api/study-state/practice', {
-          method: 'PUT',
-          token: authToken,
-          body: { answers, attemptHistory: nextHistory, activeAttempt: null },
-        });
-        let latestState: StudyState | null = null;
-        for (const question of questions) {
-          const answer = answers[question.id];
-          if (!answer) continue;
-          latestState = await apiRequest<StudyState>('/api/answers', {
-            method: 'POST',
-            token: authToken,
-            body: { questionId: question.id, itemId: question.itemId, selected: answer.selected, correct: answer.correct, answerRecord: answer, progressEntry: nextProgress[question.itemId], attemptHistory: nextHistory, activeAttempt: null },
-          });
-        }
-        if (latestState) {
-          applyStudyState(latestState);
-        }
-      }
-
+      await pendingPracticeSave.current;
       const analyzedAttempt: PracticeAttempt = {
         ...processingAttempt,
         analysisStatus: 'completed',
         analysisCompletedAt: new Date().toISOString(),
       };
       const analyzedHistory = upsertAttemptHistory(nextHistory, analyzedAttempt);
-      setAttemptHistory(analyzedHistory);
       if (authToken) {
         const saved = await apiRequest<StudyState>('/api/study-state/practice', {
           method: 'PUT',
           token: authToken,
-          body: { attemptHistory: analyzedHistory, activeAttempt: null },
+          body: { answers, progress: nextProgress, answerItemIds: Object.fromEntries(questions.map((question) => [question.id, question.itemId])), attemptHistory: analyzedHistory, activeAttempt: null },
+          timeoutMs: 30000,
         });
         applyStudyState(saved);
+      } else {
+        setAttemptHistory(analyzedHistory);
       }
     } catch (error) {
+      setActiveAttempt(null);
+      setProgress(progress);
       const retryAttempt: PracticeAttempt = { ...processingAttempt, analysisStatus: 'idle', analysisCompletedAt: undefined };
       const retryHistory = upsertAttemptHistory(nextHistory, retryAttempt);
       setAttemptHistory(retryHistory);
       setAuthError(error instanceof Error ? error.message : 'Failed to save practice review');
-      if (authToken) {
-        apiRequest<StudyState>('/api/study-state/practice', {
-          method: 'PUT',
-          token: authToken,
-          body: { attemptHistory: retryHistory, activeAttempt: null },
-        }).then(applyStudyState).catch(() => undefined);
-      }
+
     } finally {
       processingAttemptIds.current.delete(attempt.id);
     }
 
     if (navigateToReview) {
-      window.location.hash = routeHash(activeView, 'review');
+      window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? activeDailyPractice?.id : undefined);
     }
   }
 
   function restartPractice() {
-    const questionIds = new Set(questions.map((question) => question.id));
+    const nextMixedSeed = Math.random();
+    const nextQuestions = activeView === 'mixed'
+      ? shuffledBySeed(buildQuestions(shuffledBySeed(questionItems, nextMixedSeed), locale, 20), nextMixedSeed)
+      : questions;
+    const questionIds = new Set([...questions, ...nextQuestions].map((question) => question.id));
     const nextAnswers = Object.fromEntries(
       Object.entries(answers).filter(([questionId]) => !questionIds.has(questionId)),
     );
-    const nextAttempt = createPracticeAttempt(activeView, selectedDeck, questions, new Date());
+    const nextAttempt = withPracticeName(createPracticeAttempt(activeView, selectedDeck, nextQuestions, new Date()));
     const nextHistory = upsertAttemptHistory(
       activeAttempt ? attemptHistory.filter((attempt) => attempt.id !== activeAttempt.id || Boolean(attempt.completedAt)) : attemptHistory,
       nextAttempt,
@@ -666,20 +799,24 @@ export default function App() {
         .then(applyStudyState)
         .catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to restart practice'));
     }
+    if (activeView === 'mixed') {
+      sessionStorage.setItem('jlpt-mixed-question-seed', String(nextMixedSeed));
+      setMixedQuestionSeed(nextMixedSeed);
+    }
     setActiveIndex(0);
     if (activeView === 'vocabulary') {
       setQuestionShuffleSeed(Math.random());
     }
     if (supportsStudyPage(activeView)) {
-      window.location.hash = routeHash(activeView, 'questions');
+      window.location.hash = routeHash(activeView, 'questions', activeView === 'daily-practice' ? activeDailyPractice?.id : undefined);
     }
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }
 
-  function navigateTo(view: AppView, page?: StudyPage) {
+  function navigateTo(view: AppView, page?: StudyPage, itemId?: string) {
     const requestedPage = page ?? (supportsStudyPage(view) ? defaultDesktopStudyPage(view) : 'questions');
     const nextRoute = { view, page: supportsStudyPage(view) || isOfficialSampleModule(view) ? requestedPage : 'questions' as StudyPage };
-    const nextHash = routeHash(nextRoute.view, nextRoute.page);
+    const nextHash = routeHash(nextRoute.view, nextRoute.page, itemId);
     if (window.location.hash === nextHash) {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       return;
@@ -693,13 +830,11 @@ export default function App() {
     navigateTo(activeView, 'questions');
   }
 
-  function openSearchResult(item: VocabItem) {
-    const view: AppView = item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary';
-    if (view === 'vocabulary') {
-      setSelectedDeck('all');
-    }
-    setSearchQuery('');
-    window.location.hash = routeHash(view, 'words', item.id);
+  function openSearchResult(result: SearchResult) {
+    setSelectedDeck('all');
+    setSelectedWordbookId('all');
+    setSearchOpen(false);
+    window.location.hash = routeHash(result.view, 'words', result.id);
   }
 
   function openQuestionType(id: string) {
@@ -770,6 +905,28 @@ export default function App() {
     updateSettings({ ...settings, customQuestionTypeTips: nextEntries });
   }
 
+  useEffect(() => {
+    if (authLoading || !user || (activeView === 'daily-practice' && route.itemId && route.itemId !== activeDailyPractice?.id)) return;
+    const save = () => {
+      try {
+        localStorage.setItem(`jlpt-practice-resume:${user.id}`, JSON.stringify({
+          hash: browserHash,
+          practiceId: activeDailyPractice?.id,
+          questionId: studyPage === 'questions' ? questions[activeIndex]?.id : undefined,
+        }));
+      } catch { /* Resume is optional when browser storage is unavailable. */ }
+    };
+    const timer = window.setTimeout(save, 0);
+    const onHide = () => { if (document.hidden) save(); };
+    window.addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', save);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [authLoading, user, browserHash, activeDailyPractice?.id, activeQuestion?.id, activeIndex, questions, studyPage, activeView, route.itemId]);
+
   function deleteCustomQuestionTypeTip(id: string) {
     updateSettings({
       ...settings,
@@ -801,6 +958,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    void firebaseLogout();
     if (authToken) apiRequest('/api/auth/logout', { method: 'POST', token: authToken }).catch(() => undefined);
     localStorage.removeItem(STORAGE_TOKEN);
     setAuthToken('');
@@ -818,6 +976,18 @@ export default function App() {
     setActiveDraft(null);
     setListeningQuestions([]);
     setWordbooks(fallbackWordbooks);
+  }
+
+  async function refreshAddedShare() {
+    const [reviewData, wordbookList, draftList] = await Promise.all([
+      apiRequest<ReviewData>('/api/review-data', { token: authToken }),
+      apiRequest<{ wordbooks: Wordbook[] }>('/api/wordbooks', { token: authToken }),
+      apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
+    ]);
+    setData(normalizeReviewData(reviewData));
+    setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
+    setDrafts(draftList.drafts ?? []);
+    await refreshDailyPractices();
   }
 
   async function refreshDailyPractices(selectId?: string) {
@@ -845,7 +1015,7 @@ export default function App() {
       const response = await apiRequest<{ practice: DailyPractice }>('/api/daily-practices', { method: 'POST', token: authToken, body: { minutes: 30 } });
       setActiveDailyPractice(response.practice);
       await refreshDailyPractices(response.practice.id);
-      window.location.hash = routeHash('daily-practice', 'questions');
+      window.location.hash = routeHash('daily-practice', 'questions', response.practice.id);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Failed to create daily practice');
     }
@@ -861,13 +1031,8 @@ export default function App() {
       await createDailyPracticeAndStart();
       return;
     }
-    try {
-      const response = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${practiceId}`, { token: authToken });
-      setActiveDailyPractice(response.practice);
-      window.location.hash = routeHash('daily-practice', 'questions');
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Failed to open daily practice');
-    }
+    setPracticeLoadError(null);
+    window.location.hash = routeHash('daily-practice', 'questions', practiceId);
   }
 
   async function refreshDrafts(selectId?: string) {
@@ -925,7 +1090,7 @@ export default function App() {
       });
       setActiveDailyPractice(response.practice);
       await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
-      window.location.hash = routeHash('daily-practice', 'questions');
+      window.location.hash = routeHash('daily-practice', 'questions', response.practice.id);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : labels.publishDraftFailed);
     }
@@ -1052,7 +1217,7 @@ export default function App() {
     const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, { method: 'POST', token: authToken, body: { date: todayDateKey() } });
     setActiveDailyPractice(response.practice);
     await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
-    window.location.hash = routeHash('daily-practice', 'questions');
+    window.location.hash = routeHash('daily-practice', 'questions', response.practice.id);
   }
 
   async function copyDraftRevisionContext() {
@@ -1164,15 +1329,26 @@ export default function App() {
     setCaptures((current) => [response.capture, ...current]);
   }
 
-  async function createWordbook(title: string) {
+  async function createWordbook(title: string, deck: Deck = 'n1_vocab') {
     if (!authToken) return null;
     const response = await apiRequest<{ wordbook: Wordbook }>('/api/wordbooks', {
       method: 'POST',
       token: authToken,
-      body: { title, deck: 'n1_vocab' },
+      body: { title, deck },
     });
     setWordbooks((current) => normalizeWordbooks([...current.filter((wordbook) => wordbook.id !== response.wordbook.id), response.wordbook]));
     return response.wordbook;
+  }
+
+  async function organizeItem(id: string, input: { wordbookId?: string; tags?: string[] }) {
+    if (!authToken) return null;
+    const response = await apiRequest<{ item: VocabItem }>(`/api/review-items/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      token: authToken,
+      body: input,
+    });
+    setData((current) => ({ ...current, items: current.items.map((item) => item.id === response.item.id ? { ...item, ...response.item } : item) }));
+    return response.item;
   }
 
   async function renameWordbook(id: string, title: string) {
@@ -1198,11 +1374,14 @@ export default function App() {
   }
 
   if (authLoading && !user) return <LoadingScreen />;
+  // An MCP client sent the browser to the OAuth consent page: sign in first, then approve/deny.
+  const consentPage = isAgentConsentPage();
   if (!user) {
-    const isPublicLanding = !window.location.hash || window.location.hash === '#/' || activeView === 'about';
+    const isPublicLanding = !consentPage && (!window.location.hash || window.location.hash === '#/' || activeView === 'about');
     if (isPublicLanding) return <PublicIntroPanel />;
-    return <LoginScreen error={authError} loading={authLoading} onSubmit={handleAuth} />;
+    return <LoginScreen error={authError} loading={authLoading || authMode === null} onSubmit={handleAuth} firebase={authMode === 'firebase'} onGoogle={() => void handleGoogleLogin()} />;
   }
+  if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
@@ -1235,39 +1414,62 @@ export default function App() {
       : studyPage === 'review'
         ? labels.reviewPage
         : labels.questionPage;
-  const selectedMobileWordbook = wordbooks.find((wordbook) => wordbook.id === selectedWordbookId && wordbook.deck !== 'grammar_expression');
+  const selectedMobileWordbook = wordbooks.find((wordbook) => wordbook.id === selectedWordbookId);
   const isLibraryEntryPage = ['vocabulary', 'grammar'].includes(activeView) && studyPage === 'words' && !route.itemId;
   const studyItemDetailOpen = studyPage === 'words' && Boolean(route.itemId);
   const mobileFilterLabel = selectedWordbookId !== 'all' && selectedMobileWordbook
     ? selectedMobileWordbook.title
     : deckLabels[selectedDeck];
-  const showMobileStudyFilter = hasStudyControls && activeView === 'vocabulary' && studyPage !== 'words' && !studyItemDetailOpen;
+  const showMobileStudyFilter = hasStudyControls && (activeView === 'vocabulary' || activeView === 'grammar') && studyPage !== 'words' && !studyItemDetailOpen;
   const mobileHeaderBackLabel = questionDetailOpen
     ? labels.historyBackToAttemptQuestions
     : studyItemDetailOpen
       ? labels.backToEntryList
-      : route.view === 'vocabulary' && route.page === 'wordbooks'
+      : (route.view === 'vocabulary' || route.view === 'grammar') && route.page === 'wordbooks'
         ? labels.backToEntryList
       : dataDetailOpen
         ? dataManagementBackLabel
-        : labels.navHome;
+        : (labels.mobileBack ?? (locale === 'ja' ? '戻る' : locale === 'en' ? 'Back' : '返回上一页'));
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
-    : labels.meaningTypeTitle;
+    : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
+  function withPracticeName(attempt: PracticeAttempt): PracticeAttempt {
+    if (attempt.title?.trim()) return attempt;
+    if (activeView === 'daily-practice' && activeDailyPractice) {
+      return { ...attempt, title: activePracticeTitle, practiceId: activeDailyPractice.id };
+    }
+    if (activeView === 'mixed') return { ...attempt, title: activePracticeTitle };
+    return attempt;
+  }
   const mobileHeaderTitle = activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
     ? activePracticeTitle
+    : activeView === 'plan' && route.itemId
+      ? ({ daily: locale === 'ja' ? '毎日の学習' : locale === 'en' ? 'Daily learning' : '每天学什么', overview: locale === 'ja' ? '試験までの予定' : locale === 'en' ? 'Exam preparation' : '备考安排', adjust: locale === 'ja' ? '計画を調整' : locale === 'en' ? 'Adjust plan' : '调整计划', textbooks: locale === 'ja' ? '教材の学習予定' : locale === 'en' ? 'Textbook plan' : '教材计划' }[route.itemId] ?? labels.planTitle)
     : activeView === 'settings' && route.itemId
       ? settingsSectionMobileTitle(route.itemId, labels, settings.locale)
-    : isLibraryEntryPage ? (activeView === 'vocabulary' ? labels.navVocabulary : labels.navGrammar) : mobileAppTitle(route, labels, isDataManagementView(activeView) ? dataTab : undefined, {
+    : isLibraryEntryPage ? (activeView === 'vocabulary' ? labels.navVocabulary : labels.navGrammar) : mobileAppTitle(route, labels, locale, isDataManagementView(activeView) ? dataTab : undefined, {
       capture: captureDetailOpen,
       draft: draftDetailOpen,
       attempt: attemptDetailOpen,
       question: questionDetailOpen,
     });
 
+  const pageKind = dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
+    ? 'detail'
+    : (hasStudyControls && studyPage !== 'words' && studyPage !== 'tips') || (activeView === 'mock-exams' && route.itemId)
+      ? 'practice'
+      : isMobileTabRoute(route) && activeView !== 'market'
+        ? 'entry'
+        : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list';
+
   return (
     <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-hidden text-[#28312d]">
+      <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
+        onSearch={pagedVocabulary ? undefined : () => setSearchOpen(true)}
+        filterLabel={pagedVocabulary ? wordbooks.find((book) => book.id === selectedWordbookId)?.title ?? labels.deckAll : undefined}
+        onHeaderFilter={pagedVocabulary ? () => setMobileStudyPanel('filter') : undefined}
+        searchLabel={labels.searchOpen}
         title={mobileHeaderTitle}
         backLabel={mobileHeaderBackLabel}
         showBack={showMobileBackHeader}
@@ -1280,16 +1482,16 @@ export default function App() {
         }}
         actionLabel={undefined}
         onAction={undefined}
-        studyActionLabel={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? mobileStudyModeLabel : undefined}
+        studyActionLabel={!pagedVocabulary && hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? mobileStudyModeLabel : undefined}
         studyActionAriaLabel={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? labels.mobileSwitchTask : undefined}
-        onStudyAction={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? () => setMobileStudyPanel('task') : undefined}
+        onStudyAction={!pagedVocabulary && hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? () => setMobileStudyPanel('task') : undefined}
         filterActionLabel={showMobileStudyFilter ? mobileFilterLabel : undefined}
         filterActionAriaLabel={showMobileStudyFilter ? `${labels.filters}: ${deckLabels[selectedDeck]}; ${labels.wordbookFilter}: ${selectedMobileWordbook ? selectedMobileWordbook.title : labels.wordbookAll}` : undefined}
         onFilterAction={showMobileStudyFilter ? () => setMobileStudyPanel('filter') : undefined}
       />
       <div className="app-frame flex min-w-0 flex-1 md:items-stretch">
         <DesktopSidebarNavigation
-          brand="JLPT N1"
+          brand="JLPT Master Deck"
           items={desktopSidebarNavItems(labels)}
           route={route}
           labels={labels}
@@ -1299,11 +1501,24 @@ export default function App() {
           onNavigate={navigateTo}
           onSettings={() => navigateTo('settings')}
           onLogout={handleLogout}
-          onToggle={() => setDesktopSidebarCollapsed((value) => !value)}
+          onToggle={() => setDesktopSidebarCollapsed((value) => { try { localStorage.setItem('jlpt.sidebar.collapsed', String(!value)); } catch { /* Storage may be unavailable. */ } return !value; })}
           onMobileClose={() => setMobileSidebarOpen(false)}
         />
 
-        <div className="app-content flex min-w-0 flex-1 flex-col">
+        <div className="app-content flex min-w-0 flex-1 flex-col" data-page-kind={pageKind}>
+      <DesktopPageHeader
+        title={mobileHeaderTitle}
+        labels={labels}
+        showBack={showMobileBackHeader}
+        onBack={() => {
+          if (dataManagementBackAction) { dataManagementBackAction(); return; }
+          window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
+        }}
+        onSearch={pagedVocabulary ? undefined : () => setSearchOpen(true)}
+        filterLabel={pagedVocabulary ? wordbooks.find((book) => book.id === selectedWordbookId)?.title ?? labels.deckAll : undefined}
+        onHeaderFilter={pagedVocabulary ? () => setMobileStudyPanel('filter') : undefined}
+      />
+
           <div className="hidden border-b border-[#f0d4dd] bg-white/70 px-4 py-3 md:block">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-5">
               <DesktopLocationBar
@@ -1319,7 +1534,7 @@ export default function App() {
                 }}
               />
               <div className="ledger-kid-top-actions" aria-label="今天的快捷操作">
-                <span className="ledger-kid-sync"><i />已准备好</span>
+                <span className="ledger-kid-sync"><i />{pageLoading ? '正在加载…' : '已准备好'}</span>
                 <button type="button" className="ledger-kid-primary-action" onClick={() => navigateTo('mixed')}>
                   开始练习
                 </button>
@@ -1333,8 +1548,16 @@ export default function App() {
             </div>
           ) : null}
 
-          {activeView === 'home' ? (
+          {pageLoading ? <div className="flex min-h-64 flex-1 items-center justify-center p-8" role="status" aria-live="polite" aria-busy="true">
+            <div className="rounded-2xl border border-[#f0d4dd] bg-white px-8 py-6 text-center shadow-sm">
+              <span className="mx-auto mb-3 block h-6 w-6 animate-spin rounded-full border-2 border-[#f0d4dd] border-t-[#a84269]" aria-hidden="true" />
+              正在加载{mobileHeaderTitle}…
+            </div>
+          </div> : null}
+          {!pageLoading && activeView === 'home' ? (
             <HomeDashboard
+              token={authToken} cloud={cloudMarket}
+              username={user.username}
               labels={labels}
               locale={locale}
               hasMemoryReview={hasMemoryReview}
@@ -1356,9 +1579,11 @@ export default function App() {
             />
           ) : null}
 
-          {activeView !== 'home' ? (
+          {!pageLoading && !practiceFailed && activeView !== 'home' ? (
             <section className={`mx-auto w-full min-w-0 flex-1 ${['mixed', 'history', 'insights', 'plan'].includes(activeView) && !route.itemId ? 'mobile-entry-shell' : ''} ${hasStudyControls ? 'max-w-6xl px-0 py-0 md:px-8 md:py-5 lg:px-10' : 'max-w-7xl px-4 py-4 md:px-8 md:py-5 lg:px-10'}`}>
           <div className={hasStudyControls || activeView === 'listening' ? 'min-w-0 space-y-5' : 'min-w-0'}>
+            {activeView === 'settings' && authMode === 'firebase' && !firebaseLinked && (!route.itemId || route.itemId === 'account') ? <section className="mb-5 rounded-xl border p-4"><h2>Google 登录</h2><p className="my-2 text-sm">绑定当前账号，今后使用 Google 登录即可保留这里的学习记录。</p>{!firebaseLinked && <button type="button" className="cute-button-secondary px-4 py-2" disabled={authLoading} onClick={() => void handleGoogleLogin(true)}>绑定当前账号到 Google</button>}{authError && <p role="alert">{authError}</p>}{authNotice && <p role="status">{authNotice}</p>}</section> : null}
+            {activeView === 'market' ? <Suspense fallback={<p role="status">正在加载分享…</p>}><MarketPanel onAdded={refreshAddedShare} initialShareId={route.itemId} token={authToken} cloud={cloudMarket} labels={labels} settings={settings} locale={locale} /></Suspense> : null}
             {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('captures')} /> : null}
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
@@ -1371,7 +1596,7 @@ export default function App() {
                 attempts={attemptHistory}
                 questions={historyQuestions}
                 draftsContent={<DraftsPanel onSaveQuestionReview={saveQuestionReview} onFinalizeReviewedDraft={finalizeReviewedDraft} embedded labels={labels} drafts={drafts} activeDraft={activeDraft} annotation={draftAnnotation} onAnnotationChange={setDraftAnnotation} onCreateDailyDraft={createDailyDraft} onSelectDraft={selectDraft} onSaveAnnotation={saveDraftAnnotation} onCopyRevisionContext={copyDraftRevisionContext} onCreateDraftFromSelection={createDraftFromSelection} onDeleteDraft={removeDraft} onConfirmDraft={confirmDraftForAgent} onPublishDraft={publishDraftAsDailyPractice} onUpdateDraft={updateDraft} detailDraftId={activeDraftDetailId} onDetailDraftChange={setActiveDraftDetailId} />}
-                settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
+                settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
                 activeTab={dataTab}
                 isHome={activeView === 'insights' || activeView === 'history'}
                 detailOpen={captureDetailOpen || attemptDetailOpen || draftDetailOpen}
@@ -1388,7 +1613,7 @@ export default function App() {
                 onCaptureStatus={updateCaptureStatus}
               />
             ) : null}
-            {activeView === 'mistakes' || activeView === 'memory' || activeView === 'data' || activeView === 'mcp' ? <RecordsOverview view={activeView} items={data.items} progress={progress} attempts={attemptHistory} questions={historyQuestions} locale={locale} onOpenMemoryReview={() => navigateTo('memory-review')} onOpenSettings={() => navigateTo('settings')} /> : null}
+            {activeView === 'mistakes' || activeView === 'memory' || activeView === 'data' || activeView === 'mcp' ? <RecordsOverview questionStatus={mistakeQuestionsStatus} view={activeView} items={data.items} progress={progress} attempts={attemptHistory} questions={historyQuestions} locale={locale} onOpenMemoryReview={() => navigateTo('memory-review')} onOpenSettings={() => navigateTo('settings')} /> : null}
             {hasStudyControls ? (
               <MobileStudyControls
                 mode={studyPage}
@@ -1397,25 +1622,28 @@ export default function App() {
                 selectedDeck={selectedDeck}
                 wordbooks={wordbooks}
                 selectedWordbookId={selectedWordbookId}
-                allowDeckFilter={activeView === 'vocabulary'}
-                allowWordbookFilter={activeView === 'vocabulary'}
+                allowDeckFilter={activeView === 'vocabulary' && !pagedVocabulary}
+                allowWordbookFilter={activeView === 'vocabulary' || activeView === 'grammar'}
+                wordbookFamily={activeView === 'grammar' ? 'grammar' : 'vocabulary'}
                 allowWords={hasLibraryPage}
                 wordsLabel={libraryPageLabel}
                 panel={mobileStudyPanel}
                 onPanelChange={setMobileStudyPanel}
                 onModeChange={(page) => navigateTo(activeView, page)}
                 onDeckChange={setSelectedDeck}
-                onWordbookChange={setSelectedWordbookId}
+                onWordbookChange={(id) => {
+                  setSelectedDeck(id === 'all' ? 'all' : wordbooks.find((book) => book.id === id)?.deck ?? 'all');
+                  setSelectedWordbookId(id);
+                  setActiveIndex(0);
+                  setMobileStudyPanel(null);
+                }}
               />
             ) : null}
+            {activeView === 'profile' ? (
+              <UserProfilePanel user={user} locale={locale} attempts={attemptHistory} captures={captures} progress={progress} plan={studyPlan} itemCount={data.items.length} onLogout={handleLogout} />
+            ) : null}
             {activeView === 'about' ? (
-              <AboutPanel
-                labels={labels}
-                user={user}
-                activeSection={route.itemId}
-                onBack={() => navigateTo('about')}
-                onOpen={(section) => { window.location.hash = routeHash('about', 'questions', section); }}
-              />
+              <AboutPanel labels={labels} user={user} locale={locale} authToken={authToken} section={route.itemId} />
             ) : null}
             {activeView === 'plan' ? (
               <StudyPlanPanel
@@ -1455,7 +1683,7 @@ export default function App() {
               )
             ) : null}
             {activeView === 'settings' ? (
-              <SettingsView labels={labels} settings={settings} username={user.username} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
+              <SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
             ) : null}
             {isOfficialSampleModule(activeView) && studyPage === 'samples' ? (
               <OfficialModuleSamples
@@ -1473,7 +1701,7 @@ export default function App() {
                 topicEntries={topicPracticeEntries}
                 groupKey={route.itemId}
                 labels={labels}
-                questions={questions}
+                questions={materializedQuestions}
                 items={data.items}
                 progress={progress}
                 modules={moduleStats}
@@ -1485,6 +1713,7 @@ export default function App() {
                 onStart={() => navigateTo('mixed', 'questions')}
                 onStartMock={() => openMockExam()}
                 onNavigate={(view) => { if (view === 'daily-practice') void openDailyPractice(); else navigateTo(view); }}
+                onStartModule={(view) => navigateTo(view, 'questions')}
               />
             ) : null}
             {activeView === 'mixed' && studyPage === 'words' ? (
@@ -1543,6 +1772,8 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                activeQuestionId={route.itemId}
+                onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}
                 onDelete={removeReadingQuestion}
                 onOpenLibrary={() => navigateTo('reading', 'words')}
@@ -1557,6 +1788,8 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                activeQuestionId={route.itemId}
+                onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}
                 onDelete={removeReadingQuestion}
                 onPractice={() => navigateTo('reading', 'questions')}
@@ -1564,16 +1797,10 @@ export default function App() {
                 onReview={() => navigateTo('reading', 'review')}
               />
             ) : null}
-	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
+	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <PracticePanel
-                  wordbooks={activeView === 'vocabulary' ? wordbooks : undefined}
-                  selectedWordbookId={selectedWordbookId}
-                  onWordbookChange={activeView === 'vocabulary' ? (id) => {
-                    setSelectedDeck(id === 'all' ? 'all' : wordbooks.find((book) => book.id === id)?.deck ?? 'all');
-                    setSelectedWordbookId(id);
-                    setActiveIndex(0);
-                  } : undefined}
+                  loading={batch.loading}
                   activeQuestion={activeQuestion}
                   questions={questions}
                   questionsLength={questions.length}
@@ -1596,18 +1823,24 @@ export default function App() {
                   onPracticeHome={() => navigateTo('mixed', 'tips')}
                   onPrepareReview={() => submitPracticeReview(false)}
                   onReview={() => navigateTo(activeView, 'review')}
-                  analysisStatus={activeAttempt?.analysisStatus ?? reviewAttempt?.analysisStatus ?? 'idle'}
+                  analysisStatus={reviewAttempt?.analysisStatus === 'completed' ? 'completed' : processingAttemptIds.current.has(reviewAttempt?.id ?? activeAttempt?.id ?? '') ? 'processing' : 'idle'}
                 />
-              ) : studyPage === 'wordbooks' && activeView === 'vocabulary' ? (
+              ) : studyPage === 'wordbooks' && (activeView === 'vocabulary' || activeView === 'grammar') ? (
                 <WordbookManagerPanel
+                  onShareWordbook={(id, description) => shareLearningContent('wordbook', id, description)}
                   labels={labels}
+                  family={activeView === 'grammar' ? 'grammar' : 'vocabulary'}
                   wordbooks={wordbooks}
+                  items={items}
+                  onCreateWordbook={createWordbook}
                   onRenameWordbook={renameWordbook}
                   onBack={() => navigateTo(activeView, 'words')}
                 />
               ) : studyPage === 'words' && route.itemId ? (
                 <WordDetailPanel
                   item={activeWord}
+                  wordbooks={wordbooks}
+                  onOrganize={organizeItem}
                   index={wordIndex}
                   total={items.length}
                   showRuby={settings.showReviewRuby}
@@ -1621,7 +1854,7 @@ export default function App() {
               ) : studyPage === 'words' ? (
                 <WordIndexPanel
                   items={items}
-                  questions={questions}
+                  questions={materializedQuestions}
                   answers={answers}
                   progress={progress}
                   labels={labels}
@@ -1629,7 +1862,12 @@ export default function App() {
                   deckLabels={deckLabels}
                   wordbooks={wordbooks}
                   selectedWordbookId={selectedWordbookId}
-                  onWordbookChange={setSelectedWordbookId}
+                  onWordbookChange={(id) => {
+                  setSelectedDeck(id === 'all' ? 'all' : wordbooks.find((book) => book.id === id)?.deck ?? 'all');
+                  setSelectedWordbookId(id);
+                  setActiveIndex(0);
+                  setMobileStudyPanel(null);
+                }}
                   onOpen={(id) => { window.location.hash = routeHash(activeView, 'words', id); }}
                   onPractice={startWordIndexPractice}
                   onTips={() => navigateTo(activeView, 'tips')}
@@ -1645,7 +1883,7 @@ export default function App() {
               ) : (
                 <PracticeReviewPanel
                   attempt={reviewAttempt}
-                  questions={questions}
+                  questions={materializedQuestions}
                   answers={answers}
                   items={data.items}
                   labels={labels}
@@ -1691,9 +1929,9 @@ function routeFromHash(hash: string): AppRoute {
   const [viewValue, pageValue, itemValue, detailValue] = hash.replace(/^#\/?/, '').split('/');
   const view = isAppView(viewValue) ? viewValue : 'home';
   if (view === 'plan') {
-    return { view, page: 'questions', itemId: ['daily', 'overview', 'adjust', 'textbooks'].includes(pageValue) ? pageValue : undefined };
+    return { view, page: 'questions', itemId: pageValue === 'textbooks' ? pageValue : undefined };
   }
-  if (view === 'question-types') {
+  if (view === 'market' || view === 'question-types') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
   if (view === 'mock-exams') {
@@ -1708,6 +1946,9 @@ function routeFromHash(hash: string): AppRoute {
   if (view === 'about' || view === 'settings') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
+  if (view === 'profile') {
+    return { view, page: 'questions' };
+  }
   if (isOfficialSampleModule(view) && pageValue === 'samples') {
     return { view, page: 'samples', itemId: itemValue ? decodeURIComponent(itemValue) : undefined };
   }
@@ -1718,30 +1959,33 @@ function routeFromHash(hash: string): AppRoute {
     const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
     const itemId = page === 'words' && itemValue
       ? decodeURIComponent(itemValue)
-      : page === 'tips' && ['modules', 'exam', 'materials', 'today', 'topics', 'dialogue', 'opinion'].includes(itemValue)
+      : page === 'tips' && ['topics', 'dialogue', 'opinion'].includes(itemValue)
         ? itemValue
         : undefined;
     return { view, page, itemId };
   }
   if (view === 'daily-practice') {
     const page = pageValue === 'review' ? 'review' : 'questions';
-    return { view, page };
+    return { view, page, itemId: itemValue ? decodeURIComponent(itemValue) : undefined };
   }
   if (supportsStudyPage(view) && !pageValue) {
     return { view, page: defaultDesktopStudyPage(view) };
   }
   const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' ? pageValue : 'questions';
   const itemId = (page === 'tips' || page === 'words') && itemValue ? decodeURIComponent(itemValue) : undefined;
-  return { view, page: supportsStudyPage(view) && (page !== 'wordbooks' || view === 'vocabulary') ? page : 'questions', itemId };
+  return { view, page: supportsStudyPage(view) && (page !== 'wordbooks' || view === 'vocabulary' || view === 'grammar') ? page : 'questions', itemId };
 }
 
 function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   if (view === 'mixed' && page === 'tips' && itemId?.startsWith('opinion/')) return `#/mixed/tips/${itemId}`;
+  if (view === 'plan') {
+    return itemId ? `#/plan/${encodeURIComponent(itemId)}` : '#/plan';
+  }
   if (view === 'history') {
     return itemId ? `#/history/${encodeURIComponent(itemId)}` : '#/history';
   }
-  if (view === 'question-types') {
-    return itemId ? `#/question-types/${encodeURIComponent(itemId)}` : '#/question-types';
+  if (view === 'market' || view === 'question-types') {
+    return itemId ? `#/${view}/${encodeURIComponent(itemId)}` : `#/${view}`;
   }
   if (view === 'mock-exams') {
     return itemId ? `#/mock-exams/${encodeURIComponent(itemId)}` : '#/mock-exams';
@@ -1752,12 +1996,16 @@ function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   if (view === 'about') {
     return itemId ? `#/about/${encodeURIComponent(itemId)}` : '#/about';
   }
+  if (view === 'profile') {
+    return '#/profile';
+  }
   if (view === 'settings') {
     return itemId ? `#/settings/${encodeURIComponent(itemId)}` : '#/settings';
   }
   if (isOfficialSampleModule(view) && page === 'samples') {
     return itemId ? `#/${view}/samples/${encodeURIComponent(itemId)}` : `#/${view}/samples`;
   }
+  if (view === 'daily-practice' && itemId) return `#/${view}/${page}/${encodeURIComponent(itemId)}`;
   if (!supportsStudyPage(view)) {
     return `#/${view}`;
   }
@@ -1781,7 +2029,7 @@ function isOfficialSampleModule(view: AppView): view is OfficialSampleModule {
 }
 
 function isAppView(value: string): value is AppView {
-  return ['capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'settings'].includes(value);
+  return ['market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'profile', 'settings'].includes(value);
 }
 
 function nextIndex(index: number, total: number) {
@@ -1803,7 +2051,7 @@ function shuffledBySeed<T>(items: T[], seed: number) {
   return result;
 }
 
-function nextPracticeIndex(index: number, questions: Question[], answers: AnswerState) {
+function nextPracticeIndex(index: number, questions: QuestionReference[], answers: AnswerState) {
   if (!questions.length) {
     return 0;
   }
@@ -1833,7 +2081,7 @@ function todayDateKey() {
   }).format(new Date());
 }
 
-function createPracticeAttempt(view: AppView, deck: Deck | 'all', questions: Question[], now: Date): PracticeAttempt {
+function createPracticeAttempt(view: AppView, deck: Deck | 'all', questions: QuestionReference[], now: Date): PracticeAttempt {
   return {
     id: `attempt-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
     startedAt: now.toISOString(),
@@ -1850,7 +2098,7 @@ function currentAttemptFor(
   history: PracticeAttempt[],
   view: AppView,
   deck: Deck | 'all',
-  questions: Question[],
+  questions: QuestionReference[],
   now: Date,
 ) {
   const questionIds = questions.map((question) => question.id);
@@ -1877,7 +2125,7 @@ function attemptForReviewSubmission(
   answers: AnswerState,
   view: AppView,
   deck: Deck | 'all',
-  questions: Question[],
+  questions: QuestionReference[],
   now: Date,
 ) {
   const answerAttemptIds = new Set(questions.map((question) => answers[question.id]?.attemptId).filter(Boolean));
@@ -1906,7 +2154,7 @@ function appendAttemptAnswer(attempt: PracticeAttempt, answer: AttemptAnswer): P
   };
 }
 
-function completeAttempt(attempt: PracticeAttempt, answers: AnswerState, questions: Question[], now: Date): PracticeAttempt {
+function completeAttempt(attempt: PracticeAttempt, answers: AnswerState, questions: QuestionReference[], now: Date): PracticeAttempt {
   const completedAnswers = questions.map((question) => {
     const existing = attempt.answers.find((answer) => answer.questionId === question.id);
     const stored = answers[question.id];
@@ -1916,12 +2164,14 @@ function completeAttempt(attempt: PracticeAttempt, answers: AnswerState, questio
       kind: question.kind,
       selected: stored?.selected ?? '',
       correct: Boolean(stored?.correct),
+      startedAt: stored?.startedAt,
       answeredAt: stored?.answeredAt ?? now.toISOString(),
-      elapsedMs: stored?.elapsedMs ?? Math.max(0, now.getTime() - new Date(attempt.startedAt).getTime()),
+      elapsedMs: stored?.elapsedMs ?? 0,
     };
   });
   const correct = completedAnswers.filter((answer) => answer.correct).length;
-  const elapsedMs = Math.max(0, now.getTime() - new Date(attempt.startedAt).getTime());
+  // Total time is the sum of per-question time, not wall-clock time since the attempt was opened.
+  const elapsedMs = completedAnswers.reduce((sum, answer) => sum + Math.max(0, answer.elapsedMs || 0), 0);
   return {
     ...attempt,
     completedAt: now.toISOString(),
@@ -1936,7 +2186,7 @@ function completeAttempt(attempt: PracticeAttempt, answers: AnswerState, questio
   };
 }
 
-function progressAfterAttempt(progress: ProgressState, answers: AnswerState, questions: Question[], now: Date): ProgressState {
+function progressAfterAttempt(progress: ProgressState, answers: AnswerState, questions: QuestionReference[], now: Date): ProgressState {
   return questions.reduce<ProgressState>((nextProgress, question) => {
     const answer = answers[question.id];
     if (!answer) {
@@ -1963,7 +2213,7 @@ function upsertAttemptHistory(history: PracticeAttempt[], attempt: PracticeAttem
   return [attempt, ...history.filter((item) => item.id !== attempt.id)].slice(0, 50);
 }
 
-function latestAttemptFor(history: PracticeAttempt[], view: AppView, deck: Deck | 'all', questions: Question[]) {
+function latestAttemptFor(history: PracticeAttempt[], view: AppView, deck: Deck | 'all', questions: QuestionReference[]) {
   const questionIds = new Set(questions.map((question) => question.id));
   return history.find((attempt) => (
     attempt.view === view
@@ -2030,61 +2280,15 @@ function normalizeLocale(value: unknown): Locale {
   return value === 'ja' || value === 'en' || value === 'zh-CN' ? value : defaultSettings.locale;
 }
 
-function nextStatus(correct: number, wrong: number, reviewCount: number): ReviewStatus {
-  if (correct >= 4 && wrong <= 1 && reviewCount >= 4) {
-    return 'mastered';
-  }
-  if (correct >= 2) {
-    return 'review';
-  }
-  if (correct + wrong > 0) {
-    return 'learning';
-  }
-  return 'new';
-}
-
-function nextSchedule(current: ProgressEntry, correct: boolean, now: Date) {
-  const previousEase = current.ease ?? 2.5;
-  const previousInterval = current.intervalDays ?? 0;
-  const reviewCount = (current.reviewCount ?? 0) + 1;
-  const ease = correct ? Math.min(previousEase + 0.15, 3.2) : Math.max(previousEase - 0.2, 1.3);
-  const intervalDays = correct
-    ? nextCorrectInterval(reviewCount, previousInterval, ease)
-    : 1;
-  return {
-    firstSeenAt: current.firstSeenAt ?? now.toISOString(),
-    lastReviewedAt: now.toISOString(),
-    reviewCount,
-    ease,
-    intervalDays,
-    nextReviewAt: addDays(now, intervalDays).toISOString(),
-  };
-}
-
-function nextCorrectInterval(reviewCount: number, previousInterval: number, ease: number) {
-  if (reviewCount <= 1) {
-    return 1;
-  }
-  if (reviewCount === 2) {
-    return 3;
-  }
-  return Math.max(4, Math.round(Math.max(previousInterval, 3) * ease));
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
 
 function moduleItems(items: VocabItem[], view: AppView, selectedDeck: Deck | 'all', selectedWordbookId = 'all') {
   if (view === 'home') {
     return items;
   }
   if (view === 'grammar') {
-    return items.filter((item) => item.deck === 'grammar_expression');
+    return items.filter((item) => item.deck === 'grammar_expression' && itemInWordbook(item, selectedWordbookId));
   }
-  if (view === 'capture' || view === 'history' || view === 'insights' || view === 'plan' || view === 'question-types' || view === 'listening' || view === 'reading' || view === 'daily-practice' || view === 'drafts' || view === 'about' || view === 'settings') {
+  if (view === 'capture' || view === 'history' || view === 'insights' || view === 'plan' || view === 'question-types' || view === 'listening' || view === 'reading' || view === 'daily-practice' || view === 'drafts' || view === 'about' || view === 'profile' || view === 'settings') {
     return [];
   }
   if (view === 'vocabulary') {
@@ -2092,8 +2296,7 @@ function moduleItems(items: VocabItem[], view: AppView, selectedDeck: Deck | 'al
     const deckItems = selectedDeck === 'all' || selectedDeck === 'grammar_expression'
       ? vocabItems
       : vocabItems.filter((item) => item.deck === selectedDeck);
-    if (selectedWordbookId === 'all') return deckItems;
-    return deckItems.filter((item) => item.wordbook_ids?.includes(selectedWordbookId) || (!item.wordbook_ids?.length && item.deck === selectedWordbookId));
+    return deckItems.filter((item) => itemInWordbook(item, selectedWordbookId));
   }
   if (selectedDeck === 'all') {
     return items;
@@ -2108,9 +2311,10 @@ function navItems(labels: Record<string, string>) {
 function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
     { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, activeViews: ['daily-practice'] as AppView[] },
-    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'mistakes', 'memory'] as AppView[] },
-    { view: 'history' as const, label: labels.navStatsHome, activeViews: ['captures'] as AppView[] },
+    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'memory'] as AppView[] },
+    { view: 'history' as const, label: labels.navStatsHome, activeViews: ['captures', 'mistakes'] as AppView[] },
     { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan },
+    { view: 'market' as const, label: '发现' },
     { view: 'settings' as const, label: labels.settings, activeViews: ['data', 'mcp'] as AppView[] },
   ];
 }
@@ -2118,9 +2322,30 @@ function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
 function desktopSidebarNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
     { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, group: 'today', activeViews: ['daily-practice'] as AppView[] },
-    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, group: 'today', activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'mistakes', 'memory'] as AppView[] },
+    {
+      view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, group: 'today', activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'memory'] as AppView[],
+      children: [
+        { view: 'vocabulary' as const, label: labels.navVocabulary },
+        { view: 'grammar' as const, label: labels.navGrammar },
+        { view: 'listening' as const, label: labels.navListening },
+        { view: 'reading' as const, label: labels.navReading },
+        { view: 'mixed' as const, page: 'tips' as const, itemId: 'topics', label: '专项练习' },
+        { view: 'news-cycle' as const, label: '新闻学习' },
+      ],
+    },
     { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan, group: 'review' },
-    { view: 'history' as const, label: labels.navStatsHome, group: 'record', activeViews: ['captures'] as AppView[] },
+    {
+      view: 'history' as const, label: labels.navStatsHome, group: 'record', activeViews: ['captures', 'mistakes', 'drafts'] as AppView[],
+      children: [
+        { view: 'history' as const, itemId: 'today', label: '今天统计' },
+        { view: 'history' as const, itemId: 'history', label: '历史练习记录' },
+        { view: 'mistakes' as const, label: '错题集' },
+        { view: 'captures' as const, label: '输入记录' },
+        { view: 'drafts' as const, label: '练习草稿' },
+      ],
+    },
+    { view: 'market' as const, label: '发现', group: 'manage' },
+    { view: 'about' as const, label: labels.aboutTitle, group: 'manage' },
     { view: 'settings' as const, label: labels.settings, group: 'manage', activeViews: ['data', 'mcp'] as AppView[] },
   ];
 }
@@ -2134,8 +2359,12 @@ function studyModeNavItems(view: AppView, labels: Record<string, string>, allowL
   ];
 }
 
-function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
+function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale: Locale, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
   const activeView = route.view;
+  if (activeView === 'market') return route.itemId ? '分享详情' : '发现';
+  if (activeView === 'about') return isAboutSection(route.itemId) ? aboutSectionTitle(route.itemId, locale) : labels.aboutTitle;
+  if (activeView === 'profile') return labels.account;
+  if (activeView === 'mixed' && route.page === 'tips' && !route.itemId) return labels.navPracticeHome ?? labels.navMixed;
   if (route.page === 'words' && route.itemId && ['vocabulary', 'grammar'].includes(activeView)) return labels.wordDetail;
   if (detail?.question) return labels.historyAttemptQuestionDetail;
   if (detail?.attempt) return labels.historyAttemptDetail;
@@ -2145,7 +2374,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
   if (activeView === 'history' && route.itemId === 'history') return labels.historyPracticeTab;
   if (isDataManagementView(activeView)) {
     const visibleTab = activeDataTab ?? dataTabForRoute(activeView);
-    if (visibleTab === 'captures') return labels.navStatsHome;
+    if (visibleTab === 'captures') return labels.historyCaptureTab;
     if (visibleTab === 'practice') return labels.navStatsHome;
     return dataTabLabel(visibleTab, labels);
   }
@@ -2159,9 +2388,6 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, activeD
     if (route.itemId === 'topics') return '专项练习';
     if (route.itemId === 'dialogue') return '对话练习';
     if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return '意见表达';
-    if (route.itemId === 'modules') return '分项学习';
-    if (route.itemId === 'exam') return '做题练习';
-    if (route.itemId === 'materials') return '新闻学习';
   }
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed'].includes(activeView)) {
     return studyPageLabelFor(activeView, route.page, labels);
@@ -2189,7 +2415,7 @@ function settingsSectionMobileTitle(section: string, labels: Record<string, stri
 }
 
 function isMobileTabRoute(route: AppRoute) {
-  if (route.view === 'home' || route.view === 'plan' || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
+  if (route.view === 'home' || (route.view === 'market' && !route.itemId) || (route.view === 'plan' && !route.itemId) || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
     return true;
   }
   if (route.view === 'mixed') {
@@ -2199,13 +2425,15 @@ function isMobileTabRoute(route: AppRoute) {
 }
 
 function mobileBackRoute(route: AppRoute): AppRoute {
+  if (route.view === 'plan' && route.itemId) return { view: route.itemId === 'textbooks' ? 'home' : 'plan', page: 'questions' };
+  if (route.view === 'market' && route.itemId) return { view: 'market', page: 'questions' };
   if (route.view === 'mixed' && route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
   if (route.view === 'history' && route.itemId) return { view: 'history', page: 'questions' };
   if (route.view === 'mixed' && route.page === 'tips' && route.itemId) return { view: 'mixed', page: 'tips' };
   if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) {
     if (route.itemId) return { view: route.view, page: route.page };
     if (route.page !== 'words') return { view: route.view, page: 'words' };
-    return { view: 'mixed', page: 'tips', itemId: 'modules' };
+    return { view: 'mixed', page: 'tips' };
   }
 
   if (route.view === 'mock-exams' && route.itemId) {
@@ -2226,8 +2454,8 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   if (route.view === 'daily-practice') {
     return { view: 'home', page: 'questions' };
   }
-  if (route.view === 'vocabulary' && route.page === 'wordbooks') {
-    return { view: 'vocabulary', page: 'words' };
+  if ((route.view === 'vocabulary' || route.view === 'grammar') && route.page === 'wordbooks') {
+    return { view: route.view, page: 'words' };
   }
   if (route.itemId && route.page === 'words' && ['vocabulary', 'grammar'].includes(route.view)) {
     return { view: route.view, page: 'words' };
@@ -2243,6 +2471,9 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   }
   if (route.view === 'settings' && route.itemId) {
     return { view: 'settings', page: 'questions' };
+  }
+  if (route.view === 'about' && route.itemId) {
+    return { view: 'about', page: 'questions' };
   }
   return { view: 'home', page: 'questions' };
 }
@@ -2386,17 +2617,25 @@ function studyPageLabelFor(view: AppView, page: StudyPage, labels: Record<string
   return labels.questionPage;
 }
 
-function searchItems(items: VocabItem[], query: string, locale: Locale, labels: Record<string, string>): SearchResult[] {
+function searchItems(items: VocabItem[], query: string, locale: Locale, labels: Record<string, string>, listening: ListeningQuestion[], readingQuestions: ReadingQuestion[]): SearchResult[] {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) {
     return [];
   }
 
-  return items
-    .map((item) => {
+  const vocabularyResults = items
+    .map((item): SearchResult | null => {
       const moduleLabel = item.deck === 'grammar_expression' ? labels.searchModuleGrammar : labels.searchModuleVocabulary;
       const primaryFields = [item.original, item.reading, item.meaning_ja, item.paraphrase_ja, itemMeaning(item, locale)];
       const secondaryFields = [
+        item.meaning_zh,
+        item.core_memory,
+        item.analysis,
+        item.explanation_zh,
+        item.grammar_point,
+        item.source_original_sentence,
+        ...(item.grammar_forms?.flatMap((form) => [form.form, form.example, form.meaning_zh, form.connection_zh]) ?? []),
+        ...(item.grammar_features?.flatMap((feature) => [feature.feature, feature.detail_zh]) ?? []),
         itemMemory(item, locale),
         itemAnalysis(item, locale),
         item.jlpt_level,
@@ -2426,6 +2665,8 @@ function searchItems(items: VocabItem[], query: string, locale: Locale, labels: 
 
       return {
         item,
+        id: item.id,
+        view: item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary',
         title: item.original,
         subtitle: itemMeaning(item, locale),
         moduleLabel,
@@ -2433,9 +2674,19 @@ function searchItems(items: VocabItem[], query: string, locale: Locale, labels: 
         score,
       };
     })
-    .filter((result): result is SearchResult => Boolean(result))
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'ja'))
-    .slice(0, 12) as SearchResult[];
+    .filter((result): result is SearchResult => Boolean(result));
+  const questionResults = (['listening', 'reading'] as const).flatMap((view) => {
+    const questions = view === 'listening' ? listening : readingQuestions;
+    return questions.flatMap((question): SearchResult[] => {
+      const fields = [question.title, question.question, ...question.choices, question.explanation, 'passage' in question ? question.passage : ''];
+      const matches = fields.filter((field) => normalizeSearchText(field).includes(normalizedQuery));
+      if (!matches.length) return [];
+      return [{ id: question.id, view, title: question.title, subtitle: question.question,
+        moduleLabel: view === 'listening' ? labels.navListening : labels.navReading,
+        matches: unique(matches).slice(0, 3), score: normalizeSearchText(question.title) === normalizedQuery ? 100 : normalizeSearchText(question.title).includes(normalizedQuery) ? 60 : 30 }];
+    });
+  });
+  return [...vocabularyResults, ...questionResults].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'ja'));
 }
 
 function normalizeSearchText(value: string) {
@@ -2509,17 +2760,22 @@ function LoadingScreen() {
 }
 
 function LoginScreen({
+  firebase, onGoogle,
   error,
   loading,
   onSubmit,
 }: {
   error: string;
   loading: boolean;
+  firebase: boolean;
+  onGoogle: () => void;
   onSubmit: (mode: 'login' | 'register', username: string, password: string) => void;
 }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  if (firebase) return <LoginLanding error={error} loading={loading} onGoogle={onGoogle}/>;
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -2531,6 +2787,8 @@ function LoginScreen({
       <section className="cute-card w-full max-w-md bg-transparent sm:max-w-[420px] sm:border sm:p-8 lg:max-w-sm">
         <h1 className="cute-brand text-2xl">JLPT Review</h1>
 
+        {firebase ? <div className="mt-6 space-y-4"><p>使用 Google 账号登录</p><button type="button" className="cute-button-primary h-12 w-full rounded-2xl" disabled={loading} onClick={onGoogle}>{loading ? '正在登录…' : '使用 Google 登录'}</button>{error && <p role="alert">{error}</p>}</div> : <>
+        <p className="mt-3 text-sm">本地部署：首次使用请创建自己的账号密码。</p>
         <div className="mt-6 grid grid-cols-2 gap-2">
           <SegmentButton active={mode === 'login'} onClick={() => setMode('login')}>
             Login
@@ -2571,7 +2829,7 @@ function LoginScreen({
           <button type="submit" disabled={loading} className="cute-button-primary h-12 w-full rounded-2xl px-4 text-sm font-semibold text-white disabled:opacity-60">
             {loading ? 'Processing...' : mode === 'register' ? 'Create account' : 'Login'}
           </button>
-        </form>
+        </form></>}
       </section>
     </main>
   );
@@ -2672,85 +2930,6 @@ function DesktopLocationBar({
   );
 }
 
-function GlobalSearch({
-  query,
-  results,
-  labels,
-  onQueryChange,
-  onOpenResult,
-}: {
-  query: string;
-  results: SearchResult[];
-  labels: Record<string, string>;
-  onQueryChange: (query: string) => void;
-  onOpenResult: (item: VocabItem) => void;
-}) {
-  const hasQuery = query.trim().length > 0;
-
-  return (
-    <div className="relative min-w-0 lg:w-[19rem] xl:w-[22rem]">
-      <div className="flex h-10 min-w-0 items-center rounded-full border border-[#efd1db] bg-white/85 px-3 shadow-sm focus-within:border-[#d95f8a] focus-within:bg-white">
-        <span aria-hidden="true" className="mr-2 shrink-0 text-[#a84269]">⌕</span>
-        <input
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              onQueryChange('');
-            }
-          }}
-          className="min-w-0 flex-1 bg-transparent text-sm text-[#3d3036] outline-none placeholder:text-[#987986]"
-          placeholder={labels.searchPlaceholder}
-          aria-label={labels.searchOpen}
-        />
-        {hasQuery ? (
-          <button
-            type="button"
-            onClick={() => onQueryChange('')}
-            aria-label={labels.searchClear}
-            title={labels.searchClear}
-            className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg leading-none text-[#987986] hover:bg-[#fff0f5] hover:text-[#a84269]"
-          >
-            ×
-          </button>
-        ) : null}
-      </div>
-
-      {hasQuery ? (
-        <div className="absolute left-0 right-0 top-12 z-30 max-h-[min(70vh,520px)] overflow-y-auto rounded-2xl border border-[#efd1db] bg-white p-2 shadow-xl">
-          <p className="px-2 py-1 text-xs font-semibold text-[#a84269]">{labels.searchResults}</p>
-          {results.length ? (
-            <div className="mt-1 grid gap-1">
-              {results.map((result) => (
-                <button
-                  type="button"
-                  key={result.item.id}
-                  onClick={() => onOpenResult(result.item)}
-                  className="min-w-0 rounded-2xl px-3 py-3 text-left hover:bg-[#fff7fb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95f8a]"
-                >
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="break-words text-base font-semibold text-[#8f365b]">{result.title}</p>
-                      {result.item.reading ? <p className="mt-1 text-xs font-semibold text-[#856033]">{result.item.reading}</p> : null}
-                    </div>
-                    <span className="shrink-0 rounded-full bg-[#eef9f2] px-2 py-1 text-xs font-semibold text-[#3e755c]">{result.moduleLabel}</span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-[#4f5b55]">{result.subtitle}</p>
-                  {result.matches.length ? (
-                    <p className="mt-2 line-clamp-2 break-words text-xs leading-5 text-[#747b76]">{result.matches.join(' / ')}</p>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="px-3 py-5 text-sm text-[#68716c]">{labels.noSearchResults}</p>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function normalizeWordbooks(value: Wordbook[] | undefined) {
   const seen = new Set<string>();
   return [...(value?.length ? value : fallbackWordbooks)]
@@ -2797,4 +2976,16 @@ function HomeAction({
       <p className="mt-2 text-sm leading-6 text-[#62645f]">{body}</p>
     </button>
   );
+}
+
+function readPracticeResume(userId: number): { hash?: string; practiceId?: string; questionId?: string } {
+  try {
+    const value = JSON.parse(localStorage.getItem(`jlpt-practice-resume:${userId}`) ?? '{}');
+    if (!value || typeof value !== 'object') return {};
+    return {
+      hash: typeof value.hash === 'string' && /^#\/[a-z-]+(?:\/[^\s]*)?$/.test(value.hash) ? value.hash : undefined,
+      practiceId: typeof value.practiceId === 'string' ? value.practiceId : undefined,
+      questionId: typeof value.questionId === 'string' ? value.questionId : undefined,
+    };
+  } catch { return {}; }
 }

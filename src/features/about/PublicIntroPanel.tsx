@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpenCheck, ClipboardPenLine, Flame, ListChecks, Target } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpenCheck, Bot, ClipboardPenLine, Database, Flame, ListChecks, ShieldCheck, Target } from 'lucide-react';
 
 const primaryActions = [
   {
@@ -45,6 +45,24 @@ const productHighlights = [
     icon: Flame,
     title: '昨天不会的，今天继续补',
     text: '错题和薄弱点会留下记录，下一轮复习不会从零开始。',
+  },
+];
+
+const aiIntro = [
+  {
+    icon: Bot,
+    title: '网页和 AI 各管一半',
+    text: '网页负责记录、练习、判分和进度；Claude、ChatGPT、Claude Code 或 Codex 通过 MCP 读取你的学习数据，帮你整理词条、分析弱点、出题和排计划，结果写回网页。',
+  },
+  {
+    icon: Database,
+    title: '数据只属于你',
+    text: '本地优先：学习记录和复习进度先存在你自己的账号里。AI 只能访问授权时那个账号的数据，看不到其他用户。',
+  },
+  {
+    icon: ShieldCheck,
+    title: '写入有边界',
+    text: '授权按范围区分：只读、写入学习记录、写入题库，授权页会一一列出。AI 生成的复习材料先进草稿，不会直接覆盖题库；发布是你在网页里点的。随时可以断开，令牌立即失效。',
   },
 ];
 
@@ -165,6 +183,23 @@ export function PublicIntroPanel() {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16 md:px-8">
+        <div className="rounded-2xl border border-[#d9e6de] bg-white p-6 md:p-8">
+          <p className="text-sm font-semibold text-[#2d6b55]">接入 AI</p>
+          <h2 className="mt-2 text-2xl font-black leading-tight text-[#1f2e2a] md:text-3xl">把它接进你常用的 AI，它就能替你动手</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#40504a]">一句话让 AI 整理词条、分析错题、出今日练习、排备考计划，还能设成定时任务自动跑。登录后在「AI 助手」里三步接好。</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {aiIntro.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-xl bg-[#f4faf6] p-4">
+                <Icon size={20} className="text-[#2f6f58]" />
+                <h3 className="mt-3 text-sm font-bold text-[#25312d]">{title}</h3>
+                <p className="mt-1 text-sm leading-6 text-[#58625d]">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );

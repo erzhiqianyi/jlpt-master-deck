@@ -7,22 +7,34 @@
   },
   "scripts": {
     "dev": "node server/dev.mjs",
-    "dev:app": "vite --host 0.0.0.0 --port 5193 --strictPort",
+    "predev": "npm run build:mcp-app",
+    "dev:app": "vite",
     "backend": "node server/api.mjs",
     "mcp": "node server/mcp-server.mjs",
     "mcp:setup": "node scripts/setup-project-mcp.mjs",
-    "build": "vite build",
-    "start": "vite preview --host 0.0.0.0 --port 5193 --strictPort",
+    "build": "vite build && npm run build:mcp-app",
+    "build:mcp-app": "vite build --config vite.mcp-app.config.ts",
+    "start": "vite preview",
     "tunnel": "cloudflared tunnel --config ~/.cloudflared/config.yml run satori-local",
     "dev:tunnel": "bash scripts/dev-with-tunnel.sh",
     "data:blank": "node scripts/create-blank-data.mjs",
     "plan:migrate-prototype": "node scripts/migrate-prototype-study-plan.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "build:cloudflare": "npm run build && node scripts/prepare-cloudflare-build.mjs",
+    "test:cloudflare": "node --test cloudflare/*.test.mjs",
+    "deploy:cloudflare": "npm run build:cloudflare && wrangler pages deploy dist --project-name jlpt-master-deck --branch main"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@ninomae/mcp-app-server": "file:vendor/ninomae-mcp-app-server-0.2.0.tgz",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.4.0",
     "lucide-react": "^0.468.0",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.1",
@@ -33,7 +45,8 @@
     "eslint": "9.39.4",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vite": "8.0.13"
+    "vite": "8.0.13",
+    "wrangler": "4.135.0"
   },
   "type": "module"
 }

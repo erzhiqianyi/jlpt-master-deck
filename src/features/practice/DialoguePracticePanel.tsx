@@ -1,3 +1,5 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ChevronLeft, ChevronRight, PlayCircle } from 'lucide-react';
 import { useState } from 'react';
 import { dialoguePractices } from '../../data/dialoguePractice';
@@ -8,18 +10,8 @@ export function DialoguePracticePanel() {
   const selected = activeIndex === null ? null : dialoguePractices[activeIndex];
 
   if (!selected || activeIndex === null) return (
-    <section className="topic-library" aria-label="对话题目列表">
-      <div className="topic-library-filters"><span>{dialoguePractices.length} 题</span></div>
-      <ul className="topic-library-rows">
-        {dialoguePractices.map((item, index) => <li key={item.id}>
-          <button className="topic-library-row" type="button" onClick={() => setActiveIndex(index)}>
-            <span className="topic-library-icon is-ready"><PlayCircle size={26} aria-hidden="true" /></span>
-            <span className="topic-library-copy"><strong>{item.title}</strong><small>{item.task}</small></span>
-            <span className="topic-library-action">开始<ChevronRight size={18} aria-hidden="true" /></span>
-          </button>
-        </li>)}
-      </ul>
-    </section>
+    <LearningCatalog title="对话练习" items={dialoguePractices} searchText={(item) => `${item.title} ${item.task}`} onBack={() => { window.location.hash = '#/mixed/tips'; }} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.task} onOpen={() => { setActiveIndex(dialoguePractices.indexOf(item)); }}/>}/>
+
   );
 
   return (

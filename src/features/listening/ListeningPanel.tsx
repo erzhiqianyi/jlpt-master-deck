@@ -1,6 +1,9 @@
+import { LearningCatalog } from '../../components/LearningCatalog';
+import { ModuleActionBar } from '../../components/ModuleActionBar';
+import { LearningList, LearningListRow } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, ExternalLink, Lightbulb, LoaderCircle, Mic, Pause, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Target, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, LoaderCircle, Mic, Pause, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
@@ -43,7 +46,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showAiForm, setShowAiForm] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
+  // The library is always visible; the action bar above it replaces the old entry hub.
+  const showLibrary = true;
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
   const [pageIndex, setPageIndex] = useState(0);
@@ -139,70 +143,17 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
   }
 
   return (
-    <section className="ledger-word-index ledger-entry-index min-w-0">
-      {!showLibrary ? (
-        <div className="ledger-entry-hub">
-          <div className="ledger-section-hero ledger-entry-hub-heading">
-            <div>
-              <h2 className="ledger-entry-page-title">选择听力训练</h2>
-            </div>
-          </div>
-          <div className="ledger-entry-actions" aria-label="听力主要入口">
-            {onPractice ? (
-              <button type="button" className="ledger-entry-action is-coral" onClick={onPractice}>
-                <RotateCcw size={22} aria-hidden="true" />
-                <span>开始练习</span>
-                <strong>按当前听力题库顺序练一轮</strong>
-              </button>
-            ) : null}
-            {onTips ? (
-              <button type="button" className="ledger-entry-action is-amber" onClick={onTips}>
-                <Lightbulb size={22} aria-hidden="true" />
-                <span>学习方法</span>
-                <strong>先看听力题型和解法提示</strong>
-              </button>
-            ) : null}
-            <button type="button" className="ledger-entry-action is-ink" onClick={() => setShowLibrary(true)}>
-              <ExternalLink size={22} aria-hidden="true" />
-              <span>听力材料</span>
-              <strong>打开音频、题型和题目列表</strong>
-            </button>
-            <button type="button" className="ledger-entry-action is-green" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }}>
-              {showAiForm ? <X size={22} aria-hidden="true" /> : <Sparkles size={22} aria-hidden="true" />}
-              <span>从链接准备练习</span>
-              <strong>请 AI 根据链接准备题目</strong>
-            </button>
-            <button type="button" className="ledger-entry-action is-blue" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }}>
-              {showForm ? <X size={22} aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
-              <span>添加听力材料</span>
-              <strong>上传音频并保存题目</strong>
-            </button>
-          </div>
-        </div>
-      ) : (
-      <div className="ledger-word-toolbar mobile-action-header flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-4 md:px-6">
-        <div>
-          <h2 className="text-2xl font-black text-[#3d3036]">{labels.listeningLibrary}</h2>
-          <p className="mt-1 text-sm text-[#74646b]">{questions.length} {labels.questions}</p>
-        </div>
-        <div className="mobile-action-row flex flex-wrap gap-2">
-          <button type="button" onClick={() => { setShowLibrary(false); setShowForm(false); setShowAiForm(false); setMessage(''); }} className="cute-button-secondary inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold">
-            <ChevronLeft size={17} />
-            返回入口
-          </button>
-          <button type="button" onClick={() => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); }} className="cute-button-secondary inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold">
-            {showAiForm ? <X size={17} /> : <Sparkles size={17} />}
-            {showAiForm ? labels.mobileClose : labels.aiGenerateFromLink}
-          </button>
-          <button type="button" onClick={() => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); }} className="cute-button-primary inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-white">
-            {showForm ? <X size={17} /> : <Plus size={17} />}
-            {showForm ? labels.mobileClose : labels.listeningUploadTitle}
-          </button>
-        </div>
-      </div>
-      )}
-
-      {showLibrary ? <LibraryActions labels={labels} onPractice={onPractice} onTips={onTips} onReview={onReview} /> : null}
+    <section className="ledger-word-index ledger-module-page min-w-0">
+      <ModuleActionBar
+        label="听力"
+        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: onPractice } : undefined}
+        actions={[
+          ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
+          ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
+          { key: 'ai', label: labels.aiGenerateFromLink, icon: <Sparkles size={16} aria-hidden="true" />, active: showAiForm, onClick: () => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); } },
+          { key: 'add', label: labels.listeningUploadTitle, icon: <Plus size={16} aria-hidden="true" />, active: showForm, onClick: () => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); } },
+        ]}
+      />
 
       {message ? <p role="status" className="border-b border-[#f0d4dd] px-4 py-3 text-sm font-bold text-[#8f365b] md:px-6">{message}</p> : null}
 
@@ -301,78 +252,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
         </form>
       ) : null}
 
-      {showLibrary ? <div className="px-4 py-5 md:px-6">
-        {questions.length ? (
-          <>
-            <div className="mobile-list md:hidden">
-              {pageItems.map((item, itemIndex) => {
-                const displayNumber = item.libraryNumber ?? questions.length - (pageStart + itemIndex);
-                return (
-                <div key={item.id} className="mobile-list-item mobile-list-link">
-                  <span className="mobile-list-main">
-                    <span className="mobile-list-title">{labels.listeningDatabaseNumber} #{displayNumber}</span>
-                    <span className="mobile-list-subtitle">{listeningQuestionTypeName(item.questionTypeId)}</span>
-                  </span>
-                  <span className="mobile-list-tags">
-                    <ListeningListAudioButton item={item} labels={labels} token={token} displayNumber={displayNumber} />
-                    <QuestionAction label={`${labels.entryOpen}: ${labels.listeningDatabaseNumber} ${displayNumber}`} title={labels.entryOpen} onClick={() => onOpenQuestion?.(item.id)}><ChevronRight size={18} /></QuestionAction>
-                  </span>
-                  <span className="mobile-list-note">{formatDateTime(item.createdAt, locale)}</span>
-                </div>
-                );
-              })}
-            </div>
-            <div className="hidden overflow-x-auto md:block md:overflow-x-visible">
-              <table className="w-full min-w-[680px] table-fixed border-collapse text-left text-sm md:min-w-0">
-                <thead className="bg-[#f3f6f1] text-xs font-semibold text-[#5b665f]">
-                  <tr>
-                    <th className="w-[18%] px-4 py-3">{labels.listeningDatabaseNumber}</th>
-                    <th className="w-[31%] px-3 py-3">{labels.questionType}</th>
-                    <th className="w-[17%] px-3 py-3">{labels.listeningPlayAudio}</th>
-                    <th className="w-[25%] px-3 py-3">{labels.entryColumnCreated}</th>
-                    <th className="w-[9%] px-3 py-3 text-right"><span className="sr-only">{labels.entryOpen}</span></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#ece4d8]">
-                  {pageItems.map((item, itemIndex) => {
-                    const displayNumber = item.libraryNumber ?? questions.length - (pageStart + itemIndex);
-                    return (
-                    <tr key={item.id} className="bg-white hover:bg-[#fbf8f2]">
-                      <td className="px-4 py-3 align-top">
-                        <span className="inline-flex rounded-md bg-[#f2f6f1] px-2.5 py-1 font-mono text-sm font-bold tabular-nums text-[#173d35]">#{displayNumber}</span>
-                      </td>
-                      <td className="px-3 py-3 align-middle font-semibold text-[#4d5751]">{listeningQuestionTypeName(item.questionTypeId)}</td>
-                      <td className="px-3 py-3 align-middle"><ListeningListAudioButton item={item} labels={labels} token={token} displayNumber={displayNumber} /></td>
-                      <td className="px-3 py-3 align-top text-[#4d5751]">{formatDateTime(item.createdAt, locale)}</td>
-                      <td className="px-3 py-3 align-top">
-                        <div className="flex justify-end">
-                          <QuestionAction label={`${labels.entryOpen}: ${labels.listeningDatabaseNumber} ${displayNumber}`} title={labels.entryOpen} onClick={() => onOpenQuestion?.(item.id)}><ExternalLink size={16} /></QuestionAction>
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {mobileList.mobile ? <div ref={mobileList.setSentinel} className="mobile-list-end" role="status">{mobileList.visible < questions.length ? (locale === 'zh-CN' ? '上拉查看更多' : locale === 'ja' ? '続きを表示' : 'Scroll for more') : (locale === 'zh-CN' ? '已经到底了' : locale === 'ja' ? 'すべて表示しました' : 'End of list')}</div> : null}
-            <div className="desktop-list-pagination flex flex-wrap items-center justify-between gap-3 border-t border-[#e5ddd1] pt-3 text-sm text-[#59645e] md:mt-0">
-              <span className="font-semibold">{pageStart + 1}-{pageEnd} / {questions.length} {labels.questions}</span>
-              <div className="flex items-center gap-2">
-                <button type="button" aria-label={labels.entryPagePrev} title={labels.entryPagePrev} disabled={currentPage === 0} onClick={() => setPageIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="min-w-14 text-center font-semibold text-[#34443c]">{currentPage + 1} / {pageCount}</span>
-                <button type="button" aria-label={labels.entryPageNext} title={labels.entryPageNext} disabled={currentPage >= pageCount - 1} onClick={() => setPageIndex((index) => Math.min(pageCount - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#c8bcae] bg-white text-[#24473f] hover:bg-[#f2f6f1] disabled:cursor-not-allowed disabled:opacity-40">
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="mt-3 text-sm leading-6 text-[#68716b]">{labels.listeningEmpty}</p>
-        )}
-      </div> : null}
+      {showLibrary ? <LearningCatalog title={locale === 'ja' ? '聴解ライブラリ' : locale === 'en' ? 'Listening library' : '听力题库'} items={questions} locale={locale} searchText={(item) => `${item.libraryNumber ?? questions.length - questions.indexOf(item)} ${listeningQuestionTypeName(item.questionTypeId)}`} renderRow={(item) => <LearningListRow key={item.id} inlineActions title={`${labels.listeningDatabaseNumber} #${item.libraryNumber ?? questions.length - questions.indexOf(item)}`} description={listeningQuestionTypeName(item.questionTypeId)} locale={locale} onOpen={() => onOpenQuestion?.(item.id)} secondary={<ListeningListAudioButton item={item} labels={labels} token={token} displayNumber={item.libraryNumber ?? questions.length - questions.indexOf(item)}/>}/>}/> : null}
     </section>
   );
 }
@@ -417,8 +297,8 @@ function ListeningListAudioButton({ item, labels, token, displayNumber }: { item
 
   const label = loading ? labels.listeningAudioLoading : playing ? labels.listeningPauseAudio : labels.listeningPlayAudio;
   return (
-    <button type="button" onClick={togglePlayback} disabled={loading} aria-label={`${label}: ${labels.listeningDatabaseNumber} ${displayNumber}`} title={error || label} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfb8c7] bg-[#fff7fb] text-[#a84269] hover:bg-[#ffeaf2] disabled:cursor-wait disabled:opacity-60">
-      {loading ? <LoaderCircle className="animate-spin" size={16} /> : playing ? <Pause size={16} fill="currentColor" /> : <Play className="ml-0.5" size={16} fill="currentColor" />}
+    <button type="button" onClick={togglePlayback} disabled={loading} aria-label={`${label}: ${labels.listeningDatabaseNumber} ${displayNumber}`} title={error || label} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#dce7df] bg-[#edf7f1] px-5 text-[#245e4b] hover:bg-[#e0f0e7] disabled:cursor-wait disabled:opacity-60">
+      {loading ? <LoaderCircle className="animate-spin" size={16} /> : playing ? <Pause size={16} fill="currentColor" /> : <Play className="ml-0.5" size={16} fill="currentColor" />}<span className="sr-only">{label}</span>
     </button>
   );
 }
@@ -777,25 +657,6 @@ function FeedbackList({ title, items, tone }: { title: string; items: string[]; 
   );
 }
 
-function LibraryActions({ labels, onPractice, onTips, onReview }: { labels: Record<string, string>; onPractice?: () => void; onTips?: () => void; onReview?: () => void }) {
-  if (!onPractice && !onTips && !onReview) return null;
-  return (
-    <div className="mobile-action-row flex flex-wrap gap-2 border-b border-[#f0d4dd] bg-white/65 px-4 py-3 md:px-6">
-      {onPractice ? <LibraryAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></LibraryAction> : null}
-      {onTips ? <LibraryAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></LibraryAction> : null}
-      {onReview ? <LibraryAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></LibraryAction> : null}
-    </div>
-  );
-}
-
-function LibraryAction({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="inline-flex h-9 items-center gap-2 rounded-md border border-[#ead1dc] bg-white px-3 text-sm font-bold text-[#a84269] hover:bg-[#fff0f5]">
-      {children}
-      <span>{label}</span>
-    </button>
-  );
-}
 
 function QuestionAction({ label, title, children, onClick, disabled }: { label: string; title: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (

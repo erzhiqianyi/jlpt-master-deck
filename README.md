@@ -75,7 +75,7 @@ Configure the project-scoped MCP server with:
 npm run mcp:setup
 ```
 
-Restart Codex after setup and confirm that `jlpt_review` is available. MCP tools use the same local account as the web app, so authenticate before reading or writing personal study data.
+Restart Codex after setup and confirm that `jlpt_review` is available. The HTTP MCP endpoint is protected by OAuth 2.1: authenticate through the app's consent flow before granting an agent access to personal study data. The MCP server does not expose a separate `login` tool.
 
 A typical workflow is:
 

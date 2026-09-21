@@ -3,6 +3,9 @@
   "name": "jlpt-master-deck",
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-09-20",
+  "vars": {
+    "VITE_GOOGLE_ANALYTICS_ID": "G-M9XM6EXYED"
+  },
   "services": [
     {
       "binding": "API",

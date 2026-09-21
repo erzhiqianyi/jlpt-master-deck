@@ -439,6 +439,22 @@ Use Cloudflare Pages with GitHub integration:
 
 Cloudflare Pages will rebuild automatically after each push to the configured branch.
 
+### Google Analytics（可选）
+
+本项目不会把 Analytics ID 写死在开源代码中。若要启用 GA4：
+
+1. 在 Google Analytics 创建 Web 数据流，复制 Measurement ID（例如 `G-M9XM6EXYED`）。
+2. 本地开发时，把 `VITE_GOOGLE_ANALYTICS_ID=G-M9XM6EXYED` 写入 `.env`。
+3. Cloudflare Pages / GitHub Actions 部署时，修改仓库根目录的 `wrangler.jsonc`：
+
+   ```jsonc
+   "vars": {
+     "VITE_GOOGLE_ANALYTICS_ID": "G-M9XM6EXYED"
+   }
+   ```
+
+这个 ID 属于前端公开配置，不需要放进 GitHub Secret，也不需要在 Cloudflare Pages 控制台重复添加。GitHub Actions 会在构建前从 `wrangler.jsonc` 读取它。变量未配置时不会加载 Google Analytics。由于应用使用 hash 路由，代码会在首次打开和路由切换时发送 `page_view`。
+
 See [docs/cloudflare-pages-deploy.md](docs/cloudflare-pages-deploy.md) for the step-by-step deployment notes.
 
 ## Repository Name

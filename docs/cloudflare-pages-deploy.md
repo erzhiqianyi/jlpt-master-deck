@@ -20,6 +20,7 @@ GitHub 配置：
 - Secret `CLOUDFLARE_API_TOKEN`：目标账户的 Pages Edit、Workers Scripts Edit；绑定 R2 所需权限应覆盖 Workers R2 Storage。按 Wrangler 的实际错误补齐账户读取权限。
 - Variable `CLOUDFLARE_ACCOUNT_ID`：目标 Cloudflare 账户。
 - 不要把短期 Wrangler OAuth token 放入长期 CI Secret。
+- Pages 前端公开变量统一维护在根目录 `wrangler.jsonc` 的 `vars` 中；不要再在 Cloudflare Pages 控制台单独维护同名变量。当前 GA4 配置为 `VITE_GOOGLE_ANALYTICS_ID`。
 
 ```sh
 npm ci

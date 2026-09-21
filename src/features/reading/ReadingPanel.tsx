@@ -31,20 +31,25 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   const [choices, setChoices] = useState(['', '', '', '']);
   const [answerIndex, setAnswerIndex] = useState(0);
   const [explanation, setExplanation] = useState('');
+  const [tags, setTags] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [showAiForm, setShowAiForm] = useState(false);
+ const [showAiForm, setShowAiForm] = useState(false);
+  useAuthoringNavigation(mode === 'library' && !activeQuestionId ? (showForm ? '添加阅读材料' : showAiForm ? labels.aiGenerateFromLink : null) : null, () => { setShowForm(false); setShowAiForm(false); });
   // The library is always visible; the action bar above it replaces the old entry hub.
-  const showLibrary = true;
+  const showLibrary = !showForm && !showAiForm;
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
   const [pageIndex, setPageIndex] = useState(0);
-  const mobileList = useMobileList(questions.length, 'library');
-  const pageCount = Math.max(1, Math.ceil(questions.length / READING_LIBRARY_PAGE_SIZE));
+  const [activeTag, setActiveTag] = useState('全部');
+  const availableTags = [...new Set(questions.flatMap((item) => item.tags ?? []))].sort();
+  const filteredQuestions = activeTag === '全部' ? questions : questions.filter((item) => (item.tags ?? []).includes(activeTag));
+  const mobileList = useMobileList(filteredQuestions.length, 'library');
+  const pageCount = Math.max(1, Math.ceil(filteredQuestions.length / READING_LIBRARY_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * READING_LIBRARY_PAGE_SIZE;
-  const pageItems = questions.slice(mobileList.mobile ? 0 : pageStart, mobileList.mobile ? mobileList.visible : pageStart + READING_LIBRARY_PAGE_SIZE);
+  const pageItems = filteredQuestions.slice(mobileList.mobile ? 0 : pageStart, mobileList.mobile ? mobileList.visible : pageStart + READING_LIBRARY_PAGE_SIZE);
   const pageEnd = pageStart + pageItems.length;
 
   useEffect(() => {
@@ -65,13 +70,14 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
     setMessage('');
     setSubmitting(true);
     try {
-      await onCreate({ title, passage, question, choices, answerIndex, explanation });
+      await onCreate({ title, passage, question, choices, answerIndex, explanation, tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) });
       setTitle('');
       setPassage('');
       setQuestion('');
       setChoices(['', '', '', '']);
       setAnswerIndex(0);
       setExplanation('');
+      setTags('');
       setShowForm(false);
       setMessage(labels.readingSaved);
     } catch (error) {
@@ -100,7 +106,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
 
   return (
     <section className="ledger-word-index ledger-module-page min-w-0">
-      <ModuleActionBar
+      {showForm || showAiForm ? null : <ModuleActionBar
         label="阅读"
         primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: onPractice } : undefined}
         actions={[
@@ -109,7 +115,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
           { key: 'ai', label: labels.aiGenerateFromLink, icon: <Sparkles size={16} aria-hidden="true" />, active: showAiForm, onClick: () => { setShowAiForm((value) => !value); setShowForm(false); setMessage(''); } },
           { key: 'add', label: '添加阅读材料', icon: <Plus size={16} aria-hidden="true" />, active: showForm, onClick: () => { setShowForm((value) => !value); setShowAiForm(false); setMessage(''); } },
         ]}
-      />
+      />}
 
       {message ? <p role="status" className="border-b border-[#e1e7df] px-4 py-3 text-sm font-semibold text-[#5a654f] md:px-6">{message}</p> : null}
 
@@ -178,13 +184,23 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
             <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder={labels.readingExplanationPlaceholder} maxLength={2000} className="mt-2 min-h-24 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-base leading-6" />
           </label>
 
+          <label className="block text-sm font-semibold text-[#46514c]">
+            题目标签
+            <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="例如：对比、全文主旨、信息社会（用逗号分隔）" maxLength={300} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" />
+          </label>
+
           <button type="submit" disabled={submitting} className="h-11 w-fit rounded-md bg-[#31564c] px-5 text-sm font-semibold text-white hover:bg-[#24473f] disabled:cursor-wait disabled:opacity-60">
             {submitting ? labels.readingSubmitting : labels.readingSubmit}
           </button>
         </form>
       ) : null}
 
-      {showLibrary ? <LearningCatalog title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={questions} locale={locale} searchText={(item) => `${item.title} ${item.passage}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.passage} locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(item.id)}`; }}/>}/> : null}
+      {showLibrary ? <>
+        <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
+          {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); setPageIndex(0); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
+        </div>
+        <LearningCatalog title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={pageItems} locale={locale} searchText={(item) => `${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={`${(item.tags ?? []).map((tag) => `#${tag}`).join(' ')} ${item.question}`} locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(item.id)}`; }}/>}/>
+      </> : null}
     </section>
   );
 }
@@ -247,8 +263,8 @@ function ReadingPracticeQuestion({ item, labels, locale }: { item: ReadingQuesti
         <h2 className="break-words text-2xl font-black text-[#3d3036]">{item.title}</h2>
         <p className="mt-1 text-xs text-[#8f6f7b]">{formatDateTime(item.createdAt, locale)}</p>
       </div>
-      <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-[#f0d4dd] bg-white/80 p-4 text-base leading-8 text-[#3d3036] shadow-sm">{item.passage}</div>
-      <p className="mt-6 whitespace-pre-wrap text-lg font-bold leading-8 text-[#3d3036]">{item.question}</p>
+      <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-[#d8e0d7] bg-white p-5 text-lg leading-9 text-[#3d3036] shadow-sm md:p-6 md:text-xl">{item.passage}</div>
+      <p className="mt-7 whitespace-pre-wrap text-xl font-black leading-9 text-[#27312c] md:text-2xl">{item.question}</p>
       <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#f0d4dd] pt-4">
         <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.readingSelectAnswer) : setRevealed(true)} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white">
@@ -257,7 +273,7 @@ function ReadingPracticeQuestion({ item, labels, locale }: { item: ReadingQuesti
         {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-bold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
-      {revealed && item.explanation ? <p className="cute-answer-note mt-4 whitespace-pre-wrap border border-[#f0d4dd] bg-[#fff7fb] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
+      {revealed ? <ReadingExplanation item={item} /> : null}
     </div>
   );
 }
@@ -290,15 +306,19 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
           <QuestionAction label={`${labels.readingDelete}: ${item.title}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction>
         </div>
       </div>
-      <p className="mt-4 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-[#53605a]">{item.passage}</p>
-      <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p>
+      <details className="mt-4 rounded-md border border-[#e1e7df] bg-[#fbfdf9] p-3" open>
+        <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">展开/收起文章全文</summary>
+        <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-[#53605a]">{item.passage}</p>
+      </details>
+      {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#edf5e9] px-2.5 py-1 text-xs font-semibold text-[#31564c]">#{tag}</span>)}</div> : null}
+      <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
       <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.readingSelectAnswer) : setRevealed(true)} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
-      {revealed && item.explanation ? <p className="mt-4 whitespace-pre-wrap rounded-md bg-[#f5f7f3] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
+      {revealed ? <ReadingExplanation item={item} /> : null}
     </article>
   );
 }
@@ -318,9 +338,9 @@ function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuest
       {item.choices.map((choice, index) => {
         const resultClass = revealed
           ? index === item.answerIndex ? 'border-[#65a37c] bg-[#f0fff5]' : selected === index ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white'
-          : selected === index ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white hover:bg-[#fff7fb]';
+          : selected === index ? 'border-[#d95f8a] !bg-[#fff0f5]' : 'border-[#f0d4dd] !bg-white hover:!bg-[#fff7fb]';
         return (
-          <button key={index} type="button" onClick={() => onSelect(index)} className={`cute-choice flex min-h-14 items-center gap-3 border px-4 py-3 text-left text-base font-bold ${resultClass}`}>
+          <button key={index} type="button" onClick={() => onSelect(index)} className={`cute-choice flex min-h-16 items-center gap-3 border px-4 py-4 text-left text-lg font-bold leading-7 ${resultClass}`}>
             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
             <span className="min-w-0 break-words">{choice}</span>
           </button>
@@ -330,8 +350,27 @@ function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuest
   );
 }
 
+function ReadingExplanation({ item }: { item: ReadingQuestion }) {
+  const nodes = item.explanationNodes ?? [];
+  const lines = item.translationLines ?? [];
+  return (
+    <section className="mt-4 space-y-3" aria-label="阅读题解析">
+      {lines.length ? (
+        <details className="rounded-md border border-[#d8e0d7] bg-white" open>
+          <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[#31564c]">原文・中文逐句对照</summary>
+          <div className="divide-y divide-[#e8eee7] px-4">
+            {lines.map((line, index) => <div key={`${line.ja}-${index}`} className="grid gap-1 py-3 text-sm leading-6 md:grid-cols-2 md:gap-5"><p className="font-medium text-[#3d3036]">{line.ja}</p><p className="text-[#53605a]">{line.zh}</p></div>)}
+          </div>
+        </details>
+      ) : null}
+      {nodes.length ? nodes.map((node, index) => <details key={`${node.title}-${index}`} className="rounded-md border border-[#f0d4dd] bg-[#fff7fb]" open={index === 0}><summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[#8a4963]">{node.title}</summary><p className="whitespace-pre-wrap px-4 pb-4 text-sm leading-7 text-[#4f5b55]">{node.body}</p></details>) : item.explanation ? <p className="whitespace-pre-wrap rounded-md border border-[#f0d4dd] bg-[#fff7fb] p-4 text-sm leading-7 text-[#4f5b55]">{item.explanation}</p> : null}
+    </section>
+  );
+}
+
 function formatDateTime(value: string, locale: Locale) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(date);
 }
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';

@@ -50,7 +50,7 @@
     "miniflare": "5.20260918.0-alpha",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vite": "8.0.13",
+    "vite": "^8.3.0",
     "wrangler": "4.135.0"
   },
   "type": "module"

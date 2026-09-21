@@ -873,7 +873,8 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
-  const [showCaptureForm, setShowCaptureForm] = useState(false);
+ const [showCaptureForm, setShowCaptureForm] = useState(false);
+  useAuthoringNavigation(showCaptureForm ? (captureCategory === 'grammar' ? '记一个句型' : '记一个单词') : null, () => { setShowCaptureForm(false); });
   // The library is always visible; the action bar above it replaces the old entry hub.
   const showEntryLibrary = true;
   const [showFocusedPractice, setShowFocusedPractice] = useState(false);
@@ -1027,7 +1028,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
 
   return (
     <LearningListFrame className={showEntryHub ? 'ledger-word-index ledger-module-page min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
-      {showEntryHub ? (
+      {showEntryHub && !showCaptureForm ? (
         <ModuleActionBar
           label={isGrammarLibrary ? '语法' : '单词'}
           primary={onPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
@@ -1918,3 +1919,4 @@ function rubyTermsForItems(items: VocabItem[]) {
     .map((term) => ({ surface: term.text, reading: term.reading }))
     .sort((a, b) => b.surface.length - a.surface.length);
 }
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';

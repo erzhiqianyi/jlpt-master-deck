@@ -151,6 +151,7 @@ export type LearningCapture = {
 
 export type ListeningQuestion = {
   id: string;
+  audioAssetId?: string;
   libraryNumber?: number;
   title: string;
   questionTypeId: string;
@@ -164,7 +165,7 @@ export type ListeningQuestion = {
   createdAt: string;
 };
 
-export type ListeningQuestionInput = Omit<ListeningQuestion, 'id' | 'audioSize' | 'createdAt'> & { audioBase64: string };
+export type ListeningQuestionInput = Omit<ListeningQuestion, 'id' | 'audioSize' | 'createdAt'> & { audioBase64: string; existingQuestionId?: string };
 
 export type ListeningRecordingStatus = 'pending' | 'analyzing' | 'completed' | 'failed';
 
@@ -196,6 +197,9 @@ export type ReadingQuestion = {
   choices: string[];
   answerIndex: number;
   explanation: string;
+  tags: string[];
+  explanationNodes?: { title: string; body: string }[];
+  translationLines?: { ja: string; zh: string }[];
   createdAt: string;
 };
 

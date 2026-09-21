@@ -5,7 +5,7 @@ import { restorePracticeName } from './practice-names.mjs';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from './files.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 
@@ -153,6 +153,18 @@ export function getDb() {
         created_at TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS listening_audio_assets (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        file_name TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        sha256 TEXT NOT NULL,
+        audio_path TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(user_id, sha256)
+      );
+
       CREATE TABLE IF NOT EXISTS listening_recordings (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -178,6 +190,9 @@ export function getDb() {
         choices_json TEXT NOT NULL,
         answer_index INTEGER NOT NULL,
         explanation TEXT NOT NULL,
+        tags_json TEXT NOT NULL DEFAULT '[]',
+        explanation_nodes_json TEXT NOT NULL DEFAULT '[]',
+        translation_lines_json TEXT NOT NULL DEFAULT '[]',
         created_at TEXT NOT NULL
       );
 
@@ -236,9 +251,14 @@ export function getDb() {
     `);
     ensureColumn('listening_questions', 'question_type_id', "TEXT NOT NULL DEFAULT 'listening-task'");
     ensureColumn('listening_questions', 'library_number', 'INTEGER');
+    ensureColumn('listening_questions', 'audio_asset_id', 'TEXT');
+    migrateListeningAudioAssets();
     ensureListeningLibraryNumbers();
     ensureColumn('learning_captures', 'target_deck', 'TEXT');
     ensureColumn('learning_captures', 'target_wordbook_id', 'TEXT');
+    ensureColumn('reading_questions', 'tags_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'explanation_nodes_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureDailyPracticesMultiVersion();
     ensureReviewItemsSeeded();
     migrateCanonicalReviewItems();
@@ -246,6 +266,18 @@ export function getDb() {
     ensureQuerySchema(db);
   }
   return db;
+}
+
+function migrateListeningAudioAssets() {
+  const rows = db.prepare(`SELECT id, user_id, audio_file_name, audio_mime, audio_size, audio_path, created_at FROM listening_questions WHERE audio_asset_id IS NULL`).all();
+  for (const row of rows) {
+    const assetId = randomBytes(12).toString('base64url');
+    const sha256 = `legacy:${row.audio_path}`;
+    db.prepare(`INSERT OR IGNORE INTO listening_audio_assets (id, user_id, file_name, mime, size, sha256, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(assetId, row.user_id, row.audio_file_name, row.audio_mime, row.audio_size, sha256, row.audio_path, row.created_at);
+    const asset = db.prepare('SELECT id FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(row.user_id, sha256);
+    db.prepare('UPDATE listening_questions SET audio_asset_id = ? WHERE id = ?').run(asset.id, row.id);
+  }
 }
 
 function ensureColumn(table, column, definition) {
@@ -359,7 +391,16 @@ function ensureReviewItemsSeeded() {
     const archive = JSON.parse(readFileSync(file, 'utf8'));
     const source = file.replace(`${rootDir}/`, '');
     for (const item of archive.items ?? []) {
-      const normalized = normalizeReviewItem(item);
+      // Older exported seed items sometimes copied meaning_ja into paraphrase_ja.
+      // Keep those items importable, but do not expose an invalid meaning question.
+      const hasDuplicateMeaningParaphrase = Array.isArray(item.question_kinds)
+        && item.question_kinds.includes('meaning')
+        && String(item.meaning_ja ?? '').trim()
+        && String(item.meaning_ja ?? '').trim() === String(item.paraphrase_ja ?? '').trim();
+      const seedItem = hasDuplicateMeaningParaphrase
+        ? { ...item, question_kinds: item.question_kinds.filter((kind) => kind !== 'meaning') }
+        : item;
+      const normalized = normalizeReviewItem(seedItem);
       insert.run(normalized.id, JSON.stringify(normalized), `json-backup:${source}`, now, now);
     }
   }
@@ -679,6 +720,13 @@ export function deleteSession(token) {
   }
 }
 
+export function findListeningAudioQuestions(userId, hash) {
+  const assets = getDb().prepare('SELECT id, sha256, audio_path FROM listening_audio_assets WHERE user_id = ?').all(userId);
+  const ids = new Set(assets.filter((asset) => asset.sha256 === hash ||
+    (asset.sha256.startsWith('legacy:') && existsSync(asset.audio_path) && createHash('sha256').update(readFileSync(asset.audio_path)).digest('hex') === hash)).map((asset) => asset.id));
+  return listListeningQuestions(userId).filter((item) => ids.has(item.audioAssetId)).sort((a, b) => a.libraryNumber - b.libraryNumber);
+}
+
 export function createListeningQuestion(userId, payload) {
   const question = String(payload?.question ?? '').trim();
   const choices = Array.isArray(payload?.choices)
@@ -689,10 +737,13 @@ export function createListeningQuestion(userId, payload) {
   const audioMime = String(payload?.audioMime ?? '').toLowerCase();
   const audioFileName = String(payload?.audioFileName ?? 'listening-audio').trim().slice(0, 180);
   const audioBase64 = String(payload?.audioBase64 ?? '').replace(/\s/g, '');
-  if (!question || choices.length !== 4 || choices.some((choice) => !choice)) {
-    throw new Error('Question and four non-empty choices are required');
+  const emptyChoices = choices.every((choice) => !choice);
+  const freeResponse = false;
+  const choicesOptional = emptyChoices && ['listening-outline', 'listening-quick', 'listening-integrated'].includes(questionTypeId);
+  if (!question || (!freeResponse && !choicesOptional && ![3, 4].includes(choices.length)) || (!freeResponse && !choicesOptional && choices.some((choice) => !choice))) {
+    throw new Error('Question requires three or four non-empty choices, or four empty choices for free response');
   }
-  if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= choices.length) {
+  if (!Number.isInteger(answerIndex) || (freeResponse ? answerIndex !== -1 : answerIndex < 0 || answerIndex >= choices.length)) {
     throw new Error('Choose a valid correct answer');
   }
   if (!audioMime.startsWith('audio/') || !audioBase64) {
@@ -707,14 +758,30 @@ export function createListeningQuestion(userId, payload) {
   }
 
   const id = randomBytes(12).toString('base64url');
+  const audioHash = createHash('sha256').update(audio).digest('hex');
+  if (payload.existingQuestionId) {
+    const existing = findListeningAudioQuestions(userId, audioHash).find((item) => item.id === payload.existingQuestionId);
+    if (!existing) throw new Error('Question does not belong to this audio');
+    getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, answer_index=?, explanation=? WHERE user_id=? AND id=?')
+      .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), answerIndex, String(payload.explanation ?? '').slice(0,2000), userId, existing.id);
+    return listeningQuestionForUser(userId, existing.id);
+  }
+  const existingAsset = getDb().prepare('SELECT id, audio_path, file_name, mime, size FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(userId, audioHash);
+  const assetId = existingAsset?.id ?? randomBytes(12).toString('base64url');
   const userAudioDir = join(localDir, 'listening-audio', String(userId));
   const extension = audioExtension(audioMime);
   const audioPath = join(userAudioDir, `${id}.${extension}`);
   const now = new Date().toISOString();
   const title = String(payload?.title ?? '').trim().slice(0, 120) || question.slice(0, 120);
   const explanation = String(payload?.explanation ?? '').trim().slice(0, 2000);
-  mkdirSync(userAudioDir, { recursive: true });
-  writeFileSync(audioPath, audio, { flag: 'wx' });
+  if (!existingAsset) {
+    mkdirSync(userAudioDir, { recursive: true });
+    writeFileSync(audioPath, audio, { flag: 'wx' });
+  }
+  const storedAudioPath = existingAsset?.audio_path ?? audioPath;
+  const storedAudioFileName = existingAsset?.file_name ?? audioFileName;
+  const storedAudioMime = existingAsset?.mime ?? audioMime;
+  const storedAudioSize = existingAsset?.size ?? audio.length;
   const database = getDb();
   try {
     transaction(database, () => {
@@ -726,15 +793,19 @@ export function createListeningQuestion(userId, payload) {
       database.prepare(`
         INSERT INTO listening_questions (
           id, user_id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
-          audio_file_name, audio_mime, audio_size, audio_path, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          audio_file_name, audio_mime, audio_size, audio_path, audio_asset_id, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation,
-        audioFileName, audioMime, audio.length, audioPath, now,
+        storedAudioFileName, storedAudioMime, storedAudioSize, storedAudioPath, assetId, now,
       );
+      if (!existingAsset) {
+        database.prepare(`INSERT INTO listening_audio_assets (id, user_id, file_name, mime, size, sha256, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(assetId, userId, storedAudioFileName, storedAudioMime, storedAudioSize, audioHash, storedAudioPath, now);
+      }
     });
   } catch (error) {
-    unlinkSync(audioPath);
+    if (!existingAsset && existsSync(audioPath)) unlinkSync(audioPath);
     throw error;
   }
   return listeningQuestionForUser(userId, id);
@@ -743,6 +814,7 @@ export function createListeningQuestion(userId, payload) {
 export function listListeningQuestions(userId) {
   return getDb().prepare(`
     SELECT id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
+      audio_asset_id,
       audio_file_name, audio_mime, audio_size, created_at
     FROM listening_questions
     WHERE user_id = ?
@@ -753,6 +825,7 @@ export function listListeningQuestions(userId) {
 export function listeningQuestionForUser(userId, id) {
   const row = getDb().prepare(`
     SELECT id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
+      audio_asset_id,
       audio_file_name, audio_mime, audio_size, created_at
     FROM listening_questions
     WHERE user_id = ? AND id = ?
@@ -770,14 +843,16 @@ export function listeningAudioForUser(userId, id) {
 }
 
 export function deleteListeningQuestion(userId, id) {
-  const audio = getDb().prepare('SELECT audio_path FROM listening_questions WHERE user_id = ? AND id = ?').get(userId, id);
+  const audio = getDb().prepare('SELECT audio_path, audio_asset_id FROM listening_questions WHERE user_id = ? AND id = ?').get(userId, id);
   if (!audio) {
     return false;
   }
   const recordingAudio = getDb().prepare('SELECT audio_path FROM listening_recordings WHERE user_id = ? AND listening_question_id = ?').all(userId, id);
   getDb().prepare('DELETE FROM listening_questions WHERE user_id = ? AND id = ?').run(userId, id);
-  if (existsSync(audio.audio_path)) {
-    unlinkSync(audio.audio_path);
+  const remaining = audio.audio_asset_id ? getDb().prepare('SELECT COUNT(*) AS count FROM listening_questions WHERE user_id = ? AND audio_asset_id = ?').get(userId, audio.audio_asset_id).count : 0;
+  if (!remaining) {
+    if (existsSync(audio.audio_path)) unlinkSync(audio.audio_path);
+    if (audio.audio_asset_id) getDb().prepare('DELETE FROM listening_audio_assets WHERE user_id = ? AND id = ?').run(userId, audio.audio_asset_id);
   }
   for (const recording of recordingAudio) {
     if (existsSync(recording.audio_path)) unlinkSync(recording.audio_path);
@@ -922,17 +997,26 @@ export function createReadingQuestion(userId, payload) {
   const now = new Date().toISOString();
   const title = String(payload?.title ?? '').trim().slice(0, 120) || question.slice(0, 120);
   const explanation = String(payload?.explanation ?? '').trim().slice(0, 2000);
+  const tags = [...new Set((Array.isArray(payload?.tags) ? payload.tags : String(payload?.tags ?? '').split(','))
+    .map((tag) => String(tag).trim()).filter(Boolean))].slice(0, 12);
+  const explanationNodes = Array.isArray(payload?.explanationNodes) ? payload.explanationNodes
+    .map((node) => ({ title: String(node?.title ?? '').trim(), body: String(node?.body ?? '').trim() }))
+    .filter((node) => node.title && node.body).slice(0, 12) : [];
+  const translationLines = Array.isArray(payload?.translationLines) ? payload.translationLines
+    .map((line) => ({ ja: String(line?.ja ?? '').trim(), zh: String(line?.zh ?? '').trim() }))
+    .filter((line) => line.ja && line.zh).slice(0, 80) : [];
   getDb().prepare(`
     INSERT INTO reading_questions (
-      id, user_id, title, passage, question, choices_json, answer_index, explanation, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, userId, title, passage.slice(0, 8000), question.slice(0, 1000), JSON.stringify(choices), answerIndex, explanation, now);
+      id, user_id, title, passage, question, choices_json, answer_index, explanation, tags_json,
+      explanation_nodes_json, translation_lines_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, userId, title, passage.slice(0, 8000), question.slice(0, 1000), JSON.stringify(choices), answerIndex, explanation, JSON.stringify(tags), JSON.stringify(explanationNodes), JSON.stringify(translationLines), now);
   return readingQuestionForUser(userId, id);
 }
 
 export function listReadingQuestions(userId) {
   return getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, created_at
     FROM reading_questions
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -941,7 +1025,7 @@ export function listReadingQuestions(userId) {
 
 export function readingQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, created_at
     FROM reading_questions
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
@@ -3203,6 +3287,7 @@ function parseJson(value, fallback) {
 function mapListeningQuestion(row) {
   return {
     id: row.id,
+    audioAssetId: row.audio_asset_id ?? undefined,
     libraryNumber: Number(row.library_number),
     title: row.title,
     questionTypeId: normalizeListeningQuestionTypeId(row.question_type_id),
@@ -3265,6 +3350,9 @@ function mapReadingQuestion(row) {
     choices: parseJson(row.choices_json, []),
     answerIndex: Number(row.answer_index),
     explanation: row.explanation,
+    tags: parseJson(row.tags_json, []),
+    explanationNodes: parseJson(row.explanation_nodes_json, []),
+    translationLines: parseJson(row.translation_lines_json, []),
     createdAt: row.created_at,
   };
 }

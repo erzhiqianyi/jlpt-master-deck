@@ -1072,6 +1072,14 @@ rt {
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
+/* Library rows are indexes, not reading surfaces. Keep long source text for the detail page. */
+.list-item-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .cute-answer-note {
   position: relative;
   min-width: 0;

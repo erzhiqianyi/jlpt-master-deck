@@ -248,7 +248,8 @@ export function MobileStudyControls({
   );
 }
 
-export function DesktopPageHeader({ title, labels, onBack, onSearch, showBack, filterLabel, onHeaderFilter }: {
+export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch, showBack, filterLabel, onHeaderFilter }: {
+  breadcrumbs?: Array<{ label: string; onClick: () => void }>;
   title: string;
   labels: Record<string, string>;
   onBack: () => void;
@@ -260,7 +261,12 @@ export function DesktopPageHeader({ title, labels, onBack, onSearch, showBack, f
   return (
     <header className="workspace-topbar">
       {showBack ? <button type="button" className="workspace-back cute-focus" onClick={onBack} aria-label={labels.mobileBack ?? '返回上一页'} title="返回上一页"><ArrowLeft size={20} /></button> : null}
-      <h1 className="workspace-page-title">{title}</h1>
+      {breadcrumbs ? <nav className="workspace-page-title flex flex-wrap items-center gap-2" aria-label="页面路径">
+        {breadcrumbs.map((crumb, index) => <span key={index} className="inline-flex items-center gap-2">
+          {index > 0 ? <span aria-hidden="true" className="text-gray-400">/</span> : null}
+          <button type="button" className="cute-focus rounded px-1 py-1 hover:bg-[#eaf4ed]" onClick={crumb.onClick} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</button>
+        </span>)}
+      </nav> : <h1 className="workspace-page-title">{title}</h1>}
       {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`单词本筛选：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button>}
     </header>
   );

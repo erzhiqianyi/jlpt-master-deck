@@ -16,6 +16,7 @@ import {
   createDailyPracticeFromDraft,
   createListeningRecording,
   createListeningQuestion,
+  findListeningAudioQuestions,
   createLearningCapture,
   createReviewPackDraft,
   createReadingQuestion,
@@ -289,6 +290,11 @@ return async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/api/listening-questions') {
       return json(res, 200, { questions: listListeningQuestions(user.id) });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/listening-audio-match') {
+      const hash = url.searchParams.get('sha256') ?? '';
+      if (!/^[a-f0-9]{64}$/.test(hash)) return json(res, 400, { error: 'Invalid audio hash' });
+      return json(res, 200, { questions: findListeningAudioQuestions(user.id, hash) });
     }
 
     if (req.method === 'POST' && url.pathname === '/api/listening-questions') {

@@ -1,6 +1,7 @@
 'use client';
 
 import { LoginLanding } from './features/auth/LoginLanding';
+import { AuthoringNavigation, type AuthoringLocation } from './components/AuthoringNavigation';
 
 import { configureFirebase, googleIdToken, firebaseLogout, firebaseUser } from './lib/firebase';
 
@@ -123,6 +124,7 @@ type AppRouteNavItem = {
 };
 
 export default function App() {
+  const [authoringLocation, setAuthoringLocation] = useState<AuthoringLocation | null>(null);
   const [data, setData] = useState<ReviewData>(fallbackData);
   const [authToken, setAuthToken] = useState<string>(() => (typeof window === 'undefined' ? '' : localStorage.getItem(STORAGE_TOKEN) ?? DEV_AUTH_TOKEN ?? ''));
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -1256,7 +1258,7 @@ export default function App() {
       token: authToken,
       body: input,
     });
-    setListeningQuestions((current) => [response.question, ...current]);
+    setListeningQuestions((current) => [response.question, ...current.filter((item) => item.id !== response.question.id)]);
   }
 
   async function removeListeningQuestion(id: string) {
@@ -1392,6 +1394,14 @@ export default function App() {
   const showMobileBackHeader = !isMobileTabRoute(route) || dataDetailOpen;
   const mobileBackRouteValue = mobileBackRoute(route);
   const desktopBackRouteValue = desktopBackRoute(route);
+  const detailTitle = route.page === 'words' && route.itemId
+    ? (route.view === 'reading' ? readingQuestions.find((item) => item.id === route.itemId)?.title
+      : route.view === 'listening' ? listeningQuestions.find((item) => item.id === route.itemId)?.title
+      : data.items.find((item) => item.id === route.itemId)?.original)
+    : undefined;
+  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle);
+  if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
+  const parentCrumbRoute = pageCrumbs.at(-2)?.route;
   const defaultDataTab = dataTabForRoute(activeView);
   const dataManagementBackAction = dataDetailOpen
     ? () => {
@@ -1463,6 +1473,7 @@ export default function App() {
         : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list';
 
   return (
+    <AuthoringNavigation.Provider value={setAuthoringLocation}>
     <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-hidden text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
@@ -1482,12 +1493,14 @@ export default function App() {
         }}
         actionLabel={undefined}
         onAction={undefined}
-        studyActionLabel={!pagedVocabulary && hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? mobileStudyModeLabel : undefined}
-        studyActionAriaLabel={hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? labels.mobileSwitchTask : undefined}
-        onStudyAction={!pagedVocabulary && hasStudyControls && !studyItemDetailOpen && !isLibraryEntryPage ? () => setMobileStudyPanel('task') : undefined}
-        filterActionLabel={showMobileStudyFilter ? mobileFilterLabel : undefined}
-        filterActionAriaLabel={showMobileStudyFilter ? `${labels.filters}: ${deckLabels[selectedDeck]}; ${labels.wordbookFilter}: ${selectedMobileWordbook ? selectedMobileWordbook.title : labels.wordbookAll}` : undefined}
-        onFilterAction={showMobileStudyFilter ? () => setMobileStudyPanel('filter') : undefined}
+        // Mobile pages should keep the header focused on navigation. The desktop
+        // study/filter controls remain available in the full layout.
+        studyActionLabel={undefined}
+        studyActionAriaLabel={undefined}
+        onStudyAction={undefined}
+        filterActionLabel={undefined}
+        filterActionAriaLabel={undefined}
+        onFilterAction={undefined}
       />
       <div className="app-frame flex min-w-0 flex-1 md:items-stretch">
         <DesktopSidebarNavigation
@@ -1507,11 +1520,21 @@ export default function App() {
 
         <div className="app-content flex min-w-0 flex-1 flex-col" data-page-kind={pageKind}>
       <DesktopPageHeader
+        breadcrumbs={pageCrumbs.map((crumb, index, crumbs) => ({
+          label: crumb.label,
+          onClick: () => {
+            if (index === crumbs.length - 1) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+            authoringLocation?.close();
+            if (crumb.route) navigateTo(crumb.route.view, crumb.route.page, crumb.route.itemId);
+          },
+        }))}
         title={mobileHeaderTitle}
         labels={labels}
         showBack={showMobileBackHeader}
         onBack={() => {
+          if (authoringLocation) { authoringLocation.close(); return; }
           if (dataManagementBackAction) { dataManagementBackAction(); return; }
+          if (parentCrumbRoute) { navigateTo(parentCrumbRoute.view, parentCrumbRoute.page, parentCrumbRoute.itemId); return; }
           window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
         }}
         onSearch={pagedVocabulary ? undefined : () => setSearchOpen(true)}
@@ -1922,6 +1945,7 @@ export default function App() {
       ) : null}
 
     </main>
+    </AuthoringNavigation.Provider>
   );
 }
 
@@ -2530,19 +2554,25 @@ function defaultDesktopStudyPage(view: AppView): StudyPage {
   return view === 'vocabulary' || view === 'grammar' || view === 'listening' || view === 'reading' ? 'words' : 'tips';
 }
 
-function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string): Array<{ label: string; route?: AppRoute }> {
+function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string): Array<{ label: string; route?: AppRoute }> {
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
 
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'question-types'].includes(route.view)) {
+    crumbs[0] = { label: '练习', route: { view: 'mixed', page: 'tips' } };
+    if (route.view === 'mixed') {
+      if (route.page !== 'tips' || route.itemId) crumbs.push({ label: mobileAppTitle(route, labels, 'zh-CN'), route });
+      return crumbs;
+    }
     if (route.view === 'question-types') {
       crumbs.push({ label: labels.navQuestionTypes });
       return crumbs;
     }
-    crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: defaultDesktopStudyPage(route.view) } });
+    crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: 'words' } });
     if (supportsStudyPage(route.view)) {
-      crumbs.push({ label: studyPageLabelFor(route.view, route.page, labels) });
+      if (route.page !== 'words') crumbs.push({ label: studyPageLabelFor(route.view, route.page, labels), route: { view: route.view, page: route.page } });
+      if (route.itemId) crumbs.push({ label: detailTitle || '详情', route });
     }
     return crumbs;
   }

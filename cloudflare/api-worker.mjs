@@ -5,6 +5,8 @@ import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
 import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser } from '../server/storage.mjs';
+import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
+import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
 
@@ -24,6 +26,8 @@ export class JlptDatabase extends DurableObject {
           this.db.prepare('INSERT INTO cloud_schema_version(version) VALUES(1)').run();
         }
         migrateCloudSchemaV2(this.db);
+        migrateReviewItemOwnership(this.db);
+        ensureQuerySchema(this.db);
       });
     });
   }

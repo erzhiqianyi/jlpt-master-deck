@@ -41,8 +41,8 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(doc.resource,origin+'/api/jlpt/mcp');
     const client=await json('/api/jlpt/oauth/register','POST',{client_name:'Runtime test',redirect_uris:['http://localhost:9999/callback'],token_endpoint_auth_method:'none'});
     const verifier='a'.repeat(64);
-    const params={client_id:client.client_id,redirect_uri:'http://localhost:9999/callback',response_type:'code',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',state:'test',scope:'study',resource:origin+'/api/jlpt/mcp'};
-    const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study']});
+    const params={client_id:client.client_id,redirect_uri:'http://localhost:9999/callback',response_type:'code',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',state:'test',scope:'study library:write',resource:origin+'/api/jlpt/mcp'};
+    const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study','library:write']});
     const tokenResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(approved.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
     assert.equal(tokenResponse.status,200,await tokenResponse.clone().text());
     const issued=await tokenResponse.json();
@@ -58,10 +58,18 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
       const result=await rpc('tools/call',{name,arguments:{entity:'item',time:{mode:'all'}}});
       assert.ok(!result.isError,JSON.stringify(result));
     }
+    const privateItem = { id:'cloud-private-item', deck:'grammar_expression', type:'grammar', original:'〜にほかならない', meaning_zh:'正是' };
+    const saved = await rpc('tools/call',{name:'upsert_review_item',arguments:{item:privateItem}});
+    assert.ok(!saved.isError,JSON.stringify(saved));
+    assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
+    assert.ok(!(await json('/api/review-data','GET',undefined,'test-2')).items.some(item=>item.id===privateItem.id));
+    assert.equal((await request('/api/review-items/'+privateItem.id,'PATCH',{tags:['stolen']},'test-2')).status,404);
     const resources=(await rpc('resources/list')).resources;
     assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
     await mf.dispose(); mf=new Miniflare(options);
     assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
+    assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
+    assert.equal((await json('/api/review-data','GET',undefined,'test-2')).items.length,0);
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
     await json('/api/listening-questions/'+question.id,'DELETE');
     assert.equal((await request(audioPath)).status,404);

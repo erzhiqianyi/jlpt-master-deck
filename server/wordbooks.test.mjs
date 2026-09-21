@@ -19,7 +19,7 @@ test('built-in wordbooks cover both families', () => {
 });
 
 test('legacy wordbook_ids collapse to a single wordbook_id and tags are deduplicated', () => {
-  const stored = upsertReviewItem(grammarItem);
+  const stored = upsertReviewItem(grammarItem, { userId: user.id });
   assert.equal(stored.wordbook_id, 'grammar_expression');
   assert.equal(stored.wordbook_ids, undefined);
   assert.deepEqual(stored.tags, ['断定', 'N1']);

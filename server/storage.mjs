@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -263,6 +264,7 @@ export function getDb() {
     ensureReviewItemsSeeded();
     migrateCanonicalReviewItems();
     migrateMemoryCardSettings();
+    transaction(db, () => migrateReviewItemOwnership(db));
     ensureQuerySchema(db);
   }
   return db;
@@ -343,8 +345,8 @@ function ensureDailyPracticesMultiVersion() {
 
 export function loadReviewData(userId) {
   const rows = getDb()
-    .prepare('SELECT item_json, updated_at FROM review_items')
-    .all();
+    .prepare(userId == null ? 'SELECT item_json, updated_at FROM review_items' : 'SELECT item_json, updated_at FROM owned_review_items WHERE user_id = ?')
+    .all(...(userId == null ? [] : [userId]));
   let items = rows
     .map((row) => normalizeStoredReviewItem(JSON.parse(row.item_json)))
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || (a.input_at ?? '').localeCompare(b.input_at ?? '') || a.id.localeCompare(b.id));
@@ -406,25 +408,33 @@ function ensureReviewItemsSeeded() {
   }
 }
 
-export function upsertReviewItem(item, { source = 'mcp' } = {}) {
+export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
+  if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
   const normalized = normalizeReviewItem(item);
   const now = new Date().toISOString();
-  const existing = getDb().prepare('SELECT created_at FROM review_items WHERE id = ?').get(normalized.id);
+  const existing = getDb().prepare('SELECT created_at, user_id FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  const book = wordbookById(userId, itemWordbookId(normalized));
+  if (!book) throw new Error('Wordbook not found');
+  const imported = getDb().prepare('SELECT user_id FROM user_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  if (imported) {
+    getDb().prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(normalized), normalized.id, userId);
+    return normalized;
+  }
   getDb()
     .prepare(`
-      INSERT INTO review_items (id, item_json, source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
+      INSERT INTO owned_review_items (id, item_json, source, created_at, updated_at, user_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, id) DO UPDATE SET
         item_json = excluded.item_json,
         source = excluded.source,
         updated_at = excluded.updated_at
     `)
-    .run(normalized.id, JSON.stringify(normalized), String(source).slice(0, 120), existing?.created_at ?? now, now);
-  return reviewItemById(normalized.id);
+    .run(normalized.id, JSON.stringify(normalized), String(source).slice(0, 120), existing?.created_at ?? now, now, userId);
+  return reviewItemById(normalized.id, userId);
 }
 
-export function reviewItemById(id) {
-  const row = getDb().prepare('SELECT item_json FROM review_items WHERE id = ?').get(id);
+export function reviewItemById(id, userId) {
+  const row = getDb().prepare('SELECT item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(id, userId);
   return row ? JSON.parse(row.item_json) : null;
 }
 
@@ -432,9 +442,9 @@ export function reviewItemById(id) {
 export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
   const itemId = String(id ?? '').trim();
   const database = getDb();
-  const shared = database.prepare('SELECT item_json FROM review_items WHERE id = ?').get(itemId);
-  const own = shared ? null : database.prepare('SELECT item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
-  const row = shared ?? own;
+  const stored = database.prepare('SELECT item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
+  const own = stored ? null : database.prepare('SELECT item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
+  const row = stored ?? own;
   if (!row) return null;
   const item = normalizeStoredReviewItem(JSON.parse(row.item_json));
   if (wordbookId !== undefined) {
@@ -447,16 +457,17 @@ export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
   }
   if (tags !== undefined) item.tags = normalizeTags(tags);
   const now = new Date().toISOString();
-  if (shared) {
-    database.prepare('UPDATE review_items SET item_json = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(item), now, itemId);
+  if (stored) {
+    database.prepare('UPDATE owned_review_items SET item_json = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(item), now, itemId, userId);
   } else {
     database.prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(item), itemId, userId);
   }
   return item;
 }
 
-export function exportReviewDataBackup() {
-  const data = loadReviewData();
+export function exportReviewDataBackup(userId) {
+  if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
+  const data = loadReviewData(userId);
   const byMonth = new Map();
   for (const item of data.items) {
     const date = String(item.date ?? '').match(/^\d{4}-\d{2}-\d{2}$/) ? item.date : new Date().toISOString().slice(0, 10);
@@ -469,7 +480,7 @@ export function exportReviewDataBackup() {
   const files = [];
   for (const [key, items] of byMonth) {
     const [year, month] = key.split('/');
-    const file = join(dataRoot, year, `${month}.json`);
+    const file = join(localDir, 'review-backups', String(userId), year, `${month}.json`);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, `${JSON.stringify({
       generated_at: new Date().toISOString(),
@@ -1984,7 +1995,7 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
     source_title: typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : undefined,
     diagnosis: content.diagnosis,
     practice_plan: content.practice_plan,
-    questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id).map(normalizePracticeExplanations),
+    questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id, userId).map(normalizePracticeExplanations),
   };
   if (!practice.questions.length) {
     throw new Error('No daily practice questions could be generated from the current study history');
@@ -2072,7 +2083,7 @@ export function createTopicPractice(userId, { title, deck, kinds, wordbookId, jl
     filters,
     diagnosis: { summary: `专题训练：${practiceTitle}`, candidateItems: pool.length },
     practice_plan: { totalQuestions: generated.length },
-    questions: dailyPracticeQuestions(generated, id).map(normalizePracticeExplanations),
+    questions: dailyPracticeQuestions(generated, id, userId).map(normalizePracticeExplanations),
   };
   if (!practice.questions.length) {
     throw new Error('No practice questions match these filters; loosen deck / kinds / wordbook / onlyDue');
@@ -2527,8 +2538,8 @@ function normalizePracticeDate(value) {
   }).format(new Date());
 }
 
-function dailyPracticeQuestions(generatedPractice, practiceId) {
-  const reviewItems = loadReviewData().items;
+function dailyPracticeQuestions(generatedPractice, practiceId, userId) {
+  const reviewItems = loadReviewData(userId).items;
   return generatedPractice
     .map((question, index) => normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems))
     .filter(Boolean);

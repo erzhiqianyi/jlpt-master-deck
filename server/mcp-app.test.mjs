@@ -154,7 +154,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
     meaning_ja: '評価にふさわしい活躍をして、名声が高まるさま。', paraphrase_ja: '評判どおりの活躍で面目を保つこと。', meaning_zh: '名副其实地大显身手。',
     examples: [{ ja: '決勝で面目躍如の活躍を見せた。', zh: '在决赛中大显身手。' }, { ja: '彼の面目躍如たる演技だった。', zh: '这是他名副其实的精彩表演。' }],
     practice_questions: [{ id: 'item-topic-1-meaning', kind: 'meaning', instruction: '意味として最も近いものを選びなさい。', prompt: '決勝で面目躍如の活躍を見せた。', target: '面目躍如', choices: ['評判どおりの活躍で面目を保つこと。', '面目を失って恥をかくこと。', '目立たないように振る舞うこと。', '相手の顔色をうかがうこと。'], answer: '評判どおりの活躍で面目を保つこと。', explanation_zh: '「面目躍如」指名副其实地大显身手。' }],
-  });
+  }, { userId: user.id });
   const started = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'start_topic_practice', arguments: { deck: 'n1_vocab', kinds: ['meaning'], count: 5 } }, 12));
   const practice = started.result.structuredContent;
   assert.equal(practice.progress.total, 1);

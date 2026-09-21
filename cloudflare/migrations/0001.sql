@@ -81,9 +81,8 @@ CREATE TABLE listening_questions (
         audio_mime TEXT NOT NULL,
         audio_size INTEGER NOT NULL,
         audio_path TEXT NOT NULL,
-        audio_asset_id TEXT,
-        created_at TEXT NOT NULL,
-        library_number INTEGER);
+        created_at TEXT NOT NULL
+      , library_number INTEGER, audio_asset_id TEXT);
 
 CREATE TABLE listening_audio_assets (
         id TEXT PRIMARY KEY,
@@ -178,6 +177,18 @@ CREATE TABLE user_review_items (
         item_json TEXT NOT NULL
       );
 
+CREATE TABLE owned_review_items (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      id TEXT NOT NULL,
+      item_json TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'database',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, id)
+    );
+
+CREATE TABLE review_item_migrations (name TEXT PRIMARY KEY);
+
 CREATE TABLE mcp_read_revision (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL);
 
 CREATE TABLE market_shares (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), source_id TEXT NOT NULL, kind TEXT NOT NULL, package_json TEXT NOT NULL, created_at TEXT NOT NULL, withdrawn INTEGER NOT NULL DEFAULT 0);
@@ -204,6 +215,7 @@ CREATE INDEX answers_user_answered_at ON answers (user_id, answered_at, question
 CREATE VIEW mcp_items AS
     SELECT
       r.id,
+      r.user_id,
       json_extract(r.item_json, '$.deck') AS deck,
       json_extract(r.item_json, '$.type') AS type,
       json_extract(r.item_json, '$.jlpt_level') AS jlpt_level,
@@ -224,7 +236,11 @@ CREATE VIEW mcp_items AS
       r.created_at,
       r.updated_at,
       r.item_json
-    FROM review_items r;
+    FROM (
+      SELECT id, user_id, item_json, source, created_at, updated_at FROM owned_review_items
+      UNION ALL
+      SELECT id, user_id, item_json, 'import', NULL, NULL FROM user_review_items
+    ) r;
 
 CREATE VIEW mcp_questions AS
     SELECT
@@ -272,7 +288,7 @@ CREATE VIEW mcp_attempts AS
       i.original AS item_original
     FROM answers a
     LEFT JOIN mcp_questions q ON q.user_id = a.user_id AND q.id = a.question_id
-    LEFT JOIN mcp_items i ON i.id = a.item_id;
+    LEFT JOIN mcp_items i ON i.id = a.item_id AND i.user_id = a.user_id;
 
 CREATE VIEW mcp_practice_sessions AS
     SELECT
@@ -306,12 +322,21 @@ CREATE TRIGGER mcp_rev_daily_practices_update AFTER UPDATE ON daily_practices
 CREATE TRIGGER mcp_rev_daily_practices_delete AFTER DELETE ON daily_practices
         BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
 
-CREATE TRIGGER mcp_rev_review_items_insert AFTER INSERT ON review_items
+CREATE TRIGGER mcp_rev_owned_review_items_insert AFTER INSERT ON owned_review_items
         BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
 
-CREATE TRIGGER mcp_rev_review_items_update AFTER UPDATE ON review_items
+CREATE TRIGGER mcp_rev_owned_review_items_update AFTER UPDATE ON owned_review_items
         BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
 
-CREATE TRIGGER mcp_rev_review_items_delete AFTER DELETE ON review_items
+CREATE TRIGGER mcp_rev_owned_review_items_delete AFTER DELETE ON owned_review_items
+        BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
+
+CREATE TRIGGER mcp_rev_user_review_items_insert AFTER INSERT ON user_review_items
+        BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
+
+CREATE TRIGGER mcp_rev_user_review_items_update AFTER UPDATE ON user_review_items
+        BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
+
+CREATE TRIGGER mcp_rev_user_review_items_delete AFTER DELETE ON user_review_items
         BEGIN UPDATE mcp_read_revision SET revision = revision + 1 WHERE id = 1; END;
 INSERT OR IGNORE INTO mcp_read_revision(id,revision) VALUES(1,0);

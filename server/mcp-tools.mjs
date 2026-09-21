@@ -45,10 +45,10 @@ import { practiceResource, practiceToolMeta } from './mcp-ui.mjs';
 import { createQueryTools } from './mcp-query.mjs';
 import { getDb } from './storage.mjs';
 
-/** Scope catalogue. `study` covers everything filtered by user id; `library:write` is the shared item library. */
+/** Scope catalogue. `study` covers everything filtered by user id; `library:write` permits personal item writes. */
 export const scopes = {
   study: { description: '读取并更新你的学习记录、计划、草稿、词书和题目', required: true },
-  'library:write': { description: '修改共享题库（新增/更新复习条目、导出 JSON 备份）', default: false },
+  'library:write': { description: '修改你的题库（新增/更新复习条目、导出 JSON 备份）', default: false },
 };
 
 const ro = { readOnlyHint: true, openWorldHint: false };
@@ -115,14 +115,14 @@ const practiceFilters = {
 };
 
 export const tools = [
-  // Shared item library: reads are open to every authorized agent, writes need `library:write`.
-  tool('get_review_data', 'Read JLPT review items from the local SQLite item library. JSON files are treated as export/import backups.',
-    {}, ro, async () => text(loadReviewData())),
-  tool('upsert_review_item', 'Create or update a non-media JLPT review item in the local SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
+  // Every library operation is bound to the authenticated owner.
+  tool('get_review_data', 'Read JLPT review items from your personal SQLite item library. JSON files are treated as export/import backups.',
+    {}, ro, async (_args, ctx) => text(loadReviewData(uid(ctx)))),
+  tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
     item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form }.'),
-  }, rw, async ({ item }) => text(upsertReviewItem(item, { source: 'mcp' })), { scope: 'library:write' }),
-  tool('export_review_data_backup', 'Export the SQLite review item library into monthly JSON backup files. Use only when a JSON backup is requested.',
-    {}, rw, async () => text(exportReviewDataBackup()), { scope: 'library:write' }),
+  }, rw, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
+  tool('export_review_data_backup', 'Export your personal SQLite review item library into monthly JSON backup files. Use only when a JSON backup is requested.',
+    {}, rw, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
 
   // Everything below is filtered by uid(ctx) inside storage.mjs.
   tool('get_study_record', 'Read the full personalized study record from SQLite plus JSON resources.',

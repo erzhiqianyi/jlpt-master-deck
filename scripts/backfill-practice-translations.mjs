@@ -100,11 +100,13 @@ function translationFromExamples(item, question) {
   ))?.zh ?? null;
 }
 
-const data = loadReviewData();
+const userId = Number(process.env.JLPT_USER_ID);
+if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Set JLPT_USER_ID to the account to repair');
+const data = loadReviewData(userId);
 const updateItem = getDb().prepare(`
-  UPDATE review_items
+  UPDATE owned_review_items
   SET item_json = ?, source = ?, updated_at = ?
-  WHERE id = ?
+  WHERE id = ? AND user_id = ?
 `);
 let questionCount = 0;
 let updatedQuestionCount = 0;
@@ -133,6 +135,7 @@ for (const item of data.items) {
       'migration:practice-translation-zh',
       new Date().toISOString(),
       item.id,
+      userId,
     );
   }
 }
@@ -141,7 +144,7 @@ if (missing.length) {
   throw new Error(`Missing translation_zh for ${missing.length} practice questions:\n${missing.join('\n')}`);
 }
 
-const backup = exportReviewDataBackup();
+const backup = exportReviewDataBackup(userId);
 console.log(JSON.stringify({
   questionCount,
   updatedQuestionCount,

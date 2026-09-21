@@ -1,5 +1,8 @@
 import { exportReviewDataBackup, reviewItemById, upsertReviewItem } from '../server/storage.mjs';
 
+const userId = Number(process.env.JLPT_USER_ID);
+if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Set JLPT_USER_ID to the account to repair');
+
 const vaguePartOfSpeech = '語句';
 
 const nounIds = new Set([
@@ -134,7 +137,7 @@ for (let day = 1; day <= 6; day += 1) {
   }
 }
 
-const targets = ids.map((id) => reviewItemById(id)).filter((item) => item?.part_of_speech === vaguePartOfSpeech);
+const targets = ids.map((id) => reviewItemById(id, userId)).filter((item) => item?.part_of_speech === vaguePartOfSpeech);
 if (![0, 104].includes(targets.length)) {
   throw new Error(`Expected either 104 uncorrected entries or 0 after migration, found ${targets.length}`);
 }
@@ -143,11 +146,11 @@ if (targets.length === 0) {
   process.exit(0);
 }
 
-const corrected = targets.map((item) => upsertReviewItem(correctedItem(item), { source: 'mcp:part-of-speech-correction' }));
+const corrected = targets.map((item) => upsertReviewItem(correctedItem(item), { source: 'mcp:part-of-speech-correction', userId }));
 const remaining = corrected.filter((item) => item.part_of_speech === vaguePartOfSpeech);
 if (remaining.length) throw new Error(`Correction left ${remaining.length} vague entries`);
 
-const exported = exportReviewDataBackup();
+const exported = exportReviewDataBackup(userId);
 const counts = corrected.reduce((result, item) => {
   result[item.part_of_speech] = (result[item.part_of_speech] ?? 0) + 1;
   return result;

@@ -42,13 +42,13 @@ const items = {
 };
 
 function seed() {
-  db.exec('DELETE FROM answers; DELETE FROM daily_practices; DELETE FROM review_items;');
+  db.exec('DELETE FROM answers; DELETE FROM daily_practices; DELETE FROM owned_review_items;');
   const now = '2026-09-01T00:00:00.000Z';
   const insertPractice = db.prepare('INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at) VALUES (?, ?, ?, 1, ?, 30, ?, ?, ?)');
   insertPractice.run('daily-A', alice.id, '2026-09-01', 'A', JSON.stringify({ id: 'daily-A', strategy: 'targeted_by_history', questions: practiceQuestions }), now, now);
   insertPractice.run('daily-B', bob.id, '2026-09-01', 'B', JSON.stringify({ id: 'daily-B', questions: bobQuestions }), now, now);
-  const insertItem = db.prepare("INSERT INTO review_items (id, item_json, source, created_at, updated_at) VALUES (?, ?, 'database', ?, ?)");
-  for (const [id, item] of Object.entries(items)) insertItem.run(id, JSON.stringify({ id, ...item }), now, now);
+  const insertItem = db.prepare("INSERT INTO owned_review_items (id, item_json, source, created_at, updated_at, user_id) VALUES (?, ?, 'database', ?, ?, ?)");
+  for (const [id, item] of Object.entries(items)) insertItem.run(id, JSON.stringify({ id, ...item }), now, now, alice.id);
   const insertAnswer = db.prepare('INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at) VALUES (?, ?, ?, ?, ?, ?)');
   // A06-style set: 2 correct, 2 incorrect for alice, at controlled instants (UTC).
   insertAnswer.run(alice.id, 'daily-A-q01', 'item-sae', 'さえ', 1, '2026-09-01T14:00:00.000Z'); // Tokyo 23:00 Tue Sep 1
@@ -229,7 +229,7 @@ test('A20 writes between pages return DATA_CHANGED via the revision triggers', a
   const next = await call('jlpt_query', { cursor: page.meta.page.next_cursor });
   assert.equal(next.error.code, 'DATA_CHANGED');
   const agg = await call('jlpt_aggregate', { entity: 'attempt', time: all, group_by: ['kind'], limit: 1 });
-  db.prepare("UPDATE review_items SET item_json = json_set(item_json, '$.jlpt_level', 'N3') WHERE id = 'item-word'").run();
+  db.prepare("UPDATE owned_review_items SET item_json = json_set(item_json, '$.jlpt_level', 'N3') WHERE id = 'item-word'").run();
   const aggNext = await call('jlpt_aggregate', { cursor: agg.meta.page.next_cursor });
   assert.equal(aggNext.error.code, 'DATA_CHANGED');
 });
@@ -365,7 +365,7 @@ test('item card exposes grammar formation, usage notes, and core memory', async 
 });
 
 test('previews are cut on character boundaries and flagged', async () => {
-  db.prepare("UPDATE review_items SET item_json = json_set(item_json, '$.meaning_zh', ?) WHERE id = 'item-word'").run('漢'.repeat(400));
+  db.prepare("UPDATE owned_review_items SET item_json = json_set(item_json, '$.meaning_zh', ?) WHERE id = 'item-word'").run('漢'.repeat(400));
   const r = await call('jlpt_query', { entity: 'item', fields: ['meaning_preview'], filters: [{ field: 'id', op: 'eq', value: 'item-word' }] });
   const row = r.data.records[0];
   assert.equal(row.meaning_zh_truncated, true);
@@ -376,7 +376,7 @@ test('previews are cut on character boundaries and flagged', async () => {
 
 test('stored timestamps all use the ISO-8601 UTC form the range comparison relies on', () => {
   const pattern = '____-__-__T__:__:__.___Z';
-  for (const [table, col] of [['answers', 'answered_at'], ['daily_practices', 'created_at'], ['review_items', 'created_at']]) {
+  for (const [table, col] of [['answers', 'answered_at'], ['daily_practices', 'created_at'], ['owned_review_items', 'created_at']]) {
     assert.equal(db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE ${col} NOT LIKE ?`).get(pattern).c, 0, table);
   }
 });

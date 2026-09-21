@@ -58,9 +58,9 @@ const sumCase = (condition, description) => ({ sql: `COALESCE(SUM(CASE WHEN ${co
 export const entities = {
   item: {
     available: true,
-    description: 'Shared review-item library (vocabulary, grammar expressions, proper names). Not user-specific.',
+    description: 'Your review-item library (vocabulary, grammar expressions, proper names).',
     source: 'mcp_items',
-    owner: null,
+    owner: 'user_id',
     time_field: null,
     default_time: { mode: 'all' },
     fields: {

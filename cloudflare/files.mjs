@@ -1,6 +1,7 @@
 const roots = [
   ['/jlpt/.local/listening-audio/', 'listening-audio/'],
   ['/jlpt/.local/listening-recordings/', 'listening-recordings/'],
+  ['/jlpt/.local/review-backups/', 'exports/users/'],
   ['/jlpt/public/data/review-data/', 'exports/review-data/'],
 ];
 export function objectKey(path) {

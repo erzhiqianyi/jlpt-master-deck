@@ -7,5 +7,5 @@ if (!existsSync(resolve(output, 'index.html'))) throw new Error('Run the fronten
 rmSync(resolve(output, 'data'), { recursive: true, force: true });
 copyFileSync('cloudflare/worker.mjs', resolve(output, '_worker.js'));
 writeFileSync(resolve(output, '_routes.json'), JSON.stringify({ version: 1, include: ['/*'], exclude: ['/assets/*', '/images/*', '/previews/*', '/promotions/*', '/favicon.svg', '/jlpt-logo.svg'] }, null, 2));
-writeFileSync(resolve(output, '_headers'), '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n');
+writeFileSync(resolve(output, '_headers'), '/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Cross-Origin-Opener-Policy: same-origin-allow-popups\n');
 console.log('Cloudflare build ready; personal data backups excluded.');

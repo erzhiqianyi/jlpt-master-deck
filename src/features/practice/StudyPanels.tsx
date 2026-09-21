@@ -1611,7 +1611,6 @@ function VocabCard({
     ...(item.comparison_notes ?? []),
     ...(item.comparisons ?? []),
   ].filter((comparison) => comparison.target || comparison.difference_zh);
-  const practiceQuestions = item.practice_questions?.filter((question) => question.prompt || question.answer) ?? [];
   return (
     <article className="cute-practice-card min-w-0 border p-4 md:p-6">
       <h3 className="text-3xl font-black text-[#3d3036]">
@@ -1794,39 +1793,6 @@ function VocabCard({
               <div key={`${comparison.target ?? 'comparison'}-${comparisonIndex}`} className="py-3">
                 {comparison.target ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{comparison.target}</p> : null}
                 {comparison.difference_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{comparison.difference_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {isGrammarEntry && practiceQuestions.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.practiceQuestionAnalysis ?? '模拟题解析'}</h4>
-          <div className="mt-3 space-y-4">
-            {practiceQuestions.map((question, questionIndex) => (
-              <div key={question.id ?? `${question.prompt}-${questionIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                {question.prompt ? (
-                  <p className="text-sm font-bold leading-7 text-[#3d3036]">
-                    <span className="journal-number mr-2 text-[#a84269]">{questionIndex + 1}.</span>
-                    <RubyText text={question.prompt} items={[item]} enabled={showRuby} />
-                  </p>
-                ) : null}
-                {question.choices?.length ? (
-                  <div className="mt-2 grid gap-1 text-sm leading-6 text-[#74646b] sm:grid-cols-2">
-                    {question.choices.map((choice, choiceIndex) => (
-                      <span key={`${choice}-${choiceIndex}`}>{choiceIndex + 1}. {choice}</span>
-                    ))}
-                  </div>
-                ) : null}
-                {question.answer ? <p className="mt-2 text-sm font-bold leading-6 text-[#3d3036]">正确答案：{question.answer}</p> : null}
-                {question.translation_zh ? (
-                  <p className="mt-2 rounded-xl bg-[#fffaf5] px-3 py-2 text-sm leading-6 text-[#3d3036]">
-                    <span className="font-bold text-[#8f365b]">{labels.fullChineseTranslation ?? '完整中文翻译'}：</span>
-                    {question.translation_zh}
-                  </p>
-                ) : null}
-                {question.form_analysis_zh ? <p className="mt-1 text-sm leading-6 text-[#8f365b]">{question.form_analysis_zh}</p> : null}
-                {question.explanation_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{question.explanation_zh}</p> : null}
               </div>
             ))}
           </div>

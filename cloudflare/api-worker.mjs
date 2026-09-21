@@ -23,6 +23,7 @@ export class JlptDatabase extends DurableObject {
           this.db.exec(schema);
           this.db.prepare('INSERT INTO cloud_schema_version(version) VALUES(1)').run();
         }
+        migrateCloudSchemaV2(this.db);
       });
     });
   }
@@ -103,6 +104,24 @@ export class JlptDatabase extends DurableObject {
     const res = { writeHead(code, values) {status=code;responseHeaders=values;}, end(body) {response=new Response(body,{status,headers:responseHeaders});} };
     await createApiHandler({mcp,mcpListener(){throw new Error('MCP request was not routed');}})(req,res);
     return response ?? new Response('Not found',{status:404});
+  }
+}
+
+function migrateCloudSchemaV2(db) {
+  const columns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
+  const addColumn = (table, name, definition) => {
+    if (!columns(table).has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+  };
+  addColumn('listening_questions', 'question_type_id', "TEXT NOT NULL DEFAULT 'listening-task'");
+  addColumn('listening_questions', 'library_number', 'INTEGER');
+  addColumn('listening_questions', 'audio_asset_id', 'TEXT');
+  addColumn('reading_questions', 'tags_json', "TEXT NOT NULL DEFAULT '[]'");
+  addColumn('reading_questions', 'explanation_nodes_json', "TEXT NOT NULL DEFAULT '[]'");
+  addColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
+  addColumn('learning_captures', 'target_deck', 'TEXT');
+  addColumn('learning_captures', 'target_wordbook_id', 'TEXT');
+  if (!db.prepare('SELECT version FROM cloud_schema_version WHERE version=2').get()) {
+    db.prepare('INSERT INTO cloud_schema_version(version) VALUES(2)').run();
   }
 }
 

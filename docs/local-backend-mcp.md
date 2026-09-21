@@ -16,7 +16,7 @@ This keeps public learning resources portable while private learning records rem
 
 The first version uses local username/password accounts. A user can choose any username and password that match the local validation rules. Passwords are salted and hashed with `scrypt`; sessions use bearer tokens stored by the browser.
 
-This is intended for localhost. A future remote deployment should replace it with OAuth 2.1 or a trusted identity provider and scoped authorization.
+This is intended for localhost. The HTTP MCP surface uses OAuth 2.1 authorization and scoped access; local and Firebase-backed app sessions are used as the authenticated identity.
 
 ## HTTP API
 
@@ -52,7 +52,7 @@ Local development uses frontend port `5193` and backend port `8791` on this bran
 
 ## MCP Tools
 
-The local MCP server is `server/mcp-server.mjs`. It uses the same JSON resources and SQLite state as the HTTP backend.
+The HTTP MCP server is `server/mcp-app.mjs`. It uses the same JSON resources and SQLite state as the HTTP backend and exposes OAuth discovery, consent, and MCP routes under `/api/jlpt`.
 
 Configure it as a project-scoped Codex MCP server with:
 
@@ -60,18 +60,17 @@ Configure it as a project-scoped Codex MCP server with:
 npm run mcp:setup
 ```
 
-The setup script verifies the STDIO server and generates `.codex/config.toml` with the current checkout as its working directory. The generated file is local-only, so no user's absolute machine path is committed. Restart Codex and use `/mcp` to confirm `jlpt_review` after setup.
+The setup script configures the project-scoped MCP connection. Restart Codex and use `/mcp` to confirm `jlpt_review` after setup, then complete the OAuth consent flow when the host requests access.
 
 Implementation details:
 
-- `server/mcp-server.mjs` is a STDIO JSON-RPC MCP server. It handles `initialize`, `tools/list`, and `tools/call`.
+- `server/mcp-app.mjs` is an OAuth 2.1-protected HTTP MCP server. It serves MCP, OAuth, and discovery routes and denies anonymous tool discovery.
 - `server/storage.mjs` is shared by the HTTP API and MCP server, so both surfaces read the same SQLite libraries. Monthly JSON files are only used to seed or back up review items.
-- Authentication is local-session based. The MCP client calls `login` with the app username and password, then passes the returned token to personal-data tools.
+- Authentication is handled by the OAuth flow. The consent page uses the app's bearer session token, and both local and Firebase logins resolve to the same authenticated application identity.
 - Generated review material is saved as a draft in SQLite. User annotations are attached to the draft, and `get_draft_revision_context` returns the draft, annotations, study record, and optimization prompt for the next agent pass.
 
 Planned tool boundary:
 
-- `login`: authenticate locally and return a token.
 - `get_review_data`: read review items from SQLite.
 - `upsert_review_item`: create or update vocabulary, grammar, kanji-reading, meaning, kana-to-kanji, or other text-based practice seeds in SQLite.
 - `export_review_data_backup`: export SQLite review items into monthly JSON backup files.

@@ -81,8 +81,21 @@ CREATE TABLE listening_questions (
         audio_mime TEXT NOT NULL,
         audio_size INTEGER NOT NULL,
         audio_path TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      , library_number INTEGER);
+        audio_asset_id TEXT,
+        created_at TEXT NOT NULL,
+        library_number INTEGER);
+
+CREATE TABLE listening_audio_assets (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        file_name TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        sha256 TEXT NOT NULL,
+        audio_path TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(user_id, sha256)
+      );
 
 CREATE TABLE listening_recordings (
         id TEXT PRIMARY KEY,
@@ -106,6 +119,9 @@ CREATE TABLE reading_questions (
         choices_json TEXT NOT NULL,
         answer_index INTEGER NOT NULL,
         explanation TEXT NOT NULL,
+        tags_json TEXT NOT NULL DEFAULT '[]',
+        explanation_nodes_json TEXT NOT NULL DEFAULT '[]',
+        translation_lines_json TEXT NOT NULL DEFAULT '[]',
         created_at TEXT NOT NULL
       );
 

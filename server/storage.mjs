@@ -19,7 +19,7 @@ const legacyDataPath = join(rootDir, 'public', 'data', 'review-data.json');
 
 const memoryCardFields = new Set([
   'original', 'reading', 'jlpt_level', 'part_of_speech', 'meaning', 'meaning_ja',
-  'core_memory', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations',
+  'core_memory', 'formation', 'usage_notes', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations',
   'collocations', 'comparisons', 'usage_register', 'exam_register_zh', 'everyday_alternatives', 'notes', 'tags',
   'source_grammar_point', 'source_chat_summary',
 ]);

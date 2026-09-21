@@ -1857,11 +1857,11 @@ export default function App() {
                   items={items}
                   onCreateWordbook={createWordbook}
                   onRenameWordbook={renameWordbook}
-                  onBack={() => navigateTo(activeView, 'words')}
                 />
               ) : studyPage === 'words' && route.itemId ? (
                 <WordDetailPanel
                   item={activeWord}
+                  navigationItems={items}
                   wordbooks={wordbooks}
                   onOrganize={organizeItem}
                   index={wordIndex}
@@ -1872,7 +1872,10 @@ export default function App() {
                   onShowRubyChange={(checked) => updateSettings({ ...settings, showReviewRuby: checked })}
                   onPrevious={() => setWordIndex((index) => previousIndex(index, items.length))}
                   onNext={() => setWordIndex((index) => nextIndex(index, items.length))}
-                  onBack={() => navigateTo(activeView, 'words')}
+                  onSelectIndex={(index) => {
+                    const selected = items[index];
+                    if (selected) window.location.hash = routeHash(activeView, 'words', selected.id);
+                  }}
                 />
               ) : studyPage === 'words' ? (
                 <WordIndexPanel

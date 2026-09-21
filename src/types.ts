@@ -447,6 +447,8 @@ export type VocabItem = {
   reading?: string;
   meaning_ja?: string;
   paraphrase_ja?: string;
+  formation?: string;
+  usage_notes?: string;
   meaning_zh: string;
   core_memory: string;
   part_of_speech?: string;

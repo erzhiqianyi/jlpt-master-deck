@@ -13,7 +13,7 @@ import {
   createReviewPackDraft,
 } from "./storage.mjs";
 const itemFields =
-  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh core_memory part_of_speech base_form conjugations collocations examples comparisons analysis explanation_zh localizations ruby_terms tags content_origin verification_status question_kinds question_distractors grammar_point grammar_forms grammar_features usage_register usage_register_zh exam_register_zh everyday_alternatives comparison_notes".split(
+  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh formation usage_notes core_memory part_of_speech base_form conjugations collocations examples comparisons analysis explanation_zh localizations ruby_terms tags content_origin verification_status question_kinds question_distractors grammar_point grammar_forms grammar_features usage_register usage_register_zh exam_register_zh everyday_alternatives comparison_notes".split(
     " ",
   );
 const questionFields =

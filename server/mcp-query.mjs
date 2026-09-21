@@ -808,7 +808,7 @@ const asText = (value) => (value === null || value === undefined ? '' : typeof v
 const lines = (pairs) => pairs.filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => `${k}: ${asText(v)}`).join('\n');
 const optionLines = (choices) => (Array.isArray(choices) ? choices.map((c, i) => `${i + 1}. ${asText(c)}`).join('\n') : '');
 
-const cardKeys = ['meaning_ja', 'paraphrase_ja', 'meaning_zh', 'core_memory', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations', 'collocations', 'comparisons', 'usage_register', 'exam_register_zh', 'everyday_alternatives', 'notes', 'tags', 'source_grammar_point'];
+const cardKeys = ['meaning_ja', 'paraphrase_ja', 'meaning_zh', 'formation', 'usage_notes', 'core_memory', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations', 'collocations', 'comparisons', 'usage_register', 'exam_register_zh', 'everyday_alternatives', 'notes', 'tags', 'source_grammar_point'];
 
 /** Load one record with its metadata object and the text of each requested section. Authorization is per row and per section. */
 function loadRecord(db, userId, entity, id, sections) {

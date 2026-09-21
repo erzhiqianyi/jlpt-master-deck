@@ -1396,6 +1396,8 @@ function StatusPill({ status, labels }: { status: ReviewStatus; labels: Record<s
   return <span className={`whitespace-nowrap rounded px-2 py-1 text-xs font-semibold ${color}`}>{text}</span>;
 }
 
+const ENTRY_NAVIGATOR_PAGE_SIZE = 20;
+
 export function WordDetailPanel({
   item,
   index,
@@ -1404,11 +1406,12 @@ export function WordDetailPanel({
   labels,
   locale,
   wordbooks = [],
+  navigationItems = [],
   onOrganize,
   onShowRubyChange,
   onPrevious,
   onNext,
-  onBack,
+  onSelectIndex,
 }: {
   item?: VocabItem;
   index: number;
@@ -1417,13 +1420,16 @@ export function WordDetailPanel({
   labels: Record<string, string>;
   locale: Locale;
   wordbooks?: Wordbook[];
+  navigationItems?: VocabItem[];
   onOrganize?: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<VocabItem | null>;
   onShowRubyChange: (checked: boolean) => void;
   onPrevious: () => void;
   onNext: () => void;
-  onBack: () => void;
+  onSelectIndex?: (index: number) => void;
 }) {
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [navigatorPage, setNavigatorPage] = useState(() => Math.floor(index / ENTRY_NAVIGATOR_PAGE_SIZE));
 
   if (!item) {
     return <EmptyModule labels={labels} />;
@@ -1451,21 +1457,54 @@ export function WordDetailPanel({
       onTouchStart={(event) => setTouchStart(event.changedTouches[0]?.clientX ?? null)}
       onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
     >
-      <button type="button" onClick={onBack} className="mb-4 hidden min-h-10 items-center gap-1 text-sm font-bold text-[#a84269] hover:underline md:inline-flex">
-        <ChevronLeft size={18} /> {labels.backToEntryList}
-      </button>
       <div className="sticky top-12 z-20 mb-3 -mx-4 border-y border-[#f0d4dd] bg-[#fffdf9]/95 px-4 py-2.5 shadow-[0_6px_16px_rgba(79,48,63,0.04)] backdrop-blur md:static md:mx-0 md:border-x-0 md:border-t-0 md:bg-transparent md:px-0 md:pb-3 md:pt-0 md:shadow-none">
         <p className="hidden text-sm font-bold text-[#a84269] md:block">{labels.wordDetail}</p>
         <div className="flex items-center justify-between gap-3 md:mt-3 md:justify-start">
           <CompactToggle checked={showRuby} label={labels.furigana} onChange={onShowRubyChange} />
           <div className="grid shrink-0 grid-cols-[2.75rem_minmax(4.75rem,auto)_2.75rem] items-center gap-1.5" aria-label={labels.wordDetail}>
             <ArrowButton label={labels.prev} direction="left" onClick={onPrevious} disabled={total <= 1} />
-            <span className="journal-number rounded-full bg-[#fff0f5] px-2.5 py-2 text-center text-sm font-bold tabular-nums text-[#a84269]" aria-live="polite">
+            <button
+              type="button"
+              className="journal-number rounded-full bg-[#fff0f5] px-2.5 py-2 text-center text-sm font-bold tabular-nums text-[#a84269] hover:bg-[#ffe6ef]"
+              aria-haspopup="dialog"
+              aria-expanded={navigatorOpen}
+              onClick={() => {
+                setNavigatorPage(Math.floor(index / ENTRY_NAVIGATOR_PAGE_SIZE));
+                setNavigatorOpen((open) => !open);
+              }}
+            >
               {total ? `${safeIndex(index, total) + 1} / ${total}` : '0 / 0'}
-            </span>
+            </button>
             <ArrowButton label={labels.next} direction="right" onClick={onNext} disabled={total <= 1} />
           </div>
         </div>
+        {navigatorOpen && navigationItems.length ? (
+          <div role="dialog" aria-label={labels.wordDetail} className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-[#f0d4dd] bg-white p-3 shadow-lg">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              {navigationItems.slice(navigatorPage * ENTRY_NAVIGATOR_PAGE_SIZE, (navigatorPage + 1) * ENTRY_NAVIGATOR_PAGE_SIZE).map((entry, pageIndex) => {
+                const entryIndex = navigatorPage * ENTRY_NAVIGATOR_PAGE_SIZE + pageIndex;
+                return (
+                <button
+                  type="button"
+                  key={entry.id}
+                  className={`rounded-lg border px-2 py-2 text-left text-xs font-bold ${entryIndex === safeIndex(index, total) ? 'border-[#d95f8a] bg-[#fff0f5] text-[#a84269]' : 'border-[#ead1dc] bg-white text-[#59645e] hover:bg-[#fffafc]'}`}
+                  aria-current={entryIndex === safeIndex(index, total) ? 'true' : undefined}
+                  onClick={() => { onSelectIndex?.(entryIndex); setNavigatorOpen(false); }}
+                >
+                  <span className="mr-1 text-[#a84269]">{entryIndex + 1}.</span>{entry.original}
+                </button>
+                );
+              })}
+            </div>
+            {navigationItems.length > ENTRY_NAVIGATOR_PAGE_SIZE ? (
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#f0d4dd] pt-3 text-xs font-bold text-[#74646b]">
+                <button type="button" className="rounded-md border border-[#ead1dc] px-2.5 py-1.5 text-[#a84269] disabled:opacity-40" disabled={navigatorPage === 0} onClick={() => setNavigatorPage((page) => Math.max(0, page - 1))}>上一页</button>
+                <span>{navigatorPage + 1} / {Math.ceil(navigationItems.length / ENTRY_NAVIGATOR_PAGE_SIZE)}</span>
+                <button type="button" className="rounded-md border border-[#ead1dc] px-2.5 py-1.5 text-[#a84269] disabled:opacity-40" disabled={(navigatorPage + 1) * ENTRY_NAVIGATOR_PAGE_SIZE >= navigationItems.length} onClick={() => setNavigatorPage((page) => Math.min(Math.ceil(navigationItems.length / ENTRY_NAVIGATOR_PAGE_SIZE) - 1, page + 1))}>下一页</button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <VocabCard
         item={item}
@@ -1630,6 +1669,12 @@ function VocabCard({
           </section>
         ) : null}
       </div>
+      {isGrammarEntry && item.formation ? (
+        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
+          <h4 className="text-xs font-bold text-[#a84269]">形成・接续</h4>
+          <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{item.formation}</p>
+        </section>
+      ) : null}
       <section className="mt-5 border-t border-[#f0d4dd] pt-5">
         <h4 className="text-xs font-bold text-[#a84269]">{labels.examQuickNote}</h4>
         <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{coreMemory}</p>

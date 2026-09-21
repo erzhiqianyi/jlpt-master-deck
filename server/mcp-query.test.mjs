@@ -36,7 +36,7 @@ const bobQuestions = [
   { id: 'daily-B-q01', itemId: 'item-sae', kind: 'grammar', instruction: 'x', prompt: 'bob prompt', choices: ['a', 'b'], answer: 'a', answerIndex: 0, correctReason: 'bob' },
 ];
 const items = {
-  'item-sae': { deck: 'grammar_expression', type: 'expression', jlpt_level: 'N1', original: 'さえ〜ば', grammar_point: 'さえ〜ば', meaning_zh: '只要……就……', examples: [{ ja: '君さえいれば、ほかには何もいらない。', zh: '只要有你，别的什么都不需要。' }] },
+  'item-sae': { deck: 'grammar_expression', type: 'expression', jlpt_level: 'N1', original: 'さえ〜ば', grammar_point: 'さえ〜ば', meaning_zh: '只要……就……', formation: 'N／Vて＋さえいれば', usage_notes: '表示最低条件。', core_memory: '抓最低条件。', examples: [{ ja: '君さえいれば、ほかには何もいらない。', zh: '只要有你，别的什么都不需要。' }] },
   'item-mono': { deck: 'grammar_expression', type: 'expression', jlpt_level: 'N2-N1', original: 'ものの', grammar_point: 'ものの', meaning_zh: '虽然……但是……', wordbook_ids: ['wordbook-legacy', 'grammar_expression'] },
   'item-word': { deck: 'n1_vocab', type: 'word', jlpt_level: 'N2', original: '測定', reading: 'そくてい', meaning_zh: '测定', wordbook_id: 'wordbook-custom', tags: ['理系', 'N2'] },
 };
@@ -355,6 +355,13 @@ test('items expose wordbook_id (explicit, legacy wordbook_ids[0], or deck) and p
   const got = await call('jlpt_get', { entity: 'item', id: 'item-word', sections: ['metadata'] });
   assert.equal(got.data.metadata.wordbook_id, 'wordbook-custom');
   assert.deepEqual(got.data.metadata.tags, ['理系', 'N2']);
+});
+
+test('item card exposes grammar formation, usage notes, and core memory', async () => {
+  const got = await call('jlpt_get', { entity: 'item', id: 'item-sae', sections: ['card'] });
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /formation: N／Vて＋さえいれば/);
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /usage_notes: 表示最低条件。/);
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /core_memory: 抓最低条件。/);
 });
 
 test('previews are cut on character boundaries and flagged', async () => {

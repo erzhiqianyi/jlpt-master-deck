@@ -1,3 +1,4 @@
+import { transaction } from './platform.mjs';
 import { createHash, randomUUID } from "node:crypto";
 import {
   getDb,
@@ -294,8 +295,7 @@ export function importPackage(userId, input) {
     .get(userId, digest);
   if (existing)
     return { ...JSON.parse(existing.result_json), alreadyImported: true };
-  db.exec("BEGIN IMMEDIATE");
-  try {
+  return transaction(db, () => {
     let result;
     if (pkg.kind === "wordbook") {
       let title = pkg.title;
@@ -383,10 +383,6 @@ export function importPackage(userId, input) {
       digest,
       JSON.stringify(result),
     );
-    db.exec("COMMIT");
     return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+  });
 }

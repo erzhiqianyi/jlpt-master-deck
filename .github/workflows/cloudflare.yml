@@ -1,4 +1,4 @@
-name: Deploy Cloudflare Pages
+name: Deploy Cloudflare
 
 on:
   push:
@@ -29,10 +29,17 @@ jobs:
       - run: npm run test:cloudflare
       - run: node --test server/*.test.mjs tests/*.test.mjs
       - run: npm run build:cloudflare
+      - run: npm run build:cloud-api
       - uses: actions/upload-artifact@v4
         with:
           name: cloudflare-dist
           path: dist
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-api
+          path: .local/cloud-api-build/worker.mjs
+          include-hidden-files: true
           retention-days: 7
 
   deploy:
@@ -54,6 +61,10 @@ jobs:
         with:
           name: cloudflare-dist
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: cloudflare-api
+          path: .local/cloud-api-build
       - name: Check deployment credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -61,12 +72,18 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN repository secret'; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID repository variable'; exit 1; }
-      - name: Deploy
+      - name: Deploy API
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler deploy --config cloudflare/wrangler.api.json
+      - name: Deploy frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --no-install wrangler pages deploy dist --project-name jlpt-master-deck --branch main --commit-hash "$GITHUB_SHA"
-      - name: Verify deployed frontend
+      - name: Verify deployed frontend and API
         run: |
           curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt.erzhiqian.cc/ -o /dev/null
           curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt.erzhiqian.cc/api/deployment
+          curl --fail --retry 6 --retry-delay 5 --retry-all-errors https://jlpt.erzhiqian.cc/api/health | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{const h=JSON.parse(s);if(!h.ok||h.backend!=="cloudflare")process.exit(1)})'

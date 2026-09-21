@@ -1,0 +1,37 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "jlpt-api",
+  "main": "../.local/cloud-api-build/worker.mjs",
+  "no_bundle": true,
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "JLPT_DATABASE",
+        "class_name": "JlptDatabase"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "JlptDatabase"
+      ]
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "jlpt-media"
+    }
+  ],
+  "vars": {
+    "PUBLIC_ORIGIN": "https://jlpt.erzhiqian.cc",
+    "FIREBASE_CONFIG": "{\"apiKey\":\"AIzaSyAzHjEqFlmugxF0rpuaWv5Cn__gDEayX9k\",\"authDomain\":\"jlpt-master-deck.firebaseapp.com\",\"projectId\":\"jlpt-master-deck\",\"storageBucket\":\"jlpt-master-deck.firebasestorage.app\",\"messagingSenderId\":\"411415107611\",\"appId\":\"1:411415107611:web:88231cb520b531a09a40be\",\"market\":\"firestore\"}"
+  }
+}

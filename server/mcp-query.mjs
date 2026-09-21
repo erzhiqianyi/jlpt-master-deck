@@ -1,3 +1,4 @@
+import { transaction } from './platform.mjs';
 // Controlled read-only query layer: jlpt_describe / jlpt_query / jlpt_aggregate / jlpt_get.
 //
 // The agent decides what to ask (entity, filters, time, fields, metrics, grouping, paging); this
@@ -378,7 +379,7 @@ function baseWhere(def, userId, time, filters) {
 const deadlineRegistered = new WeakSet();
 /** Real per-row cancellation: node:sqlite has no interrupt(), so a scalar function throws past the deadline. */
 function ensureDeadlineFunction(db) {
-  if (deadlineRegistered.has(db)) return;
+  if (db.runTimedQuery || deadlineRegistered.has(db)) return;
   db.function('mcp_deadline_ok', { deterministic: false }, (deadline) => {
     if (Date.now() > deadline) throw new Error('QUERY_TIMEOUT');
     return 1;
@@ -388,7 +389,7 @@ function ensureDeadlineFunction(db) {
 
 function run(db, sql, params, deadline) {
   try {
-    return db.prepare(sql).all(...params, deadline);
+    return db.runTimedQuery ? db.runTimedQuery(sql, params, deadline) : db.prepare(sql).all(...params, deadline);
   } catch (error) {
     if (String(error?.message).includes('QUERY_TIMEOUT')) {
       fail('QUERY_TIMEOUT', `The query exceeded ${limits.sql_timeout_ms} ms and was aborted; no partial result is returned.`, { suggested_actions: ['Narrow time or filters, drop include_total, or use fewer group dimensions.'] });
@@ -399,13 +400,7 @@ function run(db, sql, params, deadline) {
 
 /** Short read transaction: revision first, then the reads, so revision-guarded cursors are sound. */
 function readTx(db, fn) {
-  db.exec('BEGIN');
-  try {
-    const revision = readRevision(db);
-    return fn(revision);
-  } finally {
-    db.exec('COMMIT');
-  }
+  return transaction(db, () => fn(readRevision(db)));
 }
 
 function truncatePreview(value) {

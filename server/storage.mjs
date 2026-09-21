@@ -1,7 +1,8 @@
+import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations } from '../src/domain/practiceExplanations.mjs';
 import { progressAfterAnswer } from '../src/domain/srs.mjs';
 import { restorePracticeName } from './practice-names.mjs';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from './files.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
@@ -60,6 +61,7 @@ export function reviewDataPath() {
 }
 
 export function getDb() {
+  if (currentPlatform()?.db) return currentPlatform().db;
   if (!db) {
     mkdirSync(localDir, { recursive: true });
     db = new DatabaseSync(dbPath);
@@ -268,8 +270,7 @@ function ensureListeningLibraryNumbers() {
     WHERE user_id = ?
   `);
   const assignNumber = database.prepare('UPDATE listening_questions SET library_number = ? WHERE id = ?');
-  database.exec('BEGIN IMMEDIATE');
-  try {
+  transaction(database, () => {
     for (const row of missingRows) {
       const current = nextNumberByUser.get(row.user_id) ?? Number(maxNumber.get(row.user_id).value);
       const next = current + 1;
@@ -277,11 +278,7 @@ function ensureListeningLibraryNumbers() {
       nextNumberByUser.set(row.user_id, next);
     }
     database.exec('CREATE UNIQUE INDEX IF NOT EXISTS listening_questions_user_library_number ON listening_questions(user_id, library_number)');
-    database.exec('COMMIT');
-  } catch (error) {
-    database.exec('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 function ensureDailyPracticesMultiVersion() {
@@ -333,7 +330,7 @@ export function loadReviewData(userId) {
   const files = reviewDataFiles();
   return {
     generated_at: generatedAt,
-    data_source: 'sqlite',
+    data_source: currentPlatform()?.dataSource ?? 'sqlite',
     export_backup_root: dataRoot,
     export_backup_files: files.map((file) => file.replace(`${rootDir}/`, '')),
     items,
@@ -533,8 +530,7 @@ function migrateCanonicalReviewItems() {
   if (!rows.length) return;
   const update = db.prepare('UPDATE review_items SET item_json = ?, updated_at = ? WHERE id = ?');
   const now = new Date().toISOString();
-  db.exec('BEGIN');
-  try {
+  transaction(db, () => {
     for (const row of rows) {
       const current = JSON.parse(row.item_json);
       const canonical = normalizeStoredReviewItem(current);
@@ -549,11 +545,7 @@ function migrateCanonicalReviewItems() {
         update.run(nextJson, now, row.id);
       }
     }
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 function normalizeStoredReviewItem(item) {
@@ -724,25 +716,24 @@ export function createListeningQuestion(userId, payload) {
   mkdirSync(userAudioDir, { recursive: true });
   writeFileSync(audioPath, audio, { flag: 'wx' });
   const database = getDb();
-  database.exec('BEGIN IMMEDIATE');
   try {
-    const libraryNumber = Number(database.prepare(`
-      SELECT COALESCE(MAX(library_number), 0) + 1 AS value
-      FROM listening_questions
-      WHERE user_id = ?
-    `).get(userId).value);
-    database.prepare(`
-      INSERT INTO listening_questions (
-        id, user_id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
-        audio_file_name, audio_mime, audio_size, audio_path, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation,
-      audioFileName, audioMime, audio.length, audioPath, now,
-    );
-    database.exec('COMMIT');
+    transaction(database, () => {
+      const libraryNumber = Number(database.prepare(`
+        SELECT COALESCE(MAX(library_number), 0) + 1 AS value
+        FROM listening_questions
+        WHERE user_id = ?
+      `).get(userId).value);
+      database.prepare(`
+        INSERT INTO listening_questions (
+          id, user_id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
+          audio_file_name, audio_mime, audio_size, audio_path, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation,
+        audioFileName, audioMime, audio.length, audioPath, now,
+      );
+    });
   } catch (error) {
-    database.exec('ROLLBACK');
     unlinkSync(audioPath);
     throw error;
   }
@@ -1101,8 +1092,7 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
   }
   const now = new Date().toISOString();
   const database = getDb();
-  database.exec('BEGIN');
-  try {
+  transaction(database, () => {
     database
       .prepare(`
         INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at)
@@ -1122,11 +1112,7 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
           updated_at = excluded.updated_at
       `)
       .run(userId, itemId, JSON.stringify(progressEntry), now);
-    database.exec('COMMIT');
-  } catch (error) {
-    database.exec('ROLLBACK');
-    throw error;
-  }
+  });
   if (Array.isArray(attemptHistory) || activeAttempt !== undefined) {
     savePracticeState(userId, { attemptHistory, activeAttempt });
   }
@@ -1150,8 +1136,7 @@ export function saveProgressEntry(userId, itemId, progressEntry) {
 export function savePracticeState(userId, { answers, progress, answerItemIds, attemptHistory, activeAttempt }) {
   const database = getDb();
   const now = new Date().toISOString();
-  database.exec('BEGIN');
-  try {
+  transaction(database, () => {
     if (answers && typeof answers === 'object') {
       database.prepare('DELETE FROM answers WHERE user_id = ?').run(userId);
       const insert = database.prepare(`
@@ -1173,11 +1158,7 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
       }
     }
     upsertPracticeState(userId, attemptHistory, activeAttempt, now);
-    database.exec('COMMIT');
-  } catch (error) {
-    database.exec('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 export function buildStudyRecord(userId) {
@@ -1297,18 +1278,13 @@ function updateReviewItemWordbookTitles(wordbookId, title, updatedAt) {
   const database = getDb();
   const rows = database.prepare('SELECT id, item_json FROM review_items').all();
   const update = database.prepare('UPDATE review_items SET item_json = ?, updated_at = ? WHERE id = ?');
-  database.exec('BEGIN');
-  try {
+  transaction(database, () => {
     for (const row of rows) {
       const item = JSON.parse(row.item_json);
       if (item.targetWordbookId !== wordbookId || item.targetWordbookTitle === title) continue;
       update.run(JSON.stringify({ ...item, targetWordbookTitle: title }), updatedAt, row.id);
     }
-    database.exec('COMMIT');
-  } catch (error) {
-    database.exec('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 export function createLearningCapture(userId, { body, category = 'unsure', context = '', targetDeck, target_deck, targetWordbookId, target_wordbook_id } = {}) {

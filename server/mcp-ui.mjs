@@ -1,3 +1,4 @@
+import { currentPlatform } from './platform.mjs';
 // The MCP App resource: `ui://jlpt/practice.html`, an interactive practice card that hosts such as
 // Claude and ChatGPT render inline when a tool declares `_meta.ui.resourceUri`. The view is built
 // by `npm run build:mcp-app` (vite.mcp-app.config.ts) and inlined here so the resource is a single
@@ -13,11 +14,13 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const buildDir = join(rootDir, 'dist-mcp-app');
 
 export function practiceViewAvailable() {
+  if (currentPlatform()?.practiceHtml) return true;
   return existsSync(join(buildDir, 'practice.js'));
 }
 
 /** Full HTML document for the practice view; throws a clear error when the bundle is missing. */
 export function practiceViewHtml() {
+  if (currentPlatform()?.practiceHtml) return currentPlatform().practiceHtml;
   if (!practiceViewAvailable()) {
     throw new Error('MCP App view not built: run `npm run build:mcp-app` (it writes dist-mcp-app/practice.js)');
   }

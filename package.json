@@ -21,8 +21,10 @@
     "plan:migrate-prototype": "node scripts/migrate-prototype-study-plan.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "build:cloudflare": "npm run build && node scripts/prepare-cloudflare-build.mjs",
-    "test:cloudflare": "node --test cloudflare/*.test.mjs",
-    "deploy:cloudflare": "npm run build:cloudflare && wrangler pages deploy dist --project-name jlpt-master-deck --branch main"
+    "test:cloudflare": "npm run build:mcp-app && node --test cloudflare/*.test.mjs",
+    "deploy:cloudflare": "npm run deploy:cloud-api && npm run build:cloudflare && wrangler pages deploy dist --project-name jlpt-master-deck --branch main",
+    "build:cloud-api": "npm run build:mcp-app && node scripts/build-cloud-api.mjs",
+    "deploy:cloud-api": "npm run build:cloud-api && wrangler deploy --config cloudflare/wrangler.api.json"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
@@ -31,6 +33,7 @@
     "@ninomae/mcp-app-server": "0.2.0",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.4.0",
+    "jose": "6.2.12",
     "lucide-react": "^0.468.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
@@ -42,7 +45,9 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "esbuild": "0.28.2",
     "eslint": "9.39.4",
+    "miniflare": "5.20260918.0-alpha",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vite": "8.0.13",

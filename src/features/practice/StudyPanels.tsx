@@ -1227,7 +1227,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
       ) : null}
       {showEntryLibrary && sortedItems.length ? (
         <>
-        <LearningList>{(mobileList.mobile ? mobileItems : pageItems).map((item) => <LearningListRow key={item.id} title={item.original} reading={item.reading} description={itemMeaning(item, locale)} statusKind={progress[item.id]?.status ?? "new"} status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew} locale={locale} onOpen={() => onOpen(item.id)}/>)}</LearningList>
+        <LearningList>{(mobileList.mobile ? mobileItems : pageItems).map((item) => <LearningListRow key={item.id} title={item.original} reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading} description={isVocabularyLibrary ? undefined : itemMeaning(item, locale)} statusKind={progress[item.id]?.status ?? "new"} status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew} locale={locale} onOpen={() => onOpen(item.id)}/>)}</LearningList>
         {mobileList.mobile
           ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd >= sortedItems.length ? labels.mobileNoMore : null}</div>
           : <LearningListPagination page={currentPage} pages={pageCount} onChange={setPageIndex} summary={`${pageStart + 1}-${pageEnd} / ${sortedItems.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext}/>}

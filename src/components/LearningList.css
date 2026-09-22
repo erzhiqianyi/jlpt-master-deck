@@ -257,3 +257,43 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   .learning-list-columns:has(> .vocabulary-column-header) .list-part-of-speech { grid-column: 2; grid-row: 1; }
   .learning-list-columns .list-item-name strong { font-size: 17px; }
 }
+
+/* Mobile word, grammar and reading libraries are summaries, not stacked tables. */
+@media (max-width: 767px) {
+  .learning-list-columns.learning-list-columns:has(> :is(.vocabulary-column-header, .grammar-column-header, .reading-column-header)) .list-item-open.has-metadata {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-height: 64px;
+    padding: 16px;
+  }
+  .learning-list-columns:has(> :is(.vocabulary-column-header, .grammar-column-header, .reading-column-header)) .list-item-name {
+    gap: 3px;
+  }
+  .learning-list-columns:has(> :is(.vocabulary-column-header, .grammar-column-header, .reading-column-header)) .list-item-reading {
+    font-size: 13px;
+    color: #657a70;
+  }
+  .learning-list-columns.learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata {
+    display: block;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #657a70;
+  }
+  .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata > .list-part-of-speech,
+  .learning-list-columns:has(> .vocabulary-column-header) .list-mobile-meaning > .list-metadata-label,
+  .learning-list-columns.learning-list-columns:has(> :is(.grammar-column-header, .reading-column-header)) .list-item-metadata {
+    display: none;
+  }
+  .learning-list-columns:has(> .vocabulary-column-header) .list-mobile-meaning > span:last-child {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .learning-list-columns:has(> .reading-column-header) .list-item-name strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}

@@ -143,19 +143,11 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 .list-item-metadata { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; min-width: 0; font-size: 14px; line-height: 1.5; color: #405b50; }
 .list-item-metadata > span { display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
 .list-metadata-label { font-size: 12px; font-weight: 400; color: #657a70; }
-@media (max-width: 767px) {
-  .ledger-word-index .list-item-open.has-metadata { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .ledger-word-index .list-item-open.has-metadata .list-item-metadata { grid-column: 1; grid-row: 2; gap: 12px; }
-}
-@media (max-width: 420px) {
-  .list-item-metadata { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .list-item-metadata > span { flex-direction: row; justify-content: space-between; gap: 16px; }
-  .list-metadata-label { flex-shrink: 0; }
-}
 
 .list-item-open.has-metadata .list-item-name > .list-item-description { display: block; margin-top: 4px; }
 
-/* Column labels appear once; narrow screens scroll only the list. */
+/* Keep header and row grids identical at every viewport width. Narrow screens
+   scroll the whole table; metadata must never move into the title column. */
 .learning-list-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
 .learning-list-columns { min-width: 680px; }
 .list-column-header,
@@ -167,6 +159,7 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 .ledger-word-index .learning-list-columns .list-item-metadata { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; grid-column: 2; grid-row: 1; }
 .ledger-word-index .learning-list-columns .list-item-open.has-metadata { min-height: 66px; }
 .learning-list-columns .list-item-metadata > span { display: block; }
+.learning-list-columns .list-item-metadata time { overflow-wrap: normal; word-break: keep-all; }
 .learning-list-columns .list-metadata-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .list-column-metadata:has(> .list-part-of-speech),

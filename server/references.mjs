@@ -64,10 +64,12 @@ export function ensureReferenceSchema(db) {
 }
 
 const referenceSql = "r.prefix || '-' || printf('%06d', r.number)";
+// ID lists travel as one JSON parameter: Workers SQLite allows at most 100 bound variables,
+// so never expand caller-sized arrays into `IN (?, ?, ...)`.
 export function referencesForOwner(db, userId, ids) {
   return db.prepare(`SELECT DISTINCT r.entity, r.internal_id AS id, ${referenceSql} AS reference, s.parent_id
     FROM record_references r JOIN reference_sources s USING(user_id, entity, internal_id)
-    WHERE r.user_id=?${ids ? ` AND r.internal_id IN (${ids.map(() => '?').join(',')})` : ''}`).all(userId, ...(ids ?? []));
+    WHERE r.user_id=?${ids ? ' AND r.internal_id IN (SELECT value FROM json_each(?))' : ''}`).all(userId, ...(ids ? [JSON.stringify(ids)] : []));
 }
 
 export function resolveReference(db, userId, reference) {
@@ -100,11 +102,10 @@ export function decorateReferences(db, userId, value) {
   }
   collect(value);
   if (!ids.size) return value;
-  const keys = [...ids];
-  const refs = [];
-  for (let offset = 0; offset < keys.length; offset += 100) refs.push(...referencesForOwner(db, userId, keys.slice(offset, offset + 100)));
+  const refs = referencesForOwner(db, userId, [...ids]);
+  const seen = new Set(refs.map(ref => ref.reference));
   const parentIds = [...new Set(refs.map(ref => ref.parent_id).filter(Boolean))];
-  for (let offset = 0; offset < parentIds.length; offset += 100) refs.push(...referencesForOwner(db, userId, parentIds.slice(offset, offset + 100)).filter(ref => !refs.some(existing => existing.reference === ref.reference)));
+  if (parentIds.length) refs.push(...referencesForOwner(db, userId, parentIds).filter(ref => !seen.has(ref.reference)));
 
   const byId = new Map();
   for (const ref of refs) {

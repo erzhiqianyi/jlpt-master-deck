@@ -11,6 +11,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
 import { ensureReferenceSchema, decorateReferences } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
+import { withSqlVariableLimit } from './sql-limits.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localDir = resolve(rootDir, '.local');
@@ -67,7 +68,7 @@ export function getDb() {
   if (currentPlatform()?.db) return currentPlatform().db;
   if (!db) {
     mkdirSync(localDir, { recursive: true });
-    db = new DatabaseSync(dbPath);
+    db = withSqlVariableLimit(new DatabaseSync(dbPath));
     db.exec('PRAGMA journal_mode = WAL');
     db.exec('PRAGMA foreign_keys = ON');
     db.exec(`

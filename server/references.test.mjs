@@ -91,3 +91,11 @@ test('audio metadata lookup exposes no filesystem path and is owner isolated', (
   assert.equal(JSON.stringify(metadata).includes('/private/'), false);
   assert.equal(getReferenceMetadata(db, bob.id, ref.reference), null);
 });
+
+test('reference decoration binds a fixed number of variables however many IDs a payload holds', () => {
+  // getDb() enforces the Workers SQLite limit of 100 bound variables, so an expanded IN list would throw here.
+  const items = Array.from({ length: 450 }, (_, i) => ({ id: `bulk-${i}` }));
+  for (const { id } of items) insertItem(alice, id);
+  const decorated = decorateReferences(db, alice.id, { items });
+  assert.equal(decorated.items.filter(item => item.reference).length, 450);
+});

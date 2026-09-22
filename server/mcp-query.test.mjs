@@ -84,6 +84,14 @@ test('A03 filter values cannot inject SQL and contains is literal', async () => 
   assert.deepEqual(literal.data.records.map((r) => r.id), ['item-sae']);
 });
 
+test('in filters bind one variable per list, so max-size lists across max filters still run', async () => {
+  const padded = (hit) => [hit, ...Array.from({ length: limits.max_in_values - 1 }, (_, i) => `missing-${i}`)];
+  const filters = Array.from({ length: limits.max_filters }, () => ({ field: 'id', op: 'in', value: padded('item-sae') }));
+  const rows = await call('jlpt_query', { entity: 'item', filters });
+  assert.equal(rows.isError, false);
+  assert.deepEqual(rows.data.records.map((r) => r.id), ['item-sae']);
+});
+
 // A04: another learner's records, counts, details and cursors are invisible.
 test('A04 cross-user isolation for query, aggregate, get and cursors', async () => {
   const bobRows = await call('jlpt_query', { entity: 'attempt', time: all, include_total: 'exact' }, bob);

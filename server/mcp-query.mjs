@@ -367,8 +367,9 @@ function compileFilters(def, filters = []) {
       case 'in': {
         if (!Array.isArray(filter.value) || filter.value.length === 0) fail('INVALID_VALUE', 'in expects a non-empty array.', { details: { field: filter.field } });
         const values = filter.value.map((v) => checkScalar(f, v, filter.field));
-        where.push(`${col} IN (${values.map(() => '?').join(', ')})`);
-        params.push(...values);
+        // One JSON parameter per list keeps the statement under the 100-variable limit.
+        where.push(`${col} IN (SELECT value FROM json_each(?))`);
+        params.push(JSON.stringify(values));
         break;
       }
       case 'contains':

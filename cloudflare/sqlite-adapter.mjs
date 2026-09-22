@@ -1,7 +1,12 @@
+import { assertSqlVariables } from '../server/sql-limits.mjs';
+
 /** node:sqlite's small synchronous interface, backed by native Durable Object SQLite. */
 export function sqliteAdapter(storage) {
   const sql = storage.sql;
-  const execute = (query, values = []) => sql.exec(query, ...values.map(v => typeof v === 'bigint' ? Number(v) : v));
+  const execute = (query, values = []) => {
+    assertSqlVariables(query, values);
+    return sql.exec(query, ...values.map(v => typeof v === 'bigint' ? Number(v) : v));
+  };
   const db = {
     exec(query) { return execute(query); },
     prepare(query) {

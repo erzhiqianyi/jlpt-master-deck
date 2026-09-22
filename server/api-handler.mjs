@@ -20,6 +20,8 @@ import {
   createLearningCapture,
   createReviewPackDraft,
   createReadingQuestion,
+  readingQuestionForUser,
+  updateReadingQuestion,
   createUser,
   createWordbook,
   databasePath,
@@ -365,6 +367,14 @@ return async (req, res) => {
     }
 
     const readingQuestionMatch = /^\/api\/reading-questions\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'GET' && readingQuestionMatch) {
+      const question = readingQuestionForUser(user.id, readingQuestionMatch[1]);
+      return question ? json(res, 200, { question }) : json(res, 404, { error: 'Reading question not found' });
+    }
+    if (req.method === 'PATCH' && readingQuestionMatch) {
+      const question = updateReadingQuestion(user.id, readingQuestionMatch[1], await readJson(req));
+      return question ? json(res, 200, { question }) : json(res, 404, { error: 'Reading question not found' });
+    }
     if (req.method === 'DELETE' && readingQuestionMatch) {
       if (!deleteReadingQuestion(user.id, readingQuestionMatch[1])) {
         return json(res, 404, { error: 'Reading question not found' });

@@ -34,6 +34,13 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
 
     assert.ok(!(await json('/api/wordbooks','GET',undefined,'test-2')).wordbooks.some(x=>x.id===book.id));
     assert.equal((await request('/api/wordbooks/'+book.id,'PATCH',{title:'stolen'},'test-2')).status,404);
+    const reading = (await json('/api/reading-questions', 'POST', { passage: '素材が変わった。', question: '何が変わったか。', choices: ['素材', '場所', '人', '時間'], answerIndex: 0, explanation: '総解説', passageTranslation: '食材变了。', choiceExplanations: ['素材', '場所', '人', '時間'].map((text, i) => ({ text, translation: text, analysis: '分析', evidence: '素材が変わった。', errorType: i ? '无中生有' : '' })), readingAnalysis: { summary: '变化', structure: '说明', keySentences: ['素材が変わった。'] } })).question;
+    assert.equal((await json('/api/reading-questions/' + reading.id)).question.passageTranslation, '食材变了。');
+    const revisedReading = (await json('/api/reading-questions/' + reading.id, 'PATCH', { explanation: '更新总解析' })).question;
+    assert.equal(revisedReading.choiceExplanations.length, 4);
+    assert.equal(revisedReading.explanation, '更新总解析');
+    assert.equal((await request('/api/reading-questions/' + reading.id, 'PATCH', { explanation: 'stolen' }, 'test-2')).status, 404);
+    assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
     const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],answerIndex:2,audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
     const failed=await mf.dispatchFetch(origin+'/api/listening-questions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
     assert.equal(failed.status,503);
@@ -63,6 +70,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
       const result=await rpc('tools/call',{name,arguments:{entity:'item',time:{mode:'all'}}});
       assert.ok(!result.isError,JSON.stringify(result));
     }
+    const readingToolResult = await rpc('tools/call', { name: 'get_reading_question', arguments: { id: reading.id } });
+    assert.ok(!readingToolResult.isError, JSON.stringify(readingToolResult));
+    assert.equal(JSON.parse(readingToolResult.content[0].text).choiceExplanations.length, 4);
+    const readingUpdateResult = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, passageTranslation: '云端 MCP 更新译文' } });
+    assert.ok(!readingUpdateResult.isError, JSON.stringify(readingUpdateResult));
     const privateItem = { id:'cloud-private-item', deck:'grammar_expression', type:'grammar', original:'〜にほかならない', meaning_zh:'正是' };
     const saved = await rpc('tools/call',{name:'upsert_review_item',arguments:{item:privateItem}});
     assert.ok(!saved.isError,JSON.stringify(saved));
@@ -72,6 +84,10 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     const resources=(await rpc('resources/list')).resources;
     assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
     await mf.dispose(); mf=new Miniflare(options);
+    const persistedReading = (await json('/api/reading-questions/' + reading.id)).question;
+    assert.equal(persistedReading.passageTranslation, '云端 MCP 更新译文');
+    assert.equal(persistedReading.explanation, '更新总解析');
+    assert.deepEqual(persistedReading.readingAnalysis, reading.readingAnalysis);
     assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
     const persistedShare = await json('/api/market/'+share.id,'GET',undefined,'test-2');
     assert.equal(persistedShare.createdAt,share.createdAt);

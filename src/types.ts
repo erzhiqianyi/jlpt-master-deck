@@ -201,6 +201,9 @@ export type ReadingQuestion = {
   tags: string[];
   explanationNodes?: { title: string; body: string }[];
   translationLines?: { ja: string; zh: string }[];
+  passageTranslation?: string;
+  choiceExplanations?: { text: string; translation: string; analysis: string; evidence: string; errorType: string }[];
+  readingAnalysis?: { summary: string; structure: string; keySentences: string[] };
   createdAt: string;
 };
 

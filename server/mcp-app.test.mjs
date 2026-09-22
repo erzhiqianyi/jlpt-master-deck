@@ -47,7 +47,7 @@ test('MCP_PATHS claims only the OAuth/MCP surface', () => {
 });
 
 test('every tool converts to JSON Schema and none carries a token parameter', () => {
-  assert.equal(tools.length, 40); // 32 from the old catalogue (33 minus `login`) + 3 practice-session tools + 4 jlpt_* query tools + organize_review_item
+  assert.equal(tools.length, 43); // Existing 40 tools plus reading list/get/update.
   assert.ok(!tools.some((tool) => tool.name === 'login'));
   for (const tool of tools) {
     const schema = toolJsonSchema(tool);

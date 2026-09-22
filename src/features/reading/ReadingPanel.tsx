@@ -1,3 +1,4 @@
+import { ReadingExplanation } from './ReadingExplanation';
 import './reading.css';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
@@ -110,7 +111,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
       '请使用 JLPT Review 本地 MCP / 本地后台，为当前账号生成阅读题库。',
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
-      '要求：读取文章内容，生成 JLPT N1 风格阅读题。每题包含标题、文章、题目、4 个选项、正确答案、解析，并尽量标注定位句和排除理由。',
+      '要求：读取文章内容，生成 JLPT N1 风格阅读题。每题包含标题、文章、题目、4 个选项、正确答案、总解析 explanation。补充 passageTranslation 全文翻译；choiceExplanations 按选项顺序填写 text、translation、analysis、evidence、errorType；readingAnalysis 填写 summary、structure、keySentences。正确选项的 errorType 留空，原文依据必须来自文章。',
       '同一篇文章的各题请使用完全相同的文章全文，应用会合并展示为一篇多题。',
       '保存：生成后写入本应用的阅读题库，完成后告诉我生成了哪些题。',
     ].join('\n');
@@ -320,7 +321,7 @@ function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item:
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
-      {revealed ? <ReadingExplanation item={item} /> : null}
+      {revealed ? <ReadingExplanation item={item} locale={locale} /> : null}
     </section>
   );
 }
@@ -349,23 +350,5 @@ function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuest
         );
       })}
     </div>
-  );
-}
-
-function ReadingExplanation({ item }: { item: ReadingQuestion }) {
-  const nodes = item.explanationNodes ?? [];
-  const lines = item.translationLines ?? [];
-  return (
-    <section className="reading-explanation mt-6 space-y-3" aria-label="阅读题解析">
-      {lines.length ? (
-        <details className="border-t border-[#e1e7df]" open>
-          <summary className="cursor-pointer py-3 text-sm font-bold text-[#31564c]">原文・中文逐句对照</summary>
-          <div className="divide-y divide-[#e8eee7]">
-            {lines.map((line, index) => <div key={`${line.ja}-${index}`} className="grid gap-1 py-3 text-sm leading-6 md:grid-cols-2 md:gap-5"><p className="font-medium text-[#3d3036]">{line.ja}</p><p className="text-[#53605a]">{line.zh}</p></div>)}
-          </div>
-        </details>
-      ) : null}
-      {nodes.length ? nodes.map((node, index) => <details key={`${node.title}-${index}`} className="border-t border-[#e1e7df]" open={index === 0}><summary className="cursor-pointer py-3 text-sm font-bold text-[#31564c]">{node.title}</summary><p className="whitespace-pre-wrap pb-4 text-sm leading-7 text-[#4f5b55]">{node.body}</p></details>) : item.explanation ? <p className="whitespace-pre-wrap border-t border-[#e1e7df] pt-4 text-sm leading-7 text-[#4f5b55]">{item.explanation}</p> : null}
-    </section>
   );
 }

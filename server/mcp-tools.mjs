@@ -1,3 +1,4 @@
+import { readingFields } from './reading-schema.mjs';
 // Tool catalogue shared by the OAuth-protected HTTP MCP server (server/mcp-app.mjs) and the
 // legacy stdio server (server/mcp-server.mjs). Handlers receive `uid(ctx)`; nothing about the
 // caller comes from tool input.
@@ -15,6 +16,9 @@ import {
   createLearningCapture,
   createListeningQuestion,
   createReadingQuestion,
+  listReadingQuestions,
+  readingQuestionForUser,
+  updateReadingQuestion,
   createReviewPackDraft,
   createTopicPractice,
   createWordbook,
@@ -180,14 +184,15 @@ export const tools = [
   tool('save_listening_recording_analysis', 'Write the completed local audio comparison back to the learner recording so the detail page can display it.',
     { recording_id: z.string(), status: z.enum(['completed', 'failed']), analysis: recordingAnalysis.optional() }, rw,
     async ({ recording_id, status, analysis }, ctx) => text(found(saveListeningRecordingAnalysis(uid(ctx), recording_id, { status, analysis }), 'Listening recording not found'))),
-  tool('create_reading_question', 'Create a local reading question from agent-prepared passage, choices, answer, and explanation.', {
-    title: z.string().optional(),
-    passage: z.string(),
-    question: z.string(),
-    choices,
-    answerIndex: z.number(),
-    explanation: z.string().optional(),
-  }, rw, async (args, ctx) => text(createReadingQuestion(uid(ctx), args))),
+  tool('list_reading_questions', 'List all reading questions owned by the authenticated learner, including their explanations.',
+    {}, ro, async (_args, ctx) => text(listReadingQuestions(uid(ctx)))),
+  tool('get_reading_question', 'Get one owned reading question and its complete reading analysis.',
+    { id: z.string() }, ro, async ({ id }, ctx) => text(found(readingQuestionForUser(uid(ctx), id), 'Reading question not found'))),
+  tool('create_reading_question', 'Create a reading question with full passage translation, ordered choice explanations and reading analysis. explanation remains the overall explanation.',
+    readingFields, rw, async (args, ctx) => text(createReadingQuestion(uid(ctx), args))),
+  tool('update_reading_question', 'Partially update an owned reading question. Omitted fields are preserved; arrays and readingAnalysis are replaced as a whole. When changing choices, update or clear choiceExplanations to keep them aligned.',
+    { id: z.string(), ...Object.fromEntries(Object.entries(readingFields).map(([key, schema]) => [key, schema.optional()])) }, rw,
+    async ({ id, ...patch }, ctx) => text(found(updateReadingQuestion(uid(ctx), id, patch), 'Reading question not found'))),
   tool('analyze_weak_points', 'Analyze wrong answers, learning items, due items, and mastery totals.',
     {}, ro, async (_args, ctx) => text(analyzeWeakPoints(uid(ctx)))),
   tool('generate_daily_review_pack', 'Create a personalized daily review-pack draft that the user can preview and annotate.',

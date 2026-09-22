@@ -122,6 +122,9 @@ function migrateCloudSchemaV2(db) {
   addColumn('reading_questions', 'tags_json', "TEXT NOT NULL DEFAULT '[]'");
   addColumn('reading_questions', 'explanation_nodes_json', "TEXT NOT NULL DEFAULT '[]'");
   addColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
+  addColumn('reading_questions', 'passage_translation', "TEXT NOT NULL DEFAULT ''");
+  addColumn('reading_questions', 'choice_explanations_json', "TEXT NOT NULL DEFAULT '[]'");
+  addColumn('reading_questions', 'reading_analysis_json', "TEXT NOT NULL DEFAULT '{}'");
   addColumn('learning_captures', 'target_deck', 'TEXT');
   addColumn('learning_captures', 'target_wordbook_id', 'TEXT');
   if (!db.prepare('SELECT version FROM cloud_schema_version WHERE version=2').get()) {

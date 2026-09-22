@@ -81,7 +81,20 @@ Planned tool boundary:
 - `list_due_reviews`: find items that need review.
 - `list_listening_questions`: read personal listening prompts, choices, answers, explanations, and audio metadata without returning audio bytes.
 - `create_listening_question`: write a local listening question only when real local audio bytes are available.
-- `create_reading_question`: write a local reading question from an agent-prepared passage and answer set.
+- `list_reading_questions`: list the authenticated learner's reading questions, including saved analysis.
+- `get_reading_question`: fetch a complete owned reading question by `id`.
+- `create_reading_question`: create a reading question; accepts the structured explanation fields below.
+- `update_reading_question`: partially update an owned question by `id`. Omitted fields are preserved; supplied arrays and `readingAnalysis` replace those fields completely.
+
+Reading analysis fields (optional; older questions continue to use `explanation`):
+
+- `passageTranslation`: full passage translation, string.
+- `choiceExplanations`: either `[]` or four entries in the same order as `choices`. Each entry contains string fields `text`, `translation`, `analysis`, `evidence`, `errorType`. `text` must match its choice; use an empty `errorType` for the correct choice. When changing choice text/order, also update or clear these explanations.
+- `readingAnalysis`: `{ summary: string, structure: string, keySentences: string[] }`. Key sentences must quote the passage; explain the reasoning in `analysis`/`evidence`.
+- `explanation`: the overall explanation, retained even when structured explanations are present.
+- Existing `explanationNodes`, `translationLines` and `tags` remain supported.
+
+Use `""`, `[]`, or `{ "summary": "", "structure": "", "keySentences": [] }` to clear the corresponding analysis field. Reading REST endpoints expose `GET /api/reading-questions`, `POST /api/reading-questions`, and owner-scoped `GET` / `PATCH /api/reading-questions/:id`. Local and Cloudflare SQLite schemas add these columns automatically without rewriting old questions.
 - `analyze_weak_points`: summarize weak vocabulary, wrong-answer patterns, due items, and mastery.
 - `generate_daily_review_pack`: create a personalized daily review-pack draft.
 - `create_review_pack_draft`: save generated review-pack content as a draft for in-app preview.

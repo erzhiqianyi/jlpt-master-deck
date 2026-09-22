@@ -1,3 +1,4 @@
+import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations } from '../src/domain/practiceExplanations.mjs';
 import { progressAfterAnswer } from '../src/domain/srs.mjs';
@@ -260,6 +261,9 @@ export function getDb() {
     ensureColumn('reading_questions', 'tags_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'explanation_nodes_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'passage_translation', "TEXT NOT NULL DEFAULT ''");
+    ensureColumn('reading_questions', 'choice_explanations_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'reading_analysis_json', "TEXT NOT NULL DEFAULT '{}'");
     ensureDailyPracticesMultiVersion();
     ensureReviewItemsSeeded();
     migrateCanonicalReviewItems();
@@ -996,44 +1000,41 @@ export function saveListeningRecordingAnalysis(userId, id, payload) {
   return listeningRecordingForUser(userId, id);
 }
 
-export function createReadingQuestion(userId, payload) {
-  const passage = String(payload?.passage ?? '').trim();
-  const question = String(payload?.question ?? '').trim();
-  const choices = Array.isArray(payload?.choices)
-    ? payload.choices.map((choice) => String(choice ?? '').trim())
-    : [];
-  const answerIndex = Number(payload?.answerIndex);
-  if (!passage || !question || choices.length !== 4 || choices.some((choice) => !choice)) {
-    throw new Error('Passage, question, and four non-empty choices are required');
-  }
-  if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= choices.length) {
-    throw new Error('Choose a valid correct answer');
-  }
+function readingQuestionValues(value) {
+  return [value.title, value.passage, value.question, JSON.stringify(value.choices), value.answerIndex,
+    value.explanation, JSON.stringify(value.tags), JSON.stringify(value.explanationNodes), JSON.stringify(value.translationLines),
+    value.passageTranslation, JSON.stringify(value.choiceExplanations), JSON.stringify(value.readingAnalysis)];
+}
 
+export function createReadingQuestion(userId, payload) {
+  const value = normalizeReadingQuestion(payload);
   const id = randomBytes(12).toString('base64url');
-  const now = new Date().toISOString();
-  const title = String(payload?.title ?? '').trim().slice(0, 120) || question.slice(0, 120);
-  const explanation = String(payload?.explanation ?? '').trim().slice(0, 2000);
-  const tags = [...new Set((Array.isArray(payload?.tags) ? payload.tags : String(payload?.tags ?? '').split(','))
-    .map((tag) => String(tag).trim()).filter(Boolean))].slice(0, 12);
-  const explanationNodes = Array.isArray(payload?.explanationNodes) ? payload.explanationNodes
-    .map((node) => ({ title: String(node?.title ?? '').trim(), body: String(node?.body ?? '').trim() }))
-    .filter((node) => node.title && node.body).slice(0, 12) : [];
-  const translationLines = Array.isArray(payload?.translationLines) ? payload.translationLines
-    .map((line) => ({ ja: String(line?.ja ?? '').trim(), zh: String(line?.zh ?? '').trim() }))
-    .filter((line) => line.ja && line.zh).slice(0, 80) : [];
   getDb().prepare(`
     INSERT INTO reading_questions (
       id, user_id, title, passage, question, choices_json, answer_index, explanation, tags_json,
-      explanation_nodes_json, translation_lines_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, userId, title, passage.slice(0, 8000), question.slice(0, 1000), JSON.stringify(choices), answerIndex, explanation, JSON.stringify(tags), JSON.stringify(explanationNodes), JSON.stringify(translationLines), now);
+      explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, userId, ...readingQuestionValues(value), new Date().toISOString());
+  return readingQuestionForUser(userId, id);
+}
+
+export function updateReadingQuestion(userId, id, payload) {
+  const current = readingQuestionForUser(userId, id);
+  if (!current) return null;
+  const patch = readingPatchSchema.parse(payload);
+  const { id: _id, createdAt: _createdAt, ...fields } = current;
+  const value = normalizeReadingQuestion({ ...fields, ...patch });
+  getDb().prepare(`UPDATE reading_questions SET
+    title = ?, passage = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?, tags_json = ?,
+    explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?
+    WHERE user_id = ? AND id = ?
+  `).run(...readingQuestionValues(value), userId, id);
   return readingQuestionForUser(userId, id);
 }
 
 export function listReadingQuestions(userId) {
   return getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
     FROM reading_questions
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -1042,7 +1043,7 @@ export function listReadingQuestions(userId) {
 
 export function readingQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
     FROM reading_questions
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
@@ -3370,6 +3371,9 @@ function mapReadingQuestion(row) {
     tags: parseJson(row.tags_json, []),
     explanationNodes: parseJson(row.explanation_nodes_json, []),
     translationLines: parseJson(row.translation_lines_json, []),
+    passageTranslation: row.passage_translation ?? '',
+    choiceExplanations: parseJson(row.choice_explanations_json, []),
+    readingAnalysis: { summary: '', structure: '', keySentences: [], ...parseJson(row.reading_analysis_json, {}) },
     createdAt: row.created_at,
   };
 }

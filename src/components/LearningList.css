@@ -146,8 +146,7 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 
 .list-item-open.has-metadata .list-item-name > .list-item-description { display: block; margin-top: 4px; }
 
-/* Keep header and row grids identical at every viewport width. Narrow screens
-   scroll the whole table; metadata must never move into the title column. */
+/* Desktop headers and rows share the same grid; mobile uses the summary layout below. */
 .learning-list-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
 .learning-list-columns { min-width: 680px; }
 .list-column-header,
@@ -206,22 +205,55 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 }
 .news-list-secondary { display: block; margin-top: 4px; font-size: 12px; line-height: 1.6; color: #657a70; }
 
-/* Phone vocabulary lists keep only the word/reading and part of speech. */
+/* Mobile catalogs show a title plus two supporting fields, with actions below. */
+.learning-list-columns .list-item-metadata > .list-mobile-meaning { display: none; }
 @media (max-width: 767px) {
-  .learning-list-columns:has(> .vocabulary-column-header) { min-width: 0; }
-  .learning-list-columns > .vocabulary-column-header,
-  .ledger-word-index .learning-list-columns:has(> .vocabulary-column-header) .list-item-open.has-metadata {
-    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr);
-    gap: 16px;
-    padding: 14px 16px;
+  .learning-list-columns { min-width: 0; }
+  .learning-list-columns > .list-column-header,
+  .standard-list-columns > .standard-list-header { display: none; }
+  .standard-list-columns .standard-list-row { grid-template-columns: minmax(0, 1fr); }
+  .standard-list-columns .standard-list-fields,
+  .standard-list-columns.without-list-status .standard-list-fields,
+  .standard-list-columns.without-list-description .standard-list-fields,
+  .standard-list-columns.without-list-status.without-list-description .standard-list-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .65fr);
+    gap: 12px 16px;
+    padding: 16px;
+    align-items: start;
   }
-  .vocabulary-column-header .list-column-metadata,
-  .ledger-word-index .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+  .standard-list-fields > .list-item-name { grid-column: 1 / -1; }
+  .standard-list-columns.without-list-status .standard-list-description { grid-column: 1 / -1; }
+  .standard-list-columns.without-list-description .standard-list-status { grid-column: 1 / -1; }
+  .standard-list-description::before, .standard-list-status::before {
+    content: attr(data-mobile-label); display: block; margin-bottom: 4px;
+    font-size: 12px; color: #657a70;
   }
-  .vocabulary-column-header .list-column-metadata > :not(.list-part-of-speech),
-  .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata > :not(.list-part-of-speech) {
-    display: none;
+  .standard-list-actions { padding: 0 16px 12px; justify-content: flex-end; min-width: 0; }
+  .standard-list-actions:empty { display: none; }
+  .standard-list-actions > * { max-width: 100%; }
+  .standard-list-actions .learning-list-manage-actions { flex-wrap: wrap; }
+  .standard-list-detail { min-width: 0; padding: 12px 16px; overflow-wrap: anywhere; }
+
+  .learning-list-columns.learning-list-columns:has(> .list-column-header) .list-item-open.has-metadata {
+    grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; min-height: 0;
   }
+  .learning-list-columns.learning-list-columns:has(> .list-column-header) .list-item-metadata {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .65fr);
+    grid-column: 1; grid-row: 2; gap: 16px; align-items: start;
+  }
+  .learning-list-columns .list-metadata-label,
+  .learning-list-columns .list-item-metadata > span > .sr-only {
+    display: block; position: static; width: auto; height: auto; margin: 0 0 4px;
+    padding: 0; overflow: visible; clip: auto; clip-path: none; white-space: normal;
+    font-size: 12px; color: #657a70;
+  }
+  .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata > :not(.list-part-of-speech):not(.list-mobile-meaning),
+  .learning-list-columns:has(> .grammar-column-header) .list-added,
+  .learning-list-columns:has(> .reading-column-header) .list-next-review,
+  .learning-list-columns:has(> .listening-column-header) .list-item-metadata > :nth-child(2),
+  .learning-list-columns:has(> .news-column-header) .list-item-metadata > :nth-child(2),
+  .learning-list-columns:has(> .news-column-header) .list-item-metadata > :nth-child(4) { display: none; }
+  .learning-list-columns .list-item-metadata > .list-mobile-meaning { display: block; grid-column: 1; grid-row: 1; }
+  .learning-list-columns:has(> .vocabulary-column-header) .list-part-of-speech { grid-column: 2; grid-row: 1; }
+  .learning-list-columns .list-item-name strong { font-size: 17px; }
 }

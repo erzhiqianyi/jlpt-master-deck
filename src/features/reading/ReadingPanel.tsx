@@ -212,7 +212,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
         <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
           {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
         </div>
-        <LearningCatalog columns={<LearningListColumns locale={locale}
+        <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false}
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
           collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale} searchText={(group) => group.map((item) => `${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
           const addedAt = group.map((item) => item.createdAt).filter((value) => value && Number.isFinite(Date.parse(value)))

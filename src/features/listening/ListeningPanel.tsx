@@ -369,7 +369,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           return <LearningListRow key={item.key} title={item.representative.audioFileName}
             metadata={<>
-              <span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
+              <span><span className="sr-only">{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
               <span>{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
               <span><span className="sr-only">{locale === "ja" ? "練習回数 " : locale === "en" ? "Practice count " : "练习次数 "}</span>{progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0}</span>
             </>} locale={locale} onOpen={() => onOpenQuestion?.(item.representative.id)}/>;

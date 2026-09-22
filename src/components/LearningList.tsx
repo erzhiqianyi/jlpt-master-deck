@@ -3,6 +3,7 @@ import { Children, createContext, isValidElement, useContext, type ReactNode } f
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
 
 const StandardListContext = createContext(false);
+const ListLabelsContext = createContext<[string, string | null, string | null]>(['名称', '信息', '状态']);
 
 /** Every catalog retains its columns even when there are no matching rows. */
 export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, hasActions }: {
@@ -11,13 +12,13 @@ export function LearningList({ children, columns, locale = 'zh-CN', columnLabels
   const rows = Children.toArray(children);
   const rowLocale = rows.find((row) => isValidElement<{ locale?: string }>(row) && row.props.locale);
   const language = isValidElement<{ locale?: string }>(rowLocale) ? rowLocale.props.locale ?? locale : locale;
-  const labels = columnLabels ?? (language === 'ja' ? ['名前', '情報', '状態'] : language === 'en' ? ['Name', 'Details', 'Status'] : ['名称', '信息', '状态']);
+  const labels: [string, string | null, string | null] = columnLabels ?? (language === 'ja' ? ['名前', '情報', '状態'] : language === 'en' ? ['Name', 'Details', 'Status'] : ['名称', '信息', '状态']);
   const actions = hasActions ?? rows.some((row) => isValidElement<{ actionIcon?: ReactNode; trailing?: ReactNode; inlineActions?: boolean; secondary?: ReactNode }>(row) && (row.props.actionIcon || row.props.trailing || (row.props.inlineActions && row.props.secondary)));
   return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}`}>
     {columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{labels.map((label, index) => label === null ? null : <span key={index}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>}
-    <StandardListContext.Provider value={!columns}>
+    <ListLabelsContext.Provider value={labels}><StandardListContext.Provider value={!columns}>
       <div className="learning-list unified-list" role="list">{rows.length ? rows : <div role="listitem" className="list-empty-row"><span role="status">{language === 'ja' ? 'データがありません' : language === 'en' ? 'No data' : '没有数据'}</span></div>}</div>
-    </StandardListContext.Provider>
+    </StandardListContext.Provider></ListLabelsContext.Provider>
   </div></div>;
 }
 
@@ -26,12 +27,13 @@ export function LearningListRow({ title, reading, description, metadata, status,
   locale?: string; onOpen: () => void; actionLabel?: string; actionIcon?: ReactNode; trailing?: ReactNode; secondary?: ReactNode; expanded?: boolean; compact?: boolean; inlineActions?: boolean;
 }) {
   const standard = useContext(StandardListContext);
+  const labels = useContext(ListLabelsContext);
   const action = actionLabel ?? (expanded ? (locale === 'ja' ? '閉じる' : locale === 'en' ? 'Collapse details' : '收起详情') : (locale === 'ja' ? '詳細を見る' : locale === 'en' ? 'View details' : '查看详情'));
   if (standard) return <div className="standard-list-row" role="listitem">
     <button type="button" className="standard-list-open standard-list-fields" aria-expanded={expanded} onClick={onOpen}>
       <span className="list-item-name"><strong>{title}</strong>{reading ? <span className="list-item-reading">{reading}</span> : null}</span>
-      <span className="standard-list-description">{description || '—'}</span>
-      <span className="standard-list-status">{status || '—'}</span>
+      <span className="standard-list-description" data-mobile-label={labels[1] ?? undefined}>{description || '—'}</span>
+      <span className="standard-list-status" data-mobile-label={labels[2] ?? undefined}>{status || '—'}</span>
       <span className="sr-only">{action}</span>
     </button>
     <div className="standard-list-actions">

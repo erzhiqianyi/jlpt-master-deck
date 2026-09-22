@@ -1244,7 +1244,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
             description={showEntryHub ? undefined : itemMeaning(item, locale)}
             metadata={showEntryHub ? <LearningListMetadata locale={locale}
               addedAt={item.input_at ?? item.date} collectionLabel={collectionLabel} collection={wordbookTitle}
-              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech}/> : undefined}
+              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)}/> : undefined}
             statusKind={progress[item.id]?.status ?? "new"}
             status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew}
             locale={locale} onOpen={() => onOpen(item.id)}/>;

@@ -50,7 +50,9 @@ export function MixedPracticeHub({
   onNavigate: (view: AppView) => void;
   onStartModule: (view: AppView) => void;
 }) {
-  const dueCount = Object.values(progress).filter((item) => !item.nextReviewAt || item.nextReviewAt <= new Date().toISOString()).length;
+  // Never-answered items have no progress entry but are still due today, same as memory review.
+  const now = new Date().toISOString();
+  const dueCount = items.filter((item) => (progress[item.id]?.nextReviewAt ?? '') <= now).length;
   const grammarCount = items.filter((item) => item.deck === 'grammar_expression').length;
   const vocabularyCount = items.filter((item) => item.deck !== 'grammar_expression').length;
   const plannedTaskCount = studyPlan.tasks.length;

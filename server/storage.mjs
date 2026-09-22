@@ -1521,15 +1521,15 @@ function normalizeWordbookDeck(value) {
   return ['n1_vocab', 'name_reading', 'grammar_expression'].includes(value) ? value : 'n1_vocab';
 }
 
+// Items that were never answered have no progress entry; like the web memory-review page,
+// treat them as due so freshly captured words land in today's review set.
 export function listDueReviews(userId, at = new Date().toISOString()) {
   const data = loadReviewData(userId);
   const state = getStudyState(userId);
-  const dueItemIds = new Set(
-    Object.entries(state.progress)
-      .filter(([, progress]) => !progress.nextReviewAt || progress.nextReviewAt <= at)
-      .map(([itemId]) => itemId),
-  );
-  return data.items.filter((item) => dueItemIds.has(item.id));
+  return data.items.filter((item) => {
+    const progress = state.progress[item.id];
+    return !progress?.nextReviewAt || progress.nextReviewAt <= at;
+  });
 }
 
 export function analyzeWeakPoints(userId) {

@@ -1,3 +1,4 @@
+import './reading.css';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { LearningCatalog } from '../../components/LearningCatalog';
@@ -274,14 +275,14 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
 
 function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQuestion[]; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const item = items[0];
-  return <article className="min-w-0 rounded-md border border-[#d8e0d7] bg-white p-4 md:p-6">
+  return <article className="reading-passage min-w-0">
     <h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2>
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
-    <details className="mt-4 rounded-md border border-[#e1e7df] bg-[#fbfdf9] p-4 md:p-5" open>
+    <details className="reading-passage-body mt-6" open>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
       <p lang="ja" className="mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]">{item.passage}</p>
     </details>
-    <div className="mt-6 divide-y divide-[#e1e7df]">
+    <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
       {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
   </article>;
@@ -311,7 +312,7 @@ function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item:
         <h3 className="text-sm font-bold text-[#31564c]">{locale === 'en' ? `Question ${number}` : `問 ${number}`}</h3>
         {onDelete ? <QuestionAction label={`${labels.readingDelete}: ${item.question}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction> : null}
       </div>
-      {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#edf5e9] px-2.5 py-1 text-xs font-semibold text-[#31564c]">#{tag}</span>)}</div> : null}
+      {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
       <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
       <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -327,7 +328,7 @@ function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item:
 
 function QuestionAction({ label, title, children, onClick, disabled }: { label: string; title: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" aria-label={label} title={title} onClick={onClick} disabled={disabled} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-wait disabled:opacity-50">
+    <button type="button" aria-label={label} title={title} onClick={onClick} disabled={disabled} className="reading-question-action inline-flex h-11 w-11 items-center justify-center text-[#68716b] hover:text-[#8a493c] disabled:cursor-wait disabled:opacity-50">
       {children}
     </button>
   );
@@ -335,14 +336,14 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
 
 function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuestion; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
   return (
-    <div className="mt-4 grid grid-cols-1 gap-3">
+    <div className="reading-choices mt-4">
       {item.choices.map((choice, index) => {
-        const resultClass = revealed
-          ? index === item.answerIndex ? 'border-[#65a37c] bg-[#f0fff5]' : selected === index ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white'
-          : selected === index ? 'border-[#d95f8a] !bg-[#fff0f5]' : 'border-[#f0d4dd] !bg-white hover:!bg-[#fff7fb]';
+        const answerState = revealed
+          ? index === item.answerIndex ? 'correct' : selected === index ? 'incorrect' : 'idle'
+          : selected === index ? 'selected' : 'idle';
         return (
-          <button key={index} type="button" aria-pressed={selected === index} onClick={() => onSelect(index)} className={`cute-choice flex w-full min-h-16 items-start gap-3 border px-4 py-4 text-left text-base font-medium leading-7 ${resultClass}`}>
-            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
+          <button key={index} type="button" aria-pressed={selected === index} data-answer-state={answerState} onClick={() => onSelect(index)} className="reading-choice">
+            <span className="reading-choice-number">{index + 1}</span>
             <span className="min-w-0 break-words">{choice}</span>
           </button>
         );
@@ -355,16 +356,16 @@ function ReadingExplanation({ item }: { item: ReadingQuestion }) {
   const nodes = item.explanationNodes ?? [];
   const lines = item.translationLines ?? [];
   return (
-    <section className="mt-4 space-y-3" aria-label="阅读题解析">
+    <section className="reading-explanation mt-6 space-y-3" aria-label="阅读题解析">
       {lines.length ? (
-        <details className="rounded-md border border-[#d8e0d7] bg-white" open>
-          <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[#31564c]">原文・中文逐句对照</summary>
-          <div className="divide-y divide-[#e8eee7] px-4">
+        <details className="border-t border-[#e1e7df]" open>
+          <summary className="cursor-pointer py-3 text-sm font-bold text-[#31564c]">原文・中文逐句对照</summary>
+          <div className="divide-y divide-[#e8eee7]">
             {lines.map((line, index) => <div key={`${line.ja}-${index}`} className="grid gap-1 py-3 text-sm leading-6 md:grid-cols-2 md:gap-5"><p className="font-medium text-[#3d3036]">{line.ja}</p><p className="text-[#53605a]">{line.zh}</p></div>)}
           </div>
         </details>
       ) : null}
-      {nodes.length ? nodes.map((node, index) => <details key={`${node.title}-${index}`} className="rounded-md border border-[#f0d4dd] bg-[#fff7fb]" open={index === 0}><summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[#8a4963]">{node.title}</summary><p className="whitespace-pre-wrap px-4 pb-4 text-sm leading-7 text-[#4f5b55]">{node.body}</p></details>) : item.explanation ? <p className="whitespace-pre-wrap rounded-md border border-[#f0d4dd] bg-[#fff7fb] p-4 text-sm leading-7 text-[#4f5b55]">{item.explanation}</p> : null}
+      {nodes.length ? nodes.map((node, index) => <details key={`${node.title}-${index}`} className="border-t border-[#e1e7df]" open={index === 0}><summary className="cursor-pointer py-3 text-sm font-bold text-[#31564c]">{node.title}</summary><p className="whitespace-pre-wrap pb-4 text-sm leading-7 text-[#4f5b55]">{node.body}</p></details>) : item.explanation ? <p className="whitespace-pre-wrap border-t border-[#e1e7df] pt-4 text-sm leading-7 text-[#4f5b55]">{item.explanation}</p> : null}
     </section>
   );
 }

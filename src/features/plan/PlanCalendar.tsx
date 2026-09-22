@@ -146,12 +146,12 @@ function TaskList({ labels, locale, tasks, updatingId, onTaskStatus }: {
   onTaskStatus: (id: string, status: StudyPlanTaskStatus) => Promise<void>;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  return <div className="plan-task-list">{tasks.length ? <LearningList>{tasks.map((task) => <LearningListRow key={task.id}
+  return <div className="plan-task-list"><LearningList locale={locale} hasActions columnLabels={locale === "ja" ? ["タスク", "モジュール・時間", "状態"] : locale === "en" ? ["Task", "Module / duration", "Status"] : ["任务", "模块与用时", "状态"]}>{tasks.map((task) => <LearningListRow key={task.id}
     title={task.title} description={`${labels[`planModule_${task.module}`]} · ${task.minutes} ${labels.minutes}`}
     statusKind={task.status} status={(locale === 'ja' ? { completed: '完了', skipped: 'スキップ', pending: 'これから', missed: '未完了' } : locale === 'en' ? { completed: 'Done', skipped: 'Skipped', pending: 'To do', missed: 'Missed' } : { completed: '已完成', skipped: '已跳过', pending: '待完成', missed: '未完成' })[task.status]} expanded={expandedId === task.id} locale={locale}
     onOpen={() => setExpandedId(expandedId === task.id ? null : task.id)}
     trailing={<label className="learning-list-task-check"><input type="checkbox" aria-label={`${labels.planCompletedTasks}: ${task.title}`} title={labels.planCompletedTasks} checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')}/></label>}
-    secondary={expandedId === task.id ? <div className="learning-list-task-detail">{task.detail ? <p>{task.detail}</p> : null}<button type="button" aria-label={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} title={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')}>{task.status === 'skipped' ? <Undo2 size={20}/> : <SkipForward size={20}/>}</button></div> : null}/>)}</LearningList> : <p className="learning-list-empty">{labels.planNoTasksForDay}</p>}</div>;
+    secondary={expandedId === task.id ? <div className="learning-list-task-detail">{task.detail ? <p>{task.detail}</p> : null}<button type="button" aria-label={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} title={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')}>{task.status === 'skipped' ? <Undo2 size={20}/> : <SkipForward size={20}/>}</button></div> : null}/>)}</LearningList></div>;
 
 }
 

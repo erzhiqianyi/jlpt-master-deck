@@ -26,3 +26,19 @@ test('saves a completed review and progress together, and retry does not double 
   assert.throws(() => savePracticeState(user.id, { ...payload, progress: { 'word-1': undefined } }));
   assert.equal(getStudyState(user.id).progress['word-1'].correct, 1);
 });
+
+test('audio practice counters persist without replacing vocabulary progress or answer history', () => {
+  const user = createUser('audio-counter-test', 'test-password');
+  savePracticeState(user.id, {
+    progress: { 'word-1': { correct: 2, wrong: 1, status: 'learning' } },
+    attemptHistory: [{ id: 'existing-attempt', questionIds: [], answers: [] }],
+  });
+  const progress = { 'listening-audio:asset-1': { correct: 0, wrong: 0, status: 'learning', reviewCount: 1, lastPracticeSessionId: 'session-1' } };
+  savePracticeState(user.id, { progress });
+  savePracticeState(user.id, { progress });
+  const state = getStudyState(user.id);
+  assert.equal(state.progress['listening-audio:asset-1'].reviewCount, 1);
+  assert.equal(state.progress['listening-audio:asset-1'].lastPracticeSessionId, 'session-1');
+  assert.equal(state.progress['word-1'].correct, 2);
+  assert.equal(state.attemptHistory[0].id, 'existing-attempt');
+});

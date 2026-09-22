@@ -7,7 +7,8 @@ import { sqlStore } from '@ninomae/mcp-app-server/sql';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getDb, userForToken } from './storage.mjs';
+import { currentPlatform } from './platform.mjs';
+import { getDb, userById, userForToken } from './storage.mjs';
 import { resources, scopes, tools } from './mcp-tools.mjs';
 
 export const MCP_BASE_PATH = '/api/jlpt';
@@ -53,7 +54,20 @@ export function originsFor(request, env = process.env) {
   return { publicOrigin: origin, webOrigin: origin };
 }
 
-export function createJlptMcp({ storage, onEvent = recordEvent, origins = originsFor } = {}) {
+/**
+ * `get_connection_info` answers "which environment and which user is this agent bound to?"
+ * from the grant, never from the browser session — the two can drift after an account switch.
+ */
+export async function resolveConnection({ ownerId }) {
+  const user = userById(ownerId);
+  return {
+    user: user ? { displayName: user.username } : null,
+    environment: currentPlatform()?.dataSource ? 'cloudflare' : 'local',
+    dataSource: currentPlatform()?.dataSource ?? 'sqlite',
+  };
+}
+
+export function createJlptMcp({ storage, onEvent = recordEvent, origins = originsFor, inspector = false } = {}) {
   return createMcpAppServer({
     name: 'jlpt',
     version: '0.2.0',
@@ -64,8 +78,10 @@ export function createJlptMcp({ storage, onEvent = recordEvent, origins = origin
     storage: storage ?? sqlStore(nodeSqlite(getDb())),
     tools,
     resources,
+    connectionInfo: { resolve: resolveConnection },
     origins,
     anonymousDiscovery: false, // personal app: no tool list without a token
+    inspector, // dev-only browser page at <basePath>/mcp/inspector; the worker never enables it
     onEvent,
   });
 }

@@ -227,14 +227,16 @@ export function sourcePackage(userId, { kind, sourceId, title, description }) {
   });
 }
 export function publishShare(userId, input) {
-  const pkg = sourcePackage(userId, input);
   const db = database();
-  const id = randomUUID();
-  const now = new Date().toISOString();
-  db.prepare(
-    "INSERT INTO market_shares (id,user_id,source_id,kind,package_json,created_at) VALUES (?,?,?,?,?,?)",
-  ).run(id, userId, input.sourceId, pkg.kind, JSON.stringify(pkg), now);
-  return shareDetail(userId, id);
+  return transaction(db, () => {
+    const pkg = sourcePackage(userId, input);
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO market_shares (id,user_id,source_id,kind,package_json,created_at) VALUES (?,?,?,?,?,?)",
+    ).run(id, userId, input.sourceId, pkg.kind, JSON.stringify(pkg), now);
+    return shareDetail(userId, id);
+  });
 }
 export function listShares(userId) {
   return database()
@@ -267,6 +269,8 @@ export function shareDetail(userId, id) {
   return {
     id: row.id,
     mine: row.user_id === userId,
+    createdAt: row.created_at,
+    ...(row.user_id === userId ? { sourceId: row.source_id } : {}),
     package: JSON.parse(row.package_json),
   };
 }
@@ -283,6 +287,11 @@ export function withdrawShare(userId, id) {
     throw error;
   }
   return { ok: true };
+}
+// Resolve the published snapshot on the server, never the browser's preview copy.
+export function importShare(userId, shareId) {
+  if (typeof shareId !== 'string' || !shareId.trim()) throw new Error('请选择分享内容');
+  return importPackage(userId, shareDetail(userId, shareId).package);
 }
 export function importPackage(userId, input) {
   const pkg = validatePackage(input);

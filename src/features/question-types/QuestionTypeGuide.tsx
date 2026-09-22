@@ -146,7 +146,7 @@ export function QuestionTypeGuide({ labels, locale, customTips, customTipEntries
         </div>
       ) : null}
 
-      <LearningCatalog title={labels[`questionTypeSection_${selectedSection}`]} items={visibleTypes} locale={locale} searchText={(item) => `${item.title} ${item.subtitle} ${item.tip}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} reading={item.subtitle} description={item.tip} status={item.status} locale={locale} onOpen={() => onOpen(item.id)}/>}/>
+      <LearningCatalog columnLabels={locale === "ja" ? ["問題形式", "学習方法", "状態"] : locale === "en" ? ["Question type", "Study method", "Status"] : ["题型", "学习方法", "状态"]} title={labels[`questionTypeSection_${selectedSection}`]} items={visibleTypes} locale={locale} searchText={(item) => `${item.title} ${item.subtitle} ${item.tip}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} reading={item.subtitle} description={item.tip} status={item.status} locale={locale} onOpen={() => onOpen(item.id)}/>}/>
 
     </section>
   );

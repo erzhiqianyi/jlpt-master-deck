@@ -1,23 +1,53 @@
 import { ChevronLeft, ChevronRight, Eye, Minus, Search, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Children, createContext, isValidElement, useContext, type ReactNode } from 'react';
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
 
-/** Shared list surface for browsing learning content on desktop and mobile. */
-export function LearningList({ children }: { children: ReactNode }) {
-  return <div className="learning-list unified-list" role="list">{children}</div>;
+const StandardListContext = createContext(false);
+
+/** Every catalog retains its columns even when there are no matching rows. */
+export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, hasActions }: {
+  children?: ReactNode; columns?: ReactNode; locale?: string; columnLabels?: [string, string | null, string | null]; hasActions?: boolean;
+}) {
+  const rows = Children.toArray(children);
+  const rowLocale = rows.find((row) => isValidElement<{ locale?: string }>(row) && row.props.locale);
+  const language = isValidElement<{ locale?: string }>(rowLocale) ? rowLocale.props.locale ?? locale : locale;
+  const labels = columnLabels ?? (language === 'ja' ? ['名前', '情報', '状態'] : language === 'en' ? ['Name', 'Details', 'Status'] : ['名称', '信息', '状态']);
+  const actions = hasActions ?? rows.some((row) => isValidElement<{ actionIcon?: ReactNode; trailing?: ReactNode; inlineActions?: boolean; secondary?: ReactNode }>(row) && (row.props.actionIcon || row.props.trailing || (row.props.inlineActions && row.props.secondary)));
+  return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}`}>
+    {columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{labels.map((label, index) => label === null ? null : <span key={index}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>}
+    <StandardListContext.Provider value={!columns}>
+      <div className="learning-list unified-list" role="list">{rows.length ? rows : <div role="listitem" className="list-empty-row"><span role="status">{language === 'ja' ? 'データがありません' : language === 'en' ? 'No data' : '没有数据'}</span></div>}</div>
+    </StandardListContext.Provider>
+  </div></div>;
 }
 
-export function LearningListRow({ title, reading, description, status, statusKind, locale, onOpen, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
-  title: ReactNode; reading?: ReactNode; description?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
+export function LearningListRow({ title, reading, description, metadata, status, statusKind, locale, onOpen, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
+  title: ReactNode; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
   locale?: string; onOpen: () => void; actionLabel?: string; actionIcon?: ReactNode; trailing?: ReactNode; secondary?: ReactNode; expanded?: boolean; compact?: boolean; inlineActions?: boolean;
 }) {
+  const standard = useContext(StandardListContext);
   const action = actionLabel ?? (expanded ? (locale === 'ja' ? '閉じる' : locale === 'en' ? 'Collapse details' : '收起详情') : (locale === 'ja' ? '詳細を見る' : locale === 'en' ? 'View details' : '查看详情'));
-  return <div className={`list-item-row${compact ? ' is-compact' : ''}${inlineActions ? ' has-inline-actions' : ''}${trailing ? ' has-trailing-control' : ''}`} role="listitem">
-    <button type="button" className={`list-item-open${status ? '' : ' without-status'}${description ? '' : ' without-description'}`} aria-expanded={expanded} onClick={onOpen}>
+  if (standard) return <div className="standard-list-row" role="listitem">
+    <button type="button" className="standard-list-open standard-list-fields" aria-expanded={expanded} onClick={onOpen}>
       <span className="list-item-name"><strong>{title}</strong>{reading ? <span className="list-item-reading">{reading}</span> : null}</span>
+      <span className="standard-list-description">{description || '—'}</span>
+      <span className="standard-list-status">{status || '—'}</span>
+      <span className="sr-only">{action}</span>
+    </button>
+    <div className="standard-list-actions">
+      {actionIcon ? <button type="button" aria-label={action} title={action} onClick={onOpen}>{actionIcon}</button> : null}
+      {trailing}{inlineActions ? secondary : null}
+    </div>
+    {secondary && !inlineActions ? <div className="standard-list-detail">{secondary}</div> : null}
+  </div>;
+  return <div className={`list-item-row${compact ? ' is-compact' : ''}${inlineActions ? ' has-inline-actions' : ''}${trailing ? ' has-trailing-control' : ''}`} role="listitem">
+    <button type="button" className={`list-item-open${status ? '' : ' without-status'}${description ? '' : ' without-description'}${metadata ? ' has-metadata' : ''}`} aria-expanded={expanded} onClick={onOpen}>
+      <span className="list-item-name"><strong>{title}</strong>{reading ? <span className="list-item-reading">{reading}</span> : null}{metadata && description ? <span className="list-item-description">{description}</span> : null}</span>
+      {metadata ? <span className="list-item-metadata">{metadata}</span> : <>
       <span className="list-item-description">{description}</span>
       <span className="list-item-status">{status ? <span>{statusKind ? <LearningStatusIcon kind={statusKind} label={String(status)}/> : status}</span> : null}</span>
       <span className="list-item-action" title={action}><span className="sr-only">{action}</span>{actionIcon ?? (expanded ? <Minus size={20} aria-hidden="true"/> : <Eye size={20} aria-hidden="true"/>)}</span>
+      </>}
     </button>
     {trailing ? <div className="list-item-trailing">{trailing}</div> : null}
     {secondary ? <div className="list-item-secondary">{secondary}</div> : null}

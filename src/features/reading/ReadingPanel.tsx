@@ -1,13 +1,28 @@
+import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
-import { LearningList, LearningListRow } from '../../components/LearningList';
-import { useMobileList } from '../../hooks/useMobileList';
+import { LearningListRow } from '../../components/LearningList';
 import { useConfirmation } from '../../components/confirmation';
 import { ChevronLeft, ChevronRight, Clipboard, Lightbulb, Plus, ScrollText, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { Locale, ReadingQuestion, ReadingQuestionInput } from '../../types';
 
-const READING_LIBRARY_PAGE_SIZE = 8;
+// Keep original question IDs and answers; only share the passage presentation.
+export function groupReadingQuestions(questions: ReadingQuestion[]) {
+  const groups = new Map<string, ReadingQuestion[]>();
+  for (const item of questions) {
+    const key = item.passage.replace(/\r\n?/g, '\n').trim() || item.id;
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  return [...groups.values()];
+}
+
+function questionCountLabel(count: number, locale: Locale) {
+  return locale === 'ja' ? `全${count}問` : locale === 'en' ? `${count} questions` : `共 ${count} 题`;
+}
 
 type ReadingPanelProps = {
   activeQuestionId?: string;
@@ -35,34 +50,31 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
- const [showAiForm, setShowAiForm] = useState(false);
+  const [showAiForm, setShowAiForm] = useState(false);
   useAuthoringNavigation(mode === 'library' && !activeQuestionId ? (showForm ? '添加阅读材料' : showAiForm ? labels.aiGenerateFromLink : null) : null, () => { setShowForm(false); setShowAiForm(false); });
   // The library is always visible; the action bar above it replaces the old entry hub.
   const showLibrary = !showForm && !showAiForm;
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
-  const [pageIndex, setPageIndex] = useState(0);
   const [activeTag, setActiveTag] = useState('全部');
   const availableTags = [...new Set(questions.flatMap((item) => item.tags ?? []))].sort();
-  const filteredQuestions = activeTag === '全部' ? questions : questions.filter((item) => (item.tags ?? []).includes(activeTag));
-  const mobileList = useMobileList(filteredQuestions.length, 'library');
-  const pageCount = Math.max(1, Math.ceil(filteredQuestions.length / READING_LIBRARY_PAGE_SIZE));
-  const currentPage = Math.min(pageIndex, pageCount - 1);
-  const pageStart = currentPage * READING_LIBRARY_PAGE_SIZE;
-  const pageItems = filteredQuestions.slice(mobileList.mobile ? 0 : pageStart, mobileList.mobile ? mobileList.visible : pageStart + READING_LIBRARY_PAGE_SIZE);
-  const pageEnd = pageStart + pageItems.length;
-
-  useEffect(() => {
-    setPageIndex((index) => Math.min(index, pageCount - 1));
-  }, [pageCount]);
+  const groups = groupReadingQuestions(questions);
+  const filteredGroups = activeTag === '全部' ? groups : groups.filter((group) => group.some((item) => (item.tags ?? []).includes(activeTag)));
 
   if (mode === 'practice') {
     return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} onOpenLibrary={onOpenLibrary} />;
   }
 
   if (activeQuestionId) {
-    const item = questions.find((question) => question.id === activeQuestionId);
-    return <div className="space-y-4"><button type="button" onClick={onBackToLibrary} className="cute-focus rounded-full border px-4 py-2 text-sm">{labels.backToEntryList}</button>{item ? <ReadingQuestionItem key={item.id} item={item} labels={labels} locale={locale} onDelete={onDelete} /> : <p>{labels.noSearchResults}</p>}</div>;
+    const group = groups.find((items) => items.some((item) => item.id === activeQuestionId));
+    return group ? <ReadingPassage key={group[0].passage} items={group} labels={labels} locale={locale} onDelete={async (id) => {
+      await onDelete(id);
+      if (id === activeQuestionId) {
+        const remaining = group.find((item) => item.id !== id);
+        if (remaining) window.location.replace(`#/reading/words/${encodeURIComponent(remaining.id)}`);
+        else onBackToLibrary?.();
+      }
+    }} /> : <p>{labels.noSearchResults}</p>;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -98,6 +110,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
       '要求：读取文章内容，生成 JLPT N1 风格阅读题。每题包含标题、文章、题目、4 个选项、正确答案、解析，并尽量标注定位句和排除理由。',
+      '同一篇文章的各题请使用完全相同的文章全文，应用会合并展示为一篇多题。',
       '保存：生成后写入本应用的阅读题库，完成后告诉我生成了哪些题。',
     ].join('\n');
     await navigator.clipboard.writeText(prompt);
@@ -197,9 +210,21 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
 
       {showLibrary ? <>
         <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
-          {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); setPageIndex(0); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
+          {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
         </div>
-        <LearningCatalog title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={pageItems} locale={locale} searchText={(item) => `${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={`${(item.tags ?? []).map((tag) => `#${tag}`).join(' ')} ${item.question}`} locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(item.id)}`; }}/>}/>
+        <LearningCatalog columns={<LearningListColumns locale={locale}
+          title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
+          collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale} searchText={(group) => group.map((item) => `${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
+          const addedAt = group.map((item) => item.createdAt).filter((value) => value && Number.isFinite(Date.parse(value)))
+            .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
+          const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];
+          return <LearningListRow key={group[0].id} title={group[0].title}
+            reading={questionCountLabel(group.length, locale)}
+            metadata={<LearningListMetadata locale={locale} addedAt={addedAt}
+              collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}
+              collection={tags.length ? tags.join(' · ') : (locale === 'ja' ? 'タグなし' : locale === 'en' ? 'No tags' : '未分类')}/>}
+            locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; }}/>
+        }}/>
       </> : null}
     </section>
   );
@@ -207,11 +232,12 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
 
 function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { labels: Record<string, string>; locale: Locale; questions: ReadingQuestion[]; onOpenLibrary?: () => void }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeQuestion = questions[activeIndex % Math.max(questions.length, 1)];
+  const groups = groupReadingQuestions(questions);
+  const activeQuestion = groups[activeIndex % Math.max(groups.length, 1)];
 
   useEffect(() => {
-    setActiveIndex((index) => Math.min(index, Math.max(questions.length - 1, 0)));
-  }, [questions.length]);
+    setActiveIndex((index) => Math.min(index, Math.max(groups.length - 1, 0)));
+  }, [groups.length]);
 
   if (!questions.length || !activeQuestion) {
     return (
@@ -235,50 +261,33 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
           <button type="button" aria-label={labels.prev} title={labels.prev} disabled={activeIndex === 0} onClick={() => setActiveIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
             <ChevronLeft size={18} />
           </button>
-          <span className="min-w-16 rounded-full bg-[#fff0f5] px-3 py-1 text-center text-sm font-bold text-[#a84269]">{activeIndex + 1} / {questions.length}</span>
-          <button type="button" aria-label={labels.next} title={labels.next} disabled={activeIndex >= questions.length - 1} onClick={() => setActiveIndex((index) => Math.min(questions.length - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
+          <span className="min-w-16 rounded-full bg-[#fff0f5] px-3 py-1 text-center text-sm font-bold text-[#a84269]">{activeIndex + 1} / {groups.length}</span>
+          <button type="button" aria-label={labels.next} title={labels.next} disabled={activeIndex >= groups.length - 1} onClick={() => setActiveIndex((index) => Math.min(groups.length - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
             <ChevronRight size={18} />
           </button>
         </div>
       </div>
-      <ReadingPracticeQuestion item={activeQuestion} labels={labels} locale={locale} />
+      <ReadingPassage key={activeQuestion[0].passage} items={activeQuestion} labels={labels} locale={locale} />
     </section>
   );
 }
 
-function ReadingPracticeQuestion({ item, labels, locale }: { item: ReadingQuestion; labels: Record<string, string>; locale: Locale }) {
-  const [selected, setSelected] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [answerNotice, setAnswerNotice] = useState('');
-
-  useEffect(() => {
-    setSelected(null);
-    setRevealed(false);
-    setAnswerNotice('');
-  }, [item.id]);
-
-  return (
-    <div className="p-4 md:p-6">
-      <div className="min-w-0">
-        <h2 className="break-words text-2xl font-black text-[#3d3036]">{item.title}</h2>
-        <p className="mt-1 text-xs text-[#8f6f7b]">{formatDateTime(item.createdAt, locale)}</p>
-      </div>
-      <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-[#d8e0d7] bg-white p-5 text-lg leading-9 text-[#3d3036] shadow-sm md:p-6 md:text-xl">{item.passage}</div>
-      <p className="mt-7 whitespace-pre-wrap text-xl font-black leading-9 text-[#27312c] md:text-2xl">{item.question}</p>
-      <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#f0d4dd] pt-4">
-        <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.readingSelectAnswer) : setRevealed(true)} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white">
-          {labels.readingShowAnswer}
-        </button>
-        {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
-        {revealed && selected !== null ? <p role="status" className={`text-sm font-bold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
-      </div>
-      {revealed ? <ReadingExplanation item={item} /> : null}
+function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQuestion[]; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+  const item = items[0];
+  return <article className="min-w-0 rounded-md border border-[#d8e0d7] bg-white p-4 md:p-6">
+    <h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2>
+    <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
+    <details className="mt-4 rounded-md border border-[#e1e7df] bg-[#fbfdf9] p-4 md:p-5" open>
+      <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
+      <p lang="ja" className="mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]">{item.passage}</p>
+    </details>
+    <div className="mt-6 divide-y divide-[#e1e7df]">
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
-  );
+  </article>;
 }
 
-function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: ReadingQuestion; labels: Record<string, string>; locale: Locale; onDelete: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item: ReadingQuestion; number: number; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
@@ -286,6 +295,7 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
   const [deleting, setDeleting] = useState(false);
 
   async function remove() {
+    if (!onDelete) return;
     if (!(await confirm({ title: labels.readingDelete, description: labels.readingDeleteConfirm, confirmLabel: labels.readingDelete, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeleting(true);
     try {
@@ -296,20 +306,11 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
   }
 
   return (
-    <article className="min-w-0 rounded-md border border-[#d8e0d7] bg-white p-4 md:p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="break-words text-lg font-semibold text-[#27312c]">{item.title}</h3>
-          <p className="mt-1 text-xs text-[#778079]">{formatDateTime(item.createdAt, locale)}</p>
-        </div>
-        <div className="flex shrink-0 justify-end gap-1">
-          <QuestionAction label={`${labels.readingDelete}: ${item.title}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction>
-        </div>
+    <section className="min-w-0 py-6 first:pt-0" aria-label={locale === 'en' ? `Question ${number}` : `問 ${number}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-bold text-[#31564c]">{locale === 'en' ? `Question ${number}` : `問 ${number}`}</h3>
+        {onDelete ? <QuestionAction label={`${labels.readingDelete}: ${item.question}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction> : null}
       </div>
-      <details className="mt-4 rounded-md border border-[#e1e7df] bg-[#fbfdf9] p-3" open>
-        <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">展开/收起文章全文</summary>
-        <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-[#53605a]">{item.passage}</p>
-      </details>
       {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#edf5e9] px-2.5 py-1 text-xs font-semibold text-[#31564c]">#{tag}</span>)}</div> : null}
       <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
       <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
@@ -319,7 +320,7 @@ function ReadingQuestionItem({ item, labels, locale, onDelete }: { item: Reading
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
       {revealed ? <ReadingExplanation item={item} /> : null}
-    </article>
+    </section>
   );
 }
 
@@ -334,13 +335,13 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
 
 function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuestion; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+    <div className="mt-4 grid grid-cols-1 gap-3">
       {item.choices.map((choice, index) => {
         const resultClass = revealed
           ? index === item.answerIndex ? 'border-[#65a37c] bg-[#f0fff5]' : selected === index ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white'
           : selected === index ? 'border-[#d95f8a] !bg-[#fff0f5]' : 'border-[#f0d4dd] !bg-white hover:!bg-[#fff7fb]';
         return (
-          <button key={index} type="button" onClick={() => onSelect(index)} className={`cute-choice flex min-h-16 items-center gap-3 border px-4 py-4 text-left text-lg font-bold leading-7 ${resultClass}`}>
+          <button key={index} type="button" aria-pressed={selected === index} onClick={() => onSelect(index)} className={`cute-choice flex w-full min-h-16 items-start gap-3 border px-4 py-4 text-left text-base font-medium leading-7 ${resultClass}`}>
             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
             <span className="min-w-0 break-words">{choice}</span>
           </button>
@@ -367,10 +368,3 @@ function ReadingExplanation({ item }: { item: ReadingQuestion }) {
     </section>
   );
 }
-
-function formatDateTime(value: string, locale: Locale) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(date);
-}
-import { useAuthoringNavigation } from '../../components/AuthoringNavigation';

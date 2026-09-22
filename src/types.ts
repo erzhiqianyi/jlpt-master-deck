@@ -29,6 +29,7 @@ export type ProgressEntry = {
   ease?: number;
   intervalDays?: number;
   nextReviewAt?: string;
+  lastPracticeSessionId?: string;
 };
 
 export type ProgressState = Record<string, ProgressEntry>;

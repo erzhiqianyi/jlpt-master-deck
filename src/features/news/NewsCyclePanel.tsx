@@ -1,3 +1,4 @@
+import { formatListDate } from '../../components/LearningListMetadata';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ChevronRight, ExternalLink, Headphones, LoaderCircle, Newspaper, PlayCircle, ShieldCheck, Volume2 } from 'lucide-react';
@@ -65,39 +66,14 @@ function NewsDailyIndex({ locale, token, cycles, onOpen }: { locale: Locale; tok
   const t = copy[locale];
   const [days, setDays] = useState<Array<{ cycleId: string; day: NewsCycleDay }> | null>(null);
   const [failed, setFailed] = useState(false);
-  const [page, setPage] = useState(0);
   const [retry, setRetry] = useState(0);
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
-  const [visibleCount, setVisibleCount] = useState(6);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 767px)');
-    const update = () => setMobile(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!mobile || !days || visibleCount >= days.length || !target) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        observer.disconnect();
-        setVisibleCount((count) => Math.min(count + 6, days.length));
-      }
-    }, { rootMargin: '0px 0px 80px 0px' });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [mobile, days, visibleCount]);
-
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
     setDays(null);
-    setVisibleCount(6);
-    setPage(0);
     Promise.all(cycles.map(async (cycle) => {
       const payload = await apiRequest<NewsCycleData>(`/api/local-news-cycle?id=${encodeURIComponent(cycle.id)}`, { token });
-      return payload.days.map((day) => ({ cycleId: cycle.id, day }));
+      return payload.days.map((day) => ({ cycleId: cycle.id, day: { ...day, questions: day.questions.map((question) => ({ ...question, formalQuestionId: question.formalQuestionId ?? cycle.formalPracticeQuestionIds.find((id) => id === `${question.id}-formal`) })) } }));
     })).then((rows) => {
       if (!cancelled) setDays(rows.flat().sort((a, b) => b.day.date.localeCompare(a.day.date)));
     }).catch(() => { if (!cancelled) setFailed(true); });
@@ -110,13 +86,42 @@ function NewsDailyIndex({ locale, token, cycles, onOpen }: { locale: Locale; tok
       : { title: 'News learning', intro: 'Choose a day to start practicing.', notice: 'Study drafts; answers and explanations need checking.', previous: 'Previous', next: 'Next', retry: 'Retry' };
   if (failed) return <div><p>{t.unavailable}</p><button className="gentle-direct-link" onClick={() => setRetry((value) => value + 1)}>{text.retry}</button></div>;
   if (!days) return <p role="status">{t.loading}</p>;
-  const pageCount = Math.max(1, Math.ceil(days.length / 6));
-  return <LearningCatalog title={text.title} items={days} locale={locale} notice={text.notice} searchText={({ day }) => `${day.date} ${weekday(day.date, t)}`} renderRow={({ cycleId, day }) => <LearningListRow key={`${cycleId}:${day.date}`} title={`${formatDate(day.date, locale)} · ${weekday(day.date, t)}`} description={`${day.questionCount} ${t.total} · ${day.sourceCount} ${t.sources}`} locale={locale} onOpen={() => onOpen(cycleId, day.date)}/>}/>;
+  return <LearningCatalog columns={<NewsListColumns locale={locale}/>} title={text.title} items={days} locale={locale} notice={text.notice}
+    searchText={({ day }) => `${day.date} ${weekday(day.date, t)} ${day.questions.map((question) => `${t[question.module]} ${question.official_type} ${question.source_url}`).join(' ')}`}
+    renderRow={({ cycleId, day }) => <NewsListRow key={`${cycleId}:${day.date}`} day={day} locale={locale}
+      cycleId={cycleId} onOpen={() => onOpen(cycleId, day.date)}/>}/>;
+}
+
+function newsListLabels(locale: Locale) {
+  return locale === 'ja' ? ['日付', '問題数・分野', '出典・音声', '審査済み', '収録週']
+    : locale === 'en' ? ['Date', 'Questions / coverage', 'Sources / audio', 'Reviewed', 'Cycle']
+    : ['日期', '题数与覆盖', '来源与音频', '已审校', '所属周期'];
+}
+
+function NewsListColumns({ locale }: { locale: Locale }) {
+  const [date, ...metadata] = newsListLabels(locale);
+  return <div className="list-column-header news-column-header" aria-hidden="true"><span>{date}</span>
+    <span className="list-column-metadata">{metadata.map((label) => <span key={label}>{label}</span>)}</span>
+  </div>;
+}
+
+function NewsListRow({ day, locale, cycleId, onOpen }: { day: NewsCycleDay; locale: Locale; cycleId: string; onOpen: () => void }) {
+  const t = copy[locale];
+  const labels = newsListLabels(locale);
+  const reviewed = day.questions.filter((question) => ['approved', 'published'].includes(newsReviewStatus(question))).length;
+  const coverage = (['vocabulary', 'grammar', 'listening', 'reading'] as NewsCycleModule[])
+    .filter((module) => day.moduleCounts[module] > 0).map((module) => `${t[module]} ${day.moduleCounts[module]}`).join(' · ');
+  return <LearningListRow title={formatListDate(day.date, '—', locale, true)} reading={weekday(day.date, t)} locale={locale} onOpen={onOpen}
+    metadata={<>
+      <span><span className="sr-only">{labels[1]} </span><span>{day.questionCount} {t.total}</span><span className="news-list-secondary">{coverage || '—'}</span></span>
+      <span><span className="sr-only">{labels[2]} </span><span>{t.sources} {day.sourceCount}</span><span className="news-list-secondary">{t.audio} {day.audioCount}</span></span>
+      <span><span className="sr-only">{labels[3]} </span>{reviewed} / {day.questions.length}</span>
+      <span><span className="sr-only">{labels[4]} </span>{cycleLabel(cycleId, locale)}</span>
+    </>}/>;
 }
 
 function NewsWeekCatalog({ locale, cycles, onOpen, onPractice }: { locale: Locale; cycles: NewsCycleSummary[]; onOpen: (cycleId: string) => void; onPractice: (questionId: string) => void }) {
   const t = copy[locale];
-  if (!cycles.length) return <EmptyState icon={<Newspaper size={32} />} title={t.empty} />;
   const totalQuestions = cycles.reduce((sum, cycle) => sum + cycle.totalQuestions, 0);
   const totalAudio = cycles.reduce((sum, cycle) => sum + cycle.audioCount, 0);
   const totalFormal = cycles.reduce((sum, cycle) => sum + cycle.formalQuestionCount, 0);
@@ -131,7 +136,7 @@ function NewsWeekCatalog({ locale, cycles, onOpen, onPractice }: { locale: Local
       <SummaryMetric label={t.audio} value={`${totalAudio} ${t.playable}`} />
       <SummaryMetric label={t.formal} value={`${totalFormal} ${t.total}`} />
     </div>
-    <LearningList>{cycles.map((cycle) => <LearningListRow key={cycle.id} inlineActions title={cycleLabel(cycle.id, locale)} description={formatRange(cycle.range, locale)} status={`${cycle.totalQuestions} ${t.total}`} locale={locale} onOpen={() => onOpen(cycle.id)} secondary={<button type="button" aria-label={t.practiceWeek} title={t.practiceWeek} onClick={() => onPractice(cycle.id)}><PlayCircle size={20} aria-hidden="true"/></button>}/>)}</LearningList>
+    <LearningList locale={locale} hasActions columnLabels={locale === "ja" ? ["週", "期間", "問題数"] : locale === "en" ? ["Week", "Date range", "Questions"] : ["周期", "日期范围", "题数"]}>{cycles.map((cycle) => <LearningListRow key={cycle.id} inlineActions title={cycleLabel(cycle.id, locale)} description={formatRange(cycle.range, locale)} status={`${cycle.totalQuestions} ${t.total}`} locale={locale} onOpen={() => onOpen(cycle.id)} secondary={<button type="button" aria-label={t.practiceWeek} title={t.practiceWeek} onClick={() => onPractice(cycle.id)}><PlayCircle size={20} aria-hidden="true"/></button>}/>)}</LearningList>
   </section>;
 }
 
@@ -168,7 +173,6 @@ function NewsWeekPractice({ locale, token, data, onBack }: { locale: Locale; tok
 
 function NewsDayCatalog({ locale, cycleId, data, onOpen, onPractice, onBack }: { locale: Locale; cycleId: string; data: NewsCycleData; onOpen: (date: string) => void; onPractice: () => void; onBack: () => void }) {
   const t = copy[locale];
-  if (!data.days.length) return <EmptyState icon={<Newspaper size={32} />} title={t.empty} />;
   const total = data.summary?.total_questions ?? data.days.reduce((sum, day) => sum + day.questionCount, 0);
   return <section className="overflow-hidden rounded-2xl border border-[#dccfc0] bg-[#fffdf8] shadow-sm">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e7ddd1] bg-[#fbf7ef] px-4 py-5 md:px-6">
@@ -181,7 +185,7 @@ function NewsDayCatalog({ locale, cycleId, data, onOpen, onPractice, onBack }: {
       <SummaryMetric label={t.audio} value={`${data.summary?.direct_audio_question_count ?? data.days.reduce((sum, day) => sum + day.audioCount, 0)} ${t.audioReady}`} />
       <SummaryMetric label={t.needsReview} value={`${data.summary?.needs_audio_review_count ?? 0} ${t.reviewPending}`} />
     </div>
-    <LearningList>{data.days.map((day) => <LearningListRow key={day.date} title={`${weekday(day.date, t)} · ${formatDate(day.date, locale)}`} description={`${day.questionCount} ${t.total} · ${day.sourceCount} ${t.sources}`} locale={locale} onOpen={() => onOpen(day.date)}/>)}</LearningList>
+    <LearningList locale={locale} columns={<NewsListColumns locale={locale}/>}>{data.days.map((day) => <NewsListRow key={day.date} day={day} locale={locale} cycleId={cycleId} onOpen={() => onOpen(day.date)}/>)}</LearningList>
   </section>;
 }
 

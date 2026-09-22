@@ -142,7 +142,7 @@ function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
         <label className="topic-panel-sort"><span className="sr-only">排序</span><select aria-label="排序" value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">最近更新</option><option value="title">标题顺序</option></select></label>
       </LearningListHeader>
       {query || status !== 'all' ? <div className="topic-search-summary" role="status">找到 {filtered.length} 套练习<button type="button" onClick={() => { setQuery(''); setStatus('all'); setPage(0); }}>重置筛选</button></div> : null}
-      {filtered.length ? <LearningList>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} /> : undefined} description={entry.count ? `${entry.count} 题` : undefined} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? '练习' : '确认'} onOpen={entry.action}/>)}</LearningList> : <p className="topic-library-empty">{entries.length ? '没有找到匹配的练习，试试其他关键词或状态。' : '还没有专项练习。根据想练的内容生成草稿，确认后就可以开始。'}</p>}
+      <LearningList hasActions columnLabels={["练习", "题数", "状态"]}>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} status={entry.status === "ready" ? "可练习" : "待确认"} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} /> : undefined} description={entry.count ? `${entry.count} 题` : undefined} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? '练习' : '确认'} onOpen={entry.action}/>)}</LearningList>
       {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd < filtered.length ? null : '已经到底了'}</div> : null}
       {!mobileList.mobile && pages > 1 ? <LearningListPagination page={currentPage} pages={pages} onChange={setPage}/> : null}
     </LearningListFrame>
@@ -210,7 +210,7 @@ export function MixedEntryIndexPanel({
           <CountPill label={labels.navReading} value={counts.reading} />
         </div>
       </LearningListHeader>
-      <LearningList>{pageItems.map((entry) => <LearningListRow key={`${entry.module}-${entry.id}`} title={entry.title} description={entry.subtitle} status={<ModuleBadge module={entry.module} labels={labels}/>} locale={locale} onOpen={() => onOpenModule(entry.module)}/>)}</LearningList>
+      <LearningList locale={locale} columnLabels={locale === "ja" ? ["項目", "概要", "モジュール"] : locale === "en" ? ["Entry", "Summary", "Module"] : ["条目", "概要", "模块"]}>{pageItems.map((entry) => <LearningListRow key={`${entry.module}-${entry.id}`} title={entry.title} description={entry.subtitle} status={<ModuleBadge module={entry.module} labels={labels}/>} locale={locale} onOpen={() => onOpenModule(entry.module)}/>)}</LearningList>
       {pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={(next) => setPageIndex(next)} summary={`${entries.length ? `${pageStart + 1}-${pageEnd}` : '0'} / ${entries.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext} /> : null}
     </LearningListFrame>
   );

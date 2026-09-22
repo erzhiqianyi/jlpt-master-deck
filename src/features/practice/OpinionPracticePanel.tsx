@@ -17,7 +17,7 @@ export function OpinionPracticePanel({ topicId }: { topicId?: string }) {
   const topic = opinionPractices.find((item) => item.id === topicId);
   if (topicId && !topic) return <p role="status">没有找到这个主题，请返回意见表达列表重新选择。</p>;
   if (!topic) return (
-    <LearningCatalog title="意见表达" items={opinionPractices} searchText={(item) => `${item.title} ${item.description}`} onBack={() => { window.location.hash = '#/mixed/tips'; }} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.description} onOpen={() => { window.location.hash = `#/mixed/tips/opinion/${item.id}`; }}/>}/>
+    <LearningCatalog columnLabels={["主题", "说明", null]} title="意见表达" items={opinionPractices} searchText={(item) => `${item.title} ${item.description}`} onBack={() => { window.location.hash = '#/mixed/tips'; }} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.description} onOpen={() => { window.location.hash = `#/mixed/tips/opinion/${item.id}`; }}/>}/>
 
   );
   return (

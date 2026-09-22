@@ -3133,7 +3133,7 @@ rt {
   }
 
   .ledger-word-index tbody td:last-child button,
-  .ledger-word-index > div:last-child button {
+  .ledger-word-index > div:last-child:not(.learning-list-scroll) button {
     border-color: #dce6f8 !important;
     border-radius: 12px !important;
     background: #f4f7ff !important;
@@ -3141,11 +3141,11 @@ rt {
   }
 
   .ledger-word-index tbody td:last-child button:hover,
-  .ledger-word-index > div:last-child button:hover {
+  .ledger-word-index > div:last-child:not(.learning-list-scroll) button:hover {
     background: #eaf0ff !important;
   }
 
-  .ledger-word-index > div:last-child {
+  .ledger-word-index > div:last-child:not(.learning-list-scroll) {
     border-top: 1px solid #e8efe4 !important;
     background: rgba(250, 253, 248, 0.92);
     padding: 14px 20px !important;

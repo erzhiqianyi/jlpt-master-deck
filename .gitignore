@@ -40,3 +40,6 @@ dist/
 /.local/
 /.codex/config.toml
 .idea/
+
+# MCP App bundle (built by npm run build:mcp-app)
+dist-mcp-app/

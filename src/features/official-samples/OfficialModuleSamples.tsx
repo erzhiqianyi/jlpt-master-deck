@@ -66,7 +66,7 @@ function OfficialSampleIndex({ module, labels, locale, onOpen }: SharedProps & {
   const samples = [...localSamples, ...samplesForModule(module)];
   return (
     <section className="min-w-0">
-      <LearningCatalog title={meta.title[locale]} items={samples} locale={locale} notice={<>{meta.body[locale]} {localSamples.length ? localOfficialNotice[locale] : ''}</>} searchText={(sample) => `${sample.title[locale]} ${sample.officialName}`} renderRow={(sample) => <LearningListRow key={sample.id} title={sample.title[locale]} reading={sample.officialName} description={labels.sampleEstimatedMinutes.replace('{minutes}', String(sample.estimatedMinutes))} locale={locale} onOpen={() => onOpen(sample.id)}/>}/>
+      <LearningCatalog columnLabels={locale === "ja" ? ["サンプル", "目安時間", null] : locale === "en" ? ["Sample", "Estimated time", null] : ["样题", "预计用时", null]} title={meta.title[locale]} items={samples} locale={locale} notice={<>{meta.body[locale]} {localSamples.length ? localOfficialNotice[locale] : ''}</>} searchText={(sample) => `${sample.title[locale]} ${sample.officialName}`} renderRow={(sample) => <LearningListRow key={sample.id} title={sample.title[locale]} reading={sample.officialName} description={labels.sampleEstimatedMinutes.replace('{minutes}', String(sample.estimatedMinutes))} locale={locale} onOpen={() => onOpen(sample.id)}/>}/>
 
       <OfficialSourceFooter labels={labels} />
     </section>

@@ -7,8 +7,8 @@ import { LearningStatusIcon } from '../../components/LearningStatusIcon';
 import { localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { AppView, DailyPracticeSummary, DraftSummary, Locale, StudyPlanDocument, StudyPlanMaterial, StudyPlanTask, StudyPlanTaskStatus } from '../../types';
 
-export function HomeDashboard({ token, cloud, username, locale, hasMemoryReview, plan, todayPractices, latestDraft, onOpenDraft, onNavigate, onStartDailyPractice, onCreateDailyPractice }: {
-  token: string; cloud: boolean; username: string;
+export function HomeDashboard({ token, username, locale, hasMemoryReview, plan, todayPractices, latestDraft, onOpenDraft, onNavigate, onStartDailyPractice, onCreateDailyPractice }: {
+  token: string; username: string;
   labels: Record<string, string>; locale: Locale;
   hasMemoryReview: boolean; plan: StudyPlanDocument; todayPractices: DailyPracticeSummary[];
   latestDraft?: DraftSummary; onOpenDraft: (id: string) => void;
@@ -74,7 +74,7 @@ export function HomeDashboard({ token, cloud, username, locale, hasMemoryReview,
           </div>
         </section>
         <AiTip locale={locale} />
-        <HomeDiscovery token={token} cloud={cloud} />
+        <HomeDiscovery token={token} />
       </div>
     </main>
   );

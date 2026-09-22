@@ -1,9 +1,10 @@
+import { listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
 'use client';
 
 import { LoginLanding } from './features/auth/LoginLanding';
 import { AuthoringNavigation, type AuthoringLocation } from './components/AuthoringNavigation';
 
-import { configureFirebase, googleIdToken, firebaseLogout, firebaseUser } from './lib/firebase';
+import { configureFirebase, googleIdToken, firebaseLogout } from './lib/firebase';
 
 import { isTopicDraft, topicDraftForPractice } from './domain/practicePurpose';
 import { GlobalSearch } from './features/search/GlobalSearch';
@@ -131,7 +132,6 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
   const [authNotice, setAuthNotice] = useState('');
-  const [cloudMarket, setCloudMarket] = useState(false);
   const [authMode, setAuthMode] = useState<'local' | 'firebase' | null>(null);
   const [firebaseLinked, setFirebaseLinked] = useState(false);
   useEffect(() => {
@@ -144,8 +144,8 @@ export default function App() {
   }, [authToken, authMode]);
 
   useEffect(() => {
-    apiRequest<{ mode: 'local' | 'firebase'; market: 'local' | 'firestore'; firebase: import('firebase/app').FirebaseOptions | null }>('/api/auth/config')
-      .then((config) => { if (config.firebase) configureFirebase(config.firebase); setAuthMode(config.mode); setCloudMarket(config.market === 'firestore'); })
+    apiRequest<{ mode: 'local' | 'firebase'; firebase: import('firebase/app').FirebaseOptions | null }>('/api/auth/config')
+      .then((config) => { if (config.firebase) configureFirebase(config.firebase); setAuthMode(config.mode); })
       .catch(() => setAuthError('无法读取登录配置，请刷新页面重试'));
   }, []);
   async function handleGoogleLogin(linkExisting = false) {
@@ -526,15 +526,7 @@ export default function App() {
   );
   async function shareLearningContent(kind: 'practice' | 'wordbook', sourceId: string, description: string) {
     const body = { kind, sourceId, description };
-    if (cloudMarket) {
-      const { publishCloudShare } = await import('./lib/cloudMarket');
-      const identity = await apiRequest<{ uid: string | null }>('/api/auth/firebase/status', { token: authToken });
-      if (identity.uid !== (await firebaseUser()).uid) throw new Error('请先使用当前账号的 Google 登录');
-      const result = await apiRequest<{ package: { kind: string; title: string; description: string; questions?: unknown[]; items?: unknown[] } }>('/api/market/preview', { token: authToken, method: 'POST', body });
-      await publishCloudShare(result.package);
-    } else {
-      await apiRequest('/api/market', { token: authToken, method: 'POST', body });
-    }
+    await apiRequest('/api/market', { token: authToken, method: 'POST', body });
   }
   const topicPracticeEntries = useMemo(() => {
     if (activeView !== 'mixed' || studyPage !== 'tips' || route.itemId !== 'topics') {
@@ -556,7 +548,7 @@ export default function App() {
         },
       };
     });
-  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken, cloudMarket]);
+  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken]);
   const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : ''}`;
 
   useEffect(() => {
@@ -1251,6 +1243,25 @@ export default function App() {
     }
   }
 
+  const listeningProgressRef = useRef(progress);
+  listeningProgressRef.current = progress;
+  async function saveListeningPractice(item: ListeningQuestion, sessionId: string) {
+    if (!authToken) throw new Error('请先登录');
+    const save = pendingPracticeSave.current.catch(() => undefined).then(async () => {
+      const key = listeningPracticeKey(item);
+      const previous = listeningProgressRef.current[key];
+      const entry = recordListeningPractice(previous, sessionId, new Date().toISOString());
+      if (entry === previous) return;
+      await apiRequest<StudyState>('/api/study-state/practice', {
+        method: 'PUT', token: authToken, timeoutMs: 15000, body: { progress: { [key]: entry } },
+      });
+      listeningProgressRef.current = { ...listeningProgressRef.current, [key]: entry };
+      setProgress((current) => ({ ...current, [key]: entry }));
+    });
+    pendingPracticeSave.current = save;
+    await save;
+  }
+
   async function createListeningQuestion(input: ListeningQuestionInput) {
     if (!authToken) return;
     const response = await apiRequest<{ question: ListeningQuestion }>('/api/listening-questions', {
@@ -1451,7 +1462,7 @@ export default function App() {
     if (activeView === 'mixed') return { ...attempt, title: activePracticeTitle };
     return attempt;
   }
-  const mobileHeaderTitle = activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
+  const mobileHeaderTitle = authoringLocation?.label || detailTitle || (activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
     ? activePracticeTitle
     : activeView === 'plan' && route.itemId
       ? ({ daily: locale === 'ja' ? '毎日の学習' : locale === 'en' ? 'Daily learning' : '每天学什么', overview: locale === 'ja' ? '試験までの予定' : locale === 'en' ? 'Exam preparation' : '备考安排', adjust: locale === 'ja' ? '計画を調整' : locale === 'en' ? 'Adjust plan' : '调整计划', textbooks: locale === 'ja' ? '教材の学習予定' : locale === 'en' ? 'Textbook plan' : '教材计划' }[route.itemId] ?? labels.planTitle)
@@ -1462,7 +1473,7 @@ export default function App() {
       draft: draftDetailOpen,
       attempt: attemptDetailOpen,
       question: questionDetailOpen,
-    });
+    }));
 
   const pageKind = dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
     ? 'detail'
@@ -1485,6 +1496,7 @@ export default function App() {
         backLabel={mobileHeaderBackLabel}
         showBack={showMobileBackHeader}
         onBack={() => {
+          if (authoringLocation) { authoringLocation.close(); return; }
           if (dataManagementBackAction) {
             dataManagementBackAction();
             return;
@@ -1579,7 +1591,7 @@ export default function App() {
           </div> : null}
           {!pageLoading && activeView === 'home' ? (
             <HomeDashboard
-              token={authToken} cloud={cloudMarket}
+              token={authToken}
               username={user.username}
               labels={labels}
               locale={locale}
@@ -1606,7 +1618,7 @@ export default function App() {
             <section className={`mx-auto w-full min-w-0 flex-1 ${['mixed', 'history', 'insights', 'plan'].includes(activeView) && !route.itemId ? 'mobile-entry-shell' : ''} ${hasStudyControls ? 'max-w-6xl px-0 py-0 md:px-8 md:py-5 lg:px-10' : 'max-w-7xl px-4 py-4 md:px-8 md:py-5 lg:px-10'}`}>
           <div className={hasStudyControls || activeView === 'listening' ? 'min-w-0 space-y-5' : 'min-w-0'}>
             {activeView === 'settings' && authMode === 'firebase' && !firebaseLinked && (!route.itemId || route.itemId === 'account') ? <section className="mb-5 rounded-xl border p-4"><h2>Google 登录</h2><p className="my-2 text-sm">绑定当前账号，今后使用 Google 登录即可保留这里的学习记录。</p>{!firebaseLinked && <button type="button" className="cute-button-secondary px-4 py-2" disabled={authLoading} onClick={() => void handleGoogleLogin(true)}>绑定当前账号到 Google</button>}{authError && <p role="alert">{authError}</p>}{authNotice && <p role="status">{authNotice}</p>}</section> : null}
-            {activeView === 'market' ? <Suspense fallback={<p role="status">正在加载分享…</p>}><MarketPanel onAdded={refreshAddedShare} initialShareId={route.itemId} token={authToken} cloud={cloudMarket} labels={labels} settings={settings} locale={locale} /></Suspense> : null}
+            {activeView === 'market' ? <Suspense fallback={<p role="status">正在加载分享…</p>}><MarketPanel onAdded={refreshAddedShare} initialShareId={route.itemId} token={authToken} labels={labels} settings={settings} locale={locale} /></Suspense> : null}
             {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('captures')} /> : null}
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
@@ -1764,6 +1776,8 @@ export default function App() {
                 locale={locale}
                 token={authToken}
                 questions={listeningQuestions}
+                progress={progress}
+                onRecordPractice={saveListeningPractice}
                 onCreate={createListeningQuestion}
                 onDelete={removeListeningQuestion}
                 onOpenLibrary={() => navigateTo('listening', 'words')}
@@ -1779,6 +1793,8 @@ export default function App() {
                 locale={locale}
                 token={authToken}
                 questions={listeningQuestions}
+                progress={progress}
+                onRecordPractice={saveListeningPractice}
                 onCreate={createListeningQuestion}
                 onDelete={removeListeningQuestion}
                 onPractice={() => navigateTo('listening', 'questions')}
@@ -2415,6 +2431,16 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     if (route.itemId === 'topics') return '专项练习';
     if (route.itemId === 'dialogue') return '对话练习';
     if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return '意见表达';
+  }
+  if (activeView === 'reading' || activeView === 'listening') {
+    if (route.page === 'words') {
+      if (route.itemId) return locale === 'ja' ? '教材の詳細' : locale === 'en' ? 'Material details' : '材料详情';
+      return activeView === 'reading'
+        ? (locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库')
+        : (locale === 'ja' ? '聴解ライブラリ' : locale === 'en' ? 'Listening library' : '听力题库');
+    }
+    if (route.page === 'questions') return activeView === 'reading' ? labels.readingPracticeTitle : labels.listeningPracticeTitle;
+    return `${moduleLabelFor(activeView, labels)} · ${studyPageLabelFor(activeView, route.page, labels)}`;
   }
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed'].includes(activeView)) {
     return studyPageLabelFor(activeView, route.page, labels);

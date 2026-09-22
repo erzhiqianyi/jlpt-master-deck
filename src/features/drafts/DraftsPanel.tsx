@@ -335,7 +335,7 @@ export function DraftsPanel({
           )}
         </article>
       ) : !manageList ? (
-        <LearningCatalog title="练习草稿" items={orderedDrafts} tools={!embedded ? <button type="button" onClick={() => setManageList(true)}>管理</button> : undefined} searchText={(draft) => `${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
+        <LearningCatalog columnLabels={["草稿", "更新时间", "状态"]} title="练习草稿" items={orderedDrafts} tools={!embedded ? <button type="button" onClick={() => setManageList(true)}>管理</button> : undefined} searchText={(draft) => `${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
 
       ) : (
         <section className="min-w-0 space-y-4">
@@ -365,16 +365,13 @@ export function DraftsPanel({
                 </label>
                 <span className="text-sm font-semibold text-[#68716b]">{orderedDrafts.length} {labels.draftItemsUnit}</span>
               </div>
-              <LearningList>{orderedDrafts.map((draft) => <LearningListRow key={draft.id} inlineActions title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)} secondary={<div className="learning-list-manage-actions">
+              <LearningList hasActions columnLabels={["草稿", "更新时间", "状态"]}>{orderedDrafts.map((draft) => <LearningListRow key={draft.id} inlineActions title={draft.title} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)} secondary={<div className="learning-list-manage-actions">
                 <label><input type="checkbox" checked={selectedDraftIdSet.has(draft.id)} onChange={() => toggleDraft(draft.id)} aria-label={`选择: ${draft.title}`}/></label>
                 {onDeleteDraft ? <button type="button" aria-label={deletingDraftId === draft.id ? labels.processing : labels.deleteDraft} title={labels.deleteDraft} onClick={() => deleteDraft(draft.id)} disabled={deletingDraftId === draft.id}><Trash2 size={20} aria-hidden="true"/></button> : null}
               </div>}/>)}</LearningList>
             </section>
           ) : (
-            <div className="rounded-md bg-[#f5f7f3] p-4">
-              <h3 className="text-xl font-semibold">{labels.noDrafts}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#5f625b]">{labels.noDraftsBody}</p>
-            </div>
+            <LearningList hasActions columnLabels={["草稿", "更新时间", "状态"]}/>
           )}
         </section>
       )}

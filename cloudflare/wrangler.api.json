@@ -32,6 +32,6 @@
   ],
   "vars": {
     "PUBLIC_ORIGIN": "https://jlpt.erzhiqian.cc",
-    "FIREBASE_CONFIG": "{\"apiKey\":\"AIzaSyAzHjEqFlmugxF0rpuaWv5Cn__gDEayX9k\",\"authDomain\":\"jlpt-master-deck.firebaseapp.com\",\"projectId\":\"jlpt-master-deck\",\"storageBucket\":\"jlpt-master-deck.firebasestorage.app\",\"messagingSenderId\":\"411415107611\",\"appId\":\"1:411415107611:web:88231cb520b531a09a40be\",\"market\":\"firestore\"}"
+    "FIREBASE_CONFIG": "{\"apiKey\":\"AIzaSyAzHjEqFlmugxF0rpuaWv5Cn__gDEayX9k\",\"authDomain\":\"jlpt-master-deck.firebaseapp.com\",\"projectId\":\"jlpt-master-deck\",\"storageBucket\":\"jlpt-master-deck.firebasestorage.app\",\"messagingSenderId\":\"411415107611\",\"appId\":\"1:411415107611:web:88231cb520b531a09a40be\"}"
   }
 }

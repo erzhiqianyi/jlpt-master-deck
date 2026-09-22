@@ -4,11 +4,6 @@ import { PracticePanel, PracticeReviewPanel } from "../practice/StudyPanels";
 import type { Question, AnswerState, DisplaySettings, Locale } from "../../types";
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSearch, LearningListSelect } from "../../components/LearningList";
 import { useMobileList } from "../../hooks/useMobileList";
-import {
-  cloudShare,
-  withdrawCloudShare,
-} from "../../lib/cloudMarket";
-import { googleIdToken } from "../../lib/firebase";
 import { useEffect, useState } from "react";
 import { apiRequest } from "../../lib/api";
 
@@ -43,12 +38,11 @@ type Share = {
 };
 export function MarketPanel({
   token, initialShareId,
-  cloud = false, labels, settings, locale, onAdded,
+  labels, settings, locale, onAdded,
 }: {
   token: string;
   onAdded: () => Promise<void>;
   initialShareId?: string;
-  cloud?: boolean;
   labels: Record<string, string>;
   settings: DisplaySettings;
   locale: Locale;
@@ -57,7 +51,7 @@ export function MarketPanel({
   const [kind, setKind] = useState<SharedContent["kind"] | "all">("all");
   const [shares, setShares] = useState<Share[]>([]);
   const [preview, setPreview] = useState<SharedContent | null>(null);
-  const [connected, setConnected] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -67,19 +61,10 @@ export function MarketPanel({
   const request = <T,>(path: string, method = "GET", body?: unknown) =>
     apiRequest<T>(path, { token, method, body });
   async function refresh() {
-    setShares(await loadDiscoveryShares(token, cloud));
-    setConnected(cloud);
+    setShares(await loadDiscoveryShares(token));
   }
   async function getContent(id: string): Promise<SharedContent> {
-    return cloud
-      ? (
-          await request<{ package: SharedContent }>(
-            "/api/market/validate",
-            "POST",
-            await cloudShare(id),
-          )
-        ).package
-      : (await request<{ package: SharedContent }>(`/api/market/${id}`)).package;
+    return (await request<{ package: SharedContent }>(`/api/market/${id}`)).package;
   }
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -99,13 +84,14 @@ export function MarketPanel({
       await refresh();
       if (initialShareId) {
         const content = await getContent(initialShareId);
-        if (active) setPreview(content);
+        if (active) { setPreview(content); setPreviewId(initialShareId); }
       } else if (active) setPreview(null);
     });
     return () => { active = false; };
-  }, [token, cloud, initialShareId]);
+  }, [token, initialShareId]);
   function clearPreview() {
     setPreview(null);
+    setPreviewId(null);
 
   }
   const filtered = shares.filter((s) => (kind === "all" || s.kind === kind) && (tab !== "mine" || s.mine) &&
@@ -119,11 +105,6 @@ export function MarketPanel({
       <header className="discovery-heading"><h1>发现</h1></header>
       {error && <p role="alert" className="market-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
-      {cloud && !connected && error && <button className="cute-button-secondary px-4 py-2" disabled={busy} onClick={() => void run(async () => {
-        const idToken = await googleIdToken();
-        await request("/api/auth/firebase/link", "POST", { idToken });
-        await refresh();
-      })}>使用 Google 连接</button>}
       {!preview && <LearningListFrame className="learning-catalog topic-library" label="分享列表">
         <LearningListHeader title="分享" count={`${filtered.length} ${kind === "all" ? "项" : kind === "practice" ? "套" : "本"}`} search={<LearningListSearch value={query} onChange={(value) => { setQuery(value); setPage(0); }} label="搜索分享" placeholder="搜索分享"/>}>
           <LearningListSelect label="分享范围" hideLabel value={tab} onChange={(value) => { setTab(value as "market" | "mine"); setPage(0); }}>
@@ -136,16 +117,15 @@ export function MarketPanel({
           </div>
         </LearningListHeader>
         {busy ? <p role="status" className="list-empty">加载中…</p> :
-          filtered.length ? <LearningList>{visibleShares.map((s) =>
-            <LearningListRow key={s.id} title={s.title}
+          !error && <LearningList hasActions columnLabels={["分享内容", "内容简介", "类型"]}>{visibleShares.map((s) =>
+            <LearningListRow key={s.id} title={s.title} status={s.kind === "practice" ? "练习" : "单词本"}
               description={`${s.count} ${s.kind === "practice" ? "题" : "词"}${s.description ? " · " + s.description : ""}`}
-              onOpen={() => void run(async () => { clearPreview(); setPreview(await getContent(s.id)); })}
+              onOpen={() => void run(async () => { clearPreview(); setPreview(await getContent(s.id)); setPreviewId(s.id); })}
               inlineActions secondary={s.mine && <button type="button" aria-label="撤回分享" title="撤回分享" className="cute-button-secondary px-3 py-2" disabled={busy} onClick={() => void run(async () => {
-                if (cloud) await withdrawCloudShare(s.id);
-                else await request(`/api/market/${s.id}`, "DELETE");
+                await request(`/api/market/${s.id}`, "DELETE");
                 await refresh(); setNotice("已撤回");
               })}><Undo2 size={20} aria-hidden="true" /></button>} />
-          )}</LearningList> : !error && <p className="list-empty" role="status">{query ? "没有找到相关内容" : "暂无分享"}</p>}
+          )}</LearningList>}
         {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? "已经到底了" : null}</div> : null}
         {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`}/> : null}
       </LearningListFrame>}
@@ -155,7 +135,7 @@ export function MarketPanel({
           <h2>{preview.title}</h2>
           {preview.description && <p>{preview.description}</p>}
           <button type="button" className="cute-button px-4 py-2" disabled={busy} onClick={() => void run(async () => {
-            const result = await request<{ alreadyImported?: boolean }>("/api/market/import", "POST", preview);
+            const result = await request<{ alreadyImported?: boolean }>("/api/market/import", "POST", { shareId: previewId });
             setNotice(result.alreadyImported ? "这份内容已在你的内容中" : `已添加到我的${preview.kind === "wordbook" ? "单词本" : "专项练习"}`);
             try {
               await onAdded();

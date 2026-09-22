@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03T13:41:25.498Z",
+  "generated_at": "2026-09-21T14:42:26.072Z",
   "archive_month": "2026/08",
   "data_source": "sqlite-export",
   "items": [
@@ -16,9 +16,7 @@
       "paraphrase_ja": "一定の方法や器具を使って、長さ・温度・速度などの値を調べること。",
       "meaning_zh": "一定の方法や器具を使って、長さ・温度・速度などの値を調べること。",
       "core_memory": "把某个数值“测出来、确定下来”。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "測定",
@@ -69,7 +67,8 @@
           "zh": "准确测量机器的性能。"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-認定",
@@ -84,9 +83,7 @@
       "paraphrase_ja": "一定の基準に基づいて、資格・事実・状態などを正式に認めること。",
       "meaning_zh": "一定の基準に基づいて、資格・事実・状態などを正式に認めること。",
       "core_memory": "经过判断、审查后，正式认定“它符合某个标准 / 属于某种资格”。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "認定",
@@ -109,7 +106,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-年々",
@@ -124,9 +122,7 @@
       "paraphrase_ja": "年を追うごとに。毎年少しずつ変化していく様子。",
       "meaning_zh": "年を追うごとに。毎年少しずつ変化していく様子。",
       "core_memory": "一年比一年……，强调随着年份推进而逐年变化。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "年々",
@@ -149,7 +145,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-経過",
@@ -164,9 +161,7 @@
       "paraphrase_ja": "时间“经过” + 事情“发展到某个阶段”。",
       "meaning_zh": "时间“经过” + 事情“发展到某个阶段”。",
       "core_memory": "时间“经过” + 事情“发展到某个阶段”。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "経過",
@@ -215,7 +210,8 @@
           "ja": "治療後の経過は順調だ。",
           "zh": "治疗后的恢复过程很顺利。"
         }
-      ]
+      ],
+      "tags": []
     },
     {
       "id": "n1-概観",
@@ -230,9 +226,7 @@
       "paraphrase_ja": "物事の全体を、大まかに見渡すこと。",
       "meaning_zh": "物事の全体を、大まかに見渡すこと。",
       "core_memory": "从整体上“俯瞰”一个事物，把握全貌。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "概観",
@@ -251,7 +245,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-養成",
@@ -266,9 +261,7 @@
       "paraphrase_ja": "能力・習慣・人材などを、時間をかけて育てること。",
       "meaning_zh": "能力・習慣・人材などを、時間をかけて育てること。",
       "core_memory": "有意识地、经过一段时间，把能力、习惯、人才培养出来。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "養成",
@@ -291,7 +284,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-踏んで",
@@ -445,7 +439,8 @@
           "form": "踏まない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-豊富",
@@ -460,9 +455,7 @@
       "paraphrase_ja": "数量や種類が多く、十分にあること。",
       "meaning_zh": "数量や種類が多く、十分にあること。",
       "core_memory": "数量多，而且内容充实、种类也多。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "豊富",
@@ -515,7 +508,8 @@
           "ja": "この店はメニューが豊富だ。",
           "zh": "这家店的菜单种类丰富。"
         }
-      ]
+      ],
+      "tags": []
     },
     {
       "id": "n1-服部",
@@ -548,7 +542,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-智里",
@@ -581,7 +576,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-佐野",
@@ -614,7 +610,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-智子",
@@ -647,7 +644,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-新谷",
@@ -680,7 +678,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-新谷遥",
@@ -713,7 +712,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-遥",
@@ -746,7 +746,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-辛抱",
@@ -761,9 +762,7 @@
       "paraphrase_ja": "苦しさ・つらさ・不便などを我慢して耐えること。",
       "meaning_zh": "苦しさ・つらさ・不便などを我慢して耐えること。",
       "core_memory": "忍住眼前的痛苦、不便、不满，咬牙撑过去。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "辛抱",
@@ -814,7 +813,8 @@
           "zh": "现在是需要忍耐的时候。"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "n1-目次",
@@ -829,9 +829,7 @@
       "paraphrase_ja": "本や文書の内容を、項目ごとに順番に並べたもの。",
       "meaning_zh": "本や文書の内容を、項目ごとに順番に並べたもの。",
       "core_memory": "书、报告、论文前面的“目录”。",
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "ruby_terms": [
         {
           "text": "目次",
@@ -854,7 +852,8 @@
         }
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "2026-08-28-001",
@@ -1146,7 +1145,8 @@
       "source_chat_summary": "用户给出「あの子は支払うたびに電話がかかる」并附上教材图片，要求整理成原始语法点「Vるたびに / Nのたびに」，再按语法特点扩展 JLPT 练习。",
       "review_status": "new",
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "tags": []
     },
     {
       "id": "2026-08-30-bun-kumitate-ni-tomonau-001",
@@ -1180,8 +1180,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1269,8 +1268,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1376,8 +1374,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1537,8 +1534,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1641,9 +1637,7 @@
           "zh": "我把这认为是第二种语言。"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "grammar": [
           "たが最後",
@@ -1679,7 +1673,8 @@
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
       "analysis": "原题第5空的选项疑似转写错误；本条只保存自然句型和复盘结论，不声称原选项无误。",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-language-types-ba-ii",
@@ -1713,8 +1708,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1803,8 +1797,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1842,7 +1835,8 @@
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-language-types-soreni-taishite",
@@ -1876,8 +1870,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -1966,8 +1959,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2056,8 +2048,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2095,7 +2086,8 @@
       "verification_status": "verified",
       "source_chat_summary": "用户对一篇关于「言葉には二種類ある」的文法空所补充题不理解，希望获得全文翻译、JLPT语法点和解题技巧总结。",
       "review_status": "new",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-mono-nara",
@@ -2129,8 +2121,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2250,8 +2241,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2357,8 +2347,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2462,8 +2451,7 @@
         }
       ],
       "question_kinds": [
-        "grammar",
-        "meaning"
+        "grammar"
       ],
       "question_distractors": {
         "grammar": [
@@ -2711,7 +2699,8 @@
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
       "verification_status": "unverified",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-capture-rakugaki-001",
@@ -2778,7 +2767,8 @@
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
       "verification_status": "unverified",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-capture-bareru-001",
@@ -3032,7 +3022,8 @@
       "source_chat_summary": "从词条列表加入的待处理单词，需要补入词库并生成可复习解释。",
       "review_status": "new",
       "verification_status": "unverified",
-      "collocations": []
+      "collocations": [],
+      "conjugations": []
     },
     {
       "id": "2026-08-30-capture-hatsubai-001",

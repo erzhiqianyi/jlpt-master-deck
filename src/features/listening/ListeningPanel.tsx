@@ -1,3 +1,5 @@
+import { listeningPracticeKey } from '../../domain/listeningPractice';
+import { formatListDate } from '../../components/LearningListMetadata';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { LearningList, LearningListRow, LearningListSelect } from '../../components/LearningList';
@@ -7,7 +9,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
-import type { ListeningQuestion, ListeningQuestionInput, ListeningRecording, Locale } from '../../types';
+import type { ListeningQuestion, ListeningQuestionInput, ListeningRecording, Locale, ProgressState } from '../../types';
 
 const LISTENING_LIBRARY_PAGE_SIZE = 8;
 const listeningQuestionTypes = [
@@ -26,12 +28,16 @@ const listeningTypeGuidance: Record<string, { prompt: string; choiceCount: numbe
   'listening-basic-training': { prompt: 'まず音声を聞いてください。それから、質問と選択肢を聞いて、最もよいものを一つ選んでください。', choiceCount: 4 },
 };
 
+type RecordPractice = (item: ListeningQuestion) => Promise<void>;
+
 type ListeningPanelProps = {
   mode: 'practice' | 'library';
   labels: Record<string, string>;
   locale: Locale;
   token: string;
   questions: ListeningQuestion[];
+  progress?: ProgressState;
+  onRecordPractice?: (item: ListeningQuestion, sessionId: string) => Promise<void>;
   onCreate: (input: ListeningQuestionInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
@@ -46,7 +52,9 @@ type ListeningPanelProps = {
 type ListeningDraft = { existingQuestionId?: string; title: string; questionTypeId: string; question: string; choices: string[]; answerIndex: number; explanation: string };
 type ListeningAudioGroup = { key: string; representative: ListeningQuestion; questions: ListeningQuestion[] };
 
-export function ListeningPanel({ mode, labels, locale, token, questions, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
+export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
+  const sessionId = useMemo(() => crypto.randomUUID(), [mode, activeQuestionId]);
+  const recordPractice: RecordPractice = async (item) => { await onRecordPractice?.(item, sessionId); };
   const [title, setTitle] = useState('');
   const [questionTypeId, setQuestionTypeId] = useState(defaultListeningQuestionTypeId);
   const [question, setQuestion] = useState(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
@@ -99,7 +107,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
   }, [pageCount]);
 
   if (mode === 'practice') {
-    return <ListeningPracticePanel labels={labels} locale={locale} token={token} questions={questions} onOpenLibrary={onOpenLibrary} />;
+    return <ListeningPracticePanel onRecordPractice={recordPractice} labels={labels} locale={locale} token={token} questions={questions} onOpenLibrary={onOpenLibrary} />;
   }
 
   const activeLibraryQuestion = activeQuestionId ? questions.find((item) => item.id === activeQuestionId) : undefined;
@@ -116,7 +124,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
             <h2 className="truncate text-lg font-black text-[#3d3036]">ID {activeLibraryQuestion.id} · {listeningQuestionTypeName(activeLibraryQuestion.questionTypeId)}</h2>
           </div>
         </div>
-        <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => <ListeningQuestionItem key={item.id} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />)}</div>
+        <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => <ListeningQuestionItem onRecordPractice={recordPractice} key={item.id} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />)}</div>
       </section>
     );
   }
@@ -342,65 +350,36 @@ export function ListeningPanel({ mode, labels, locale, token, questions, onCreat
         </form>
       ) : null}
 
-      {showLibrary ? <LearningCatalog
+      {showLibrary ? <LearningCatalog columns={<div className="list-column-header listening-column-header" aria-hidden="true">
+        <span>{locale === 'ja' ? '音声' : locale === 'en' ? 'Audio' : '音频'}</span>
+        <span className="list-column-metadata">
+          <span>{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>
+          <span>{locale === 'ja' ? '追加日' : locale === 'en' ? 'Added' : '添加时间'}</span>
+          <span>{locale === 'ja' ? '練習回数' : locale === 'en' ? 'Practice count' : '练习次数'}</span>
+        </span>
+      </div>}
         title={locale === 'ja' ? '聴解ライブラリ' : locale === 'en' ? 'Listening library' : '听力题库'}
         items={audioGroups}
         locale={locale}
         tools={<><LearningListSelect label="题型" value={typeFilter} onChange={(value) => setTypeFilter(value)} hideLabel><option value="all">全部题型</option>{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</LearningListSelect><LearningListSelect label="排序" value={sortOrder} onChange={(value) => setSortOrder(value)} hideLabel><option value="newest">最新添加</option><option value="oldest">最早添加</option></LearningListSelect></>}
         searchText={(item) => `${item.representative.audioFileName} ${item.questions.map((question) => `${listeningQuestionTypeName(question.questionTypeId)} ${question.title}`).join(' ')}`}
-        renderRow={(item) => <LearningListRow key={item.key} inlineActions title={item.representative.audioFileName} description={`${item.questions.length} 道题 · ${[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}`} locale={locale} onOpen={() => onOpenQuestion?.(item.representative.id)} secondary={<div className="flex items-center gap-2"><ListeningListAudioButton item={item.representative} labels={labels} token={token} displayNumber={item.representative.libraryNumber ?? questions.indexOf(item.representative) + 1}/><button type="button" onClick={() => onOpenQuestion?.(item.representative.id)} aria-label="开始录音" title="开始录音" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#ead1dc] bg-[#fff3f7] px-4 text-[#a84269] hover:bg-[#ffe8f0]"><Mic size={16} aria-hidden="true"/><span className="hidden text-sm font-bold sm:inline">录音</span></button></div>}/>}
+        renderRow={(item) => {
+          const addedAt = item.questions.map((question) => question.createdAt)
+            .filter((value) => value && Number.isFinite(Date.parse(value)))
+            .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
+          return <LearningListRow key={item.key} title={item.representative.audioFileName}
+            metadata={<>
+              <span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
+              <span>{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
+              <span><span className="sr-only">{locale === "ja" ? "練習回数 " : locale === "en" ? "Practice count " : "练习次数 "}</span>{progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0}</span>
+            </>} locale={locale} onOpen={() => onOpenQuestion?.(item.representative.id)}/>;
+        }}
       /> : null}
     </section>
   );
 }
 
-function ListeningListAudioButton({ item, labels, token, displayNumber }: { item: ListeningQuestion; labels: Record<string, string>; token: string; displayNumber: number }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const objectUrlRef = useRef('');
-  const [loading, setLoading] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => () => {
-    audioRef.current?.pause();
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-  }, []);
-
-  async function togglePlayback() {
-    setError('');
-    if (audioRef.current && !audioRef.current.paused) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      if (!audioRef.current) {
-        const response = await fetch(`/api/listening-questions/${item.id}/audio`, { headers: { authorization: `Bearer ${token}` } });
-        if (!response.ok) throw new Error(labels.listeningPlayError);
-        objectUrlRef.current = URL.createObjectURL(await response.blob());
-        audioRef.current = new Audio(objectUrlRef.current);
-        audioRef.current.addEventListener('ended', () => setPlaying(false));
-        audioRef.current.addEventListener('pause', () => setPlaying(false));
-      }
-      await audioRef.current.play();
-      setPlaying(true);
-    } catch {
-      setError(labels.listeningPlayError);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const label = loading ? labels.listeningAudioLoading : playing ? labels.listeningPauseAudio : labels.listeningPlayAudio;
-  return (
-    <button type="button" onClick={togglePlayback} disabled={loading} aria-label={`${label}: ${labels.listeningDatabaseNumber} ${displayNumber}`} title={error || label} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#dce7df] bg-[#edf7f1] px-5 text-[#245e4b] hover:bg-[#e0f0e7] disabled:cursor-wait disabled:opacity-60">
-      {loading ? <LoaderCircle className="animate-spin" size={16} /> : playing ? <Pause size={16} fill="currentColor" /> : <Play className="ml-0.5" size={16} fill="currentColor" />}<span className="sr-only">{label}</span>
-    </button>
-  );
-}
-
-function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrary }: { labels: Record<string, string>; locale: Locale; token: string; questions: ListeningQuestion[]; onOpenLibrary?: () => void }) {
+function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrary, onRecordPractice }: { labels: Record<string, string>; locale: Locale; token: string; questions: ListeningQuestion[]; onOpenLibrary?: () => void; onRecordPractice: RecordPractice }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeQuestion = questions[activeIndex % Math.max(questions.length, 1)];
 
@@ -436,17 +415,36 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
           </button>
         </div>
       </div>
-      <ListeningPracticeQuestion item={activeQuestion} labels={labels} token={token} locale={locale} />
+      <ListeningPracticeQuestion onRecordPractice={onRecordPractice} item={activeQuestion} labels={labels} token={token} locale={locale} />
     </section>
   );
 }
 
-function ListeningPracticeQuestion({ item, labels, token, locale }: { item: ListeningQuestion; labels: Record<string, string>; token: string; locale: Locale }) {
+function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; token: string; locale: Locale; onRecordPractice: RecordPractice }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const savingRef = useRef(false);
+  const [savingPractice, setSavingPractice] = useState(false);
+  async function confirmPractice() {
+    if (savingRef.current) return;
+    if (isFreeResponse(item) ? !freeResponse.trim() : selected === null) { setAnswerNotice(isFreeResponse(item) ? '请先写下你的回答' : labels.listeningSelectAnswer); return; }
+    savingRef.current = true;
+    setSavingPractice(true);
+    setAnswerNotice('');
+    try {
+      await onRecordPractice(item);
+      setRevealed(true);
+    } catch (error) {
+      setAnswerNotice(error instanceof Error ? error.message : '保存失败，请重试');
+    } finally {
+      savingRef.current = false;
+      setSavingPractice(false);
+    }
+  }
+
   const [freeResponse, setFreeResponse] = useState('');
 
   useEffect(() => {
@@ -503,7 +501,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale }: { item: List
         })}
       </div> : null}
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#f0d4dd] pt-4">
-        <button type="button" onClick={() => isFreeResponse(item) ? (freeResponse.trim() ? setRevealed(true) : setAnswerNotice('请先写下你的回答')) : (selected === null ? setAnswerNotice(labels.listeningSelectAnswer) : setRevealed(true))} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white">
+        <button type="button" disabled={savingPractice} onClick={() => void confirmPractice()} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white">
           {labels.listeningShowAnswer}
         </button>
         {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
@@ -515,12 +513,31 @@ function ListeningPracticeQuestion({ item, labels, token, locale }: { item: List
   );
 }
 
-function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail = false, showAudio = true, showRecording = true, questionNumber }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onDelete: (id: string) => Promise<void>; detail?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number }) {
+function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onDelete: (id: string) => Promise<void>; detail?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const savingRef = useRef(false);
+  const [savingPractice, setSavingPractice] = useState(false);
+  async function confirmPractice() {
+    if (savingRef.current) return;
+    if (selected === null) { setAnswerNotice(labels.listeningSelectAnswer); return; }
+    savingRef.current = true;
+    setSavingPractice(true);
+    setAnswerNotice('');
+    try {
+      await onRecordPractice(item);
+      setRevealed(true);
+    } catch (error) {
+      setAnswerNotice(error instanceof Error ? error.message : '保存失败，请重试');
+    } finally {
+      savingRef.current = false;
+      setSavingPractice(false);
+    }
+  }
+
   const confirm = useConfirmation();
   const [deleting, setDeleting] = useState(false);
 
@@ -585,7 +602,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
         })}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.listeningSelectAnswer) : setRevealed(true)} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.listeningShowAnswer}</button>
+        <button type="button" disabled={savingPractice} onClick={() => void confirmPractice()} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.listeningShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>

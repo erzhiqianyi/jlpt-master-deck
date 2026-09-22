@@ -706,6 +706,12 @@ export function loginUser(username, password) {
   return { token, user: { id: row.id, username: row.username } };
 }
 
+/** Existence check for a grant's owner; the agent's user may have been deleted since consent. */
+export function userById(id) {
+  const row = getDb().prepare('SELECT id, username FROM users WHERE id = ?').get(Number(id));
+  return row ? { id: row.id, username: row.username } : null;
+}
+
 export function userForToken(token) {
   if (!token) {
     return null;

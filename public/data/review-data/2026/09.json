@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03T13:41:25.501Z",
+  "generated_at": "2026-09-21T14:42:26.075Z",
   "archive_month": "2026/09",
   "data_source": "sqlite-export",
   "items": [
@@ -31,9 +31,7 @@
         }
       ],
       "ruby_terms": [],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "寒い海に住む大型の魚。",
@@ -71,15 +69,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N3",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-JTx6dW877OeQ9TOe",
@@ -115,7 +111,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -193,15 +188,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N2",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-txMn2fHMCc6iqgKp",
@@ -237,7 +230,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -315,15 +307,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N3",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-PruE8sg11kICd4Oe",
@@ -359,7 +349,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -437,15 +426,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-_mLOWs-xXocHJc4M",
@@ -504,7 +491,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -582,15 +568,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-s3VOXpsZYr_sccLT",
@@ -626,7 +610,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -704,15 +687,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-fzDLOTQocXTjsZPs",
@@ -748,7 +729,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -826,15 +806,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N2",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-8f0fF0hESbgo8ik3",
@@ -870,7 +848,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -948,15 +925,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-dxPOrdf9UFD2aiwi",
@@ -992,7 +967,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1070,15 +1044,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-wKXckkPxCBBoR8nR",
@@ -1137,7 +1109,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1215,15 +1186,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N4",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-jyy3sTZXgg0uANLu",
@@ -1259,7 +1228,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1337,15 +1305,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N2",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-tXu4QHhOZbXRd7eb",
@@ -1381,7 +1347,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1459,15 +1424,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-VWcBQR5fYoPLsmyb",
@@ -1522,7 +1485,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1600,15 +1562,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N1",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "capture-qDQ41tlmmh4fJCrH",
@@ -1644,7 +1604,6 @@
         }
       ],
       "question_kinds": [
-        "meaning",
         "kanji_to_kana",
         "moji_goi"
       ],
@@ -1722,15 +1681,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "tags": [
         "N2",
         "待整理单词",
         "N1/N2 词汇"
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n2-textbook-week2-d01-001",
@@ -1800,10 +1757,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-002",
@@ -1877,10 +1832,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-003",
@@ -1954,10 +1907,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-004",
@@ -2026,10 +1977,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-005",
@@ -2103,10 +2052,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-006",
@@ -2175,10 +2122,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-007",
@@ -2252,9 +2197,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "就職する",
       "conjugations": [
@@ -2283,7 +2225,8 @@
           "form": "就職しよう"
         }
       ],
-      "paraphrase_ja": "会社などに入って仕事を始める。"
+      "paraphrase_ja": "会社などに入って仕事を始める。",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-008",
@@ -2357,10 +2300,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-009",
@@ -2434,10 +2375,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-010",
@@ -2533,9 +2472,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -2559,7 +2495,8 @@
           "kind": "past",
           "form": "履歴書を書いた"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-011",
@@ -2633,9 +2570,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -2655,7 +2589,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "年齢制限がある"
+      "base_form": "年齢制限がある",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-012",
@@ -2751,9 +2686,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -2777,7 +2709,8 @@
           "kind": "past",
           "form": "経験を問った"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-013",
@@ -2851,9 +2784,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -2873,7 +2803,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "雇う"
+      "base_form": "雇う",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-014",
@@ -2970,9 +2901,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -2996,7 +2924,8 @@
           "kind": "past",
           "form": "採用した"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-015",
@@ -3093,9 +3022,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -3119,7 +3045,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "人手が不足している"
+      "base_form": "人手が不足している",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-016",
@@ -3215,9 +3142,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -3241,7 +3165,8 @@
           "kind": "past",
           "form": "正社員を募集した"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-017",
@@ -3315,9 +3240,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "派遣社員に登録する",
       "conjugations": [
@@ -3337,7 +3259,8 @@
           "kind": "negative",
           "form": "派遣社員に登録しない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-018",
@@ -3433,9 +3356,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -3459,7 +3379,8 @@
           "kind": "past",
           "form": "会社に問い合わせた"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-019",
@@ -3533,9 +3454,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -3555,7 +3473,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "気軽にたずねる"
+      "base_form": "気軽にたずねる",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-020",
@@ -3629,9 +3548,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "面接で緊張する",
       "conjugations": [
@@ -3651,7 +3567,8 @@
           "kind": "negative",
           "form": "面接で緊張しない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-021",
@@ -3747,14 +3664,12 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
       "source_draft_title": "第2週 N2单词・実戦復習問題（25問）",
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-022",
@@ -3828,10 +3743,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-023",
@@ -3905,9 +3818,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -3927,7 +3837,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "時給で働く"
+      "base_form": "時給で働く",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-024",
@@ -4001,9 +3912,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -4023,7 +3931,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "交通費が支給される"
+      "base_form": "交通費が支給される",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-025",
@@ -4119,9 +4028,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -4145,7 +4051,8 @@
           "kind": "past",
           "form": "お金を稼いだ"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d01-026",
@@ -4219,9 +4126,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -4241,7 +4145,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "お金を儲ける"
+      "base_form": "お金を儲ける",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-001",
@@ -4315,10 +4220,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-002",
@@ -4392,10 +4295,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-003",
@@ -4469,10 +4370,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-004",
@@ -4546,10 +4445,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-005",
@@ -4623,10 +4520,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-006",
@@ -4700,10 +4595,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-007",
@@ -4777,10 +4670,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-008",
@@ -4854,10 +4745,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-009",
@@ -4931,9 +4820,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "入社する",
       "conjugations": [
@@ -4953,7 +4839,8 @@
           "kind": "negative",
           "form": "入社しない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-010",
@@ -5027,10 +4914,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-011",
@@ -5104,10 +4989,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-012",
@@ -5181,10 +5064,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-013",
@@ -5258,9 +5139,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -5280,7 +5158,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "先輩に教わる"
+      "base_form": "先輩に教わる",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-014",
@@ -5354,9 +5233,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -5376,7 +5252,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "先輩を見習う"
+      "base_form": "先輩を見習う",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-015",
@@ -5472,9 +5349,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -5498,7 +5372,8 @@
           "kind": "past",
           "form": "早退した"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-016",
@@ -5572,9 +5447,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "遅刻する",
       "conjugations": [
@@ -5594,7 +5466,8 @@
           "kind": "negative",
           "form": "遅刻しない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-017",
@@ -5668,9 +5541,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "休憩する",
       "conjugations": [
@@ -5690,7 +5560,8 @@
           "kind": "negative",
           "form": "休憩しない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-018",
@@ -5764,9 +5635,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -5786,7 +5654,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "休暇を取る"
+      "base_form": "休暇を取る",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-019",
@@ -5860,10 +5729,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-020",
@@ -5959,9 +5826,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -5985,7 +5849,8 @@
           "kind": "past",
           "form": "席を外した"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-021",
@@ -6082,14 +5947,12 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
       "source_draft_title": "第2週 N2单词・実戦復習問題（25問）",
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-022",
@@ -6163,10 +6026,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-023",
@@ -6240,9 +6101,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6262,7 +6120,8 @@
         }
       ],
       "inflection_class": "i_adjective",
-      "base_form": "休む間がない"
+      "base_form": "休む間がない",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-024",
@@ -6336,9 +6195,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6358,7 +6214,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "体がもつ"
+      "base_form": "体がもつ",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-025",
@@ -6432,9 +6289,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6454,7 +6308,8 @@
         }
       ],
       "inflection_class": "i_adjective",
-      "base_form": "やる気がない"
+      "base_form": "やる気がない",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-026",
@@ -6528,9 +6383,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6550,7 +6402,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "やる気が出る"
+      "base_form": "やる気が出る",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-027",
@@ -6624,9 +6477,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "具合が悪いふりをする",
       "conjugations": [
@@ -6646,7 +6496,8 @@
           "kind": "negative",
           "form": "具合が悪いふりをしない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-028",
@@ -6720,9 +6571,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6742,7 +6590,8 @@
         }
       ],
       "inflection_class": "ichidan",
-      "base_form": "仕事を怠ける"
+      "base_form": "仕事を怠ける",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-029",
@@ -6816,9 +6665,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -6838,7 +6684,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "仕事をサボる"
+      "base_form": "仕事をサボる",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-030",
@@ -6912,9 +6759,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "仕事でミスをする",
       "conjugations": [
@@ -6934,7 +6778,8 @@
           "kind": "negative",
           "form": "仕事でミスをしない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-031",
@@ -7008,9 +6853,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "遅刻の言い訳をする",
       "conjugations": [
@@ -7030,7 +6872,8 @@
           "kind": "negative",
           "form": "遅刻の言い訳をしない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-032",
@@ -7104,9 +6947,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "上司にゴマをする",
       "conjugations": [
@@ -7126,7 +6966,8 @@
           "kind": "negative",
           "form": "上司にゴマをしない"
         }
-      ]
+      ],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-033",
@@ -7201,9 +7042,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -7223,7 +7061,8 @@
         }
       ],
       "inflection_class": "i_adjective",
-      "base_form": "超忙しい"
+      "base_form": "超忙しい",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-034",
@@ -7297,10 +7136,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-035",
@@ -7374,10 +7211,8 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d02-036",
@@ -7451,9 +7286,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -7473,7 +7305,8 @@
         }
       ],
       "inflection_class": "godan",
-      "base_form": "お世辞を言う"
+      "base_form": "お世辞を言う",
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-001",
@@ -7567,9 +7400,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -7594,7 +7424,8 @@
           "form": "会議が長引いた"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-002",
@@ -7666,9 +7497,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "会議の準備をする",
       "conjugations": [
@@ -7689,7 +7517,8 @@
           "form": "会議の準備をしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-003",
@@ -7756,11 +7585,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-004",
@@ -7832,9 +7659,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -7855,7 +7679,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "意見を述べる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-005",
@@ -7949,9 +7774,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -7976,7 +7798,8 @@
           "form": "意見をまとめた"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-006",
@@ -8048,9 +7871,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8071,7 +7891,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "意見を求める",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-007",
@@ -8143,9 +7964,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8166,7 +7984,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "具体的な案を出す",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-008",
@@ -8238,9 +8057,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8261,7 +8077,8 @@
       ],
       "inflection_class": "na_adjective",
       "base_form": "抽象的だ",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-009",
@@ -8333,9 +8150,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8356,7 +8170,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "アイデアを出す",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-010",
@@ -8428,9 +8243,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8451,7 +8263,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "結論が出る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-011",
@@ -8523,9 +8336,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8546,7 +8356,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "資料を配る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-012",
@@ -8618,9 +8429,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8641,7 +8449,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "プリントを配る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-013",
@@ -8713,9 +8522,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8736,7 +8542,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "メモを取る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-014",
@@ -8830,9 +8637,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -8857,7 +8661,8 @@
           "form": "張り切った"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-015",
@@ -8929,9 +8734,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -8952,7 +8754,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "仕事を引き受ける",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-016",
@@ -9024,9 +8827,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "打ち合わせをする",
       "conjugations": [
@@ -9047,7 +8847,8 @@
           "form": "打ち合わせをしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-017",
@@ -9119,9 +8920,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -9142,7 +8940,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "打ち合わせる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-018",
@@ -9214,9 +9013,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -9237,7 +9033,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "スケジュールを組む",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-019",
@@ -9332,9 +9129,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -9359,7 +9153,8 @@
           "form": "仕事を順調にこなした"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-020",
@@ -9453,9 +9248,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -9480,7 +9272,8 @@
           "form": "電話を取り次いだ"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-021",
@@ -9552,9 +9345,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "電話を転送する",
       "conjugations": [
@@ -9575,7 +9365,8 @@
           "form": "電話を転送しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-022",
@@ -9647,9 +9438,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "電話を保留する",
       "conjugations": [
@@ -9670,7 +9458,8 @@
           "form": "電話を保留しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-023",
@@ -9742,9 +9531,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "残業する",
       "conjugations": [
@@ -9765,7 +9551,8 @@
           "form": "残業しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-024",
@@ -9837,9 +9624,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -9860,7 +9644,8 @@
       ],
       "inflection_class": "i_adjective",
       "base_form": "出張が多い",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-025",
@@ -9932,9 +9717,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "出世する",
       "conjugations": [
@@ -9955,7 +9737,8 @@
           "form": "出世しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-026",
@@ -10027,9 +9810,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "昇進する",
       "conjugations": [
@@ -10050,7 +9830,8 @@
           "form": "昇進しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-027",
@@ -10144,9 +9925,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -10171,7 +9949,8 @@
           "form": "本社に転勤になった"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-028",
@@ -10265,9 +10044,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -10292,7 +10068,8 @@
           "form": "転職した"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-029",
@@ -10364,9 +10141,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -10387,7 +10161,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "会社を首になる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-030",
@@ -10454,9 +10229,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -10477,7 +10249,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "リストラされる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-031",
@@ -10549,9 +10322,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "退職する",
       "conjugations": [
@@ -10572,7 +10342,8 @@
           "form": "退職しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d03-032",
@@ -10644,9 +10415,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "失業する",
       "conjugations": [
@@ -10667,7 +10435,8 @@
           "form": "失業しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-001",
@@ -10734,11 +10503,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-002",
@@ -10805,11 +10572,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-003",
@@ -10881,11 +10646,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-004",
@@ -10952,11 +10715,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-005",
@@ -11023,11 +10784,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-006",
@@ -11094,11 +10853,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-007",
@@ -11165,11 +10922,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-008",
@@ -11241,9 +10996,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "パソコンを操作する",
       "conjugations": [
@@ -11264,7 +11016,8 @@
           "form": "パソコンを操作しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-009",
@@ -11336,9 +11089,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "基本をマスターする",
       "conjugations": [
@@ -11359,7 +11109,8 @@
           "form": "基本をマスターしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-010",
@@ -11431,9 +11182,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "パソコンを起動する",
       "conjugations": [
@@ -11454,7 +11202,8 @@
           "form": "パソコンを起動しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-011",
@@ -11526,9 +11275,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -11549,7 +11295,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "パソコンを立ち上げる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-012",
@@ -11621,9 +11368,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "パソコンを終了する",
       "conjugations": [
@@ -11644,7 +11388,8 @@
           "form": "パソコンを終了しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-013",
@@ -11716,9 +11461,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "パソコンを再起動する",
       "conjugations": [
@@ -11739,7 +11481,8 @@
           "form": "パソコンを再起動しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-014",
@@ -11811,9 +11554,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "次の画面を表示する",
       "conjugations": [
@@ -11834,7 +11574,8 @@
           "form": "次の画面を表示しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-015",
@@ -11906,9 +11647,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "プロバイダーと契約する",
       "conjugations": [
@@ -11929,7 +11667,8 @@
           "form": "プロバイダーと契約しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-016",
@@ -12001,9 +11740,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "インターネットに接続する",
       "conjugations": [
@@ -12024,7 +11760,8 @@
           "form": "インターネットに接続しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-017",
@@ -12091,9 +11828,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -12114,7 +11848,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "インターネットにつなぐ",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-018",
@@ -12181,9 +11916,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "インターネットにアクセスする",
       "conjugations": [
@@ -12204,7 +11936,8 @@
           "form": "インターネットにアクセスしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-019",
@@ -12271,9 +12004,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -12294,7 +12024,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "インターネットがつながる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-020",
@@ -12366,9 +12097,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "インターネットで検索する",
       "conjugations": [
@@ -12389,7 +12117,8 @@
           "form": "インターネットで検索しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-021",
@@ -12461,9 +12190,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -12484,7 +12210,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "ホームページで情報を得る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-022",
@@ -12578,9 +12305,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -12605,7 +12329,8 @@
           "form": "ダウンロードを開始した"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-023",
@@ -12677,9 +12402,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "ダウンロードが完了する",
       "conjugations": [
@@ -12700,7 +12422,8 @@
           "form": "ダウンロードが完了しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-024",
@@ -12767,9 +12490,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "ソフトをインストールする",
       "conjugations": [
@@ -12790,7 +12510,8 @@
           "form": "ソフトをインストールしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-025",
@@ -12857,9 +12578,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "スタートボタンをクリックする",
       "conjugations": [
@@ -12880,7 +12598,8 @@
           "form": "スタートボタンをクリックしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-026",
@@ -12947,9 +12666,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "パソコンがフリーズする",
       "conjugations": [
@@ -12970,7 +12686,8 @@
           "form": "パソコンがフリーズしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-027",
@@ -13042,9 +12759,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "システムを更新する",
       "conjugations": [
@@ -13065,7 +12779,8 @@
           "form": "システムを更新しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-028",
@@ -13137,11 +12852,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-029",
@@ -13213,9 +12926,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "メールのやり取りをする",
       "conjugations": [
@@ -13236,7 +12946,8 @@
           "form": "メールのやり取りをしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-030",
@@ -13308,9 +13019,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "アドレスを入力する",
       "conjugations": [
@@ -13331,7 +13039,8 @@
           "form": "アドレスを入力しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d04-031",
@@ -13403,9 +13112,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "アドレスを登録する",
       "conjugations": [
@@ -13426,7 +13132,8 @@
           "form": "アドレスを登録しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-001",
@@ -13498,9 +13205,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -13521,7 +13225,8 @@
       ],
       "inflection_class": "suru",
       "base_form": "新規作成する",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-002",
@@ -13593,9 +13298,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -13616,7 +13318,8 @@
       ],
       "inflection_class": "suru",
       "base_form": "名前をつけて保存する",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-003",
@@ -13688,9 +13391,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -13711,7 +13411,8 @@
       ],
       "inflection_class": "suru",
       "base_form": "ページ設定する",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-004",
@@ -13783,9 +13484,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "印刷する",
       "conjugations": [
@@ -13806,7 +13504,8 @@
           "form": "印刷しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-005",
@@ -13878,9 +13577,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -13901,7 +13597,8 @@
       ],
       "inflection_class": "suru",
       "base_form": "書式設定する",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-006",
@@ -13973,11 +13670,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-007",
@@ -14049,11 +13744,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-008",
@@ -14125,11 +13818,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-009",
@@ -14201,11 +13892,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-010",
@@ -14277,11 +13966,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-011",
@@ -14353,9 +14040,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "書類を作成する",
       "conjugations": [
@@ -14376,7 +14060,8 @@
           "form": "書類を作成しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-012",
@@ -14448,9 +14133,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "かなを漢字に変換する",
       "conjugations": [
@@ -14471,7 +14153,8 @@
           "form": "かなを漢字に変換しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-013",
@@ -14543,9 +14226,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "漢字を確定する",
       "conjugations": [
@@ -14566,7 +14246,8 @@
           "form": "漢字を確定しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-014",
@@ -14638,9 +14319,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "文字を削除する",
       "conjugations": [
@@ -14661,7 +14339,8 @@
           "form": "文字を削除しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-015",
@@ -14733,9 +14412,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "改行する",
       "conjugations": [
@@ -14756,7 +14432,8 @@
           "form": "改行しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-016",
@@ -14828,9 +14505,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "文字のサイズを設定する",
       "conjugations": [
@@ -14851,7 +14525,8 @@
           "form": "文字のサイズを設定しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-017",
@@ -14923,9 +14598,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "フォントを変更する",
       "conjugations": [
@@ -14946,7 +14618,8 @@
           "form": "フォントを変更しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-018",
@@ -15018,9 +14691,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "カーソルを移動する",
       "conjugations": [
@@ -15041,7 +14711,8 @@
           "form": "カーソルを移動しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-019",
@@ -15113,9 +14784,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "範囲を選択する",
       "conjugations": [
@@ -15136,7 +14804,8 @@
           "form": "範囲を選択しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-020",
@@ -15208,9 +14877,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15231,7 +14897,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "目的の位置に合わせる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-021",
@@ -15303,9 +14970,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15326,7 +14990,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "文字を中央にそろえる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-022",
@@ -15398,9 +15063,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15421,7 +15083,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "右に寄せる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-023",
@@ -15493,9 +15156,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15516,7 +15176,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "下線をつける",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-024",
@@ -15583,9 +15244,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15606,7 +15264,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "アンダーラインをつける",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-025",
@@ -15678,9 +15337,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -15701,7 +15357,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "記号を入れる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-026",
@@ -15773,9 +15430,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "図を挿入する",
       "conjugations": [
@@ -15796,7 +15450,8 @@
           "form": "図を挿入しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-027",
@@ -15868,9 +15523,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "図を拡大する",
       "conjugations": [
@@ -15891,7 +15543,8 @@
           "form": "図を拡大しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-028",
@@ -15963,9 +15616,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "図を縮小する",
       "conjugations": [
@@ -15986,7 +15636,8 @@
           "form": "図を縮小しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-029",
@@ -16058,9 +15709,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "内容を修正する",
       "conjugations": [
@@ -16081,7 +15729,8 @@
           "form": "内容を修正しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-030",
@@ -16153,9 +15802,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "文書を編集する",
       "conjugations": [
@@ -16176,7 +15822,8 @@
           "form": "文書を編集しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-031",
@@ -16248,9 +15895,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -16271,7 +15915,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "元に戻す",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-032",
@@ -16343,9 +15988,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -16366,7 +16008,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "やり直す",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-033",
@@ -16438,9 +16081,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "図形をコピーする",
       "conjugations": [
@@ -16461,7 +16101,8 @@
           "form": "図形をコピーしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-034",
@@ -16533,9 +16174,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -16556,7 +16194,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "切り取る",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-035",
@@ -16628,9 +16267,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -16651,7 +16287,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "貼り付ける",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-036",
@@ -16745,9 +16382,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -16772,7 +16406,8 @@
           "form": "画像を取り込んだ"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-037",
@@ -16866,9 +16501,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -16893,7 +16525,8 @@
           "form": "文書を保存した"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-038",
@@ -16965,9 +16598,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "ファイルを添付する",
       "conjugations": [
@@ -16988,7 +16618,8 @@
           "form": "ファイルを添付しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d05-039",
@@ -17060,9 +16691,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "上書き保存する",
       "conjugations": [
@@ -17083,7 +16711,8 @@
           "form": "上書き保存しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-001",
@@ -17155,9 +16784,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "プリンターで印刷する",
       "conjugations": [
@@ -17178,7 +16804,8 @@
           "form": "プリンターで印刷しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-002",
@@ -17245,9 +16872,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "プリンターでプリントする",
       "conjugations": [
@@ -17268,7 +16892,8 @@
           "form": "プリンターでプリントしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-003",
@@ -17362,9 +16987,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -17389,7 +17011,8 @@
           "form": "プリンターの用紙が切れた"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-004",
@@ -17461,9 +17084,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -17484,7 +17104,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "用紙を切らす",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-005",
@@ -17551,9 +17172,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -17574,7 +17192,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "インクがなくなる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-006",
@@ -17641,9 +17260,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -17664,7 +17280,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "トナーがなくなる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-007",
@@ -17736,9 +17353,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "印刷の範囲を指定する",
       "conjugations": [
@@ -17759,7 +17373,8 @@
           "form": "印刷の範囲を指定しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-008",
@@ -17831,9 +17446,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "印刷の向きを確認する",
       "conjugations": [
@@ -17854,7 +17466,8 @@
           "form": "印刷の向きを確認しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-009",
@@ -17926,9 +17539,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "余白を多くする",
       "conjugations": [
@@ -17949,7 +17559,8 @@
           "form": "余白を多くしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-010",
@@ -18021,11 +17632,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-011",
@@ -18119,9 +17728,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -18146,7 +17752,8 @@
           "form": "印刷がずれた"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-012",
@@ -18218,9 +17825,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -18241,7 +17845,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "印刷位置をずらす",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-013",
@@ -18313,9 +17918,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -18336,7 +17938,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "手間がかかる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-014",
@@ -18431,9 +18034,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
@@ -18458,7 +18058,8 @@
           "form": "手間を省いた"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-015",
@@ -18530,9 +18131,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -18553,7 +18151,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "表示を切り替える",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-016",
@@ -18625,9 +18224,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -18648,7 +18244,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "データが消える",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-017",
@@ -18720,9 +18317,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "データを消去する",
       "conjugations": [
@@ -18743,7 +18337,8 @@
           "form": "データを消去しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-018",
@@ -18837,15 +18432,13 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "source_draft_ids": [
         "6o6absksKdQ9NGJ8"
       ],
       "source_draft_title": "第2週 N2单词・実戦復習問題（25問）",
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-019",
@@ -18917,9 +18510,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "受信を拒否する",
       "conjugations": [
@@ -18940,7 +18530,8 @@
           "form": "受信を拒否しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-020",
@@ -19012,9 +18603,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -19035,7 +18623,8 @@
       ],
       "inflection_class": "ichidan",
       "base_form": "個人情報を盗まれる",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-021",
@@ -19107,9 +18696,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "ウイルスに感染する",
       "conjugations": [
@@ -19130,7 +18716,8 @@
           "form": "ウイルスに感染しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-022",
@@ -19202,9 +18789,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "新しいウイルスに対応する",
       "conjugations": [
@@ -19225,7 +18809,8 @@
           "form": "新しいウイルスに対応しない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-023",
@@ -19297,9 +18882,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -19320,7 +18902,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "チャットを楽しむ",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-024",
@@ -19392,9 +18975,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -19415,7 +18995,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "コミュニケーションを楽しむ",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-025",
@@ -19487,9 +19068,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [
         {
           "kind": "dictionary",
@@ -19510,7 +19088,8 @@
       ],
       "inflection_class": "godan",
       "base_form": "掲示板に書き込む",
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-026",
@@ -19577,11 +19156,9 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-027",
@@ -19653,9 +19230,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "品物を売り買いする",
       "conjugations": [
@@ -19676,7 +19250,8 @@
           "form": "品物を売り買いしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "n2-textbook-week2-d06-028",
@@ -19743,9 +19318,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-lbhIySnfItbH",
       "targetWordbookTitle": "N2生活单词",
-      "wordbook_ids": [
-        "wordbook-lbhIySnfItbH"
-      ],
       "inflection_class": "suru",
       "base_form": "オンラインゲームをする",
       "conjugations": [
@@ -19766,7 +19338,8 @@
           "form": "オンラインゲームをしない"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-lbhIySnfItbH"
     },
     {
       "id": "chat-2026-09-01-ganges",
@@ -19817,9 +19390,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -19827,7 +19397,8 @@
         "世界史"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-hikino-yoken",
@@ -19861,9 +19432,7 @@
           "reading": "ひきのうようけん"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "利用者が実行できる具体的な操作。",
@@ -19895,9 +19464,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -19905,7 +19471,8 @@
         "要件定義"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-himiko",
@@ -19956,9 +19523,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -19966,7 +19530,8 @@
         "日本史"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-ryudo",
@@ -20000,9 +19565,7 @@
           "reading": "りゅうど"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "粒の大きさだけを物理的に測ること。",
@@ -20034,9 +19597,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20044,7 +19604,8 @@
         "ビジネス"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-shinshutsu",
@@ -20078,9 +19639,7 @@
           "reading": "しんしゅつ"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "活動していた市場から完全に撤退すること。",
@@ -20112,9 +19671,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20145,7 +19701,8 @@
           "form": "進出して"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-toraijin",
@@ -20179,9 +19736,7 @@
           "reading": "とらいじん"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "日本から外国へ移住した現代の旅行者。",
@@ -20213,16 +19768,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "日本史"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-yayoi-jidai",
@@ -20277,16 +19830,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "日本史"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-gi-go-shoku",
@@ -20341,16 +19892,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "中国史"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-huizu",
@@ -20401,16 +19950,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "民族名"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-itazura-ni-ikiru",
@@ -20452,9 +19999,7 @@
           "reading": "ついやす"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "目的を持って充実した人生を送ること。",
@@ -20486,9 +20031,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20496,7 +20038,8 @@
         "表現"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-iyu",
@@ -20530,9 +20073,7 @@
           "reading": "いゆう"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "日ごろほとんど交流のない知人。",
@@ -20564,16 +20105,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "書面語"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-nemureru-shishi",
@@ -20611,9 +20150,7 @@
           "reading": "はっき"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "すでに力を失って二度と動かない存在。",
@@ -20645,16 +20182,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "慣用表現"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-shiki",
@@ -20696,9 +20231,7 @@
           "reading": "けいかいたいせい"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "物を細かく切って片づけること。",
@@ -20730,9 +20263,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20762,7 +20292,8 @@
           "form": "敷いて"
         }
       ],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-tsurezuregusa",
@@ -20821,9 +20352,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20831,7 +20359,8 @@
         "古典"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-arima-shinshichi",
@@ -20882,9 +20411,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -20892,7 +20418,8 @@
         "幕末"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-higeki",
@@ -20926,9 +20453,7 @@
           "reading": "ひげき"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "人々を笑わせる明るい作品。",
@@ -20960,16 +20485,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "文学"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-ishi-no-ue",
@@ -21011,9 +20534,7 @@
           "reading": "じみち"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "危険な場所からはすぐに逃げるべきだという教え。",
@@ -21045,16 +20566,14 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
         "ことわざ"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-jinjo-shogakko",
@@ -21088,9 +20607,7 @@
           "reading": "じんじょうしょうがっこう"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "大学卒業後に通う専門的な研究機関。",
@@ -21122,9 +20639,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -21132,7 +20646,8 @@
         "教育"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-miura-anjin",
@@ -21187,9 +20702,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -21197,7 +20709,8 @@
         "江戸時代"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-murahachibu",
@@ -21231,9 +20744,7 @@
           "reading": "むらはちぶ"
         }
       ],
-      "question_kinds": [
-        "meaning"
-      ],
+      "question_kinds": [],
       "question_distractors": {
         "meaning": [
           "共同体全体で困っている人を助けること。",
@@ -21265,9 +20776,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -21275,7 +20783,8 @@
         "慣用表現"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "chat-2026-09-01-sakamoto-ryoma",
@@ -21330,9 +20839,6 @@
       "targetDeck": "n1_vocab",
       "targetWordbookId": "wordbook-vNGaLnVq2hp_",
       "targetWordbookTitle": "雑談",
-      "wordbook_ids": [
-        "wordbook-vNGaLnVq2hp_"
-      ],
       "tags": [
         "聊天记录",
         "雑談",
@@ -21340,7 +20846,8 @@
         "幕末"
       ],
       "conjugations": [],
-      "collocations": []
+      "collocations": [],
+      "wordbook_id": "wordbook-vNGaLnVq2hp_"
     },
     {
       "id": "n1-合併",
@@ -21605,9 +21112,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "合併する",
@@ -21632,7 +21136,9 @@
           "kind": "te",
           "form": "合併して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-統合",
@@ -21919,9 +21425,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "統合する",
@@ -21946,7 +21449,9 @@
           "kind": "te",
           "form": "統合して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-相次ぐ",
@@ -22266,10 +21771,9 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-行う",
@@ -22662,10 +22166,9 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-開く",
@@ -23027,9 +22530,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "base_form": "開く",
       "conjugations": [
@@ -23053,7 +22553,9 @@
           "kind": "te",
           "form": "開いて"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-個展",
@@ -23336,11 +22838,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-着方",
@@ -23640,11 +23141,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-起床",
@@ -23929,9 +23429,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "起床する",
@@ -23956,7 +23453,9 @@
           "kind": "te",
           "form": "起床して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-済まない",
@@ -24267,10 +23766,9 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "verification_status": "unverified"
+      "verification_status": "unverified",
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-以後",
@@ -24568,11 +24066,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-開校",
@@ -24856,9 +24353,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "開校する",
@@ -24883,7 +24377,9 @@
           "kind": "te",
           "form": "開校して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-授与式",
@@ -25178,11 +24674,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-演説会",
@@ -25461,11 +24956,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-閉会",
@@ -25745,9 +25239,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "閉会する",
@@ -25772,7 +25263,9 @@
           "kind": "te",
           "form": "閉会して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-行事",
@@ -26045,11 +25538,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-山歩き",
@@ -26353,11 +25845,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-せいぜい",
@@ -26625,11 +26116,10 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-遠出",
@@ -26897,9 +26387,6 @@
       "review_status": "new",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
       "inflection_class": "suru",
       "base_form": "遠出する",
@@ -26924,7 +26411,9 @@
           "kind": "te",
           "form": "遠出して"
         }
-      ]
+      ],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-熱戦",
@@ -27127,11 +26616,10 @@
       "practice_generation_status": "unverified",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
       "verification_status": "unverified",
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "date": "2026-09-02",
@@ -28704,7 +28192,8 @@
       "review_status": "new",
       "practice_generation_status": "unverified",
       "collocations": [],
-      "conjugations": []
+      "conjugations": [],
+      "tags": []
     },
     {
       "id": "2026-09-02-023",
@@ -28964,7 +28453,8 @@
       "review_status": "new",
       "practice_generation_status": "unverified",
       "collocations": [],
-      "conjugations": []
+      "conjugations": [],
+      "tags": []
     },
     {
       "id": "2026-09-02-024",
@@ -29260,7 +28750,8 @@
       "review_status": "new",
       "practice_generation_status": "unverified",
       "collocations": [],
-      "conjugations": []
+      "conjugations": [],
+      "tags": []
     },
     {
       "id": "n1-くつろげる",
@@ -29536,9 +29027,8 @@
       ],
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-多種多様",
@@ -29783,9 +29273,8 @@
       "practice_generation_status": "unverified",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-力仕事",
@@ -30026,10 +29515,9 @@
       "practice_generation_status": "unverified",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-リアリティー",
@@ -30253,10 +29741,9 @@
       ],
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-一之助",
@@ -30360,11 +29847,10 @@
       "practice_generation_status": "not_applicable",
       "targetWordbookId": "name_reading",
       "targetWordbookTitle": "补充・人名读法",
-      "wordbook_ids": [
-        "name_reading"
-      ],
       "collocations": [],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "name_reading"
     },
     {
       "id": "n1-布製",
@@ -30598,10 +30084,9 @@
       "practice_generation_status": "unverified",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-店主",
@@ -30851,10 +30336,9 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-襲われる",
@@ -31059,9 +30543,8 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-心身",
@@ -31238,10 +30721,9 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ],
-      "conjugations": []
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-収まる",
@@ -31450,9 +30932,8 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-取り巻く",
@@ -31653,9 +31134,8 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "2026-09-03-n1-limitation-ni-kagiri",
@@ -32763,9 +32243,8 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
-      ]
+      "tags": [],
+      "wordbook_id": "n1_vocab"
     },
     {
       "id": "n1-ぐいぐい",
@@ -32933,9 +32412,186 @@
       "practice_generation_status": "generated",
       "targetWordbookId": "n1_vocab",
       "targetWordbookTitle": "N1/N2 词汇",
-      "wordbook_ids": [
-        "n1_vocab"
+      "conjugations": [],
+      "tags": [],
+      "wordbook_id": "n1_vocab"
+    },
+    {
+      "date": "2026-09-21",
+      "input_at": "2026-09-21T23:25:00+09:00",
+      "lesson": "N1語彙",
+      "lesson_topic": "実績・事例",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "review_status": "new",
+      "content_origin": "user_material",
+      "verification_status": "needs_review",
+      "question_kinds": [
+        "meaning",
+        "moji_goi",
+        "kanji_to_kana"
       ],
+      "source_chat_summary": "用户要求重新检查本地的「実績・事例」并同步到 MCP 词条库。",
+      "source_groups": [
+        "local-review"
+      ],
+      "core_memory": "在正式记录、成果与具体案例的语境中区分记忆。",
+      "question_distractors": {
+        "meaning": [
+          "抽象的的规则",
+          "个人的感想",
+          "临时的通知"
+        ]
+      },
+      "collocations": [],
+      "ruby_terms": [
+        {
+          "text": "事例",
+          "reading": "じれい"
+        },
+        {
+          "text": "成功",
+          "reading": "せいこう"
+        },
+        {
+          "text": "参考",
+          "reading": "さんこう"
+        },
+        {
+          "text": "計画",
+          "reading": "けいかく"
+        },
+        {
+          "text": "地域",
+          "reading": "ちいき"
+        },
+        {
+          "text": "報告",
+          "reading": "ほうこく"
+        }
+      ],
+      "id": "2026-09-21-jirei",
+      "original": "事例",
+      "reading": "じれい",
+      "meaning_zh": "事例；案例；实例",
+      "meaning_ja": "ある出来事や問題について、具体的な例として取り上げられる事実。",
+      "paraphrase_ja": "具体的なケースや例",
+      "part_of_speech": "名詞",
+      "examples": [
+        {
+          "ja": "過去の成功事例を参考にして計画を立てる。",
+          "zh": "参考过去的成功案例来制定计划。"
+        },
+        {
+          "ja": "同じ事例がほかの地域でも報告されている。",
+          "zh": "其他地区也报告了同样的案例。"
+        }
+      ],
+      "practice_questions": [
+        {
+          "id": "2026-09-21-jirei-q1",
+          "kind": "meaning",
+          "instruction": "下線のことばの意味として最もよいものを選びなさい。",
+          "prompt": "過去の成功事例を参考にして計画を立てる。",
+          "choices": [
+            "具体的的案例",
+            "抽象的的规则",
+            "个人的感想",
+            "临时的通知"
+          ],
+          "answer": "具体的的案例",
+          "answerIndex": 0,
+          "explanation_zh": "「事例」指可以作为具体例子的事实或案例，在本句中是“过去的成功案例”。"
+        }
+      ],
+      "tags": [],
+      "conjugations": []
+    },
+    {
+      "date": "2026-09-21",
+      "input_at": "2026-09-21T23:25:00+09:00",
+      "lesson": "N1語彙",
+      "lesson_topic": "実績・事例",
+      "deck": "n1_vocab",
+      "type": "word",
+      "jlpt_level": "N1",
+      "level_confidence": "medium",
+      "review_status": "new",
+      "content_origin": "user_material",
+      "verification_status": "needs_review",
+      "question_kinds": [
+        "meaning",
+        "moji_goi",
+        "kanji_to_kana"
+      ],
+      "source_chat_summary": "用户要求重新检查本地的「実績・事例」并同步到 MCP 词条库。",
+      "source_groups": [
+        "local-review"
+      ],
+      "core_memory": "在正式记录、成果与具体案例的语境中区分记忆。",
+      "question_distractors": {
+        "meaning": [
+          "未来的计划",
+          "临时的规定",
+          "现场的气氛"
+        ]
+      },
+      "collocations": [],
+      "ruby_terms": [
+        {
+          "text": "実績",
+          "reading": "じっせき"
+        },
+        {
+          "text": "評価",
+          "reading": "ひょうか"
+        },
+        {
+          "text": "任せ",
+          "reading": "まかせ"
+        },
+        {
+          "text": "導入",
+          "reading": "どうにゅう"
+        }
+      ],
+      "id": "2026-09-21-jisseki",
+      "original": "実績",
+      "reading": "じっせき",
+      "meaning_zh": "实际成果；业绩；实绩",
+      "meaning_ja": "これまでに実際に行ってきたことや、その結果として得られた成果。",
+      "paraphrase_ja": "過去の成果や結果",
+      "part_of_speech": "名詞",
+      "examples": [
+        {
+          "ja": "これまでの実績が評価され、新しい仕事を任された。",
+          "zh": "由于过去的业绩受到肯定，我被交付了新的工作。"
+        },
+        {
+          "ja": "導入実績のあるシステムなら安心して使える。",
+          "zh": "使用有导入业绩的系统会比较放心。"
+        }
+      ],
+      "practice_questions": [
+        {
+          "id": "2026-09-21-jisseki-q1",
+          "kind": "meaning",
+          "instruction": "下線のことばの意味として最もよいものを選びなさい。",
+          "prompt": "これまでの実績が評価され、新しい仕事を任された。",
+          "choices": [
+            "过去的成果",
+            "未来的计划",
+            "临时的规定",
+            "现场的气氛"
+          ],
+          "answer": "过去的成果",
+          "answerIndex": 0,
+          "explanation_zh": "「実績」指过去实际做过的事情及其成果，在本句中是“过去的业绩”。"
+        }
+      ],
+      "tags": [],
       "conjugations": []
     }
   ],

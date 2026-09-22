@@ -11,6 +11,7 @@ const { createUser, getDb, listWordbooks, getDailyPractice, getStudyState } =
   await import("./storage.mjs");
 const {
   importPackage,
+  importShare,
   userReviewData,
   sourcePackage,
   publishShare,
@@ -120,4 +121,35 @@ test("invalid and oversized packages fail without partial writes", () => {
     listWordbooks(c.id).some((b) => b.title === "测试单词本"),
     false,
   );
+});
+
+test("public wordbook snapshot survives source changes and removal, and import resolves the saved copy", () => {
+  const source = importPackage(a.id, { ...words, title: '独立公共副本' });
+  const published = publishShare(a.id, { kind: 'wordbook', sourceId: source.id });
+  assert.equal(published.sourceId, source.id);
+  assert.ok(published.createdAt);
+  assert.equal(shareDetail(b.id, published.id).sourceId, undefined);
+  const db = getDb();
+  db.prepare("UPDATE user_review_items SET item_json=json_set(item_json,'$.original','犬') WHERE user_id=? AND json_extract(item_json,'$.wordbook_id')=?").run(a.id, source.id);
+  assert.equal(sourcePackage(a.id, {kind:'wordbook',sourceId:source.id}).items[0].original, '犬');
+  assert.equal(shareDetail(b.id, published.id).package.items[0].original, '猫');
+  db.prepare("DELETE FROM user_review_items WHERE user_id=? AND json_extract(item_json,'$.wordbook_id')=?").run(a.id,source.id);
+  db.prepare('DELETE FROM wordbooks WHERE id=? AND user_id=?').run(source.id,a.id);
+  const imported = importShare(c.id, published.id);
+  assert.ok(userReviewData(c.id).items.some(item => item.wordbook_id === imported.id && item.original === '猫'));
+  withdrawShare(a.id, published.id);
+  assert.throws(() => importShare(b.id,published.id));
+  assert.equal(db.prepare('SELECT withdrawn FROM market_shares WHERE id=?').get(published.id).withdrawn,1);
+  assert.ok(userReviewData(c.id).items.some(item=>item.wordbook_id===imported.id));
+});
+
+test("public practice snapshot survives deleting the source practice and draft", () => {
+  const source = importPackage(a.id, {format:'jlpt-share',version:1,kind:'practice',title:'公共专项副本',questions:[{kind:'kanji_to_kana',prompt:'猫',choices:['ねこ','いぬ'],answer:'ねこ'}]});
+  const practice = getDailyPractice(a.id, source.id);
+  const published = publishShare(a.id, {kind:'practice',sourceId:source.id});
+  const db=getDb();
+  db.prepare('DELETE FROM daily_practices WHERE id=? AND user_id=?').run(source.id,a.id);
+  db.prepare('DELETE FROM review_pack_drafts WHERE id=? AND user_id=?').run(practice.sourceDraftId,a.id);
+  const imported=importShare(b.id,published.id);
+  assert.equal(getDailyPractice(b.id,imported.id).questions[0].answer,'ねこ');
 });

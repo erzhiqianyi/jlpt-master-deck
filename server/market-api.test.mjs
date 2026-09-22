@@ -43,6 +43,7 @@ test("local deployment: registration, login, sharing, per-account import and own
       return { status: response.status, body: await response.json() };
     };
     assert.equal((await call("/api/auth/config")).body.mode, "local");
+    assert.equal((await call("/api/auth/config")).body.market, "database");
     const a = (
       await call("/api/auth/register", {
         method: "POST",
@@ -94,9 +95,10 @@ test("local deployment: registration, login, sharing, per-account import and own
     const copy = await call("/api/market/import", {
       token: b.token,
       method: "POST",
-      body: detail.body.package,
+      body: { shareId: id, package: { ...detail.body.package, title: "tampered" } },
     });
     assert.notEqual(copy.body.id, imported.body.id);
+    assert.equal(copy.body.title, pkg.title);
     assert.equal(
       (await call(`/api/market/${id}`, { token: b.token, method: "DELETE" }))
         .status,

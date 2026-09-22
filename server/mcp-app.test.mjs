@@ -174,6 +174,15 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   assert.equal(reopened.result.structuredContent.completed, true);
   assert.equal((await rpcResult(await rpc(other.id ? issued.access_token : '', 'tools/call', { name: 'get_practice_session', arguments: { practice_id: 'nope' } }, 15))).result.isError, true);
 
+  // get_connection_info reports the grant's user and environment, not the browser session's.
+  assert.ok(names.includes('get_connection_info'));
+  const info = (await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_connection_info', arguments: {} }, 16))).result.structuredContent;
+  assert.deepEqual(info.user, { id: String(user.id), status: 'active', displayName: 'agent-owner' });
+  assert.equal(info.connection.clientName, 'Claude Code');
+  assert.deepEqual(info.connection.scopes, ['study']);
+  assert.equal(info.connection.endpoint, origin + '/api/jlpt/mcp');
+  assert.deepEqual(info.server, { name: 'jlpt', version: '0.2.0', environment: 'local', dataSource: 'sqlite' });
+
   const grants = await mcp.listGrants(String(user.id));
   assert.equal(grants.length, 1);
   assert.equal(grants[0].name, 'Claude Code');

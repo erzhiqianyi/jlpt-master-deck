@@ -27,6 +27,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(JSON.stringify(empty).includes('面目躍如'),false);
     const book=(await json('/api/wordbooks','POST',{title:'Cloud isolation',deck:'n1_vocab'})).wordbook;
     assert.ok(book.id);
+    assert.equal((await json('/api/auth/config')).market,'database');
+    const source = await json('/api/market/import','POST',{format:'jlpt-share',version:1,kind:'wordbook',title:'Cloud public snapshot',items:[{deck:'n1_vocab',original:'共有',reading:'きょうゆう',meaning_zh:'共享'}]});
+    const share = await json('/api/market','POST',{kind:'wordbook',sourceId:source.id});
+    assert.ok((await json('/api/market','GET',undefined,'test-2')).shares.some(s=>s.id===share.id&&!s.mine));
+
     assert.ok(!(await json('/api/wordbooks','GET',undefined,'test-2')).wordbooks.some(x=>x.id===book.id));
     assert.equal((await request('/api/wordbooks/'+book.id,'PATCH',{title:'stolen'},'test-2')).status,404);
     const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],answerIndex:2,audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
@@ -68,8 +73,17 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
     await mf.dispose(); mf=new Miniflare(options);
     assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
+    const persistedShare = await json('/api/market/'+share.id,'GET',undefined,'test-2');
+    assert.equal(persistedShare.createdAt,share.createdAt);
+    assert.equal(persistedShare.package.items[0].original,'共有');
+    const copy = await json('/api/market/import','POST',{shareId:share.id},'test-2');
+    assert.notEqual(copy.id,source.id);
+    assert.equal((await request('/api/market/'+share.id,'DELETE',undefined,'test-2')).status,404);
+    await json('/api/market/'+share.id,'DELETE');
+    assert.equal((await request('/api/market/import','POST',{shareId:share.id},'test-2')).status,404);
+
     assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
-    assert.equal((await json('/api/review-data','GET',undefined,'test-2')).items.length,0);
+    assert.deepEqual((await json('/api/review-data','GET',undefined,'test-2')).items.map(item=>item.original),['共有']);
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
     await json('/api/listening-questions/'+question.id,'DELETE');
     assert.equal((await request(audioPath)).status,404);

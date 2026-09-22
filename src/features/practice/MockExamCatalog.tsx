@@ -26,6 +26,6 @@ export function MockExamCatalog({ locale, onOpen }: { locale: Locale; onOpen: (e
   }, [t.unavailable]);
   const exams = useMemo(() => manifest?.exams ?? [], [manifest]);
   return <section className="mx-auto w-full max-w-5xl py-1 md:py-4">
-    {!manifest ? <p role="status">{error || t.loading}</p> : <LearningCatalog title={t.title} items={exams} locale={locale} notice={t.notice} searchText={(exam) => `${exam.title} ${exam.titleJa} ${exam.level}`} renderRow={(exam) => <LearningListRow key={exam.id} title={locale === 'ja' ? exam.titleJa : exam.title} description={`${exam.questionCount} ${t.questions} · ${exam.totalDurationMinutes} ${t.minutes}`} status={exam.level} locale={locale} onOpen={() => onOpen(exam.id)}/>}/>}
+    {!manifest ? <p role="status">{error || t.loading}</p> : <LearningCatalog columnLabels={locale === "ja" ? ["模擬試験", "問題数・時間", "レベル"] : locale === "en" ? ["Exam", "Questions / duration", "Level"] : ["试卷", "题数与时长", "等级"]} title={t.title} items={exams} locale={locale} notice={t.notice} searchText={(exam) => `${exam.title} ${exam.titleJa} ${exam.level}`} renderRow={(exam) => <LearningListRow key={exam.id} title={locale === 'ja' ? exam.titleJa : exam.title} description={`${exam.questionCount} ${t.questions} · ${exam.totalDurationMinutes} ${t.minutes}`} status={exam.level} locale={locale} onOpen={() => onOpen(exam.id)}/>}/>}
   </section>;
 }

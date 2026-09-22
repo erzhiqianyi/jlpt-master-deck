@@ -7,7 +7,7 @@
 - Pages 项目 `jlpt-master-deck` 提供前端，通过 `API` Service Binding 调用独立 Worker `jlpt-api`。生产请求不再经过本机 Tunnel。
 - API 使用 SQLite Durable Object（`JlptDatabase`，实例 `primary-v1`）保存业务数据。现有代码大量依赖同步 SQLite 和多步事务，因此采用此方案保留语义；本次未创建或使用 D1。
 - 私有 R2 桶 `jlpt-media` 保存听力题、录音和 MCP 导出的备份。音频经 API 检查用户归属后读取，不公开桶。
-- Firebase 继续负责 Google 登录；Workers 使用 Google 公钥验证签名、项目、有效期及身份声明。`FIREBASE_CONFIG` 只包含公开 Web 配置，不需要服务账号私钥。Firestore 市场保持原配置。
+- Firebase 继续负责 Google 登录；Workers 使用 Google 公钥验证签名、项目、有效期及身份声明。`FIREBASE_CONFIG` 只包含公开 Web 配置，不需要服务账号私钥。分享市场只使用 Cloudflare SQLite 中的公共快照，不连接 Firestore。
 - 云端从空库开始，**没有迁移本地账号、学习记录或音频**。首次 Google 登录会创建云端账号；旧会话需要重新登录，MCP 需要重新授权。
 - 本地新闻、官方样题和模拟卷文件未上传，相关云端接口返回空列表或未同步提示。静态构建移除 `public/data`，Worker 也拒绝 `/data/*`。
 
@@ -70,3 +70,18 @@ python3 scripts/prepare-cloudflare-data.py
 - [Pages Service Bindings](https://developers.cloudflare.com/pages/functions/bindings/#service-bindings)
 - [Durable Objects SQLite](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
 - [D1 限制](https://developers.cloudflare.com/d1/platform/limits/)
+
+## 分享数据边界
+
+- Firebase 仅负责 Google 登录。忽略旧配置中的 `market: firestore`，前端不再加载 Firestore SDK。
+- 私有单词本及专项练习是发布源。客户端只提交 `kind`、`sourceId` 和可选标题/说明；后端检查归属，从数据库读取内容，剔除学习进度、个人备注和私有来源信息。
+- `market_shares.package_json` 是发布时生成的完整公共副本（`jlpt-share` v1），与源内容保存在同一个 Cloudflare Durable Object SQLite 数据库。`source_id`、`kind`、`user_id`、`created_at` 记录来源、发布者和发布时间；来源 ID 仅向发布者返回。
+- 发现页和详情页均从 `/api/market` 读取公共副本。发布后原始内容的修改或删除不改变此副本；再次发布产生新分享和新时间。部署静态网站或 Worker 不会重建数据库或清空分享。
+- 添加分享只提交 `shareId`，后端重新读取仍在发布的副本，然后创建当前用户的独立内容；不会相信客户端传来的预览数据。已有 JSON 文件导入接口保留，但不承担发布职责。
+- 撤回仅将 `withdrawn` 设为 1，公共列表/详情/按 ID 导入立即不可用；数据库保留副本，其他用户已经导入的私有内容不受影响。
+- “公共”表示已登录用户可访问的分享内容，不包含作者身份凭据或学习记录，也不开放匿名数据库读取。
+- 该公共副本保证源内容与分享内容独立，并非异地灾备。灾备仍应覆盖整个 Cloudflare 数据库。
+
+### 旧 Firestore 内容
+
+此变更不自动迁入旧 Firestore 内容，也不删除远端文档。切换后旧 Firestore 分享不再出现在发现页，旧链接返回找不到分享。需要保留的内容应先核验归属和内容，导入个人数据库后重新发布；不要将旧 Firestore 的 owner UID 当成 SQLite user ID。已要求移除的“汉字练习5-8”无需迁回新市场。

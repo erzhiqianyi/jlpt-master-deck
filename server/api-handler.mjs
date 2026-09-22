@@ -1,4 +1,4 @@
-import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importPackage, validatePackage } from './market.mjs';
+import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
 import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from './files.mjs';
 import { homedir } from 'node:os';
@@ -179,7 +179,10 @@ return async (req, res) => {
     if (url.pathname === '/api/market/sources' && req.method === 'GET') return json(res,200,sharingSources(user.id));
     if (url.pathname === '/api/market/preview' && req.method === 'POST') return json(res,200,{ package:sourcePackage(user.id,await readJson(req)) });
     if (url.pathname === '/api/market/validate' && req.method === 'POST') return json(res,200,{ package:validatePackage(await readJson(req)) });
-    if (url.pathname === '/api/market/import' && req.method === 'POST') return json(res,201,importPackage(user.id,await readJson(req)));
+    if (url.pathname === '/api/market/import' && req.method === 'POST') {
+      const input = await readJson(req);
+      return json(res,201,input?.shareId !== undefined ? importShare(user.id, input.shareId) : importPackage(user.id,input));
+    }
     if (url.pathname === '/api/market' && req.method === 'GET') return json(res,200,{shares:listShares(user.id)});
     if (url.pathname === '/api/market' && req.method === 'POST') return json(res,201,publishShare(user.id,await readJson(req)));
     const shareMatch = /^\/api\/market\/([^/]+)$/.exec(url.pathname);

@@ -26,7 +26,7 @@ const app = config
 export function authConfiguration() {
   return {
     mode: config ? "firebase" : "local",
-    market: config?.market === "firestore" ? "firestore" : "local",
+    market: "database",
     firebase: config
       ? Object.fromEntries(
           [

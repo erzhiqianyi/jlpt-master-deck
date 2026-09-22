@@ -94,7 +94,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         ) : (
           <LearningListFrame className="learning-catalog mt-4" label={labels.historyCaptureTab}>
             <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`} />
-            {captures.length ? <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} /> : <p className="list-empty" role="status">{labels.historyNoCaptures}</p>}
+            <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} />
             {listFooter}
           </LearningListFrame>
         )
@@ -114,9 +114,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
                 <LearningListHeader title={locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} count={`${filteredAttempts.length} / ${sortedAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`}>
                   <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
                 </LearningListHeader>
-                {filteredAttempts.length ? (
-                  <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
-                ) : <p className="list-empty" role="status">{labels.historyNoFilteredPractice}</p>}
+                <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
                 {listFooter}
               </LearningListFrame>
             </>
@@ -193,7 +191,6 @@ function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
   const accuracy = totals.total ? Math.round((totals.correct / totals.total) * 100) : 0;
   const latestAttempts = attempts;
   const title = locale === 'zh-CN' ? '今天结果' : locale === 'ja' ? '今日の結果' : 'Today';
-  const empty = locale === 'zh-CN' ? '今天还没有完成练习。' : locale === 'ja' ? '今日はまだ完了した練習がありません。' : 'No completed practice today.';
 
   const unit = locale === 'zh-CN' ? '次练习' : locale === 'ja' ? '回' : 'practices';
   return (
@@ -207,9 +204,9 @@ function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
             <div><dt>{locale === 'zh-CN' ? '正确率' : locale === 'ja' ? '正答率' : 'Accuracy'}</dt><dd>{accuracy}%</dd></div>
             <div><dt>{locale === 'zh-CN' ? '用时' : locale === 'ja' ? '時間' : 'Time'}</dt><dd>{formatDuration(totals.elapsedMs)}</dd></div>
           </dl>
-          <LearningList>{latestAttempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · ${attempt.summary?.total ?? attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
+          <LearningList locale={locale} columnLabels={[title, locale === "ja" ? "時間・問題数" : locale === "en" ? "Time / questions" : "时间与题数", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{latestAttempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit' }).format(new Date(attempt.completedAt ?? attempt.startedAt))} · ${attempt.summary?.total ?? attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
         </>
-      ) : <p className="list-empty" role="status">{empty}</p>}
+      ) : <LearningList locale={locale} columnLabels={[title, locale === "ja" ? "時間・問題数" : locale === "en" ? "Time / questions" : "时间与题数", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}/>}
     </LearningListFrame>
   );
 }
@@ -220,7 +217,7 @@ function CaptureTable({ labels, locale, captures, onSelect }: {
   captures: LearningCapture[];
   onSelect: (id: string) => void;
 }) {
-  return <LearningList>{captures.map((capture) => <LearningListRow key={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
+  return <LearningList locale={locale} columnLabels={[labels.historyCaptureTab, locale === "ja" ? "種類" : locale === "en" ? "Category" : "分类", locale === "ja" ? "状態" : locale === "en" ? "Status" : "状态"]}>{captures.map((capture) => <LearningListRow key={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
 
 }
 
@@ -379,7 +376,7 @@ function PracticeAttemptTable({ labels, locale, attempts, onSelect }: {
   // One flat list; the date moves into each row instead of splitting the list into day sections.
   const attemptDate = (attempt: PracticeAttempt) => new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
   return <div className="learning-history-list">
-    <LearningList>{attempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
+    <LearningList locale={locale} columnLabels={[locale === "ja" ? "練習" : locale === "en" ? "Practice" : "练习", locale === "ja" ? "日時・問題数・時間" : locale === "en" ? "Date / questions / duration" : "日期、题数与用时", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{attempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
   </div>;
 }
 
@@ -482,7 +479,7 @@ function PracticeAttemptDetail({ labels, locale, attempt, questions, onBack, sho
           </span>
         </div>
         {filteredAnswers.length ? <>
-        <LearningList>{filteredAnswers.map(({ answer, index }) => <LearningListRow key={`${answer.questionId}-${index}`} title={questionKeyText(questionMap.get(answer.questionId), answer)} description={questionMap.get(answer.questionId)?.prompt} statusKind={answer.correct ? 'correct' : 'incorrect'} status={answer.correct ? labels.correct : labels.wrong} locale={locale} onOpen={() => openQuestion(index)}/>)}</LearningList>
+        <LearningList locale={locale} columnLabels={locale === "ja" ? ["問題", "内容", "結果"] : locale === "en" ? ["Question", "Content", "Result"] : ["题目", "内容", "结果"]}>{filteredAnswers.map(({ answer, index }) => <LearningListRow key={`${answer.questionId}-${index}`} title={questionKeyText(questionMap.get(answer.questionId), answer)} description={questionMap.get(answer.questionId)?.prompt} statusKind={answer.correct ? 'correct' : 'incorrect'} status={answer.correct ? labels.correct : labels.wrong} locale={locale} onOpen={() => openQuestion(index)}/>)}</LearningList>
         </> : <p className="py-10 text-center text-sm text-[#7a807b]">{labels.historyNoFilteredAnswers}</p>}
       </div>
     </div>

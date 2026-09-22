@@ -7,7 +7,7 @@ const keys = createRemoteJWKSet(new URL('https://www.googleapis.com/service_acco
 const config = () => currentPlatform().firebase;
 export function authConfiguration() {
   const value = config();
-  return { mode: 'firebase', market: value.market === 'firestore' ? 'firestore' : 'local', firebase: Object.fromEntries(['apiKey','authDomain','projectId','appId','storageBucket','messagingSenderId'].filter(k => value[k]).map(k => [k,value[k]])) };
+  return { mode: 'firebase', market: 'database', firebase: Object.fromEntries(['apiKey','authDomain','projectId','appId','storageBucket','messagingSenderId'].filter(k => value[k]).map(k => [k,value[k]])) };
 }
 export async function firebaseSession(idToken, existingUser = null) {
   const { projectId } = config();

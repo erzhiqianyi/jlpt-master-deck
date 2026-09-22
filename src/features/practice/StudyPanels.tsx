@@ -1,3 +1,4 @@
+import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import type { QuestionReference } from '../../domain/questions';
 import { ShareButton } from '../../components/ShareButton';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
@@ -891,6 +892,10 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   const isGrammarLibrary = captureCategory === 'grammar';
   const isVocabularyLibrary = captureCategory === 'word';
   const showEntryHub = isGrammarLibrary || isVocabularyLibrary;
+  const collectionLabel = isGrammarLibrary
+    ? (locale === 'ja' ? '文法ノート' : locale === 'en' ? 'Grammar book' : '语法本')
+    : (locale === 'ja' ? '単語帳' : locale === 'en' ? 'Wordbook' : '单词本');
+
   const labels = bookLabels(baseLabels, isGrammarLibrary ? 'grammar' : 'vocabulary');
   // Both libraries share one design: the wordbooks offered here are the ones of the active family.
   const libraryWordbooks = wordbooksForFamily(wordbooks, isGrammarLibrary ? 'grammar' : 'vocabulary');
@@ -949,7 +954,6 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   const mobileItems = sortedItems.slice(0, mobileVisibleCount);
   const pageEnd = pageStart + pageItems.length;
   const mobilePageEnd = Math.min(mobileVisibleCount, sortedItems.length);
-  const showTagFilteredEmpty = showEntryHub && selectedTag && selectedTag !== allTagValue && !sortedItems.length;
 
   useEffect(() => {
     setPageIndex((index) => Math.min(index, pageCount - 1));
@@ -1225,18 +1229,30 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
           </div>
         </form>
       ) : null}
-      {showEntryLibrary && sortedItems.length ? (
+      {showEntryLibrary ? (
         <>
-        <LearningList>{(mobileList.mobile ? mobileItems : pageItems).map((item) => <LearningListRow key={item.id} title={item.original} reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading} description={isVocabularyLibrary ? undefined : itemMeaning(item, locale)} statusKind={progress[item.id]?.status ?? "new"} status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew} locale={locale} onOpen={() => onOpen(item.id)}/>)}</LearningList>
-        {mobileList.mobile
+        <LearningList locale={locale} columns={showEntryHub ? <LearningListColumns locale={locale}
+          title={isGrammarLibrary ? (locale === 'ja' ? '文型' : locale === 'en' ? 'Grammar' : '句型') : (locale === 'ja' ? '単語' : locale === 'en' ? 'Word' : '单词')}
+          collectionLabel={collectionLabel} showPartOfSpeech={isVocabularyLibrary}/> : undefined}>{(mobileList.mobile ? mobileItems : pageItems).map((item) => {
+          const missingBook = locale === 'ja' ? '不明' : locale === 'en' ? 'Unknown' : '未知';
+          const wordbookId = itemWordbookId(item);
+          const wordbookTitle = wordbooks.find((book) => book.id === wordbookId)?.title
+            ?? (wordbookId === item.deck ? deckLabels[item.deck] : missingBook);
+          return <LearningListRow key={item.id}
+            title={item.original}
+            reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading}
+            description={showEntryHub ? undefined : itemMeaning(item, locale)}
+            metadata={showEntryHub ? <LearningListMetadata locale={locale}
+              addedAt={item.input_at ?? item.date} collectionLabel={collectionLabel} collection={wordbookTitle}
+              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech}/> : undefined}
+            statusKind={progress[item.id]?.status ?? "new"}
+            status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew}
+            locale={locale} onOpen={() => onOpen(item.id)}/>;
+        })}</LearningList>
+        {sortedItems.length > 0 && (mobileList.mobile
           ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd >= sortedItems.length ? labels.mobileNoMore : null}</div>
-          : <LearningListPagination page={currentPage} pages={pageCount} onChange={setPageIndex} summary={`${pageStart + 1}-${pageEnd} / ${sortedItems.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext}/>}
+          : <LearningListPagination page={currentPage} pages={pageCount} onChange={setPageIndex} summary={`${pageStart + 1}-${pageEnd} / ${sortedItems.length} ${labels.items}`} previous={labels.entryPagePrev} next={labels.entryPageNext}/>)}
         </>
-      ) : showEntryLibrary ? (
-        <section className="cute-practice-card min-w-0 border border-dashed p-6">
-          <h2 className="text-2xl font-black text-[#3d3036]">{showTagFilteredEmpty ? labels.entryNoFilteredItems : labels.moduleEmptyTitle}</h2>
-          <p className="mt-3 text-sm leading-7 text-[#74646b]">{showTagFilteredEmpty ? labels.entryNoFilteredItemsBody : labels.moduleEmptyBody}</p>
-        </section>
       ) : null}
     </LearningListFrame>
   );
@@ -1351,7 +1367,7 @@ export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, it
         </form>
       ) : null}
       <div className="p-4">
-        <LearningList>{familyWordbooks.map((wordbook) => editingWordbookId === wordbook.id ? (
+        <LearningList hasActions columnLabels={[labels.wordbookFilter, null, null]}>{familyWordbooks.map((wordbook) => editingWordbookId === wordbook.id ? (
 <form key={wordbook.id} onSubmit={renameWordbook} className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   value={editingWordbookTitle}
@@ -1371,7 +1387,6 @@ export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, it
                 </div>
               </form>
         ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
-        {!familyWordbooks.length ? <p className="learning-list-empty">{labels.wordbookManageEmpty}</p> : null}
         {renameWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{renameWordbookError}</p> : null}
       </div>
     </section>
@@ -1682,13 +1697,22 @@ function VocabCard({
       {item.collocations?.length ? (
         <section className="mt-5 border-t border-[#f0d4dd] pt-5">
           <h4 className="text-xs font-bold text-[#a84269]">{labels.collocationsLabel}</h4>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {item.collocations.slice(0, 4).map((collocation) => (
-              <span key={collocation} className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-semibold text-[#8f365b]">
-                <RubyText text={collocation} items={[item]} enabled={showRuby} />
-              </span>
-            ))}
-          </div>
+          <ol className="mt-3 space-y-4">
+            {item.collocations.slice(0, 4).map((collocation, collocationIndex) => {
+              const separatorIndex = collocation.search(/[：:]/);
+              const phrase = (separatorIndex < 0 ? collocation : collocation.slice(0, separatorIndex)).trim();
+              const translation = separatorIndex < 0 ? '' : collocation.slice(separatorIndex + 1).trim();
+              return (
+                <li key={`${collocation}-${collocationIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
+                  <p className="text-sm font-bold leading-7 text-[#3d3036]">
+                    <span className="journal-number mr-2 text-[#a84269]">{collocationIndex + 1}.</span>
+                    <RubyText text={phrase} items={[item]} enabled={showRuby} />
+                  </p>
+                  {translation ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{translation}</p> : null}
+                </li>
+              );
+            })}
+          </ol>
         </section>
       ) : null}
       {!isGrammarEntry && examples.length ? (

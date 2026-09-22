@@ -205,3 +205,23 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, .7fr) minmax(0, .7fr); gap: 20px; grid-column: 2; grid-row: 1;
 }
 .news-list-secondary { display: block; margin-top: 4px; font-size: 12px; line-height: 1.6; color: #657a70; }
+
+/* Phone vocabulary lists keep only the word/reading and part of speech. */
+@media (max-width: 767px) {
+  .learning-list-columns:has(> .vocabulary-column-header) { min-width: 0; }
+  .learning-list-columns > .vocabulary-column-header,
+  .ledger-word-index .learning-list-columns:has(> .vocabulary-column-header) .list-item-open.has-metadata {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr);
+    gap: 16px;
+    padding: 14px 16px;
+  }
+  .vocabulary-column-header .list-column-metadata,
+  .ledger-word-index .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .vocabulary-column-header .list-column-metadata > :not(.list-part-of-speech),
+  .learning-list-columns:has(> .vocabulary-column-header) .list-item-metadata > :not(.list-part-of-speech) {
+    display: none;
+  }
+}

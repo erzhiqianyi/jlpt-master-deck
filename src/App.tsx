@@ -45,7 +45,7 @@ import { SettingsView } from './features/settings/SettingsView';
 import { AgentConsentPage, isAgentConsentPage } from './features/agents/AgentConsentPage';
 import { PublicIntroPanel } from './features/about/PublicIntroPanel';
 import { translations } from './i18n/translations';
-import { apiRequest } from './lib/api';
+import { ApiError, apiRequest } from './lib/api';
 import type {
   AnswerState,
   AppRoute,
@@ -132,6 +132,7 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [sessionLoadError, setSessionLoadError] = useState('');
   const [authNotice, setAuthNotice] = useState('');
   const [authMode, setAuthMode] = useState<'local' | 'firebase' | null>(null);
   const [firebaseLinked, setFirebaseLinked] = useState(false);
@@ -224,6 +225,7 @@ export default function App() {
     let cancelled = false;
 
     async function restoreSession() {
+      setSessionLoadError('');
       if (!authToken) {
         setAuthLoading(false);
         return;
@@ -276,10 +278,14 @@ export default function App() {
         setAuthError('');
       } catch (error) {
         if (!cancelled) {
-          localStorage.removeItem(STORAGE_TOKEN);
-          setAuthToken('');
-          setUser(null);
-          setAuthError(error instanceof Error ? error.message : 'Session expired');
+          if (error instanceof ApiError && error.status === 401) {
+            localStorage.removeItem(STORAGE_TOKEN);
+            setAuthToken('');
+            setUser(null);
+            setAuthError('登录已过期，请重新登录');
+          } else {
+            setSessionLoadError(error instanceof Error ? error.message : '学习数据加载失败');
+          }
         }
       } finally {
         if (!cancelled) setAuthLoading(false);
@@ -1388,6 +1394,12 @@ export default function App() {
   }
 
   if (authLoading && !user) return <LoadingScreen />;
+  if (sessionLoadError) return <main className="mx-auto max-w-xl p-8" role="alert">
+    <h1>学习数据暂时无法加载</h1>
+    <p className="my-4">登录状态已保留，请重试加载。</p>
+    <details className="my-4"><summary>查看详情</summary><p>{sessionLoadError}</p></details>
+    <button className="cute-button-primary px-4 py-2" onClick={() => window.location.reload()}>重新加载</button>
+  </main>;
   // An MCP client sent the browser to the OAuth consent page: sign in first, then approve/deny.
   const consentPage = isAgentConsentPage();
   if (!user) {

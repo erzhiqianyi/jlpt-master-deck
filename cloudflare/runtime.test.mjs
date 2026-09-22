@@ -23,6 +23,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/me','GET',undefined,'')).status,401);
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
     await request('/__seed');
+    assert.ok((await json('/api/study-plan')).plan.profile);
     const empty=await json('/api/review-data');
     assert.equal(JSON.stringify(empty).includes('面目躍如'),false);
     const book=(await json('/api/wordbooks','POST',{title:'Cloud isolation',deck:'n1_vocab'})).wordbook;

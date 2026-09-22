@@ -1,3 +1,10 @@
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function apiRequest<T = unknown>(
   path: string,
   options: { method?: string; token?: string; body?: unknown; timeoutMs?: number } = {},
@@ -13,7 +20,7 @@ export async function apiRequest<T = unknown>(
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(typeof json.error === 'string' ? json.error : `Request failed: ${response.status}`);
+    throw new ApiError(typeof json.error === 'string' ? json.error : `Request failed: ${response.status}`, response.status);
   }
   return json as T;
 }

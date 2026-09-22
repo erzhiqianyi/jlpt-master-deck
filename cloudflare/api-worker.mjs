@@ -27,6 +27,7 @@ export class JlptDatabase extends DurableObject {
           this.db.prepare('INSERT INTO cloud_schema_version(version) VALUES(1)').run();
         }
         migrateCloudSchemaV2(this.db);
+        migrateCloudSchemaV3(this.db);
         migrateReviewItemOwnership(this.db);
         ensureQuerySchema(this.db);
         ensureReferenceSchema(this.db);
@@ -111,6 +112,23 @@ export class JlptDatabase extends DurableObject {
     await createApiHandler({mcp,mcpListener(){throw new Error('MCP request was not routed');}})(req,res);
     return response ?? new Response('Not found',{status:404});
   }
+}
+
+function migrateCloudSchemaV3(db) {
+  // Existing databases do not replay 0001.sql when its contents change.
+  // Create the audio registry before reference backfills access it.
+  db.exec(`CREATE TABLE IF NOT EXISTS listening_audio_assets (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    file_name TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    audio_path TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(user_id, sha256)
+  );
+  INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(3);`);
 }
 
 function migrateCloudSchemaV2(db) {

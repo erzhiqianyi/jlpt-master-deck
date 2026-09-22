@@ -2,6 +2,12 @@
 import { JlptDatabase } from '../api-worker.mjs';
 const fetchProduction = JlptDatabase.prototype.fetch;
 JlptDatabase.prototype.fetch = async function(request) {
+    if (new URL(request.url).pathname === '/__legacy-audio-schema') {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        this.db.exec('DROP TABLE listening_audio_assets; DELETE FROM cloud_schema_version WHERE version=3;');
+        return new Response('legacy schema restored');
+      });
+    }
     if (new URL(request.url).pathname === '/__seed') {
       return this.ctx.blockConcurrencyWhile(async () => {
         for (const id of [1,2]) {

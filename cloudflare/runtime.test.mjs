@@ -42,6 +42,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/reading-questions/' + reading.id, 'PATCH', { explanation: 'stolen' }, 'test-2')).status, 404);
     assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
     const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],answerIndex:2,audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
+    // Model an existing v2 database: 0001 already ran, but the later audio table is absent.
+    assert.equal((await request('/__legacy-audio-schema')).status, 200);
+    await mf.dispose(); mf=new Miniflare(options);
+    assert.equal((await json('/api/health')).databaseReady, true);
+    assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '更新总解析');
     const failed=await mf.dispatchFetch(origin+'/api/listening-questions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
     assert.equal(failed.status,503);
     assert.equal((await json('/api/listening-questions')).questions.length,0,'failed R2 upload rolls back SQL');

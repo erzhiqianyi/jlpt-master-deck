@@ -6,12 +6,14 @@
 // Views are recreated on every startup so a definition change never needs a migration.
 
 const views = {
+  mcp_reading_questions: `SELECT * FROM reading_questions`,
   // Account-owned item library. jlpt_level is kept verbatim: the data holds N1, N2-N1, unknown, ...
   // wordbook_id mirrors storage.itemWordbookId(): explicit wordbook_id, else legacy wordbook_ids[0],
   // else the built-in wordbook of the deck. tags_json is the raw JSON array ('[]' when absent).
   mcp_items: `
     SELECT
       r.id,
+      (SELECT rr.prefix || '-' || printf('%06d', rr.number) FROM record_references rr WHERE rr.user_id=r.user_id AND rr.entity='item' AND rr.internal_id=r.id) AS reference,
       r.user_id,
       json_extract(r.item_json, '$.deck') AS deck,
       json_extract(r.item_json, '$.type') AS type,
@@ -42,6 +44,7 @@ const views = {
   mcp_questions: `
     SELECT
       json_extract(q.value, '$.id') AS id,
+      (SELECT rr.prefix || '-' || printf('%06d', rr.number) FROM record_references rr WHERE rr.user_id=d.user_id AND rr.entity='question' AND rr.internal_id=json_extract(q.value, '$.id')) AS reference,
       d.user_id,
       d.id AS practice_id,
       d.practice_date,
@@ -90,6 +93,7 @@ const views = {
   mcp_practice_sessions: `
     SELECT
       d.id,
+      (SELECT rr.prefix || '-' || printf('%06d', rr.number) FROM record_references rr WHERE rr.user_id=d.user_id AND rr.entity='practice_session' AND rr.internal_id=d.id) AS reference,
       d.user_id,
       d.practice_date,
       d.version,
@@ -104,7 +108,7 @@ const views = {
 
 // Tables whose writes must invalidate open cursors. practice_state is included because
 // savePracticeState rewrites answers through it.
-const revisionedTables = ['answers', 'daily_practices', 'owned_review_items', 'user_review_items'];
+const revisionedTables = ['answers', 'daily_practices', 'owned_review_items', 'user_review_items', 'reading_questions'];
 
 export function ensureQuerySchema(db) {
   db.exec(`

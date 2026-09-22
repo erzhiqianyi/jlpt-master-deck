@@ -11,7 +11,7 @@ import { useMobileList } from '../../hooks/useMobileList';
 import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
-type PracticeEntry = { description?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
+type PracticeEntry = { reference?: string; description?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
 type PracticeGroup = { action?: () => void; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; entries: PracticeEntry[] };
 const MIXED_ENTRY_PAGE_SIZE = 8;
 
@@ -124,7 +124,7 @@ function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
   const [page, setPage] = useState(0);
   const filtered = entries.filter((entry) =>
     (status === 'all' || entry.status === status)
-    && entry.title.normalize('NFKC').toLocaleLowerCase().includes(query.trim().normalize('NFKC').toLocaleLowerCase())
+    && `${entry.reference ?? ''} ${entry.title}`.normalize('NFKC').toLocaleLowerCase().includes(query.trim().normalize('NFKC').toLocaleLowerCase())
   ).sort((a, b) => sort === 'title'
     ? a.title.localeCompare(b.title, 'zh-CN', { numeric: true })
     : (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
@@ -144,7 +144,7 @@ function TopicPracticeList({ entries }: { entries: PracticeEntry[] }) {
         <label className="topic-panel-sort"><span className="sr-only">排序</span><select aria-label="排序" value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">最近更新</option><option value="title">标题顺序</option></select></label>
       </LearningListHeader>
       {query || status !== 'all' ? <div className="topic-search-summary" role="status">找到 {filtered.length} 套练习<button type="button" onClick={() => { setQuery(''); setStatus('all'); setPage(0); }}>重置筛选</button></div> : null}
-      <LearningList hasActions columnLabels={["练习", "题数", "状态"]}>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} status={entry.status === "ready" ? "可练习" : "待确认"} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} /> : undefined} description={entry.count ? `${entry.count} 题` : undefined} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? '练习' : '确认'} onOpen={entry.action}/>)}</LearningList>
+      <LearningList hasActions columnLabels={["练习", "题数", "状态"]}>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} references={[entry.reference]} status={entry.status === "ready" ? "可练习" : "待确认"} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} /> : undefined} description={entry.count ? `${entry.count} 题` : undefined} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? '练习' : '确认'} onOpen={entry.action}/>)}</LearningList>
       {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd < filtered.length ? null : '已经到底了'}</div> : null}
       {!mobileList.mobile && pages > 1 ? <LearningListPagination page={currentPage} pages={pages} onChange={setPage}/> : null}
     </LearningListFrame>

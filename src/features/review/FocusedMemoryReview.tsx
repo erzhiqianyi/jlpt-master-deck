@@ -1,3 +1,4 @@
+import { StudyText } from '../../components/StudyText';
 import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { itemAnalysis, itemMeaning, itemMemory } from '../../domain/items';
@@ -213,9 +214,9 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'meaning': return scalar(itemMeaning(item, locale));
     case 'meaning_ja': return scalar(item.meaning_ja, 'ja');
     case 'paraphrase_ja': return scalar(item.paraphrase_ja, 'ja');
-    case 'core_memory': return scalar(itemMemory(item, locale));
-    case 'explanation_zh': return scalar(item.explanation_zh);
-    case 'analysis': return scalar(itemAnalysis(item, locale));
+    case 'core_memory': return itemMemory(item, locale) ? <StudyText text={itemMemory(item, locale) ?? ''} /> : null;
+    case 'explanation_zh': return item.explanation_zh ? <StudyText text={item.explanation_zh ?? ''} /> : null;
+    case 'analysis': return itemAnalysis(item, locale) ? <StudyText text={itemAnalysis(item, locale) ?? ''} /> : null;
     case 'base_form': return scalar(item.base_form, 'ja');
     case 'usage_register': return scalar(item.usage_register_zh ?? item.usage_register);
     case 'exam_register_zh': return scalar(item.exam_register_zh);

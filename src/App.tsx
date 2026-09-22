@@ -2,6 +2,7 @@ import { listeningPracticeKey, recordListeningPractice } from './domain/listenin
 'use client';
 
 import { LoginLanding } from './features/auth/LoginLanding';
+import { AppNoticeDialog } from './components/AppNoticeDialog';
 import { AuthoringNavigation, type AuthoringLocation } from './components/AuthoringNavigation';
 
 import { configureFirebase, googleIdToken, firebaseLogout } from './lib/firebase';
@@ -535,7 +536,7 @@ export default function App() {
     return drafts.filter(isTopicDraft).map((draft) => {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
       return {
-        key: draft.id, title: draft.title,
+        key: draft.id, title: draft.title, reference: practice?.reference ?? draft.reference,
         share: practice ? (description: string) => shareLearningContent('practice', practice.id, description) : undefined,
         description: practice?.description ?? '',
         status: practice || ['approved', 'archived'].includes(draft.status) ? 'ready' as const : 'pending' as const,
@@ -1577,11 +1578,7 @@ export default function App() {
             </div>
           </div>
 
-          {authError ? (
-            <div className="mx-auto mt-3 w-full max-w-7xl px-4 md:px-8 lg:px-10">
-              <p className="rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm font-semibold text-[#775516]">{authError}</p>
-            </div>
-          ) : null}
+          {authError ? <AppNoticeDialog message={authError} onDismiss={() => setAuthError('')} /> : null}
 
           {pageLoading ? <div className="flex min-h-64 flex-1 items-center justify-center p-8" role="status" aria-live="polite" aria-busy="true">
             <div className="rounded-2xl border border-[#f0d4dd] bg-white px-8 py-6 text-center shadow-sm">
@@ -1839,6 +1836,7 @@ export default function App() {
 	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <PracticePanel
+                  token={authToken}
                   loading={batch.loading}
                   activeQuestion={activeQuestion}
                   questions={questions}
@@ -1924,6 +1922,7 @@ export default function App() {
                 />
               ) : (
                 <PracticeReviewPanel
+                  token={authToken}
                   attempt={reviewAttempt}
                   questions={materializedQuestions}
                   answers={answers}

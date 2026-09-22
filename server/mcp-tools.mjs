@@ -1,3 +1,7 @@
+import { currentPlatform } from './platform.mjs';
+import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
+import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
+import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
 import { readingFields } from './reading-schema.mjs';
 // Tool catalogue shared by the OAuth-protected HTTP MCP server (server/mcp-app.mjs) and the
 // legacy stdio server (server/mcp-server.mjs). Handlers receive `uid(ctx)`; nothing about the
@@ -29,6 +33,10 @@ import {
   getPlanGenerationContext,
   getPracticeSession,
   getStudyPlan,
+  getStudyState,
+  getHistoryQuestions,
+  findListeningAudioQuestions,
+  listListeningRecordings,
   listDueReviews,
   listListeningQuestions,
   listPendingListeningRecordings,
@@ -69,6 +77,21 @@ const found = (value, message) => {
   return value;
 };
 
+// Match the local-only REST material boundary; never expose workstation files through a tunnel.
+function requireLocalMaterials(ctx) {
+  if (currentPlatform()?.dataSource) throw new Error('Local study materials are unavailable in the cloud environment');
+  if (ctx.clientId === 'stdio' && ctx.request == null) return;
+  const request = ctx.request;
+  const host = request && new URL(request.url).hostname;
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(host)
+      || request.headers.get('x-forwarded-host') || request.headers.get('forwarded')) {
+    throw new Error('Local study materials require a localhost MCP connection or local stdio');
+  }
+}
+function requireLocalNews() {
+  if (currentPlatform()?.dataSource) throw new Error('Local news materials are unavailable in the cloud environment');
+}
+
 const dateString = z.string().describe('YYYY-MM-DD');
 const choices = z.array(z.string()).min(2).max(6);
 
@@ -102,7 +125,15 @@ const recordingAnalysis = z.object({
   nextPractice: z.string(),
 });
 
-const tool = (name, description, inputSchema, annotations, handler, extra = {}) => ({ name, description, inputSchema, annotations, handler, ...extra });
+const tool = (name, description, inputSchema, annotations, handler, extra = {}) => ({ name, description, inputSchema, annotations, handler: async (args, ctx) => {
+  const result = await handler(args, ctx);
+  if (result.isError || name.includes('market') || name.includes('local_')) return result;
+  return { ...result, ...(result.structuredContent ? { structuredContent: decorateReferences(getDb(), uid(ctx), result.structuredContent) } : {}),
+    content: result.content.map(block => {
+      if (block.type !== 'text') return block;
+      try { return { ...block, text: JSON.stringify(decorateReferences(getDb(), uid(ctx), JSON.parse(block.text)), null, 2) }; } catch { return block; }
+    }) };
+}, ...extra });
 
 // Practice questions shown to the agent omit the answer key until the question is answered, so the
 // learner (not the model) does the work; the same shape drives the inline MCP App view.
@@ -119,6 +150,22 @@ const practiceFilters = {
 };
 
 export const tools = [
+  tool('get_reference_metadata', 'Read owned listening, audio asset, recording, capture or wordbook metadata by public reference. Does not expose audio bytes or filesystem paths.',
+    { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(getReferenceMetadata(getDb(), uid(ctx), reference), 'Reference not found'))),
+  tool('get_reference_question', 'Read an immutable browser-generated question snapshot by reference. Answer and explanations remain hidden until answered.',
+    { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(getReferenceQuestion(getDb(), uid(ctx), reference), 'Question not found'))),
+  tool('list_local_official_samples', 'Read official sample data used on the page, optionally filtered by module. Available only through localhost or local stdio, not cloud or tunnel.',
+    { module: z.string().optional() }, ro, async ({ module }, ctx) => { requireLocalMaterials(ctx); return text(readLocalOfficialSamples(module)); }),
+  tool('list_local_mock_exams', 'Read the local mock exam catalogue. Requires localhost or local stdio.',
+    {}, ro, async (_args, ctx) => { requireLocalMaterials(ctx); return text(readLocalMockExamManifest()); }),
+  tool('get_local_mock_exam', 'Read a complete local mock exam, including reading passages. Requires localhost or local stdio.',
+    { id: z.string().regex(/^[A-Za-z0-9_-]+$/) }, ro, async ({ id }, ctx) => { requireLocalMaterials(ctx); return text(found(readLocalMockExam(id), 'Local mock exam not found')); }),
+  tool('list_local_news_cycles', 'Read the local news practice cycle catalogue. Unavailable on Cloudflare; connect to the local backend.',
+    {}, ro, async (_args, ctx) => { requireLocalNews(); return text({ cycles: readLocalNewsCycles(uid(ctx)) }); }),
+  tool('get_local_news_cycle', 'Read a local news cycle with all module questions, including reading passages and audio references. Omit id for the latest cycle. Unavailable on Cloudflare.',
+    { id: z.string().regex(/^\d{4}-W\d{2}$/).optional() }, ro, async ({ id }, ctx) => { requireLocalNews(); return text(readLocalNewsCycle(id, uid(ctx))); }),
+  tool('resolve_reference', 'Resolve a visible reference such as IT-000123, PR-000045 or QU-000678 within the authenticated account. Returns the original ID and the next lookup tool. Resolve before using existing update tools; never guess IDs.',
+    { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(resolveReference(getDb(), uid(ctx), reference), 'Reference not found'))),
   // Every library operation is bound to the authenticated owner.
   tool('get_review_data', 'Read JLPT review items from your personal SQLite item library. JSON files are treated as export/import backups.',
     {}, ro, async (_args, ctx) => text(loadReviewData(uid(ctx)))),
@@ -129,6 +176,19 @@ export const tools = [
     {}, rw, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
 
   // Everything below is filtered by uid(ctx) inside storage.mjs.
+  tool('get_study_state', 'Read the same learning state as the web page: settings, answers, item progress, complete attempt history and active attempt.',
+    {}, ro, async (_args, ctx) => text(getStudyState(uid(ctx)))),
+  tool('get_history_questions', 'Read the same generated-question details as the history page for completed attempts with wrong answers or related items. Read full attempt snapshots through get_study_state.',
+    {}, ro, async (_args, ctx) => text(getHistoryQuestions(uid(ctx)))),
+  tool('list_market_sources', 'List your wordbooks and practices available for sharing, as shown in the sharing page.',
+    {}, ro, async (_args, ctx) => text(sharingSources(uid(ctx)))),
+  tool('list_market_shares', 'List currently published marketplace shares visible to the authenticated learner.',
+    {}, ro, async (_args, ctx) => text(listShares(uid(ctx)))),
+  tool('get_market_share', 'Read one published share and its complete content package, with the same visibility rules as the web page.',
+    { id: z.string() }, ro, async ({ id }, ctx) => text(shareDetail(uid(ctx), id))),
+  tool('preview_market_source', 'Preview a share package from your own wordbook or practice without publishing it.',
+    { kind: z.enum(['wordbook', 'practice']), sourceId: z.string(), title: z.string().optional(), description: z.string().optional() }, ro,
+    async (args, ctx) => text({ package: sourcePackage(uid(ctx), args) })),
   tool('get_study_record', 'Read the full personalized study record from SQLite plus JSON resources.',
     {}, ro, async (_args, ctx) => text(buildStudyRecord(uid(ctx)))),
   tool('list_learning_captures', 'Read the learner inputs that still need explanation, organization, or conversion into review material.',
@@ -165,6 +225,12 @@ export const tools = [
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
   tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata. Audio bytes stay in local storage.",
     {}, ro, async (_args, ctx) => text(listListeningQuestions(uid(ctx)))),
+  tool('find_listening_audio_questions', 'Find your listening questions attached to an audio SHA-256, matching the web audio lookup.',
+    { sha256: z.string().regex(/^[a-f0-9]{64}$/) }, ro,
+    async ({ sha256 }, ctx) => text(findListeningAudioQuestions(uid(ctx), sha256))),
+  tool('list_listening_recordings', 'Read all your recordings for a listening question, including completed analyses; this does not claim or change a recording.',
+    { question_id: z.string() }, ro,
+    async ({ question_id }, ctx) => text(listListeningRecordings(uid(ctx), question_id))),
   tool('create_listening_question', 'Create a local listening question from agent-prepared metadata and audio bytes. Use only when real local audioBase64 is available.', {
     title: z.string().optional(),
     questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),

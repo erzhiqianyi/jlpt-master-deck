@@ -297,3 +297,5 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
     overflow: hidden;
   }
 }
+
+.list-item-references { display: flex; flex-wrap: wrap; gap: 2px 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, monospace; color: #657a70; user-select: text; overflow-wrap: anywhere; }

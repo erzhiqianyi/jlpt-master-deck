@@ -5054,6 +5054,16 @@ dialog.app-confirmation::backdrop { background: #1c30284d; backdrop-filter: blur
 .app-confirmation button { min-height: 46px; padding: 10px 20px; border: 1px solid #b8cbbd; border-radius: 10px; background: #fffefa; color: #385642; font-size: 16px; font-weight: 650; }
 .app-confirmation button.is-primary { background: #285941; border-color: #285941; color: white; }
 .app-confirmation button.is-danger { background: #a83d33; border-color: #a83d33; color: white; }
+dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidden; max-height: min(80dvh, 720px); }
+.app-notice-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.app-notice footer { flex-shrink: 0; }
+.app-notice-details { margin-top: 20px; border-top: 1px solid #e0e8df; padding-top: 16px; }
+.app-notice-details summary { cursor: pointer; padding: 8px 0; font-weight: 650; color: #385642; }
+.app-notice-details summary:focus-visible { outline: 3px solid #52826a; outline-offset: 3px; border-radius: 4px; }
+.app-notice-details section { margin-top: 16px; }
+.app-notice-details h3 { font-weight: 700; margin-bottom: 6px; }
+.app-notice-details ul { padding-left: 20px; list-style: disc; color: #52665a; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.app-notice #app-notice-description { white-space: pre-wrap; }
 .app-confirmation button:hover { filter: brightness(.95); }
 .app-confirmation button:focus-visible { outline: 3px solid #52826a; outline-offset: 3px; }
 @media (max-width: 480px) { .app-confirmation .app-confirmation-body { padding: 24px 20px; } .app-confirmation footer { padding: 16px 20px; } .app-confirmation button { flex: 1; } }

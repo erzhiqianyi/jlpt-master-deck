@@ -1,0 +1,32 @@
+.study-text {
+  min-width: 0;
+  max-width: 68ch;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.study-text > p,
+.study-text > ul,
+.study-text > ol { margin: 0; }
+.study-text > * + * { margin-top: .8em; }
+.study-text > h4 {
+  margin: 1.3em 0 .4em;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.6;
+  color: inherit;
+}
+.study-text > :first-child { margin-top: 0; }
+.study-text > p { white-space: pre-wrap; }
+.study-text > ul { list-style: disc; padding-inline-start: 1.5em; }
+.study-text > ol { list-style: decimal; padding-inline-start: 1.8em; }
+.study-text li { padding-inline-start: .15em; white-space: pre-wrap; }
+.study-text li + li { margin-top: .45em; }
+.study-text strong { font-weight: 700; }
+.study-text code {
+  padding: .1em .3em;
+  border-radius: .25em;
+  background: #64746b12;
+  font-size: .92em;
+  white-space: pre-wrap;
+}

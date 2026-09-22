@@ -1,3 +1,4 @@
+import { RecordReference } from '../../components/RecordReference';
 import { listeningPracticeKey } from '../../domain/listeningPractice';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { LearningCatalog } from '../../components/LearningCatalog';
@@ -362,12 +363,13 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
         items={audioGroups}
         locale={locale}
         tools={<><LearningListSelect label="题型" value={typeFilter} onChange={(value) => setTypeFilter(value)} hideLabel><option value="all">全部题型</option>{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</LearningListSelect><LearningListSelect label="排序" value={sortOrder} onChange={(value) => setSortOrder(value)} hideLabel><option value="newest">最新添加</option><option value="oldest">最早添加</option></LearningListSelect></>}
-        searchText={(item) => `${item.representative.audioFileName} ${item.questions.map((question) => `${listeningQuestionTypeName(question.questionTypeId)} ${question.title}`).join(' ')}`}
+        searchText={(item) => `${item.representative.audioReference ?? ''} ${item.representative.audioFileName} ${item.questions.map((question) => `${question.reference ?? ''} ${listeningQuestionTypeName(question.questionTypeId)} ${question.title}`).join(' ')}`}
         renderRow={(item) => {
           const addedAt = item.questions.map((question) => question.createdAt)
             .filter((value) => value && Number.isFinite(Date.parse(value)))
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           return <LearningListRow key={item.key} title={item.representative.audioFileName}
+            references={item.representative.audioReference ? [item.representative.audioReference] : item.questions.map(question => question.reference)}
             metadata={<>
               <span><span className="sr-only">{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
               <span>{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
@@ -480,6 +482,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
     <div className="p-4 md:p-6">
       <div className="min-w-0">
         <h2 className="break-words text-2xl font-black text-[#3d3036]">{item.title}</h2>
+        <RecordReference reference={item.reference} locale={locale} />
         <p className="mt-1 text-xs text-[#8f6f7b]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)}</p>
       </div>
       <div className="mt-5">
@@ -576,6 +579,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
     <article className={`min-w-0 bg-white p-4 md:p-6 ${detail ? '' : 'rounded-md border border-[#d8e0d7]'}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
+          <RecordReference reference={item.reference} locale={locale} />
           <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber} · ${listeningQuestionTypeName(item.questionTypeId)}` : item.title}</h3>
           {showAudio ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
         </div>

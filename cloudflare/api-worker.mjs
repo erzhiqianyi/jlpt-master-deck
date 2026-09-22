@@ -6,6 +6,7 @@ import { createApiHandler } from '../server/api-handler.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
 import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser } from '../server/storage.mjs';
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
+import { ensureReferenceSchema } from '../server/references.mjs';
 import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
@@ -28,6 +29,7 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV2(this.db);
         migrateReviewItemOwnership(this.db);
         ensureQuerySchema(this.db);
+        ensureReferenceSchema(this.db);
       });
     });
   }

@@ -22,16 +22,19 @@ export function LearningList({ children, columns, locale = 'zh-CN', columnLabels
   </div></div>;
 }
 
-export function LearningListRow({ title, reading, description, metadata, status, statusKind, locale, onOpen, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
-  title: ReactNode; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
+export function LearningListRow({ title, references, reading, description, metadata, status, statusKind, locale, onOpen, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
+  title: ReactNode; references?: (string | undefined)[]; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
   locale?: string; onOpen: () => void; actionLabel?: string; actionIcon?: ReactNode; trailing?: ReactNode; secondary?: ReactNode; expanded?: boolean; compact?: boolean; inlineActions?: boolean;
 }) {
+  const referenceCodes = [...new Set((references ?? []).filter((code): code is string => Boolean(code)))];
+  const referenceLabel = locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号';
+  const referenceText = referenceCodes.length ? <span className="list-item-references" aria-label={`${referenceLabel} ${referenceCodes.join(', ')}`}>{referenceCodes.map(code => <span key={code}>{code}</span>)}</span> : null;
   const standard = useContext(StandardListContext);
   const labels = useContext(ListLabelsContext);
   const action = actionLabel ?? (expanded ? (locale === 'ja' ? '閉じる' : locale === 'en' ? 'Collapse details' : '收起详情') : (locale === 'ja' ? '詳細を見る' : locale === 'en' ? 'View details' : '查看详情'));
   if (standard) return <div className="standard-list-row" role="listitem">
     <button type="button" className="standard-list-open standard-list-fields" aria-expanded={expanded} onClick={onOpen}>
-      <span className="list-item-name"><strong>{title}</strong>{reading ? <span className="list-item-reading">{reading}</span> : null}</span>
+      <span className="list-item-name"><strong>{title}</strong>{referenceText}{reading ? <span className="list-item-reading">{reading}</span> : null}</span>
       <span className="standard-list-description" data-mobile-label={labels[1] ?? undefined}>{description || '—'}</span>
       <span className="standard-list-status" data-mobile-label={labels[2] ?? undefined}>{status || '—'}</span>
       <span className="sr-only">{action}</span>
@@ -44,7 +47,7 @@ export function LearningListRow({ title, reading, description, metadata, status,
   </div>;
   return <div className={`list-item-row${compact ? ' is-compact' : ''}${inlineActions ? ' has-inline-actions' : ''}${trailing ? ' has-trailing-control' : ''}`} role="listitem">
     <button type="button" className={`list-item-open${status ? '' : ' without-status'}${description ? '' : ' without-description'}${metadata ? ' has-metadata' : ''}`} aria-expanded={expanded} onClick={onOpen}>
-      <span className="list-item-name"><strong>{title}</strong>{reading ? <span className="list-item-reading">{reading}</span> : null}{metadata && description ? <span className="list-item-description">{description}</span> : null}</span>
+      <span className="list-item-name"><strong>{title}</strong>{referenceText}{reading ? <span className="list-item-reading">{reading}</span> : null}{metadata && description ? <span className="list-item-description">{description}</span> : null}</span>
       {metadata ? <span className="list-item-metadata">{metadata}</span> : <>
       <span className="list-item-description">{description}</span>
       <span className="list-item-status">{status ? <span>{statusKind ? <LearningStatusIcon kind={statusKind} label={String(status)}/> : status}</span> : null}</span>

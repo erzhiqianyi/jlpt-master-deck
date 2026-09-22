@@ -1,3 +1,4 @@
+import { StudyText } from '../../components/StudyText';
 import './RecordHome.css';
 import { NavigationCard } from '../../components/NavigationCard';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
@@ -562,7 +563,7 @@ function QuestionDetailValue({ label, value, tone }: { label: string; value: str
 }
 
 function QuestionExplanation({ title, body }: { title: string; body: string }) {
-  return <section className="mt-5 border-t border-[#e3e8e2] pt-4"><h3 className="text-sm font-semibold text-[#27312c]">{title}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#4f5b55]">{body}</p></section>;
+  return <section className="mt-5 border-t border-[#e3e8e2] pt-4"><h3 className="text-sm font-semibold text-[#27312c]">{title}</h3><StudyText className="mt-2 text-sm text-[#4f5b55]" text={body} /></section>;
 }
 
 function questionKeyText(question: Question | undefined, answer: PracticeAttempt['answers'][number]) {

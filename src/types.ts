@@ -102,10 +102,11 @@ export type StudyState = {
   activeAttempt: PracticeAttempt | null;
 };
 
-export type DraftSummary = { id: string; title: string; status: string; created_at: string; updated_at: string };
+export type DraftSummary = { reference?: string; id: string; title: string; status: string; created_at: string; updated_at: string };
 export type DraftAnnotation = { id: string; body: string; created_at: string };
 export type ReviewPackDraft = DraftSummary & { content: unknown; annotations: DraftAnnotation[] };
 export type DailyPracticeSummary = {
+  reference?: string;
   id: string;
   date: string;
   version: number;
@@ -127,6 +128,7 @@ export type DailyPractice = DailyPracticeSummary & {
 };
 
 export type Wordbook = {
+  reference?: string;
   id: string;
   title: string;
   deck: Deck;
@@ -138,6 +140,7 @@ export type Wordbook = {
 export type LearningCaptureCategory = 'word' | 'grammar' | 'sentence' | 'listening' | 'reading' | 'unsure';
 export type LearningCaptureStatus = 'inbox' | 'processed' | 'archived';
 export type LearningCapture = {
+  reference?: string;
   id: string;
   body: string;
   category: LearningCaptureCategory;
@@ -151,8 +154,10 @@ export type LearningCapture = {
 };
 
 export type ListeningQuestion = {
+  reference?: string;
   id: string;
   audioAssetId?: string;
+  audioReference?: string;
   libraryNumber?: number;
   title: string;
   questionTypeId: string;
@@ -180,6 +185,7 @@ export type ListeningRecordingAnalysis = {
 };
 
 export type ListeningRecording = {
+  reference?: string;
   id: string;
   listeningQuestionId: string;
   audioMime: string;
@@ -191,6 +197,7 @@ export type ListeningRecording = {
 };
 
 export type ReadingQuestion = {
+  reference?: string;
   id: string;
   title: string;
   passage: string;
@@ -439,6 +446,7 @@ export type InflectionClass = 'godan' | 'ichidan' | 'suru' | 'kuru' | 'i_adjecti
 export type UsageRegister = 'written' | 'spoken' | 'both' | 'formal';
 
 export type VocabItem = {
+  reference?: string;
   id: string;
   date: string;
   input_at?: string;
@@ -493,6 +501,8 @@ export type ReviewData = {
 };
 
 export type Question = {
+  reference?: string;
+  practiceReference?: string;
   id: string;
   itemId: string;
   kind: QuestionKind;

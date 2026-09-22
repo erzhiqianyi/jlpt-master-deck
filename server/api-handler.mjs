@@ -1,6 +1,9 @@
+import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
+import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
+import { getDb } from './storage.mjs';
 import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
-import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from './files.mjs';
+import { createReadStream, existsSync, readFileSync, statSync } from './files.mjs';
 import { homedir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,7 +48,6 @@ import {
   organizeReviewItem,
   listeningAudioForUser,
   listeningRecordingAudioForUser,
-  loadReviewData,
   loginUser,
   reviewDataPath,
   saveAnswer,
@@ -73,6 +75,17 @@ return async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     const token = bearerToken(req);
     const user = userForToken(token);
+    res.referenceUserId = url.pathname.startsWith('/api/market') || url.pathname.startsWith('/api/local-') ? undefined : user?.id;
+    if (req.method === 'POST' && url.pathname === '/api/references/question') {
+      if (!user) return json(res, 401, { error: 'Authentication required' });
+      try { return json(res, 200, registerQuestionReference(getDb(), user.id, await readJson(req, 60000))); }
+      catch (error) { return json(res, 400, { error: error.message }); }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/references/resolve') {
+      if (!user) return json(res, 401, { error: 'Authentication required' });
+      const record = resolveReference(getDb(), user.id, url.searchParams.get('reference'));
+      return json(res, record ? 200 : 404, record ?? { error: 'Reference not found' });
+    }
 
     if (req.method === 'GET' && url.pathname === '/api/health') {
       return json(res, 200, health());
@@ -89,21 +102,21 @@ return async (req, res) => {
       if (!isLoopbackRequest(req)) {
         return json(res, 403, { error: 'Local mock exams are only available from localhost' });
       }
-      return readLocalMockExamManifest(res);
+      return json(res, 200, readLocalMockExamManifest());
     }
 
     if (req.method === 'GET' && url.pathname === '/api/local-news-cycle') {
       if (!isLoopbackRequest(req) && !user) {
         return json(res, 401, { error: 'Authentication required' });
       }
-      return json(res, 200, readLocalNewsCycle(url.searchParams.get('id')));
+      return json(res, 200, readLocalNewsCycle(url.searchParams.get('id'), user?.id));
     }
 
     if (req.method === 'GET' && url.pathname === '/api/local-news-cycles') {
       if (!isLoopbackRequest(req) && !user) {
         return json(res, 401, { error: 'Authentication required' });
       }
-      return json(res, 200, { cycles: readLocalNewsCycles() });
+      return json(res, 200, { cycles: readLocalNewsCycles(user?.id) });
     }
 
     const localNewsAudioMatch = /^\/api\/local-news-audio\/(\d{4}-\d{2}-\d{2})\/(.+)$/.exec(url.pathname);
@@ -119,7 +132,8 @@ return async (req, res) => {
       if (!isLoopbackRequest(req)) {
         return json(res, 403, { error: 'Local mock exams are only available from localhost' });
       }
-      return readLocalMockExam(res, localMockExamMatch[1]);
+      const exam = readLocalMockExam(localMockExamMatch[1]);
+      return json(res, exam ? 200 : 404, exam ?? { error: 'Local mock exam not found' });
     }
 
     const localMockFileMatch = /^\/api\/local-mock-files\/(.+)$/.exec(url.pathname);
@@ -135,7 +149,7 @@ return async (req, res) => {
       if (!isLoopbackRequest(req)) {
         return json(res, 403, { error: 'Local official files are only available from localhost' });
       }
-      return streamLocalOfficialFile(res, localOfficialMatch[1]);
+      return streamLocalFile(res, localOfficialRoot, localOfficialMatch[1], 'Local official file not found');
     }
 
     if (req.method === 'GET' && url.pathname === '/api/auth/config') return json(res, 200, authConfiguration());
@@ -574,134 +588,12 @@ async function readJson(req, maxBytes = 1024 * 1024) {
 }
 
 function json(res, status, body) {
+  const payload = JSON.stringify(res.referenceUserId && status < 400 ? decorateReferences(getDb(), res.referenceUserId, body) : body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
   });
-  res.end(JSON.stringify(body));
-}
-
-function readLocalOfficialSamples(module) {
-  const samplesPath = join(localOfficialRoot, 'sample2018', 'n1', 'official-samples.json');
-  if (!existsSync(samplesPath)) {
-    return { samples: [] };
-  }
-  const payload = JSON.parse(readFileSync(samplesPath, 'utf8'));
-  const samples = Array.isArray(payload.samples) ? payload.samples : [];
-  return {
-    samples: module ? samples.filter((sample) => sample.module === module) : samples,
-  };
-}
-
-function streamLocalOfficialFile(res, relativePath) {
-  return streamLocalFile(res, localOfficialRoot, relativePath, 'Local official file not found');
-}
-
-function readLocalMockExam(res, examId) {
-  const decodedId = decodeURIComponent(examId);
-  const examPath = resolve(localMockRoot, decodedId, 'exam.json');
-  if (!examPath.startsWith(`${localMockRoot}/`) || !existsSync(examPath)) {
-    return json(res, 404, { error: 'Local mock exam not found' });
-  }
-  return json(res, 200, JSON.parse(readFileSync(examPath, 'utf8')));
-}
-
-function readLocalMockExamManifest(res) {
-  const manifestPath = join(localMockRoot, 'manifest.json');
-  if (!existsSync(manifestPath)) {
-    return json(res, 200, { exams: [] });
-  }
-  return json(res, 200, JSON.parse(readFileSync(manifestPath, 'utf8')));
-}
-
-function readLocalNewsCycles() {
-  const weeklyRoot = join(localNewsRoot, 'weekly');
-  if (!existsSync(weeklyRoot)) return [];
-  const reviewItems = loadReviewData().items ?? [];
-  return readdirSync(weeklyRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && /^\d{4}-W\d{2}$/.test(entry.name))
-    .flatMap((entry) => {
-      const summaryPath = join(weeklyRoot, entry.name, 'cycle-summary.json');
-      if (!existsSync(summaryPath)) return [];
-      const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-      const formalPracticeQuestionIds = formalNewsPracticeQuestionIds(reviewItems, summary.range);
-      const totalQuestions = Number(summary.total_questions ?? 0);
-      return [{
-        id: entry.name,
-        range: summary.range,
-        generatedAt: summary.generated_at,
-        totalQuestions,
-        moduleCounts: {
-          vocabulary: Number(summary.modules?.vocabulary ?? 0),
-          grammar: Number(summary.modules?.grammar ?? 0),
-          listening: Number(summary.modules?.listening ?? 0),
-          reading: Number(summary.modules?.reading ?? 0),
-        },
-        audioCount: Number(summary.direct_audio_question_count ?? 0),
-        needsAudioReviewCount: Number(summary.needs_audio_review_count ?? 0),
-        formalQuestionCount: formalPracticeQuestionIds.length,
-        formalPracticeQuestionIds,
-        status: formalPracticeQuestionIds.length >= totalQuestions && totalQuestions > 0
-          ? 'published'
-          : formalPracticeQuestionIds.length > 0
-            ? 'partially_published'
-            : String(summary.status ?? 'draft'),
-      }];
-    })
-    .sort((left, right) => right.id.localeCompare(left.id));
-}
-
-function formalNewsPracticeQuestionIds(items, range) {
-  if (!range?.from || !range?.to) return [];
-  return items
-    .flatMap((item) => Array.isArray(item.practice_questions) ? item.practice_questions : [])
-    .map((question) => String(question?.id ?? ''))
-    .filter((id) => {
-      const match = /^news-(\d{4}-\d{2}-\d{2})-.+-formal$/.exec(id);
-      return match && match[1] >= range.from && match[1] <= range.to;
-    });
-}
-
-function readLocalNewsCycle(requestedId) {
-  if (!existsSync(localNewsRoot)) return { days: [] };
-  const cycles = readLocalNewsCycles();
-  const cycleId = requestedId || cycles[0]?.id;
-  if (!cycleId || !/^\d{4}-W\d{2}$/.test(cycleId) || !cycles.some((cycle) => cycle.id === cycleId)) {
-    return { days: [] };
-  }
-  let summary;
-  const weeklyRoot = join(localNewsRoot, 'weekly');
-  const summaryPath = join(weeklyRoot, cycleId, 'cycle-summary.json');
-  if (existsSync(summaryPath)) summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-  const dates = readdirSync(localNewsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(entry.name))
-    .map((entry) => entry.name)
-    .filter((date) => !summary?.range || (date >= summary.range.from && date <= summary.range.to))
-    .sort();
-  const days = dates.flatMap((date) => {
-    const questionsPath = join(localNewsRoot, date, 'questions.json');
-    if (!existsSync(questionsPath)) return [];
-    const payload = JSON.parse(readFileSync(questionsPath, 'utf8'));
-    const questions = (Array.isArray(payload.questions) ? payload.questions : []).map((question) => ({
-      ...question,
-      audio: question.audio?.fileName
-        ? { ...question.audio, previewUrl: `/api/local-news-audio/${date}/${encodeURIComponent(question.audio.fileName)}` }
-        : question.audio,
-    }));
-    const moduleCounts = { vocabulary: 0, grammar: 0, listening: 0, reading: 0 };
-    for (const question of questions) {
-      if (question.module in moduleCounts) moduleCounts[question.module] += 1;
-    }
-    return [{
-      date,
-      questionCount: questions.length,
-      audioCount: questions.filter((question) => question.audio?.previewUrl).length,
-      sourceCount: new Set(questions.map((question) => question.source_id)).size,
-      moduleCounts,
-      questions,
-    }];
-  });
-  return { id: cycleId, summary, days };
+  res.end(payload);
 }
 
 function streamLocalFile(res, root, relativePath, notFoundMessage) {

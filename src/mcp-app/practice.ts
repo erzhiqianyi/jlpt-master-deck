@@ -8,6 +8,7 @@ import './practice.css';
 
 type ChoiceAnalysis = { choice: string; correct: boolean; explanation: string };
 type SessionQuestion = {
+  reference?: string;
   id: string;
   itemId: string;
   kind: string;
@@ -26,6 +27,7 @@ type SessionQuestion = {
   choiceAnalysis?: ChoiceAnalysis[];
 };
 type Session = {
+  reference?: string;
   id: string;
   title: string;
   filters?: Record<string, unknown> | null;
@@ -153,6 +155,7 @@ function questionView(current: Session, question: SessionQuestion) {
   return el('div', { class: 'card' }, [
     header(current),
     el('span', { class: 'kind' }, [question.title || question.kind]),
+    question.reference ? el('p', { class: 'meta' }, [question.reference]) : null,
     question.instruction ? el('p', { class: 'instruction' }, [question.instruction]) : null,
     el('p', { class: 'prompt' }, promptNodes(question)),
     answered && question.translationZh ? el('p', { class: 'translation' }, [question.translationZh]) : null,
@@ -209,6 +212,7 @@ function header(current: Session) {
   return el('div', {}, [
     el('div', { class: 'head' }, [
       el('h2', { class: 'title' }, [current.title]),
+      current.reference ? el('span', { class: 'meta' }, [current.reference]) : null,
       el('span', { class: 'meta' }, [position]),
     ]),
     el('div', { class: 'bar' }, [el('i', { style: `width:${total ? (answered / total) * 100 : 0}%` })]),

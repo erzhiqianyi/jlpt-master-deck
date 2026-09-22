@@ -1,3 +1,4 @@
+import { RecordReference } from '../../components/RecordReference';
 import { ReadingExplanation } from './ReadingExplanation';
 import './reading.css';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
@@ -216,11 +217,11 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
         </div>
         <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false}
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
-          collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale} searchText={(group) => group.map((item) => `${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
+          collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale} searchText={(group) => group.map((item) => `${item.reference ?? ''} ${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
           const addedAt = group.map((item) => item.createdAt).filter((value) => value && Number.isFinite(Date.parse(value)))
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];
-          return <LearningListRow key={group[0].id} title={group[0].title}
+          return <LearningListRow key={group[0].id} title={group[0].title} references={group.map(item => item.reference)}
             reading={questionCountLabel(group.length, locale)}
             metadata={<LearningListMetadata locale={locale} addedAt={addedAt}
               collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}
@@ -278,6 +279,7 @@ function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQue
   const item = items[0];
   return <article className="reading-passage min-w-0">
     <h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2>
+    <RecordReference reference={item.reference} locale={locale} />
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
     <details className="reading-passage-body mt-6" open>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
@@ -313,6 +315,7 @@ function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item:
         <h3 className="text-sm font-bold text-[#31564c]">{locale === 'en' ? `Question ${number}` : `問 ${number}`}</h3>
         {onDelete ? <QuestionAction label={`${labels.readingDelete}: ${item.question}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction> : null}
       </div>
+      <RecordReference reference={item.reference} locale={locale} />
       {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
       <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
       <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />

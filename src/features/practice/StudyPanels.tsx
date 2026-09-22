@@ -1,3 +1,5 @@
+import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
+import { StudyText } from '../../components/StudyText';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import type { QuestionReference } from '../../domain/questions';
 import { ShareButton } from '../../components/ShareButton';
@@ -116,6 +118,7 @@ function questionKindLabel(kind: QuestionKind, labels: Record<string, string>) {
 }
 
 export function PracticeReviewPanel({
+  token,
   attempt,
   questions,
   answers,
@@ -127,6 +130,7 @@ export function PracticeReviewPanel({
   onRestart,
   onBackToPractice,
 }: {
+  token?: string;
   attempt?: PracticeAttempt;
   questions: Question[];
   answers: AnswerState;
@@ -225,6 +229,7 @@ export function PracticeReviewPanel({
             </div>
           </div>
           <article key={activeQuestion.id} className="attempt-review-question">
+            <div><RecordReference reference={activeQuestion?.practiceReference} locale={locale} /><QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
             {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion.title}</h2> : null}
             {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
             <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
@@ -270,6 +275,7 @@ export function PracticeReviewPanel({
 }
 
 export function PracticePanel({
+  token,
   activeQuestion,
   questions,
   questionsLength,
@@ -293,6 +299,7 @@ export function PracticePanel({
   analysisStatus,
   loading = false,
 }: {
+  token?: string;
   activeQuestion?: Question;
   questions: QuestionReference[];
   questionsLength: number;
@@ -516,6 +523,7 @@ export function PracticePanel({
         </div>
 
         <div className="mt-4">
+          <div><RecordReference reference={activeQuestion?.practiceReference} locale={settings.locale} /><QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} /></div>
           {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion?.title ?? labels.noQuestion}</h2> : null}
           {activeQuestion?.instruction ? (
             <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
@@ -778,9 +786,7 @@ function AnswerPanel({
 
         <div className="answer-note-block">
           <p className="text-sm font-black text-[#27312c]">{labels.correctReasonLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-[#3f4944]">
-            <RubyText text={explanationDetails.correctReason} items={items} enabled={showRuby} />
-          </p>
+          <StudyText className="mt-2 text-sm text-[#3f4944]" text={explanationDetails.correctReason} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
         </div>
 
         <details open={compact ? undefined : true} className="answer-note-block">
@@ -804,9 +810,7 @@ function AnswerPanel({
                       {choice.correct ? labels.choiceFits : selected ? labels.yourAnswer : labels.choiceDoesNotFit}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-[#4b534e]">
-                    <RubyText text={choice.explanation} items={items} enabled={showRuby} />
-                  </p>
+                  <StudyText className="mt-2 text-sm text-[#4b534e]" text={choice.explanation} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
                 </div>
               );
             })}
@@ -815,9 +819,7 @@ function AnswerPanel({
 
         <div className="answer-note-block">
           <p className="text-sm font-black text-[#27312c]">{labels.memoryPointLabel}</p>
-          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#3f4944]">
-            <RubyText text={question.memoryPoint} items={items} enabled={showRuby} />
-          </p>
+          <StudyText className="mt-2 text-sm text-[#3f4944]" text={question.memoryPoint} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
         </div>
       </div>
 
@@ -927,7 +929,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
     const baseItems = hasTagFilter
       ? items.filter((item) => filterableTags(item).includes(selectedTag))
       : items;
-    return baseItems.filter((item) => `${item.original} ${item.reading ?? ''} ${itemMeaning(item, locale)}`.toLocaleLowerCase().includes(listSearch.trim().toLocaleLowerCase())).sort((left, right) => {
+    return baseItems.filter((item) => `${item.reference ?? ''} ${item.original} ${item.reading ?? ''} ${itemMeaning(item, locale)}`.toLocaleLowerCase().includes(listSearch.trim().toLocaleLowerCase())).sort((left, right) => {
       const leftQuestions = questionsByItem[left.id]?.length ?? 0;
       const rightQuestions = questionsByItem[right.id]?.length ?? 0;
       const leftAnswered = questionsByItem[left.id]?.filter((question) => answers[question.id]).length ?? 0;
@@ -1240,6 +1242,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
             ?? (wordbookId === item.deck ? deckLabels[item.deck] : missingBook);
           return <LearningListRow key={item.id}
             title={item.original}
+            references={[item.reference]}
             reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading}
             description={showEntryHub ? undefined : itemMeaning(item, locale)}
             metadata={showEntryHub ? <LearningListMetadata locale={locale}
@@ -1386,7 +1389,7 @@ export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, it
                   </button>
                 </div>
               </form>
-        ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
+        ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} references={[wordbook.reference]} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
         {renameWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{renameWordbookError}</p> : null}
       </div>
     </section>
@@ -1442,7 +1445,7 @@ export function WordDetailPanel({
   onNext: () => void;
   onSelectIndex?: (index: number) => void;
 }) {
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const touchStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [navigatorPage, setNavigatorPage] = useState(() => Math.floor(index / ENTRY_NAVIGATOR_PAGE_SIZE));
 
@@ -1450,30 +1453,55 @@ export function WordDetailPanel({
     return <EmptyModule labels={labels} />;
   }
 
-  function handleTouchEnd(x: number) {
-    if (touchStart === null) {
+  function handleTouchStart(event: ReactTouchEvent<HTMLElement>) {
+    touchStartRef.current = null;
+    if (total <= 1 || navigatorOpen || event.touches.length !== 1) return;
+    if (event.target instanceof Element && event.target.closest(
+      'button, a, input, select, textarea, label, summary, audio, video, [role="button"], [role="dialog"], [contenteditable]:not([contenteditable="false"])',
+    )) return;
+    const touch = event.touches[0];
+    touchStartRef.current = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchMove(event: ReactTouchEvent<HTMLElement>) {
+    const start = touchStartRef.current;
+    if (!start) return;
+    const touch = event.touches[0];
+    if (event.touches.length !== 1 || touch.identifier !== start.id) {
+      touchStartRef.current = null;
       return;
     }
-    const delta = x - touchStart;
-    setTouchStart(null);
-    if (Math.abs(delta) < 48) {
-      return;
-    }
-    if (delta > 0) {
-      onPrevious();
-    } else {
-      onNext();
-    }
+    const deltaX = Math.abs(touch.clientX - start.x);
+    const deltaY = Math.abs(touch.clientY - start.y);
+    // Once the gesture becomes a vertical scroll, do not turn it into navigation.
+    if (deltaY > 12 && deltaY >= deltaX) touchStartRef.current = null;
+  }
+
+  function handleTouchEnd(event: ReactTouchEvent<HTMLElement>) {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || event.touches.length !== 0 || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    if (touch.identifier !== start.id) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 90 || Math.abs(deltaX) < Math.abs(deltaY) * 2) return;
+    if (window.getSelection()?.toString()) return;
+    if (deltaX > 0) onPrevious();
+    else onNext();
   }
 
   return (
     <section
       className="min-w-0"
-      onTouchStart={(event) => setTouchStart(event.changedTouches[0]?.clientX ?? null)}
-      onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => { touchStartRef.current = null; }}
     >
       <div className="sticky top-12 z-20 mb-3 -mx-4 border-y border-[#f0d4dd] bg-[#fffdf9]/95 px-4 py-2.5 shadow-[0_6px_16px_rgba(79,48,63,0.04)] backdrop-blur md:static md:mx-0 md:border-x-0 md:border-t-0 md:bg-transparent md:px-0 md:pb-3 md:pt-0 md:shadow-none">
         <p className="hidden text-sm font-bold text-[#a84269] md:block">{labels.wordDetail}</p>
+        <RecordReference reference={item.reference} locale={locale} />
         <div className="flex items-center justify-between gap-3 md:mt-3 md:justify-start">
           <CompactToggle checked={showRuby} label={labels.furigana} onChange={onShowRubyChange} />
           <div className="grid shrink-0 grid-cols-[2.75rem_minmax(4.75rem,auto)_2.75rem] items-center gap-1.5" aria-label={labels.wordDetail}>
@@ -1870,9 +1898,7 @@ function VocabCard({
       {analysis ? (
         <section className="mt-5 border-t border-[#f0d4dd] pt-5">
           <h4 className="text-xs font-bold text-[#a84269]">{labels.analysis}</h4>
-          <p className="mt-2 text-sm leading-7 text-[#74646b]">
-            <RubyText text={analysis} items={[item]} enabled={showRuby} />
-          </p>
+          <StudyText className="mt-2 text-sm text-[#74646b]" text={analysis} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />
         </section>
       ) : null}
       {item.content_origin === 'ai_generated' && item.verification_status !== 'verified' ? (

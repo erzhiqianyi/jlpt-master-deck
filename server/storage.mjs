@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
+import { ensureReferenceSchema, decorateReferences } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -270,6 +271,7 @@ export function getDb() {
     migrateMemoryCardSettings();
     transaction(db, () => migrateReviewItemOwnership(db));
     ensureQuerySchema(db);
+    ensureReferenceSchema(db);
   }
   return db;
 }
@@ -471,7 +473,7 @@ export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
 
 export function exportReviewDataBackup(userId) {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
-  const data = loadReviewData(userId);
+  const data = decorateReferences(getDb(), userId, loadReviewData(userId));
   const byMonth = new Map();
   for (const item of data.items) {
     const date = String(item.date ?? '').match(/^\d{4}-\d{2}-\d{2}$/) ? item.date : new Date().toISOString().slice(0, 10);
@@ -490,6 +492,7 @@ export function exportReviewDataBackup(userId) {
       generated_at: new Date().toISOString(),
       archive_month: key,
       data_source: 'sqlite-export',
+      reference_scope: 'source-database; full database backup required to restore numbering',
       items,
       daily_packs: [],
     }, null, 2)}\n`);

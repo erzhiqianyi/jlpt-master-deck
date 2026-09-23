@@ -298,7 +298,10 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   }
 }
 
-.list-item-references { display: flex; flex-wrap: wrap; gap: 2px 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, monospace; color: #657a70; user-select: text; overflow-wrap: anywhere; }
+/* The name cell stacks title / reference / reading as separate rows (display:grid, gap:4px);
+   styling the reference as a bordered chip is what reads it as its own element on desktop. */
+.list-item-references { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 2px; }
+.list-item-references > span { display: inline-flex; padding: 1px 7px; border: 1px solid #d7e2da; border-radius: 6px; background: #f5f9f6; font: 11px/1.6 ui-monospace, SFMono-Regular, monospace; color: #52645b; user-select: text; overflow-wrap: anywhere; }
 
 /* Batch mode: a leading checkbox column, a toggle in the toolbar and an action bar under the header. */
 .list-batch-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; font-weight: 600; }
@@ -326,29 +329,10 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 .learning-list-columns.is-selecting > .list-column-header { padding-left: 70px; }
 /* Per-row completion checkboxes would compete with the selection checkbox. */
 .is-selecting .learning-list-task-check { visibility: hidden; }
-.learning-list-columns.is-selecting > .standard-list-header { padding-left: 48px; }
-.learning-list-columns.is-selecting > .list-column-header { padding-left: 70px; }
-/* Per-row completion checkboxes would compete with the selection checkbox. */
-.is-selecting .learning-list-task-check { visibility: hidden; }
 @media (max-width: 767px) {
   .list-batch-bar { padding: 10px 16px; }
   .list-batch-actions { width: 100%; }
   .list-batch-action > :is(select, input) { max-width: none; flex: 1; }
   .list-selectable { grid-template-columns: 40px minmax(0, 1fr); }
   .list-select-check { padding-left: 8px; }
-}
-
-/* Reference column on desktop: standard lists and custom columns. */
-.learning-list-columns.has-list-references .standard-list-row { grid-template-columns: 100px minmax(0, 1fr) 150px; }
-.learning-list-columns.has-list-references .standard-list-header { grid-template-columns: 100px minmax(0, 1fr) 150px; }
-.learning-list-columns.has-list-references .standard-list-fields { grid-template-columns: 100px minmax(0, 1.3fr) minmax(0, 1.4fr) minmax(0, .8fr); }
-.list-column-reference { display: none; font: 11px/1.4 ui-monospace, SFMono-Regular, monospace; color: #657a70; text-align: center; padding: 12px 8px; }
-.learning-list-columns.has-list-references .list-column-reference { display: block; }
-.list-item-reference-cell { display: none; font: 11px/1.4 ui-monospace, SFMono-Regular, monospace; color: #657a70; text-align: center; min-height: 66px; padding: 8px; overflow-wrap: break-word; word-break: break-word; }
-.learning-list-columns.has-list-references .list-item-reference-cell { display: grid; place-items: center; }
-.learning-list-columns .list-item-references { display: none; }
-@media (max-width: 767px) {
-  .list-item-reference-cell { display: none !important; }
-  .list-column-reference { display: none !important; }
-  .learning-list-columns .list-item-references { display: flex !important; }
 }

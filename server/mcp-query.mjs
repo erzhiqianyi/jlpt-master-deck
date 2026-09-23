@@ -9,6 +9,7 @@ import { transaction } from './platform.mjs';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { readRevision } from './mcp-query-schema.mjs';
+import { canonicalizeItemFields } from './item-schema.mjs';
 
 export const CONTRACT_VERSION = '1.0';
 
@@ -71,7 +72,7 @@ export const entities = {
       jlpt_level: field('jlpt_level', 'string', { groupable: true, nullable: true, description: 'Stored verbatim: N1, N2, N2-N1, unknown, ...' }),
       original: field('original', 'text'),
       reading: field('reading', 'text', { nullable: true }),
-      grammar_point: field('grammar_point', 'text', { groupable: true, nullable: true, description: 'Closest thing to a knowledge point for grammar items.' }),
+      pattern: field('pattern', 'text', { groupable: true, nullable: true, description: 'First usage pattern (patterns[0].pattern), e.g. the connection form of a grammar item; closest thing to a knowledge point.' }),
       part_of_speech: field('part_of_speech', 'string', { groupable: true, nullable: true }),
       meaning_preview: preview('meaning_zh', 'meaning_zh'),
       captured_on: field('captured_on', 'date', { nullable: true, description: 'Date the item was captured (YYYY-MM-DD).' }),
@@ -81,7 +82,7 @@ export const entities = {
       created_at: field('created_at', 'timestamp', { sortable: true }),
       updated_at: field('updated_at', 'timestamp', { sortable: true }),
     },
-    default_fields: ['id', 'reference', 'deck', 'wordbook_id', 'type', 'jlpt_level', 'original', 'grammar_point'],
+    default_fields: ['id', 'reference', 'deck', 'wordbook_id', 'type', 'jlpt_level', 'original', 'pattern'],
     default_sort: { field: 'id', direction: 'asc' },
     base_metric: 'item_count',
     metrics: { item_count: countMetric('Distinct items in the match set.') },
@@ -201,7 +202,7 @@ export const entities = {
   },
   knowledge: {
     available: false,
-    description: 'No knowledge-point table exists in this app. Use item.grammar_point / item.deck, or group attempts by kind, deck or item_id.',
+    description: 'No knowledge-point table exists in this app. Use item.pattern / item.deck, or group attempts by kind, deck or item_id.',
   },
 };
 
@@ -834,7 +835,7 @@ const asText = (value) => (value === null || value === undefined ? '' : typeof v
 const lines = (pairs) => pairs.filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => `${k}: ${asText(v)}`).join('\n');
 const optionLines = (choices) => (Array.isArray(choices) ? choices.map((c, i) => `${i + 1}. ${asText(c)}`).join('\n') : '');
 
-const cardKeys = ['meaning_ja', 'paraphrase_ja', 'meaning_zh', 'formation', 'usage_notes', 'core_memory', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations', 'collocations', 'comparisons', 'usage_register', 'exam_register_zh', 'everyday_alternatives', 'notes', 'tags', 'source_grammar_point'];
+const cardKeys = ['meaning_ja', 'paraphrase_ja', 'meaning_zh', 'core_memory', 'explanation_zh', 'patterns', 'points', 'comparisons', 'register', 'base_form', 'conjugations', 'notes', 'tags', 'images', 'source'];
 
 /** Load one record with its metadata object and the text of each requested section. Authorization is per row and per section. */
 function loadRecord(db, userId, entity, id, sections) {
@@ -850,8 +851,8 @@ function loadRecord(db, userId, entity, id, sections) {
   const texts = {};
   let metadata;
   if (entity === 'item') {
-    const item = JSON.parse(row.item_json);
-    metadata = { id: row.id, deck: row.deck, type: row.type, jlpt_level: row.jlpt_level, original: row.original, reading: row.reading, grammar_point: row.grammar_point, part_of_speech: row.part_of_speech, wordbook_id: row.wordbook_id, tags: parseJsonArray(row.tags_json), source: row.source, captured_on: row.captured_on, created_at: row.created_at, updated_at: row.updated_at };
+    const item = canonicalizeItemFields(JSON.parse(row.item_json));
+    metadata = { id: row.id, deck: row.deck, type: row.type, jlpt_level: row.jlpt_level, original: row.original, reading: row.reading, pattern: row.pattern, part_of_speech: row.part_of_speech, wordbook_id: row.wordbook_id, tags: parseJsonArray(row.tags_json), source: row.source, captured_on: row.captured_on, created_at: row.created_at, updated_at: row.updated_at };
     texts.card = lines(cardKeys.map((k) => [k, item[k]]));
     texts.examples = Array.isArray(item.examples) ? item.examples.map((ex, i) => `${i + 1}. ${asText(ex.ja ?? ex.sentence ?? ex)}${ex?.zh ? `\n   ${ex.zh}` : ''}`).join('\n') : '';
   } else if (entity === 'question') {

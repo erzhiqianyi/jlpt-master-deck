@@ -31,19 +31,19 @@ For each item:
 - Estimate JLPT level only when there is enough evidence; otherwise use `unknown`.
 - Write Chinese explanations for review.
 - When the user asks for multiple languages, keep the Japanese source fields stable and write translated learner-facing text under `localizations`.
-- Include reading, core memory, collocations, comparisons, and analysis when relevant.
+- Vocabulary and grammar share one field set (see references/review-schema.md): `patterns` for connection forms, usage patterns and collocations, `points` for usage features and traps, `comparisons` for near-synonyms and everyday alternatives, `register` for register and exam tips, and `explanation_zh` for the detailed explanation. Include reading, core memory, patterns, comparisons, and explanation when relevant. Do not write `date`; `input_at` is the only timestamp.
 - Give every vocabulary item at least two natural Japanese example sentences in `examples`. Every sentence must include its learner-language translation; for the default Simplified Chinese workflow, write it in `examples[].zh`.
 - Examples used for scored questions must show the expression doing real work in a concrete situation. Sentences such as `教材では「X」という表現を学んだ` are source notes, not valid quiz contexts; do not use them as prompts.
 - For verbs and adjectives, include `part_of_speech`, `inflection_class`, `base_form`, and `conjugations`. Use `godan`, `ichidan`, `suru`, `kuru`, `i_adjective`, or `na_adjective` for `inflection_class`. Use stable conjugation `kind` values such as `dictionary`, `polite`, `negative`, `past`, `te`, `conditional`, and `adverbial`; store the actual Japanese surface form in `form`.
 - Classify `part_of_speech` grammatically. Do not use generic content labels such as `語句`, `词语`, `word`, or `expression` as a part of speech. Use precise values such as `名詞`, `名詞句`, `動詞`, `動詞句`, `イ形容詞`, `イ形容詞句`, `ナ形容詞`, or `名詞・サ変動詞`, based on the head or predicate of the complete entry.
 - Add `meaning_ja` as a concise Japanese dictionary-style definition for every vocabulary item. Keep it distinct from the learner-language meaning and from `core_memory`.
 - For `言い換え類義`, write `paraphrase_ja` as a shorter, context-compatible rewording. Never copy `meaning_ja` into it unchanged; if no distinct natural paraphrase exists, do not enable the `meaning` question kind.
-- Write `core_memory` as a short exam-room recall note: the minimum cue needed to recognize the word, usage, or contrast quickly. Do not duplicate the full analysis.
+- Write `core_memory` as a short exam-room recall note: the minimum cue needed to recognize the word, usage, or contrast quickly. Do not duplicate the full explanation.
 - Add kana readings for every Japanese field that contains kanji. Prefer structured `ruby_terms` arrays in data so the app can show or hide furigana without changing the base text.
 - Do not add furigana or ruby markup inside quiz prompts, choices, selected answers, or correct answers. Furigana is only for review cards and explanations.
-- Put exam-style shortcut reasoning into `analysis`, not into a separate quiz type.
+- Put exam-style shortcut reasoning into `explanation_zh`, not into a separate quiz type.
 - Generate JLPT-style mixed practice data. Do not force every item into every question type; choose only the types that match the item.
-- Every non-`proper_name` item should have enough data to generate at least one complete scored question with one prompt, four choices, one answer, and a full explanation. If the user's source lacks a natural context sentence, create a conservative example sentence and mark uncertain parts in `analysis`.
+- Every non-`proper_name` item should have enough data to generate at least one complete scored question with one prompt, four choices, one answer, and a full explanation. If the user's source lacks a natural context sentence, create a conservative example sentence and mark uncertain parts in `explanation_zh`.
 - For ordinary vocabulary, add `meaning` (`言い換え類義`) when a natural Japanese paraphrase exists, add `moji_goi` (`文脈規定`) when there is a complete natural sentence that can be blanked, and add `kanji_to_kana` (`漢字読み`) when the item contains kanji and has a reliable reading.
 - Add `kana_to_kanji` (`表記`) mainly for N2-N5 vocabulary when the spelling contrast is appropriate. Do not default to `kana_to_kanji` for N1 vocabulary.
 - Add `usage` (`用法`, N3-N1) as an authored `practice_questions` entry: the word as prompt, four sentences, one natural use and three typical misuses. Add `word_formation` (`語形成`, N2-N3) only for words built with a productive prefix or suffix.
@@ -67,7 +67,7 @@ Apply the official JLPT-style structure: task instruction, complete natural cont
 
 For grammar expressions, prefer a sentence with a blank plus controlled distractors that test connection or function. Do not turn a grammar item into an isolated reading, spelling, or dictionary-meaning question unless that was the learner's actual confusion.
 
-For every grammar expression, record its register explicitly with `usage_register` (`written`, `spoken`, `both`, or `formal`) and explain the nuance in `usage_register_zh`. Add natural conversational equivalents to `everyday_alternatives`, especially when the tested form is written or formal. When an example has a natural spoken rewrite, add it directly to that same example as `spoken_ja` and `spoken_zh` so learners can compare the bookish/test sentence with the conversational version. When variants within one entry differ, explain which variant is more common in conversation instead of assigning an oversimplified label.
+For every grammar expression, record its register explicitly with `register.level` (`written`, `spoken`, `both`, or `formal`) and explain the nuance in `register.note_zh`. Add natural conversational equivalents to `comparisons` with `kind: "everyday"`, especially when the tested form is written or formal. When an example has a natural spoken rewrite, add it directly to that same example as `spoken_ja` and `spoken_zh` so learners can compare the bookish/test sentence with the conversational version. When variants within one entry differ, explain which variant is more common in conversation instead of assigning an oversimplified label.
 
 Every item in `practice_questions` must include `translation_zh`: a complete, natural Chinese translation of the Japanese sentence after inserting the correct answer. Keep this separate from `explanation_zh`, which explains why the answer is correct.
 
@@ -108,4 +108,4 @@ Supported language keys should use BCP 47 style tags, for example:
 - `fr`
 - `es`
 
-Do not translate Japanese source fields such as `original`, `reading`, `collocations`, or `examples[].ja`. Translate meanings, memory hints, explanations, comparison notes, question explanations, and learner instructions.
+Do not translate Japanese source fields such as `original`, `reading`, `patterns[].pattern`, or `examples[].ja`. Translate meanings, memory hints, explanations, comparison notes, question explanations, and learner instructions.

@@ -1,8 +1,7 @@
 import { RecordReference } from '../../components/RecordReference';
 import { LearningCatalog } from '../../components/LearningCatalog';
-import { LearningList, LearningListRow } from '../../components/LearningList';
+import { LearningListRow } from '../../components/LearningList';
 import { isTopicDraft } from '../../domain/practicePurpose';
-import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
 import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
 import { ArrowLeft, ChevronRight, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
@@ -53,8 +52,6 @@ export function DraftsPanel({
 }: DraftsPanelProps) {
   const confirm = useConfirmation();
   const [internalDetailDraftId, setInternalDetailDraftId] = useState<string | null>(null);
-  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
-  const [selectionBusy, setSelectionBusy] = useState(false);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const [confirmingDraftId, setConfirmingDraftId] = useState<string | null>(null);
   const [publishingDraftId, setPublishingDraftId] = useState<string | null>(null);
@@ -64,15 +61,11 @@ export function DraftsPanel({
   const [editingContent, setEditingContent] = useState('');
   const [editingError, setEditingError] = useState('');
   const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
-  const selectedDraftIdSet = useMemo(() => new Set(selectedDraftIds), [selectedDraftIds]);
-  const [manageList, setManageList] = useState(false);
-  const mobileList = useMobileList(drafts.length, 'drafts', 6);
   const orderedDrafts = useMemo(() => [...drafts].sort((a, b) => {
     const priority = (status: string) => ['draft', 'needs_revision'].includes(status) ? 0 : status === 'approved' ? 1 : 2;
     return priority(a.status) - priority(b.status) || b.updated_at.localeCompare(a.updated_at);
   }), [drafts]);
   const draftStatusText = (status: string) => ({ draft: '待审核', needs_revision: '待修改', approved: '已确认', archived: '已归档' }[status] ?? status);
-  const selectedCount = selectedDraftIds.length;
   const currentDetailDraftId = detailDraftId === undefined ? internalDetailDraftId : detailDraftId;
   const showingDetail = Boolean(currentDetailDraftId);
   const detailDraft = activeDraft?.id === currentDetailDraftId ? activeDraft : null;
@@ -99,26 +92,10 @@ export function DraftsPanel({
     cancelDraftEditing();
   }
 
-  function toggleDraft(id: string) {
-    setSelectedDraftIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-  }
-
-  function toggleAllDrafts() {
-    const ids = orderedDrafts.map((draft) => draft.id);
-    const allSelected = ids.every((id) => selectedDraftIdSet.has(id));
-    setSelectedDraftIds(allSelected ? [] : ids);
-  }
-
-  async function organizeSelectedDrafts() {
-    if (!onCreateDraftFromSelection || !selectedDraftIds.length) return;
-    setSelectionBusy(true);
-    try {
-      const nextId = await onCreateDraftFromSelection(selectedDraftIds);
-      setSelectedDraftIds([]);
-      if (nextId) setCurrentDetailDraftId(nextId);
-    } finally {
-      setSelectionBusy(false);
-    }
+  async function organizeSelectedDrafts(ids: string[]) {
+    if (!onCreateDraftFromSelection || !ids.length) return;
+    const nextId = await onCreateDraftFromSelection(ids);
+    if (nextId) setCurrentDetailDraftId(nextId);
   }
 
   async function deleteDraft(id: string) {
@@ -128,7 +105,6 @@ export function DraftsPanel({
     setDeletingDraftId(id);
     try {
       await onDeleteDraft(id);
-      setSelectedDraftIds((current) => current.filter((item) => item !== id));
       if (currentDetailDraftId === id) {
         setCurrentDetailDraftId(null);
       }
@@ -200,11 +176,7 @@ export function DraftsPanel({
 
   return (
     <section className="min-w-0 space-y-4">
-      {embedded ? (!showingDetail ? (
-        <div className="mobile-action-row flex justify-end gap-3">
-          {!manageList ? <button type="button" className="gentle-back" onClick={() => setManageList(true)}>管理</button> : null}
-        </div>
-      ) : null) : <div className="min-w-0 rounded-lg border border-[#d7dfd6] bg-white p-5 shadow-sm">
+      {embedded ? null : <div className="min-w-0 rounded-lg border border-[#d7dfd6] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold">{labels.draftsTitle}</h2>
@@ -336,46 +308,16 @@ export function DraftsPanel({
             </div>
           )}
         </article>
-      ) : !manageList ? (
-        <LearningCatalog columnLabels={["草稿", "更新时间", "状态"]} title="练习草稿" items={orderedDrafts} tools={!embedded ? <button type="button" onClick={() => setManageList(true)}>管理</button> : undefined} searchText={(draft) => `${draft.reference ?? ''} ${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} references={[draft.reference]} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
-
       ) : (
-        <section className="min-w-0 space-y-4">
-          <button type="button" className="gentle-back" onClick={() => { setManageList(false); setSelectedDraftIds([]); }}>完成</button>
-          <div className="mobile-action-header flex flex-wrap items-center gap-3">
-            {selectedCount ? (
-              <div className="mobile-action-row flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-semibold text-[#31564c]">{labels.draftSelectedCount}: {selectedCount}</span>
-                {onCreateDraftFromSelection ? (
-                  <button type="button" onClick={organizeSelectedDrafts} disabled={selectionBusy} className="h-10 rounded-md bg-[#173d35] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
-                    {selectionBusy ? labels.processing : labels.organizeSelectedDrafts}
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => setSelectedDraftIds([])} className="font-semibold text-[#856033] hover:underline">
-                  {labels.clearSelection}
-                </button>
-              </div>
-            ) : null}
-          </div>
-
-          {drafts.length ? (
-            <section className="rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-[#e0e6df] px-4 py-3">
-                <label className="flex min-w-0 items-center gap-3">
-                  <input type="checkbox" checked={orderedDrafts.every((draft) => selectedDraftIdSet.has(draft.id))} onChange={toggleAllDrafts} className="h-4 w-4 accent-[#31564c]" />
-                  <span className="font-semibold text-[#27312c]">{labels.draftSelectAll}</span>
-                </label>
-                <span className="text-sm font-semibold text-[#68716b]">{orderedDrafts.length} {labels.draftItemsUnit}</span>
-              </div>
-              <LearningList hasActions columnLabels={["草稿", "更新时间", "状态"]}>{orderedDrafts.map((draft) => <LearningListRow key={draft.id} inlineActions title={draft.title} references={[draft.reference]} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)} secondary={<div className="learning-list-manage-actions">
-                <label><input type="checkbox" checked={selectedDraftIdSet.has(draft.id)} onChange={() => toggleDraft(draft.id)} aria-label={`选择: ${draft.title}`}/></label>
-                {onDeleteDraft ? <button type="button" aria-label={deletingDraftId === draft.id ? labels.processing : labels.deleteDraft} title={labels.deleteDraft} onClick={() => deleteDraft(draft.id)} disabled={deletingDraftId === draft.id}><Trash2 size={20} aria-hidden="true"/></button> : null}
-              </div>}/>)}</LearningList>
-            </section>
-          ) : (
-            <LearningList hasActions columnLabels={["草稿", "更新时间", "状态"]}/>
-          )}
-        </section>
+        <LearningCatalog columnLabels={["草稿", "更新时间", "状态"]} title="练习草稿" items={orderedDrafts}
+          batch={{ id: (draft) => draft.id, actions: [
+            ...(onCreateDraftFromSelection ? [{ key: 'organize', icon: <ListChecks size={16} aria-hidden="true"/>, label: labels.organizeSelectedDrafts, runAll: organizeSelectedDrafts }] : []),
+            ...(onDeleteDraft ? [{ key: 'delete', danger: true, icon: <Trash2 size={16} aria-hidden="true"/>, label: labels.deleteDraft, confirm: (count: number) => `将删除所选 ${count} 份草稿，删除后无法恢复。`, run: async (id: string) => {
+              await onDeleteDraft(id);
+              if (currentDetailDraftId === id) setCurrentDetailDraftId(null);
+            } }] : []),
+          ] }}
+          searchText={(draft) => `${draft.reference ?? ''} ${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} references={[draft.reference]} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
       )}
     </section>
   );

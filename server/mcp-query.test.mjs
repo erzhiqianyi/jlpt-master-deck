@@ -367,8 +367,8 @@ test('items expose wordbook_id (explicit, legacy wordbook_ids[0], or deck) and p
 
 test('item card exposes grammar formation, usage notes, and core memory', async () => {
   const got = await call('jlpt_get', { entity: 'item', id: 'item-sae', sections: ['card'] });
-  assert.match(got.data.parts.find((part) => part.section === 'card').text, /formation: N／Vて＋さえいれば/);
-  assert.match(got.data.parts.find((part) => part.section === 'card').text, /usage_notes: 表示最低条件。/);
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /patterns: .*N／Vて＋さえいれば/);
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /explanation_zh: 表示最低条件。/);
   assert.match(got.data.parts.find((part) => part.section === 'card').text, /core_memory: 抓最低条件。/);
 });
 

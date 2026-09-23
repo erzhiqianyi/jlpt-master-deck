@@ -228,7 +228,7 @@ function combinedEntries(items: VocabItem[], listeningQuestions: ListeningQuesti
       module,
       title: item.original,
       subtitle: item.reading,
-      createdAt: item.input_at ?? item.date,
+      createdAt: item.input_at,
       level: item.jlpt_level,
       tags: [
         ...kinds.map((kind) => questionKindLabel(kind, labels)),

@@ -189,6 +189,17 @@ CREATE TABLE owned_review_items (
 
 CREATE TABLE review_item_migrations (name TEXT PRIMARY KEY);
 
+CREATE TABLE item_images (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      sha256 TEXT NOT NULL,
+      image_path TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(user_id, sha256)
+    );
+
 CREATE TABLE mcp_read_revision (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL);
 
 CREATE TABLE question_reference_snapshots (
@@ -238,11 +249,11 @@ CREATE VIEW mcp_items AS
       json_extract(r.item_json, '$.jlpt_level') AS jlpt_level,
       json_extract(r.item_json, '$.original') AS original,
       json_extract(r.item_json, '$.reading') AS reading,
-      json_extract(r.item_json, '$.grammar_point') AS grammar_point,
+      json_extract(r.item_json, '$.patterns[0].pattern') AS pattern,
       json_extract(r.item_json, '$.part_of_speech') AS part_of_speech,
       json_extract(r.item_json, '$.meaning_zh') AS meaning_zh,
       json_extract(r.item_json, '$.meaning_ja') AS meaning_ja,
-      json_extract(r.item_json, '$.date') AS captured_on,
+      substr(json_extract(r.item_json, '$.input_at'), 1, 10) AS captured_on,
       COALESCE(
         NULLIF(TRIM(json_extract(r.item_json, '$.wordbook_id')), ''),
         NULLIF(TRIM(json_extract(r.item_json, '$.wordbook_ids[0]')), ''),

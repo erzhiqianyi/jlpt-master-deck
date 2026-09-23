@@ -299,3 +299,56 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 }
 
 .list-item-references { display: flex; flex-wrap: wrap; gap: 2px 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, monospace; color: #657a70; user-select: text; overflow-wrap: anywhere; }
+
+/* Batch mode: a leading checkbox column, a toggle in the toolbar and an action bar under the header. */
+.list-batch-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; font-weight: 600; }
+.list-batch-toggle:hover { background: #f4f9f6; }
+.list-batch-toggle[aria-pressed='true'] { background: #24473f; border-color: #24473f; color: #fff; }
+.list-batch-toggle:focus-visible, .list-batch-bar button:focus-visible, .list-select-check input:focus-visible { outline: 2px solid #34745f; outline-offset: 2px; }
+.list-batch-inline-toggle { display: flex; justify-content: flex-end; margin: 8px 0; }
+.list-batch-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; padding: 10px 22px; border-block: 1px solid #d6e5db; background: #f1f8f3; color: #24473f; font-size: 14px; }
+.list-batch-summary, .list-batch-actions, .list-batch-action { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.list-batch-summary > span { font-weight: 600; }
+.list-batch-summary > button { min-height: 36px; padding: 4px 8px; background: transparent; color: #245e4b; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.list-batch-action > button, .list-batch-exit { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-weight: 600; }
+.list-batch-action > button:hover:not(:disabled) { background: #e6f1e9; }
+.list-batch-action > button.is-danger { border-color: #e2c3b8; background: #fff5ef; color: #8f3d2e; }
+.list-batch-action > button:disabled, .list-batch-summary > button:disabled { opacity: .45; cursor: default; }
+.list-batch-action > :is(select, input) { min-height: 40px; max-width: 180px; padding: 0 10px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; }
+.list-batch-exit { width: 40px; padding: 0; }
+.list-selectable { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; border-bottom: 1px solid #e1e7df; }
+.list-selectable:last-child { border-bottom: 0; }
+.list-selectable > [role='listitem'] { min-width: 0; border: 0 !important; }
+.list-selectable.is-selected { background: #eef6f0; }
+.list-select-check { display: grid; place-items: center; align-self: stretch; padding-left: 10px; cursor: pointer; }
+.list-select-check input { width: 20px; height: 20px; accent-color: #327561; cursor: pointer; }
+.learning-list-columns.is-selecting > .standard-list-header { padding-left: 48px; }
+.learning-list-columns.is-selecting > .list-column-header { padding-left: 70px; }
+/* Per-row completion checkboxes would compete with the selection checkbox. */
+.is-selecting .learning-list-task-check { visibility: hidden; }
+.learning-list-columns.is-selecting > .standard-list-header { padding-left: 48px; }
+.learning-list-columns.is-selecting > .list-column-header { padding-left: 70px; }
+/* Per-row completion checkboxes would compete with the selection checkbox. */
+.is-selecting .learning-list-task-check { visibility: hidden; }
+@media (max-width: 767px) {
+  .list-batch-bar { padding: 10px 16px; }
+  .list-batch-actions { width: 100%; }
+  .list-batch-action > :is(select, input) { max-width: none; flex: 1; }
+  .list-selectable { grid-template-columns: 40px minmax(0, 1fr); }
+  .list-select-check { padding-left: 8px; }
+}
+
+/* Reference column on desktop: standard lists and custom columns. */
+.learning-list-columns.has-list-references .standard-list-row { grid-template-columns: 100px minmax(0, 1fr) 150px; }
+.learning-list-columns.has-list-references .standard-list-header { grid-template-columns: 100px minmax(0, 1fr) 150px; }
+.learning-list-columns.has-list-references .standard-list-fields { grid-template-columns: 100px minmax(0, 1.3fr) minmax(0, 1.4fr) minmax(0, .8fr); }
+.list-column-reference { display: none; font: 11px/1.4 ui-monospace, SFMono-Regular, monospace; color: #657a70; text-align: center; padding: 12px 8px; }
+.learning-list-columns.has-list-references .list-column-reference { display: block; }
+.list-item-reference-cell { display: none; font: 11px/1.4 ui-monospace, SFMono-Regular, monospace; color: #657a70; text-align: center; min-height: 66px; padding: 8px; overflow-wrap: break-word; word-break: break-word; }
+.learning-list-columns.has-list-references .list-item-reference-cell { display: grid; place-items: center; }
+.learning-list-columns .list-item-references { display: none; }
+@media (max-width: 767px) {
+  .list-item-reference-cell { display: none !important; }
+  .list-column-reference { display: none !important; }
+  .learning-list-columns .list-item-references { display: flex !important; }
+}

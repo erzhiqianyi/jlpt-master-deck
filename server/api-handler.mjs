@@ -46,6 +46,9 @@ import {
   listLearningCaptures,
   listWordbooks,
   organizeReviewItem,
+  addReviewItemImage,
+  removeReviewItemImage,
+  itemImageForUser,
   listeningAudioForUser,
   listeningRecordingAudioForUser,
   loginUser,
@@ -235,6 +238,28 @@ return async (req, res) => {
     if (req.method === 'PATCH' && reviewItemMatch) {
       const item = organizeReviewItem(user.id, decodeURIComponent(reviewItemMatch[1]), await readJson(req));
       return item ? json(res, 200, { item }) : json(res, 404, { error: 'Review item not found' });
+    }
+
+    const reviewItemImagesMatch = /^\/api\/review-items\/([^/]+)\/images(?:\/([^/]+))?$/.exec(url.pathname);
+    if (reviewItemImagesMatch && ((req.method === 'POST' && !reviewItemImagesMatch[2]) || (req.method === 'DELETE' && reviewItemImagesMatch[2]))) {
+      const itemId = decodeURIComponent(reviewItemImagesMatch[1]);
+      const item = req.method === 'POST'
+        ? addReviewItemImage(user.id, itemId, await readJson(req, 8 * 1024 * 1024))
+        : removeReviewItemImage(user.id, itemId, decodeURIComponent(reviewItemImagesMatch[2]));
+      return item ? json(res, req.method === 'POST' ? 201 : 200, { item }) : json(res, 404, { error: 'Review item not found' });
+    }
+
+    const itemImageMatch = /^\/api\/item-images\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'GET' && itemImageMatch) {
+      const image = itemImageForUser(user.id, itemImageMatch[1]);
+      if (!image) return json(res, 404, { error: 'Image not found' });
+      res.writeHead(200, {
+        'content-type': image.mime,
+        'content-length': image.size,
+        'cache-control': 'private, max-age=86400',
+        'x-content-type-options': 'nosniff',
+      });
+      return createReadStream(image.image_path).pipe(res);
     }
 
     const wordbookMatch = /^\/api\/wordbooks\/([^/]+)$/.exec(url.pathname);

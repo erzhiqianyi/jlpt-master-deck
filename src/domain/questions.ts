@@ -1,4 +1,4 @@
-import { itemAnalysis, itemMeaning, itemMemory } from './items';
+import { itemExplanation, itemMeaning, itemMemory, itemPatternTexts } from './items';
 import { translations } from '../i18n/translations';
 import { describeReadingConfusion, readingDistractors } from './readingDistractors.mjs';
 import type { Deck, Locale, PracticeQuestionSeed, Question, QuestionKind, VocabItem } from '../types';
@@ -184,7 +184,7 @@ function hasUsableQuestionContext(item: VocabItem) {
 
 function questionContext(item: VocabItem) {
   const examples = item.examples?.map((candidate) => candidate.ja) ?? [];
-  return [...examples, ...stringCollocations(item.collocations)].find((candidate) => isUsableQuestionContext(candidate, item.original));
+  return [...examples, ...itemPatternTexts(item)].find((candidate) => isUsableQuestionContext(candidate, item.original));
 }
 
 function isUsableQuestionContext(candidate: string | undefined, target: string) {
@@ -407,7 +407,7 @@ function seededGrammarCorrectReason(
       : `「${context}」では「${answer}」が文の接続と意味に合います。`;
   }
   if (locale === 'en') {
-    return `The correct answer is “${answer}.” ${seed.form_analysis_zh ?? ''} ${seed.explanation_zh ?? itemAnalysis(item, locale)}`.trim();
+    return `The correct answer is “${answer}.” ${seed.form_analysis_zh ?? ''} ${seed.explanation_zh ?? itemExplanation(item, locale)}`.trim();
   }
   return `正确答案是「${answer}」。${[seed.form_analysis_zh, seed.explanation_zh].filter(Boolean).join(' ')}`;
 }
@@ -460,7 +460,7 @@ function answerForKind(item: VocabItem, kind: QuestionKind, locale: Locale) {
 function correctReasonFor(item: VocabItem, kind: QuestionKind, locale: Locale, context: string) {
   const meaning = itemMeaning(item, locale);
   const reading = item.reading ?? '';
-  const collocation = stringCollocations(item.collocations).find((value) => value.includes(item.original)) ?? context;
+  const collocation = itemPatternTexts(item).find((value) => value.includes(item.original)) ?? context;
   const isProperNameReading = kind === 'kanji_to_kana' && (item.deck === 'name_reading' || item.type === 'proper_name');
 
   if (isProperNameReading) {
@@ -470,7 +470,7 @@ function correctReasonFor(item: VocabItem, kind: QuestionKind, locale: Locale, c
   }
 
   if (locale === 'ja') {
-    if (kind === 'grammar') return `「${context}」では、手順や手続きを実際に経ることを表す「${item.original}」が文の接続と意味に合います。${itemAnalysis(item, locale)}`;
+    if (kind === 'grammar') return `「${context}」では、手順や手続きを実際に経ることを表す「${item.original}」が文の接続と意味に合います。${itemExplanation(item, locale)}`;
     if (kind === 'meaning') return `「${item.original}」は「${meaning}」という意味です。「${context}」でもこの意味で使われているため、この言い換えが最も適切です。`;
     if (kind === 'kana_to_kanji') return `「${reading}」の表記は「${item.original}」です。「${context}」の語彙と一致し、意味は「${meaning}」です。`;
     if (kind === 'kanji_to_kana') return `「${item.original}」の読みは「${reading}」です。文中でも意味は「${meaning}」で、読み方は変わりません。`;
@@ -478,14 +478,14 @@ function correctReasonFor(item: VocabItem, kind: QuestionKind, locale: Locale, c
   }
 
   if (locale === 'en') {
-    if (kind === 'grammar') return `In “${context},” “${item.original}” fits both the sentence connection and the intended function of actually going through a step or procedure. ${itemAnalysis(item, locale)}`;
+    if (kind === 'grammar') return `In “${context},” “${item.original}” fits both the sentence connection and the intended function of actually going through a step or procedure. ${itemExplanation(item, locale)}`;
     if (kind === 'meaning') return `“${item.original}” means “${meaning}.” It keeps that meaning in “${context},” so this is the closest paraphrase.`;
     if (kind === 'kana_to_kanji') return `The kana “${reading}” is written “${item.original}.” It matches the word used in “${context}” and means “${meaning}.”`;
     if (kind === 'kanji_to_kana') return `“${item.original}” is read “${reading}.” The reading stays the same in this context, where the word means “${meaning}.”`;
     return `“${item.original}” means “${meaning}.” It forms a natural expression such as “${collocation},” which fits the sentence context.`;
   }
 
-  if (kind === 'grammar') return `在「${context}」中，需要表达实际经过步骤或手续，「${item.original}」在接续形式和语义功能上都成立。${itemAnalysis(item, locale)}`;
+  if (kind === 'grammar') return `在「${context}」中，需要表达实际经过步骤或手续，「${item.original}」在接续形式和语义功能上都成立。${itemExplanation(item, locale)}`;
   if (kind === 'meaning') return `「${item.original}」的意思是“${meaning}”。在「${context}」中仍然使用这个核心义，因此该释义最接近原词。`;
   if (kind === 'kana_to_kanji') return `假名「${reading}」对应的正确表记是「${item.original}」。它与「${context}」中的词一致，意思是“${meaning}”。`;
   if (kind === 'kanji_to_kana') return `「${item.original}」读作「${reading}」。它在本句中的意思是“${meaning}”，语境不会改变这个读音。`;
@@ -522,7 +522,7 @@ function choiceExplanationFor(
   if (!candidate) {
     const comparison = kind === 'grammar' ? target.comparisons?.find((entry) => entry.target === choice) : undefined;
     if (comparison && locale === 'zh-CN') {
-      const difference = comparison.difference_zh.replace(/[。！？!?]$/u, '');
+      const difference = (comparison.difference_zh ?? '').replace(/[。！？!?]$/u, '');
       return `「${choice}」${difference}，但本句需要表达实际经过「手続き」，不是把某项信息作为判断依据。`;
     }
     if (kind === 'grammar') {
@@ -565,7 +565,7 @@ function choiceExplanationFor(
   }
 
   const candidateMeaning = itemMeaning(candidate, locale);
-  const candidateCollocation = stringCollocations(candidate.collocations).find((value) => value.includes(candidate.original));
+  const candidateCollocation = itemPatternTexts(candidate).find((value) => value.includes(candidate.original));
 
   if (locale === 'ja') {
     if (kind === 'kana_to_kanji') return `「${candidate.original}」の読みは「${candidate.reading ?? '不明'}」で、「${target.reading}」の表記ではありません。`;
@@ -587,14 +587,6 @@ function choiceExplanationFor(
   return `「${candidate.original}」表示“${candidateMeaning}”${candidateCollocation ? `，常见搭配是「${candidateCollocation}」` : ''}，与本句需要表达的意思不符。`;
 }
 
-function stringCollocations(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => typeof entry === 'string' ? entry : isRecord(entry) ? entry.text : undefined)
-    .map((entry) => typeof entry === 'string' ? entry.trim() : '')
-    .filter(Boolean);
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -613,10 +605,10 @@ function grammarDistractorExplanation(
     return tailoredExplanation;
   }
 
-  const comparison = [...(target.comparison_notes ?? []), ...(target.comparisons ?? [])]
+  const comparison = (target.comparisons ?? [])
     .find((entry) => normalizeGrammarExpression(entry.target ?? '') === normalizedChoice);
   const candidate = allItems.find((item) => normalizeGrammarExpression(item.original) === normalizedChoice);
-  const form = candidate?.grammar_forms?.[0]?.form;
+  const form = candidate?.patterns?.[0]?.pattern;
   const usage = candidate?.meaning_zh || candidate?.core_memory;
 
   if (locale === 'ja') {
@@ -706,7 +698,7 @@ function itemForChoice(choice: string, kind: QuestionKind, items: VocabItem[]) {
 }
 
 function memoryPointFor(item: VocabItem, locale: Locale) {
-  const points = [itemMemory(item, locale), itemAnalysis(item, locale)];
+  const points = [itemMemory(item, locale), itemExplanation(item, locale)];
   if (locale === 'zh-CN') {
     points.push(...(item.comparisons?.slice(0, 2).map((comparison) => `与「${comparison.target}」相比：${comparison.difference_zh}`) ?? []));
   }
@@ -759,7 +751,7 @@ function grammarFallbackChoices(item: VocabItem) {
     'たびに',
     'たが最後',
     'ものなら',
-  ].filter((choice) => choice !== item.original && choice !== item.grammar_point);
+  ].filter((choice) => choice !== item.original);
 }
 
 function rotate<T>(items: T[], count: number) {

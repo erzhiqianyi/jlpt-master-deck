@@ -3,7 +3,8 @@ import './RecordHome.css';
 import { NavigationCard } from '../../components/NavigationCard';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
-import { ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, ListChecks, NotebookPen } from 'lucide-react';
+import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction, type ListSelection } from '../../components/ListBatch';
+import { Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -47,6 +48,15 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   const selectedAttempt = sortedAttempts.find((attempt) => attempt.id === selectedAttemptId);
   const selectedCapture = captures.find((capture) => capture.id === selectedCaptureId) ?? null;
   const setSelectedCaptureId = onSelectedCaptureChange ?? setUncontrolledCaptureId;
+  const sortedCaptures = useMemo(() => [...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)), [captures]);
+  const captureBatch = useListBatch(useMemo(() => sortedCaptures.map((capture) => capture.id), [sortedCaptures]));
+  const captureStatusOf = (id: string) => captures.find((capture) => capture.id === id)?.status;
+  const captureBatchActions: BatchAction[] = ([['processed', CheckCircle2], ['inbox', Inbox], ['archived', Archive]] as const).map(([status, Icon]) => ({
+    key: status, icon: <Icon size={16} aria-hidden="true" />,
+    label: `${locale === 'ja' ? '一括で' : locale === 'en' ? 'Mark ' : '标为'}${captureStatusLabel(labels, status)}`,
+    appliesTo: (id: string) => captureStatusOf(id) !== status,
+    run: (id: string) => onCaptureStatus(id, status),
+  }));
 
   useEffect(() => {
     setSelectedAttemptId(null);
@@ -94,8 +104,9 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
           />
         ) : (
           <LearningListFrame className="learning-catalog mt-4" label={labels.historyCaptureTab}>
-            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`} />
-            <CaptureTable labels={labels} locale={locale} captures={[...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)).slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} />
+            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`}><div className="list-tools"><BatchManageButton batch={captureBatch} locale={locale} /></div></LearningListHeader>
+            <BatchActionBar batch={captureBatch} actions={captureBatchActions} locale={locale} />
+            <CaptureTable labels={labels} locale={locale} captures={sortedCaptures.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} selection={captureBatch.selection} />
             {listFooter}
           </LearningListFrame>
         )
@@ -212,13 +223,14 @@ function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
   );
 }
 
-function CaptureTable({ labels, locale, captures, onSelect }: {
+function CaptureTable({ labels, locale, captures, onSelect, selection }: {
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
   onSelect: (id: string) => void;
+  selection?: ListSelection;
 }) {
-  return <LearningList locale={locale} columnLabels={[labels.historyCaptureTab, locale === "ja" ? "種類" : locale === "en" ? "Category" : "分类", locale === "ja" ? "状態" : locale === "en" ? "Status" : "状态"]}>{captures.map((capture) => <LearningListRow key={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
+  return <LearningList locale={locale} selection={selection} columnLabels={[labels.historyCaptureTab, locale === "ja" ? "種類" : locale === "en" ? "Category" : "分类", locale === "ja" ? "状態" : locale === "en" ? "Status" : "状态"]}>{captures.map((capture) => <LearningListRow key={capture.id} selectId={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
 
 }
 

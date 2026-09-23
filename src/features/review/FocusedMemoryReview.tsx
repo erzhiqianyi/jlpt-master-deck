@@ -1,15 +1,17 @@
 import { StudyText } from '../../components/StudyText';
 import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { itemAnalysis, itemMeaning, itemMemory } from '../../domain/items';
-import type { MemoryCardField } from '../../domain/memoryCards';
+import { ItemImage } from '../../components/ItemImage';
+import { distinctReading, itemExplanation, itemMeaning, itemMemory } from '../../domain/items';
+import { memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import type { Locale, VocabItem } from '../../types';
 
 export type MemoryRating = 'forgot' | 'hard' | 'remembered' | 'easy';
 
-export function FocusedMemoryReview({ items, locale, frontFields, backFields, onExit, onRate }: {
+export function FocusedMemoryReview({ items, locale, token, frontFields, backFields, onExit, onRate }: {
   items: VocabItem[];
   locale: Locale;
+  token?: string;
   frontFields: MemoryCardField[];
   backFields: MemoryCardField[];
   onExit: () => void;
@@ -44,7 +46,6 @@ export function FocusedMemoryReview({ items, locale, frontFields, backFields, on
     );
   }
 
-  const example = item.examples?.find((candidate) => !isMetaLearningExample(candidate.ja));
   const reviewed = index;
 
   return (
@@ -78,12 +79,12 @@ export function FocusedMemoryReview({ items, locale, frontFields, backFields, on
           <div className="ledger-memory-flip-inner">
             <article className="ledger-memory-card ledger-memory-face ledger-memory-front" aria-hidden={revealed}>
               <div className="ledger-memory-content">
-                <ConfiguredMemoryCardContent item={item} locale={locale} fields={frontFields} revealed={false} />
+                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={frontFields} revealed={false} />
               </div>
             </article>
             <article className="ledger-memory-card ledger-memory-face ledger-memory-back" aria-hidden={!revealed}>
               <div className="ledger-memory-content">
-                <ConfiguredMemoryCardContent item={item} locale={locale} fields={backFields} example={example} revealed />
+                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={backFields} revealed />
               </div>
             </article>
           </div>
@@ -103,55 +104,29 @@ export function FocusedMemoryReview({ items, locale, frontFields, backFields, on
   );
 }
 
-const memoryFieldLabels: Record<Locale, Record<MemoryCardField | 'example', string>> = {
-  'zh-CN': {
-    original: '原词 / 语法', reading: '读音', jlpt_level: 'JLPT 等级', part_of_speech: '词性',
-    meaning: '释义', meaning_ja: '日文释义', paraphrase_ja: '日文换言', core_memory: '记忆点', explanation_zh: '详细解析',
-    analysis: '补充分析', grammar_forms: '接续形式', grammar_features: '语法特征', base_form: '基本形', conjugations: '活用',
-    collocations: '常用搭配', comparisons: '比较辨析', usage_register: '使用语域', exam_register_zh: '考试提示', everyday_alternatives: '日常替代表达',
-    notes: '备注', tags: '标签', source_grammar_point: '来源语法点', source_chat_summary: '学习来源摘要', example: '例句',
-  },
-  ja: {
-    original: '語句 / 文法', reading: '読み方', jlpt_level: 'JLPT レベル', part_of_speech: '品詞',
-    meaning: '意味', meaning_ja: '日本語の意味', paraphrase_ja: '日本語の言い換え', core_memory: '記憶ポイント', explanation_zh: '詳しい解説',
-    analysis: '補足分析', grammar_forms: '接続形式', grammar_features: '文法の特徴', base_form: '基本形', conjugations: '活用',
-    collocations: 'よく使う組み合わせ', comparisons: '比較・使い分け', usage_register: '使用場面', exam_register_zh: '試験ポイント', everyday_alternatives: '日常表現',
-    notes: 'メモ', tags: 'タグ', source_grammar_point: '出典文法項目', source_chat_summary: '学習元の要約', example: '例文',
-  },
-  en: {
-    original: 'Word / grammar', reading: 'Reading', jlpt_level: 'JLPT level', part_of_speech: 'Part of speech',
-    meaning: 'Meaning', meaning_ja: 'Japanese definition', paraphrase_ja: 'Japanese paraphrase', core_memory: 'Memory point', explanation_zh: 'Detailed explanation',
-    analysis: 'Additional analysis', grammar_forms: 'Connection forms', grammar_features: 'Grammar features', base_form: 'Base form', conjugations: 'Conjugations',
-    collocations: 'Collocations', comparisons: 'Comparisons', usage_register: 'Usage register', exam_register_zh: 'Exam tip', everyday_alternatives: 'Everyday alternatives',
-    notes: 'Notes', tags: 'Tags', source_grammar_point: 'Source grammar point', source_chat_summary: 'Learning source summary', example: 'Example',
-  },
-};
+// Fields with their own slot on the card; everything else is listed in configured order.
+const summaryCardFields: MemoryCardField[] = ['reading', 'jlpt_level', 'part_of_speech'];
+const featuredCardFields: MemoryCardField[] = ['original', 'images', 'patterns', 'meaning', 'core_memory'];
 
-function ConfiguredMemoryCardContent({ item, locale, fields, example, revealed }: {
+function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: {
   item: VocabItem;
   locale: Locale;
+  token?: string;
   fields: MemoryCardField[];
-  example?: NonNullable<VocabItem['examples']>[number];
   revealed: boolean;
 }) {
+  const labels = memoryCardFieldLabels[locale];
   const entries = fields
-    .filter((field) => field !== 'paraphrase_ja')
     .map((field) => ({ field, content: memoryFieldContent(item, locale, field) }))
     .filter((entry): entry is { field: MemoryCardField; content: ReactNode } => entry.content !== null);
-  const original = entries.find((entry) => entry.field === 'original');
-  const grammarForms = entries.find((entry) => entry.field === 'grammar_forms');
-  const meaning = entries.find((entry) => entry.field === 'meaning');
-  const summaryFields = revealed
-    ? entries.filter((entry) => ['reading', 'jlpt_level', 'part_of_speech'].includes(entry.field))
-    : [];
-  const details = entries.filter((entry) => (
-    entry.field !== 'original'
-    && entry.field !== 'grammar_forms'
-    && entry.field !== 'meaning'
-    && !summaryFields.some((summary) => summary.field === entry.field)
-  ));
-  const coreMemory = details.find((entry) => entry.field === 'core_memory');
-  const supportingDetails = details.filter((entry) => entry.field !== 'core_memory');
+  const entry = (field: MemoryCardField) => entries.find((candidate) => candidate.field === field);
+  const original = entry('original');
+  const patterns = entry('patterns');
+  const meaning = entry('meaning');
+  const coreMemory = entry('core_memory');
+  const images = fields.includes('images') ? item.images ?? [] : [];
+  const summaryFields = revealed ? entries.filter((candidate) => summaryCardFields.includes(candidate.field)) : [];
+  const details = entries.filter((candidate) => !featuredCardFields.includes(candidate.field) && !summaryFields.includes(candidate));
   return (
     <>
       {revealed && (original || summaryFields.length) ? (
@@ -161,7 +136,7 @@ function ConfiguredMemoryCardContent({ item, locale, fields, example, revealed }
             <dl>
               {summaryFields.map(({ field, content }) => (
                 <div key={field} className={`ledger-memory-summary-field ledger-memory-summary-field--${field}`}>
-                  <dt>{memoryFieldLabels[locale][field]}</dt>
+                  <dt>{labels[field]}</dt>
                   <dd>{content}</dd>
                 </div>
               ))}
@@ -169,34 +144,43 @@ function ConfiguredMemoryCardContent({ item, locale, fields, example, revealed }
           ) : null}
         </div>
       ) : original ? <h1 lang="ja">{original.content}</h1> : null}
-      {grammarForms || meaning || details.length || example ? (
+      {images.length ? (
+        <div className={`ledger-memory-images ${images.length > 1 ? 'is-multiple' : ''}`}>
+          {images.map((image) => (
+            <figure key={image.id ?? image.url}>
+              <ItemImage image={image} token={token} alt={image.caption || `${item.original} ${labels.images}`} />
+              {image.caption ? <figcaption>{image.caption}</figcaption> : null}
+            </figure>
+          ))}
+        </div>
+      ) : null}
+      {patterns || meaning || details.length || coreMemory ? (
         <div className={`ledger-memory-answer ${revealed ? '' : 'is-front'}`}>
-          {grammarForms ? <div className="ledger-memory-featured">{grammarForms.content}</div> : null}
+          {patterns ? <div className="ledger-memory-featured">{patterns.content}</div> : null}
           {meaning ? <p className="ledger-memory-configured-meaning">{meaning.content}</p> : null}
           <dl>
-            {supportingDetails.map(({ field, content }) => (
+            {details.map(({ field, content }) => (
               <div key={field} className={`ledger-memory-field ledger-memory-field--${memoryFieldPresentation(field)}`}>
-                <dt>{memoryFieldLabels[locale][field]}</dt>
+                <dt>{labels[field]}</dt>
                 <dd>{content}</dd>
               </div>
             ))}
-            {example ? <div className="ledger-memory-field ledger-memory-field--narrative"><dt>{memoryFieldLabels[locale].example}</dt><dd><span lang="ja">{example.ja}</span><small>{example.zh}</small></dd></div> : null}
             {coreMemory ? (
               <div className="ledger-memory-field ledger-memory-field--memory">
-                <dt>{memoryFieldLabels[locale].core_memory}</dt>
+                <dt>{labels.core_memory}</dt>
                 <dd>{coreMemory.content}</dd>
               </div>
             ) : null}
           </dl>
         </div>
-      ) : !revealed ? <span className="ledger-memory-rule" /> : null}
+      ) : !revealed && !images.length ? <span className="ledger-memory-rule" /> : null}
     </>
   );
 }
 
 function memoryFieldPresentation(field: MemoryCardField) {
-  if (['reading', 'base_form', 'source_grammar_point'].includes(field)) return 'cue';
-  if (['jlpt_level', 'part_of_speech', 'usage_register', 'tags'].includes(field)) return 'meta';
+  if (field === 'reading') return 'cue';
+  if (['jlpt_level', 'part_of_speech', 'tags'].includes(field)) return 'meta';
   return 'narrative';
 }
 
@@ -204,38 +188,38 @@ function isMetaLearningExample(value: string) {
   return /教材(?:の第\d+週)?では[「『].+[」』]という表現を学んだ/u.test(value);
 }
 
+const joined = (parts: (string | undefined)[], separator = '：') => parts.map((part) => part?.trim()).filter(Boolean).join(separator);
+
 function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardField): ReactNode | null {
   const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{value}</span> : null;
+  const lines = (values: string[], lang?: string) => {
+    const kept = values.filter(Boolean);
+    return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}>{value}</span>)}</span> : null;
+  };
   switch (field) {
     case 'original': return scalar(item.original, 'ja');
-    case 'reading': return scalar(item.reading, 'ja');
+    // A reading identical to the entry (common for kana grammar) adds nothing.
+    case 'reading': return scalar(distinctReading(item), 'ja');
     case 'jlpt_level': return scalar(item.jlpt_level);
     case 'part_of_speech': return scalar(item.part_of_speech);
+    // Rendered as figures in their own slot.
+    case 'images': return null;
     case 'meaning': return scalar(itemMeaning(item, locale));
     case 'meaning_ja': return scalar(item.meaning_ja, 'ja');
-    case 'paraphrase_ja': return scalar(item.paraphrase_ja, 'ja');
     case 'core_memory': return itemMemory(item, locale) ? <StudyText text={itemMemory(item, locale) ?? ''} /> : null;
-    case 'explanation_zh': return item.explanation_zh ? <StudyText text={item.explanation_zh ?? ''} /> : null;
-    case 'analysis': return itemAnalysis(item, locale) ? <StudyText text={itemAnalysis(item, locale) ?? ''} /> : null;
-    case 'base_form': return scalar(item.base_form, 'ja');
-    case 'usage_register': return scalar(item.usage_register_zh ?? item.usage_register);
-    case 'exam_register_zh': return scalar(item.exam_register_zh);
-    case 'source_grammar_point': return scalar(item.source_grammar_point, 'ja');
-    case 'source_chat_summary': return scalar(item.source_chat_summary);
-    case 'collocations': return stringList(item.collocations, 'ja');
-    case 'notes': return stringList(item.notes);
-    case 'tags': return stringList(item.tags);
+    case 'explanation': return itemExplanation(item, locale) ? <StudyText text={itemExplanation(item, locale) ?? ''} /> : null;
+    case 'patterns': return lines((item.patterns ?? []).map((entry) => joined([entry.pattern, entry.connection_zh, entry.meaning_zh])));
+    case 'points': return lines((item.points ?? []).map((entry) => joined([entry.label, entry.detail_zh])));
+    case 'comparisons': return lines((item.comparisons ?? []).map((entry) => joined([entry.kind === 'everyday' ? `〔日常〕${entry.target ?? ''}` : entry.target, entry.difference_zh])));
+    case 'register': return scalar(joined([item.register?.note_zh, item.register?.exam_tip_zh], ' · '));
     case 'conjugations': return item.conjugations?.length ? <ConjugationPattern item={item} /> : null;
-    case 'grammar_forms': return item.grammar_forms?.length ? <span>{item.grammar_forms.map((entry) => [entry.form, entry.connection_zh, entry.meaning_zh].filter(Boolean).join('：')).join(' · ')}</span> : null;
-    case 'grammar_features': return item.grammar_features?.length ? <span>{item.grammar_features.map((entry) => [entry.feature, entry.detail_zh].filter(Boolean).join('：')).join(' · ')}</span> : null;
-    case 'comparisons': {
-      const comparisons = [
-        ...(item.comparisons ?? []).map((entry) => [entry.target, entry.difference_zh].filter(Boolean).join('：')),
-        ...(item.comparison_notes ?? []).map((entry) => [entry.target, entry.difference_zh].filter(Boolean).join('：')),
-      ].filter(Boolean);
-      return stringList(comparisons, 'ja');
+    case 'examples': {
+      const example = item.examples?.find((candidate) => !isMetaLearningExample(candidate.ja));
+      return example ? <><span lang="ja">{example.ja}</span><small>{example.zh}</small></> : null;
     }
-    case 'everyday_alternatives': return item.everyday_alternatives?.length ? <span>{item.everyday_alternatives.map((entry) => [entry.ja, entry.zh].filter(Boolean).join('：')).join(' · ')}</span> : null;
+    case 'notes': return lines(item.notes ?? []);
+    case 'tags': return item.tags?.length ? <span>{item.tags.join(' · ')}</span> : null;
+    case 'source': return scalar(joined([item.source?.sentence, item.source?.chat_summary], ' — '));
     default: return null;
   }
 }
@@ -328,8 +312,4 @@ function conjugationKindLabel(kind: string) {
     adverbial: '连用形',
   };
   return labels[kind] ?? kind;
-}
-
-function stringList(values: string[] | undefined, lang?: string) {
-  return values?.length ? <span lang={lang}>{values.join(' · ')}</span> : null;
 }

@@ -1,5 +1,6 @@
 import { transaction } from './platform.mjs';
 import { createHash, randomUUID } from "node:crypto";
+import { canonicalizeItemFields } from "./item-schema.mjs";
 import {
   getDb,
   getDailyPractice,
@@ -13,7 +14,7 @@ import {
   createReviewPackDraft,
 } from "./storage.mjs";
 const itemFields =
-  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh formation usage_notes core_memory part_of_speech base_form conjugations collocations examples comparisons analysis explanation_zh localizations ruby_terms tags content_origin verification_status question_kinds question_distractors grammar_point grammar_forms grammar_features usage_register usage_register_zh exam_register_zh everyday_alternatives comparison_notes".split(
+  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh core_memory part_of_speech inflection_class base_form conjugations examples patterns points comparisons register explanation_zh localizations ruby_terms tags content_origin verification_status question_kinds question_distractors images".split(
     " ",
   );
 const questionFields =
@@ -80,7 +81,7 @@ export function validatePackage(input) {
   const records = input.kind === "practice" ? input.questions : input.items;
   if (!Array.isArray(records) || !records.length || records.length > 1000)
     throw new Error("分享内容需包含 1–1000 项");
-  const stringListFields = new Set(["collocations", "tags", "question_kinds"]);
+  const stringListFields = new Set(["tags", "question_kinds"]);
   const objectLists = {
     examples: [
       "ja",
@@ -90,9 +91,14 @@ export function validatePackage(input) {
       "analysis_zh",
       "form_analysis_zh",
     ],
-    comparisons: ["target", "difference_zh"],
+    comparisons: ["target", "difference_zh", "kind"],
+    patterns: ["pattern", "connection_zh", "meaning_zh", "example", "example_zh"],
+    points: ["label", "detail_zh"],
+    // Uploaded images belong to the sharer's account; only public URLs travel.
+    images: ["url", "caption"],
     ruby_terms: ["text", "reading"],
     conjugations: [
+      "kind",
       "form",
       "label",
       "reading",
@@ -102,10 +108,6 @@ export function validatePackage(input) {
       "past",
       "te",
     ],
-    grammar_forms: ["form", "example", "meaning_zh", "connection_zh"],
-    grammar_features: ["feature", "detail_zh"],
-    everyday_alternatives: ["ja", "zh"],
-    comparison_notes: ["target", "difference_zh"],
   };
   const clean = records.map((record) => {
     if (!record || typeof record !== "object") throw new Error("内容格式无效");
@@ -163,7 +165,11 @@ export function validatePackage(input) {
       !["n1_vocab", "name_reading"].includes(record.deck)
     )
       throw new Error("单词内容无效");
-    const item = pick(record, itemFields);
+    const item = pick(canonicalizeItemFields(record), itemFields);
+    if (item.images) {
+      item.images = item.images.filter((image) => image?.url);
+      if (!item.images.length) delete item.images;
+    }
     for (const [key, value] of Object.entries(item)) {
       if (stringListFields.has(key)) {
         if (
@@ -181,6 +187,10 @@ export function validatePackage(input) {
             throw new Error(`单词字段 ${key} 格式无效`);
           return clean;
         });
+      } else if (key === "register") {
+        if (!value || typeof value !== "object" || Array.isArray(value) || !Object.values(value).every((v) => typeof v === "string"))
+          throw new Error("单词字段 register 格式无效");
+        item.register = pick(value, ["level", "note_zh", "exam_tip_zh"]);
       } else if (key === "question_distractors" || key === "localizations") {
         // These optional nested maps are not needed to transfer the original word and examples.
         delete item[key];

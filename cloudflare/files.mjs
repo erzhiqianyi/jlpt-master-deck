@@ -1,6 +1,7 @@
 const roots = [
   ['/jlpt/.local/listening-audio/', 'listening-audio/'],
   ['/jlpt/.local/listening-recordings/', 'listening-recordings/'],
+  ['/jlpt/.local/item-images/', 'item-images/'],
   ['/jlpt/.local/review-backups/', 'exports/users/'],
   ['/jlpt/public/data/review-data/', 'exports/review-data/'],
 ];
@@ -19,7 +20,7 @@ export function requestFiles() {
       if (writes.has(text)) return true;
       if (deletes.has(text)) return false;
       // Media existence is verified with R2 when streamed. No local seed files exist.
-      return roots.slice(0, 2).some(([prefix]) => text.startsWith(prefix));
+      return roots.slice(0, 3).some(([prefix]) => text.startsWith(prefix));
     },
     mkdirSync() {},
     readdirSync() { return []; },

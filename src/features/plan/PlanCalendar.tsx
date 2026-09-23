@@ -1,4 +1,5 @@
 import { LearningList, LearningListRow } from '../../components/LearningList';
+import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { Undo2, SkipForward, BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { calendarDays, localDateString, tasksForDate } from '../../domain/studyPlan';
@@ -146,7 +147,17 @@ function TaskList({ labels, locale, tasks, updatingId, onTaskStatus }: {
   onTaskStatus: (id: string, status: StudyPlanTaskStatus) => Promise<void>;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  return <div className="plan-task-list"><LearningList locale={locale} hasActions columnLabels={locale === "ja" ? ["タスク", "モジュール・時間", "状態"] : locale === "en" ? ["Task", "Module / duration", "Status"] : ["任务", "模块与用时", "状态"]}>{tasks.map((task) => <LearningListRow key={task.id}
+  const batch = useListBatch(useMemo(() => tasks.map((task) => task.id), [tasks]));
+  const statusOf = (id: string) => tasks.find((task) => task.id === id)?.status;
+  const batchActions: BatchAction[] = [
+    { key: 'complete', icon: <Check size={16} aria-hidden="true"/>, label: locale === 'ja' ? '完了にする' : locale === 'en' ? 'Mark done' : '标为已完成', appliesTo: (id) => statusOf(id) !== 'completed', run: (id) => onTaskStatus(id, 'completed') },
+    { key: 'skip', icon: <SkipForward size={16} aria-hidden="true"/>, label: labels.planSkipTask, appliesTo: (id) => statusOf(id) !== 'skipped', run: (id) => onTaskStatus(id, 'skipped') },
+    { key: 'restore', icon: <Undo2 size={16} aria-hidden="true"/>, label: labels.planRestoreTask, appliesTo: (id) => statusOf(id) !== 'pending', run: (id) => onTaskStatus(id, 'pending') },
+  ];
+  return <div className="plan-task-list">
+    {tasks.length ? <div className="list-batch-inline-toggle"><BatchManageButton batch={batch} locale={locale}/></div> : null}
+    <BatchActionBar batch={batch} actions={batchActions} locale={locale}/>
+    <LearningList locale={locale} hasActions selection={batch.selection} columnLabels={locale === "ja" ? ["タスク", "モジュール・時間", "状態"] : locale === "en" ? ["Task", "Module / duration", "Status"] : ["任务", "模块与用时", "状态"]}>{tasks.map((task) => <LearningListRow key={task.id} selectId={task.id}
     title={task.title} description={`${labels[`planModule_${task.module}`]} · ${task.minutes} ${labels.minutes}`}
     statusKind={task.status} status={(locale === 'ja' ? { completed: '完了', skipped: 'スキップ', pending: 'これから', missed: '未完了' } : locale === 'en' ? { completed: 'Done', skipped: 'Skipped', pending: 'To do', missed: 'Missed' } : { completed: '已完成', skipped: '已跳过', pending: '待完成', missed: '未完成' })[task.status]} expanded={expandedId === task.id} locale={locale}
     onOpen={() => setExpandedId(expandedId === task.id ? null : task.id)}

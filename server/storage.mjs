@@ -13,6 +13,7 @@ import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
 import { ensureReferenceSchema, decorateReferences } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 import { withSqlVariableLimit } from './sql-limits.mjs';
+import { canonicalizeItemFields, ensureItemSchema, normalizeItemImages, patternTexts, MAX_ITEM_IMAGES } from './item-schema.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localDir = resolve(rootDir, '.local');
@@ -22,14 +23,21 @@ const dataRoot = process.env.JLPT_REVIEW_DATA_PATH
   : join(rootDir, 'public', 'data', 'review-data');
 const legacyDataPath = join(rootDir, 'public', 'data', 'review-data.json');
 
+// Keep in sync with src/domain/memoryCards.ts.
 const memoryCardFields = new Set([
-  'original', 'reading', 'jlpt_level', 'part_of_speech', 'meaning', 'meaning_ja',
-  'core_memory', 'formation', 'usage_notes', 'explanation_zh', 'analysis', 'grammar_forms', 'grammar_features', 'base_form', 'conjugations',
-  'collocations', 'comparisons', 'usage_register', 'exam_register_zh', 'everyday_alternatives', 'notes', 'tags',
-  'source_grammar_point', 'source_chat_summary',
+  'original', 'reading', 'jlpt_level', 'part_of_speech', 'meaning', 'meaning_ja', 'core_memory', 'explanation',
+  'patterns', 'points', 'comparisons', 'register', 'conjugations', 'examples', 'images', 'notes', 'tags', 'source',
 ]);
+// Card fields named after the pre-unification item fields.
+const legacyMemoryCardFields = {
+  explanation_zh: 'explanation', analysis: 'explanation', usage_notes: 'explanation',
+  grammar_forms: 'patterns', collocations: 'patterns', formation: 'patterns', source_grammar_point: 'patterns',
+  grammar_features: 'points', everyday_alternatives: 'comparisons',
+  usage_register: 'register', exam_register_zh: 'register', base_form: 'conjugations', source_chat_summary: 'source',
+};
+const memoryCardFieldsVersion = 2;
 const defaultMemoryCardFrontFields = ['original'];
-const defaultMemoryCardBackFields = ['original', 'grammar_forms', 'meaning', 'core_memory'];
+const defaultMemoryCardBackFields = ['original', 'reading', 'images', 'patterns', 'meaning', 'examples', 'core_memory'];
 const memoryCardFrontCompatKey = '_memory_card_front_fields';
 const memoryCardBackCompatKey = '_memory_card_back_fields';
 
@@ -40,6 +48,7 @@ const defaultSettings = {
   fontSize: 'standard',
   memoryCardFrontFields: defaultMemoryCardFrontFields,
   memoryCardBackFields: defaultMemoryCardBackFields,
+  memoryCardFieldsVersion,
   feedbackMode: 'immediate',
   questionTypeTips: {},
   customQuestionTypeTips: [],
@@ -272,10 +281,21 @@ export function getDb() {
     migrateCanonicalReviewItems();
     migrateMemoryCardSettings();
     transaction(db, () => migrateReviewItemOwnership(db));
+    ensureItemSchema(db, { beforeMigrate: backupDatabase, inTransaction: (run) => transaction(db, run) });
     ensureQuerySchema(db);
     ensureReferenceSchema(db);
   }
   return db;
+}
+
+function backupDatabase() {
+  const hasItems = ['review_items', 'owned_review_items', 'user_review_items']
+    .some((table) => db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`).get(table) && db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).get());
+  if (!hasItems) return;
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*$/, '').replace('T', '-');
+  const target = join(dirname(dbPath), 'backups', `jlpt-before-unified-item-fields-${stamp}-${randomBytes(3).toString('hex')}.sqlite`);
+  mkdirSync(dirname(target), { recursive: true });
+  db.exec(`VACUUM INTO '${target.replaceAll("'", "''")}'`);
 }
 
 function migrateListeningAudioAssets() {
@@ -357,7 +377,7 @@ export function loadReviewData(userId) {
     .all(...(userId == null ? [] : [userId]));
   let items = rows
     .map((row) => normalizeStoredReviewItem(JSON.parse(row.item_json)))
-    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || (a.input_at ?? '').localeCompare(b.input_at ?? '') || a.id.localeCompare(b.id));
+    .sort((a, b) => (a.input_at ?? '').localeCompare(b.input_at ?? '') || a.id.localeCompare(b.id));
   if (userId != null) {
     const books = new Set(listWordbooks(userId).map((book) => book.id));
     items = items.filter((item) => !item.wordbook_id?.startsWith('wordbook-') || books.has(item.wordbook_id));
@@ -447,6 +467,115 @@ export function reviewItemById(id, userId) {
   return row ? JSON.parse(row.item_json) : null;
 }
 
+const itemImageTypes = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+const MAX_ITEM_IMAGE_BYTES = 5 * 1024 * 1024;
+
+// Only raster formats whose bytes match the declared type; SVG could carry script.
+function imageBytesMatch(mime, bytes) {
+  const ascii = (start, end) => bytes.subarray(start, end).toString('latin1');
+  if (mime === 'image/png') return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (mime === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === 'image/gif') return ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a';
+  if (mime === 'image/webp') return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+  return false;
+}
+
+function ownedItemRow(userId, itemId) {
+  const database = getDb();
+  const owned = database.prepare('SELECT item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
+  const imported = owned ? null : database.prepare('SELECT item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(itemId, userId);
+  const row = owned ?? imported;
+  return row ? { item: normalizeStoredReviewItem(JSON.parse(row.item_json)), owned: Boolean(owned) } : null;
+}
+
+function saveOwnedItem(userId, { item, owned }) {
+  const database = getDb();
+  if (owned) {
+    database.prepare('UPDATE owned_review_items SET item_json = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(item), new Date().toISOString(), item.id, userId);
+  } else {
+    database.prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(item), item.id, userId);
+  }
+  return item;
+}
+
+/** Attach an uploaded memory image (base64) or an https image URL to one of the learner's items. */
+export function addReviewItemImage(userId, itemId, payload = {}) {
+  const found = ownedItemRow(userId, String(itemId ?? '').trim());
+  if (!found) return null;
+  const images = found.item.images ?? [];
+  if (images.length >= MAX_ITEM_IMAGES) throw new Error(`Each entry can hold at most ${MAX_ITEM_IMAGES} images`);
+  const caption = String(payload.caption ?? '').trim().slice(0, 120);
+  const url = String(payload.url ?? '').trim();
+  if (url) {
+    const [image] = normalizeItemImages([{ url, caption }]);
+    if (!image) throw new Error('Image URL must start with https://');
+    found.item.images = normalizeItemImages([...images, image]);
+    return saveOwnedItem(userId, found);
+  }
+  const mime = String(payload.mime ?? '').toLowerCase();
+  const base64 = String(payload.imageBase64 ?? '').replace(/^data:[^,]*,/, '').replace(/\s/g, '');
+  if (!itemImageTypes[mime]) throw new Error('Images must be PNG, JPEG, WebP or GIF');
+  if (!base64 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw new Error('Invalid image data');
+  const bytes = Buffer.from(base64, 'base64');
+  if (!bytes.length || bytes.length > MAX_ITEM_IMAGE_BYTES) throw new Error('Image must be 5 MB or smaller');
+  if (!imageBytesMatch(mime, bytes)) throw new Error('Image content does not match its file type');
+
+  const database = getDb();
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  let asset = database.prepare('SELECT id FROM item_images WHERE user_id = ? AND sha256 = ?').get(userId, sha256);
+  let writtenPath = '';
+  if (!asset) {
+    const id = randomBytes(12).toString('base64url');
+    // Beside the database, so a JLPT_DB_PATH elsewhere keeps its images with it.
+    const dir = join(dirname(dbPath), 'item-images', String(userId));
+    writtenPath = join(dir, `${id}.${itemImageTypes[mime]}`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(writtenPath, bytes, { flag: 'wx' });
+    asset = { id };
+  }
+  try {
+    return transaction(database, () => {
+      if (writtenPath) {
+        database.prepare('INSERT INTO item_images (id, user_id, mime, size, sha256, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(asset.id, userId, mime, bytes.length, sha256, writtenPath, new Date().toISOString());
+      }
+      found.item.images = normalizeItemImages([...images, { id: asset.id, caption }]);
+      return saveOwnedItem(userId, found);
+    });
+  } catch (error) {
+    if (writtenPath && existsSync(writtenPath)) unlinkSync(writtenPath);
+    throw error;
+  }
+}
+
+/** Detach one image (by asset id or URL); the file goes once no other entry uses it. */
+export function removeReviewItemImage(userId, itemId, imageKey) {
+  const found = ownedItemRow(userId, String(itemId ?? '').trim());
+  if (!found) return null;
+  const key = String(imageKey ?? '');
+  found.item.images = (found.item.images ?? []).filter((image) => image.id !== key && image.url !== key);
+  if (!found.item.images.length) delete found.item.images;
+  const database = getDb();
+  return transaction(database, () => {
+    saveOwnedItem(userId, found);
+    const asset = database.prepare('SELECT image_path FROM item_images WHERE id = ? AND user_id = ?').get(key, userId);
+    const stillUsed = asset && [
+      ...database.prepare('SELECT item_json FROM owned_review_items WHERE user_id = ?').all(userId),
+      ...database.prepare('SELECT item_json FROM user_review_items WHERE user_id = ?').all(userId),
+    ].some((row) => (JSON.parse(row.item_json).images ?? []).some((image) => image?.id === key));
+    if (asset && !stillUsed) {
+      database.prepare('DELETE FROM item_images WHERE id = ? AND user_id = ?').run(key, userId);
+      if (existsSync(asset.image_path)) unlinkSync(asset.image_path);
+    }
+    return found.item;
+  });
+}
+
+export function itemImageForUser(userId, imageId) {
+  const row = getDb().prepare('SELECT image_path, mime, size FROM item_images WHERE id = ? AND user_id = ?').get(String(imageId ?? ''), userId);
+  return row && existsSync(row.image_path) ? row : null;
+}
+
 /** Move an item into another wordbook of the same family and/or replace its tags. */
 export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
   const itemId = String(id ?? '').trim();
@@ -479,7 +608,8 @@ export function exportReviewDataBackup(userId) {
   const data = decorateReferences(getDb(), userId, loadReviewData(userId));
   const byMonth = new Map();
   for (const item of data.items) {
-    const date = String(item.date ?? '').match(/^\d{4}-\d{2}-\d{2}$/) ? item.date : new Date().toISOString().slice(0, 10);
+    const day = String(item.input_at ?? '').slice(0, 10);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : new Date().toISOString().slice(0, 10);
     const [year, month] = date.split('-');
     const key = `${year}/${month}`;
     const list = byMonth.get(key) ?? [];
@@ -522,13 +652,10 @@ function normalizeReviewItem(item) {
   const original = deck === 'grammar_expression'
     ? submittedOriginal
     : submittedNormalized || submittedOriginal;
-  const canonicalItem = { ...item, ...normalizeItemOrganization(item) };
-  delete canonicalItem.normalized;
-  delete canonicalItem.wordbook_ids;
+  const canonicalItem = { ...canonicalizeItemFields(item), ...normalizeItemOrganization(item) };
   const examples = Array.isArray(item.examples)
     ? item.examples.filter((example) => String(example?.ja ?? '').trim())
     : [];
-  const collocations = normalizeCollocations(item.collocations);
   if (deck === 'n1_vocab' && type !== 'proper_name' && examples.length < 2) {
     throw new Error('Vocabulary review items require at least two Japanese example sentences');
   }
@@ -550,7 +677,7 @@ function normalizeReviewItem(item) {
   }
   const needsConjugations = /(?:动词|動詞|verb|形容词|形容詞|adjective)/iu.test(`${type} ${partOfSpeech}`);
   const inflectionClass = String(item.inflection_class ?? '').trim();
-  const baseForm = String(item.base_form ?? '').trim();
+  const baseForm = String(canonicalItem.base_form ?? '').trim();
   const validInflectionClasses = new Set(['godan', 'ichidan', 'suru', 'kuru', 'i_adjective', 'na_adjective']);
   const conjugations = Array.isArray(item.conjugations)
     ? item.conjugations.filter((entry) => String(entry?.kind ?? '').trim() && String(entry?.form ?? '').trim())
@@ -561,7 +688,7 @@ function normalizeReviewItem(item) {
   if (needsConjugations && !validInflectionClasses.has(inflectionClass)) {
     throw new Error('Verb and adjective review items require a valid inflection_class');
   }
-  if (needsConjugations && !baseForm) {
+  if (needsConjugations && !baseForm && !String(item.base_form ?? item.dictionary_form ?? '').trim()) {
     throw new Error('Verb and adjective review items require base_form');
   }
   if (needsConjugations && conjugations.length < 3) {
@@ -570,16 +697,14 @@ function normalizeReviewItem(item) {
   return {
     ...canonicalItem,
     id,
-    date: String(item.date ?? new Date().toISOString().slice(0, 10)),
     deck,
     type,
     original,
     examples,
-    collocations,
     part_of_speech: partOfSpeech || undefined,
     inflection_class: inflectionClass || undefined,
-    base_form: baseForm || undefined,
-    conjugations,
+    base_form: baseForm && baseForm !== original ? baseForm : undefined,
+    conjugations: conjugations.length ? conjugations : undefined,
     meaning_zh: String(item.meaning_zh ?? item.meaning ?? '').trim(),
     meaning_ja: meaningJa || undefined,
     paraphrase_ja: paraphraseJa || undefined,
@@ -596,12 +721,10 @@ function migrateCanonicalReviewItems() {
     for (const row of rows) {
       const current = JSON.parse(row.item_json);
       const canonical = normalizeStoredReviewItem(current);
-      const legacyNormalized = String(canonical.normalized ?? '').trim();
+      const legacyNormalized = String(current.normalized ?? '').trim();
       if (canonical.deck !== 'grammar_expression' && legacyNormalized) {
         canonical.original = legacyNormalized;
       }
-      delete canonical.normalized;
-      delete canonical.wordbook_ids;
       const nextJson = JSON.stringify(canonical);
       if (nextJson !== row.item_json) {
         update.run(nextJson, now, row.id);
@@ -612,8 +735,7 @@ function migrateCanonicalReviewItems() {
 
 function normalizeStoredReviewItem(item) {
   return {
-    ...item,
-    collocations: normalizeCollocations(item?.collocations),
+    ...canonicalizeItemFields(item),
     ...normalizeItemOrganization(item),
   };
 }
@@ -636,14 +758,6 @@ export function normalizeTags(value) {
 /** The wordbook an item is filed in: its own wordbook_id, or the built-in one of its deck. */
 export function itemWordbookId(item) {
   return item?.wordbook_id || item?.deck;
-}
-
-function normalizeCollocations(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => typeof entry === 'string' ? entry : entry?.text)
-    .map((entry) => String(entry ?? '').trim())
-    .filter(Boolean);
 }
 
 function migrateMemoryCardSettings() {
@@ -1077,7 +1191,8 @@ export function getStudyState(userId) {
 }
 
 export function saveSettings(userId, settings) {
-  const normalized = normalizeSettings(settings);
+  // Settings sent by the app are already in the current card-field vocabulary.
+  const normalized = normalizeSettings({ ...settings, memoryCardFieldsVersion });
   getDb()
     .prepare('UPDATE user_settings SET settings_json = ?, updated_at = ? WHERE user_id = ?')
     .run(JSON.stringify(normalized), new Date().toISOString(), userId);
@@ -1695,9 +1810,8 @@ function isMetaStudySentence(value) {
 function firstQuestionContext(item) {
   const candidates = [
     ...(item.examples ?? []).map((entry) => entry.ja),
-    item.example_ja,
-    item.source_original_sentence,
-    ...(item.collocations ?? []),
+    item.source?.sentence,
+    ...patternTexts(item),
   ].filter((candidate) => candidate && !isMetaStudySentence(candidate));
   return candidates.find((candidate) => String(candidate).includes(item.original)) ?? candidates[0] ?? item.original;
 }
@@ -2649,14 +2763,14 @@ function dailyPracticeChoiceExplanation({ choice, correct, kind, prompt, correct
 
   const normalizedChoice = normalizeDailyGrammarExpression(choice);
   const candidate = reviewItems.find((item) => {
-    const expressions = [item.original, item.grammar_point, item.source_grammar_point]
+    const expressions = [item.original, item.patterns?.[0]?.pattern]
       .filter(Boolean)
       .flatMap((value) => String(value).split(/[／/]/u));
     return expressions.some((value) => normalizeDailyGrammarExpression(value) === normalizedChoice);
   });
-  const comparison = [...(sourceItem.comparison_notes ?? []), ...(sourceItem.comparisons ?? [])]
+  const comparison = (sourceItem.comparisons ?? [])
     .find((entry) => normalizeDailyGrammarExpression(entry.target ?? '') === normalizedChoice);
-  const form = candidate?.grammar_forms?.[0]?.form;
+  const form = candidate?.patterns?.[0]?.pattern;
   const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.core_memory ?? candidate?.explanation_zh ?? '');
   const normalUse = candidate
     ? `「${choice}」的使用范围：${form ? `接「${form}」，` : ''}${usage ? `表示“${usage}”` : '用于另一种接续和语义场景'}。`
@@ -2961,6 +3075,14 @@ function verifyPassword(password, salt, expectedHash) {
 }
 
 function normalizeSettings(value) {
+  // Before version 2 the back of a card always showed one example; keep that and offer images.
+  const legacyCards = value?.memoryCardFieldsVersion !== memoryCardFieldsVersion;
+  const backFields = normalizeMemoryCardFields(value?.memoryCardBackFields ?? compatibilityMemoryCardFields(value?.questionTypeTips?.[memoryCardBackCompatKey]), defaultMemoryCardBackFields);
+  const storedLegacyBack = legacyCards && (value?.memoryCardBackFields || value?.questionTypeTips?.[memoryCardBackCompatKey]);
+  const untouchedLegacyDefault = backFields.join() === 'original,patterns,meaning,core_memory';
+  const legacyBackFields = !storedLegacyBack ? backFields
+    : untouchedLegacyDefault ? [...defaultMemoryCardBackFields]
+      : [...new Set([...backFields, 'images', 'examples'])];
   const locale = value?.locale === 'ja' || value?.locale === 'en' || value?.locale === 'zh-CN' ? value.locale : defaultSettings.locale;
   const feedbackMode = value?.feedbackMode === 'batch' ? 'batch' : defaultSettings.feedbackMode;
   const fontSize = value?.fontSize === 'small' || value?.fontSize === 'large' ? value.fontSize : defaultSettings.fontSize;
@@ -2972,7 +3094,8 @@ function normalizeSettings(value) {
     locale,
     fontSize,
     memoryCardFrontFields: normalizeMemoryCardFields(value?.memoryCardFrontFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[memoryCardFrontCompatKey]), defaultMemoryCardFrontFields),
-    memoryCardBackFields: normalizeMemoryCardFields(value?.memoryCardBackFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[memoryCardBackCompatKey]), defaultMemoryCardBackFields),
+    memoryCardBackFields: legacyBackFields,
+    memoryCardFieldsVersion,
     feedbackMode,
     questionTypeTips,
     customQuestionTypeTips: normalizeCustomQuestionTypeTips(value?.customQuestionTypeTips),
@@ -2981,7 +3104,9 @@ function normalizeSettings(value) {
 
 function normalizeMemoryCardFields(value, fallback) {
   if (!Array.isArray(value)) return [...fallback];
-  const fields = [...new Set(value.filter((field) => typeof field === 'string' && memoryCardFields.has(field)))];
+  const fields = [...new Set(value
+    .map((field) => legacyMemoryCardFields[field] ?? field)
+    .filter((field) => typeof field === 'string' && memoryCardFields.has(field)))];
   return fields.length ? fields : [...fallback];
 }
 

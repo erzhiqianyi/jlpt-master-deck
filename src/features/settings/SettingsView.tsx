@@ -1,7 +1,7 @@
 import { NavigationCard } from '../../components/NavigationCard';
 import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { configurableMemoryCardFields, type MemoryCardField } from '../../domain/memoryCards';
+import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import type { DisplaySettings, Locale } from '../../types';
 
 type SettingsViewProps = {
@@ -115,49 +115,27 @@ const memoryCardSettingsCopy: Record<Locale, {
   front: string;
   back: string;
   exampleNote: string;
-  fieldLabels: Record<MemoryCardField, string>;
 }> = {
   'zh-CN': {
     title: '记忆卡内容',
     body: '分别选择正面和背面显示的学习内容。当前卡片没有的字段会自动跳过。',
     front: '卡片正面',
     back: '卡片背面',
-    exampleNote: '例句固定显示在背面，不需要在这里选择。',
-    fieldLabels: {
-      original: '原词 / 语法', reading: '读音', jlpt_level: 'JLPT 等级', part_of_speech: '词性',
-      meaning: '释义', meaning_ja: '日文释义', paraphrase_ja: '日文换言', core_memory: '记忆点', explanation_zh: '详细解析',
-      analysis: '补充分析', grammar_forms: '接续形式', grammar_features: '语法特征', base_form: '基本形', conjugations: '活用',
-      collocations: '常用搭配', comparisons: '比较辨析', usage_register: '使用语域', exam_register_zh: '考试提示', everyday_alternatives: '日常替代表达',
-      notes: '备注', tags: '标签', source_grammar_point: '来源语法点', source_chat_summary: '学习来源摘要',
-    },
+    exampleNote: '单词和语法共用这一套字段；与原词相同的读音会自动隐藏。图片可在词条详情页上传。',
   },
   ja: {
     title: '記憶カードの内容',
     body: '表面と裏面に表示する学習内容を個別に選択します。データがない項目は自動的に省略されます。',
     front: 'カード表面',
     back: 'カード裏面',
-    exampleNote: '例文は常に裏面に表示されるため、ここで選択する必要はありません。',
-    fieldLabels: {
-      original: '語句 / 文法', reading: '読み方', jlpt_level: 'JLPT レベル', part_of_speech: '品詞',
-      meaning: '意味', meaning_ja: '日本語の意味', paraphrase_ja: '日本語の言い換え', core_memory: '記憶ポイント', explanation_zh: '詳しい解説',
-      analysis: '補足分析', grammar_forms: '接続形式', grammar_features: '文法の特徴', base_form: '基本形', conjugations: '活用',
-      collocations: 'よく使う組み合わせ', comparisons: '比較・使い分け', usage_register: '使用場面', exam_register_zh: '試験ポイント', everyday_alternatives: '日常表現',
-      notes: 'メモ', tags: 'タグ', source_grammar_point: '出典文法項目', source_chat_summary: '学習元の要約',
-    },
+    exampleNote: '単語と文法は同じ項目を共有します。原語と同じ読み方は自動的に省略されます。画像は項目の詳細ページで追加できます。',
   },
   en: {
     title: 'Memory card content',
     body: 'Choose learning fields for the front and back independently. Missing fields are skipped automatically.',
     front: 'Card front',
     back: 'Card back',
-    exampleNote: 'Example sentences always appear on the back and do not need to be selected here.',
-    fieldLabels: {
-      original: 'Word / grammar', reading: 'Reading', jlpt_level: 'JLPT level', part_of_speech: 'Part of speech',
-      meaning: 'Meaning', meaning_ja: 'Japanese definition', paraphrase_ja: 'Japanese paraphrase', core_memory: 'Memory point', explanation_zh: 'Detailed explanation',
-      analysis: 'Additional analysis', grammar_forms: 'Connection forms', grammar_features: 'Grammar features', base_form: 'Base form', conjugations: 'Conjugations',
-      collocations: 'Collocations', comparisons: 'Comparisons', usage_register: 'Usage register', exam_register_zh: 'Exam tip', everyday_alternatives: 'Everyday alternatives',
-      notes: 'Notes', tags: 'Tags', source_grammar_point: 'Source grammar point', source_chat_summary: 'Learning source summary',
-    },
+    exampleNote: 'Vocabulary and grammar share these fields; a reading identical to the entry is hidden automatically. Add images on the entry detail page.',
   },
 };
 
@@ -319,7 +297,7 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
                     onClick={() => update(side, field)}
                     className={`min-h-10 rounded-md border px-2 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed ${active ? 'border-[#24473f] bg-[#eef3ed] text-[#24473f]' : 'border-[#e1ddd5] bg-white text-[#68716b] hover:bg-[#f7f5ef]'}`}
                   >
-                    <span aria-hidden="true" className="mr-1">{active ? '✓' : '○'}</span>{copy.fieldLabels[field]}
+                    <span aria-hidden="true" className="mr-1">{active ? '✓' : '○'}</span>{memoryCardFieldLabels[settings.locale][field]}
                   </button>
                 );
               })}

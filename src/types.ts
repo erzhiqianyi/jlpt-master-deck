@@ -420,7 +420,7 @@ export type RubyTerm = { text: string; reading: string };
 export type LocalizedText = {
   meaning?: string;
   core_memory?: string;
-  analysis?: string;
+  explanation?: string;
 };
 
 export type PracticeQuestionSeed = {
@@ -446,53 +446,57 @@ export type ConjugationForm = {
 export type InflectionClass = 'godan' | 'ichidan' | 'suru' | 'kuru' | 'i_adjective' | 'na_adjective';
 export type UsageRegister = 'written' | 'spoken' | 'both' | 'formal';
 
+/** A connection form, usage pattern or collocation — shared by vocabulary and grammar. */
+export type ItemPattern = { pattern?: string; connection_zh?: string; meaning_zh?: string; example?: string; example_zh?: string };
+/** A usage feature, trap or note with a short label. */
+export type ItemPoint = { label?: string; detail_zh?: string };
+/** A near-synonym contrast, or (kind: everyday) a natural everyday alternative. */
+export type ItemComparison = { target?: string; difference_zh?: string; kind?: 'everyday' };
+export type ItemRegister = { level?: UsageRegister; note_zh?: string; exam_tip_zh?: string };
+/** A memory image: `id` is an uploaded asset served from /api/item-images/:id, `url` an external https image. */
+export type ItemImage = { id?: string; url?: string; caption?: string };
+export type ItemSource = { sentence?: string; chat_summary?: string; draft_ids?: string[]; draft_title?: string; capture_id?: string };
+
+/** One shape for vocabulary, grammar and name entries (see server/item-schema.mjs). */
 export type VocabItem = {
   reference?: string;
   id: string;
-  date: string;
-  input_at?: string;
+  /** Capture timestamp; its first ten characters are the capture day. */
+  input_at: string;
   /** The single wordbook this entry is filed in; falls back to the built-in wordbook of its deck. */
   wordbook_id?: string;
   deck: Deck;
   type: string;
   jlpt_level?: string;
+  level_confidence?: 'low' | 'medium' | 'high';
   original: string;
   reading?: string;
-  meaning_ja?: string;
-  paraphrase_ja?: string;
-  formation?: string;
-  usage_notes?: string;
-  meaning_zh: string;
-  core_memory: string;
   part_of_speech?: string;
+  meaning_zh: string;
+  meaning_ja?: string;
+  /** Answer of the 言い換え question; never shown on cards. */
+  paraphrase_ja?: string;
+  core_memory: string;
+  explanation_zh?: string;
+  patterns?: ItemPattern[];
+  points?: ItemPoint[];
+  comparisons?: ItemComparison[];
+  register?: ItemRegister;
   inflection_class?: InflectionClass;
+  /** Only stored when it differs from `original`. */
   base_form?: string;
   conjugations?: ConjugationForm[];
-  collocations?: string[];
   examples?: { ja: string; zh: string; spoken_ja?: string; spoken_zh?: string; analysis_zh?: string; form_analysis_zh?: string }[];
-  comparisons?: { target: string; difference_zh: string }[];
-  analysis?: string;
-  explanation_zh?: string;
+  images?: ItemImage[];
+  notes?: string[];
+  tags?: string[];
+  source?: ItemSource;
   localizations?: Partial<Record<Locale | string, LocalizedText>>;
   ruby_terms?: RubyTerm[];
-  tags?: string[];
   content_origin?: 'user_provided' | 'ai_generated';
   verification_status?: 'unverified' | 'needs_review' | 'verified';
-  level_confidence?: 'low' | 'medium' | 'high';
   question_kinds?: QuestionKind[];
   question_distractors?: Partial<Record<QuestionKind, string[]>>;
-  source_original_sentence?: string;
-  source_grammar_point?: string;
-  grammar_point?: string;
-  grammar_forms?: { form?: string; example?: string; meaning_zh?: string; connection_zh?: string }[];
-  grammar_features?: { feature?: string; detail_zh?: string }[];
-  usage_register?: UsageRegister;
-  usage_register_zh?: string;
-  exam_register_zh?: string;
-  everyday_alternatives?: { ja?: string; zh?: string }[];
-  comparison_notes?: { target?: string; difference_zh?: string }[];
-  notes?: string[];
-  source_chat_summary?: string;
   practice_questions?: PracticeQuestionSeed[];
 };
 

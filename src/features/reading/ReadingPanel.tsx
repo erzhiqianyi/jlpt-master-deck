@@ -217,7 +217,14 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
         </div>
         <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false}
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
-          collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale} searchText={(group) => group.map((item) => `${item.reference ?? ''} ${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
+          collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale}
+          batch={{ id: (group) => group[0].id, actions: [{
+            key: 'delete', danger: true, icon: <Trash2 size={16} aria-hidden="true"/>,
+            label: locale === 'ja' ? '削除' : locale === 'en' ? 'Delete' : '删除',
+            confirm: (count) => locale === 'ja' ? `選択した ${count} 件の文章と、その問題をすべて削除します。` : locale === 'en' ? `Delete ${count} selected passages and all of their questions?` : `将删除所选 ${count} 篇文章及其全部题目，删除后无法恢复。`,
+            run: async (id) => { for (const item of filteredGroups.find((group) => group[0].id === id) ?? []) await onDelete(item.id); },
+          }] }}
+          searchText={(group) => group.map((item) => `${item.reference ?? ''} ${item.title} ${item.passage} ${item.question} ${(item.tags ?? []).join(' ')}`).join(' ')} renderRow={(group) => {
           const addedAt = group.map((item) => item.createdAt).filter((value) => value && Number.isFinite(Date.parse(value)))
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];

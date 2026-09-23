@@ -20,11 +20,11 @@ const views = {
       json_extract(r.item_json, '$.jlpt_level') AS jlpt_level,
       json_extract(r.item_json, '$.original') AS original,
       json_extract(r.item_json, '$.reading') AS reading,
-      json_extract(r.item_json, '$.grammar_point') AS grammar_point,
+      json_extract(r.item_json, '$.patterns[0].pattern') AS pattern,
       json_extract(r.item_json, '$.part_of_speech') AS part_of_speech,
       json_extract(r.item_json, '$.meaning_zh') AS meaning_zh,
       json_extract(r.item_json, '$.meaning_ja') AS meaning_ja,
-      json_extract(r.item_json, '$.date') AS captured_on,
+      substr(json_extract(r.item_json, '$.input_at'), 1, 10) AS captured_on,
       COALESCE(
         NULLIF(TRIM(json_extract(r.item_json, '$.wordbook_id')), ''),
         NULLIF(TRIM(json_extract(r.item_json, '$.wordbook_ids[0]')), ''),

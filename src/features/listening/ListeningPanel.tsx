@@ -362,6 +362,12 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
         title={locale === 'ja' ? '聴解ライブラリ' : locale === 'en' ? 'Listening library' : '听力题库'}
         items={audioGroups}
         locale={locale}
+        batch={{ id: (item) => item.key, actions: [{
+          key: 'delete', danger: true, icon: <Trash2 size={16} aria-hidden="true"/>,
+          label: locale === 'ja' ? '削除' : locale === 'en' ? 'Delete' : '删除',
+          confirm: (count) => locale === 'ja' ? `選択した ${count} 件の音声と、その問題をすべて削除します。` : locale === 'en' ? `Delete ${count} selected audio files and all of their questions?` : `将删除所选 ${count} 个音频及其全部题目，删除后无法恢复。`,
+          run: async (key) => { for (const question of audioGroups.find((item) => item.key === key)?.questions ?? []) await onDelete(question.id); },
+        }] }}
         tools={<><LearningListSelect label="题型" value={typeFilter} onChange={(value) => setTypeFilter(value)} hideLabel><option value="all">全部题型</option>{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</LearningListSelect><LearningListSelect label="排序" value={sortOrder} onChange={(value) => setSortOrder(value)} hideLabel><option value="newest">最新添加</option><option value="oldest">最早添加</option></LearningListSelect></>}
         searchText={(item) => `${item.representative.audioReference ?? ''} ${item.representative.audioFileName} ${item.questions.map((question) => `${question.reference ?? ''} ${listeningQuestionTypeName(question.questionTypeId)} ${question.title}`).join(' ')}`}
         renderRow={(item) => {

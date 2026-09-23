@@ -20,6 +20,7 @@ const { outputFiles } = await build({
       if (kind === 'metadata-empty') return renderToStaticMarkup(<LearningList locale={locale} columns={<LearningListColumns locale={locale} title="句型" collectionLabel="语法本"/>}/>);
       if (kind === 'catalog-empty') return renderToStaticMarkup(<LearningCatalog locale={locale} title="听力题库" items={[]} hasActions columnLabels={['音频','题型',null]} searchText={String} renderRow={() => null}/>);
       if (kind === 'actions') return renderToStaticMarkup(<LearningList columnLabels={['任务','时间','状态']} hasActions><LearningListRow title="复习" description="10 分钟" status="待完成" onOpen={() => {}} inlineActions secondary={<button type="button">分享</button>} trailing={<input type="checkbox" aria-label="完成"/>}/></LearningList>);
+      if (kind === 'selection') return renderToStaticMarkup(<LearningList columnLabels={['名称','分类','状态']} selection={{ selected: new Set(['a']), toggle() {}, setMany() {} }}><LearningListRow selectId="a" title="規制" onOpen={() => {}}/><LearningListRow selectId="b" title="緩和" onOpen={() => {}}/><LearningListRow title="固定" onOpen={() => {}}/></LearningList>);
       if (kind === 'metadata') return renderToStaticMarkup(<LearningList columns={<LearningListColumns locale={locale} title="单词" collectionLabel="单词本" showPartOfSpeech/>}><LearningListRow title="規制" onOpen={() => {}} metadata={<LearningListMetadata locale={locale} addedAt="2026-09-22" collectionLabel="单词本" collection="N1" showPartOfSpeech partOfSpeech="名詞"/>}/></LearningList>);
       return renderToStaticMarkup(<LearningList locale={locale} columnLabels={['名称','分类','状态']}>{[null, false, []]}</LearningList>);
     }
@@ -63,4 +64,13 @@ test('vocabulary preserves part of speech and month/day dates', () => {
   const time = html.match(/<time[^>]*>([^<]*)<\/time>/)?.[1];
   assert.ok(time);
   assert.doesNotMatch(time, /2026|:/);
+});
+
+test('batch mode adds one labelled checkbox per selectable row', () => {
+  const html = renderCase('selection');
+  assert.match(html, /is-selecting/);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 2);
+  assert.match(html, /aria-label="选择：規制"/);
+  assert.equal((html.match(/list-selectable is-selected/g) ?? []).length, 1);
+  assert.equal((html.match(/role="listitem"/g) ?? []).length, 3);
 });

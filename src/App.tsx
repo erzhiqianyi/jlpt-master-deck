@@ -13,7 +13,7 @@ import { ArrowLeft, BookOpenText, Search } from 'lucide-react';
 import { lazy, Suspense, startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuestionBatch } from './hooks/useQuestionBatch';
 import { useBrowserHash } from './hooks/useBrowserHash';
-import { itemAnalysis, itemMeaning, itemMemory } from './domain/items';
+import { itemExplanation, itemMeaning, itemMemory, itemPatternTexts } from './domain/items';
 import { defaultMemoryCardBackFields, defaultMemoryCardFrontFields, normalizeMemoryCardFields } from './domain/memoryCards';
 import { buildQuestionIndex, type QuestionReference, buildQuestions, deckLabelsFor } from './domain/questions';
 import { createDefaultStudyPlanProfile, localDateString } from './domain/studyPlan';
@@ -255,7 +255,7 @@ export default function App() {
           ? routeFromHash(window.location.hash).itemId ?? resume.practiceId
           : undefined;
         setUser(me.user);
-        setData(normalizeReviewData(reviewData));
+        setData(reviewData);
         applyStudyState(studyState);
         setDrafts(draftList.drafts ?? []);
         setDailyPractices(dailyPracticeList.practices ?? []);
@@ -466,9 +466,11 @@ export default function App() {
       if (activeView === 'daily-practice') {
         return activeDailyPractice?.questions ?? [];
       }
+      const focusedItemIds = new Set(practiceFocus?.kind === 'items' ? practiceFocus.itemIds : []);
       const focusedQuestions = activeView === 'grammar' && practiceFocus && practiceFocus.kind !== 'random'
         ? allQuestions.filter((question) => {
           if (practiceFocus.kind === 'question-kind') return question.kind === practiceFocus.questionKind;
+          if (practiceFocus.kind === 'items') return focusedItemIds.has(question.itemId);
           const sourceItem = data.items.find((item) => item.id === question.itemId);
           return Boolean(sourceItem?.tags?.includes(practiceFocus.tag));
         })
@@ -477,9 +479,22 @@ export default function App() {
     },
     [activeDailyPractice, activeView, allQuestions, data.items, practiceFocus, questionShuffleSeed],
   );
-  const vocabularyIndex = useMemo(() => pagedVocabulary
-    ? shuffledBySeed(buildQuestionIndex(questionItems), questionShuffleSeed) : [],
-  [pagedVocabulary, questionItems, questionShuffleSeed]);
+  const vocabularyIndex = useMemo(() => {
+    if (!pagedVocabulary) return [];
+    const focusedItemIds = new Set(practiceFocus?.kind === 'items' ? practiceFocus.itemIds : []);
+    const index = buildQuestionIndex(questionItems).filter((question) => {
+      if (!practiceFocus || practiceFocus.kind === 'random') return true;
+      if (practiceFocus.kind === 'question-kind') return question.kind === practiceFocus.questionKind;
+      if (practiceFocus.kind === 'items') return focusedItemIds.has(question.itemId);
+      return Boolean(questionItems.find((item) => item.id === question.itemId)?.tags?.includes(practiceFocus.tag));
+    });
+    return shuffledBySeed(index, questionShuffleSeed);
+  }, [pagedVocabulary, practiceFocus, questionItems, questionShuffleSeed]);
+  // The vocabulary word list never materializes questions; count its practicable kinds from the cheap index.
+  const wordIndexQuestions = useMemo(() => activeView === 'vocabulary' && studyPage === 'words'
+    ? buildQuestionIndex(selectedDeck === 'all' ? items.filter((item) => item.deck !== 'name_reading' && item.type !== 'proper_name') : items)
+    : materializedQuestions,
+  [activeView, studyPage, selectedDeck, items, materializedQuestions]);
   const questions: QuestionReference[] = pagedVocabulary ? vocabularyIndex : materializedQuestions;
   const batch = useQuestionBatch(questionItems, vocabularyIndex, activeIndex, locale, pagedVocabulary && routeReady);
   const activeQuestion = pagedVocabulary ? batch.question : materializedQuestions[activeIndex % Math.max(materializedQuestions.length, 1)];
@@ -538,7 +553,7 @@ export default function App() {
       apiRequest<StudyState>('/api/study-state', { token: authToken }),
     ]).then(([reviewData, studyState]) => {
       if (cancelled) return;
-      setData(normalizeReviewData(reviewData));
+      setData(reviewData);
       applyStudyState(studyState);
     }).catch(() => {
       // Fall back to the data already in memory during a temporary connection failure.
@@ -591,7 +606,7 @@ export default function App() {
   }, [activeView, selectedDeck, selectedWordbookId, locale]);
 
   useEffect(() => {
-    if (activeView !== 'grammar' && practiceFocus) {
+    if (activeView !== 'grammar' && activeView !== 'vocabulary' && practiceFocus) {
       setPracticeFocus(null);
     }
   }, [activeView, practiceFocus]);
@@ -851,7 +866,7 @@ export default function App() {
   }
 
   function startWordIndexPractice(focus?: WordIndexPracticeFocus) {
-    setPracticeFocus(focus && activeView === 'grammar' ? focus : null);
+    setPracticeFocus(focus && (activeView === 'grammar' || activeView === 'vocabulary') ? focus : null);
     setActiveIndex(0);
     navigateTo(activeView, 'questions');
   }
@@ -1010,7 +1025,7 @@ export default function App() {
       apiRequest<{ wordbooks: Wordbook[] }>('/api/wordbooks', { token: authToken }),
       apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
     ]);
-    setData(normalizeReviewData(reviewData));
+    setData(reviewData);
     setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
     setDrafts(draftList.drafts ?? []);
     await refreshDailyPractices();
@@ -1396,6 +1411,29 @@ export default function App() {
     return response.item;
   }
 
+  async function addItemImage(id: string, input: { imageBase64?: string; mime?: string; url?: string; caption?: string }) {
+    if (!authToken) return null;
+    const response = await apiRequest<{ item: VocabItem }>(`/api/review-items/${encodeURIComponent(id)}/images`, {
+      method: 'POST',
+      token: authToken,
+      body: input,
+      timeoutMs: 60_000,
+    });
+    setData((current) => ({ ...current, items: current.items.map((item) => item.id === response.item.id ? { ...item, ...response.item } : item) }));
+    return response.item;
+  }
+
+  async function removeItemImage(id: string, image: string) {
+    if (!authToken) return null;
+    const response = await apiRequest<{ item: VocabItem }>(`/api/review-items/${encodeURIComponent(id)}/images/${encodeURIComponent(image)}`, {
+      method: 'DELETE',
+      token: authToken,
+    });
+    // images is dropped from the item when the last one goes, so replace rather than merge.
+    setData((current) => ({ ...current, items: current.items.map((item) => item.id === response.item.id ? { ...response.item, reference: item.reference } : item) }));
+    return response.item;
+  }
+
   async function renameWordbook(id: string, title: string) {
     if (!authToken) return null;
     const response = await apiRequest<{ wordbook: Wordbook }>(`/api/wordbooks/${encodeURIComponent(id)}`, {
@@ -1434,7 +1472,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
+  if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);
@@ -1916,6 +1954,9 @@ export default function App() {
                   navigationItems={items}
                   wordbooks={wordbooks}
                   onOrganize={organizeItem}
+                  token={authToken}
+                  onAddImage={addItemImage}
+                  onRemoveImage={removeItemImage}
                   index={wordIndex}
                   total={items.length}
                   showRuby={settings.showReviewRuby}
@@ -1932,7 +1973,7 @@ export default function App() {
               ) : studyPage === 'words' ? (
                 <WordIndexPanel
                   items={items}
-                  questions={materializedQuestions}
+                  questions={wordIndexQuestions}
                   answers={answers}
                   progress={progress}
                   labels={labels}
@@ -1957,6 +1998,7 @@ export default function App() {
                   onSaveCapture={createCapture}
                   onCreateWordbook={createWordbook}
                   onManageWordbooks={() => navigateTo(activeView, 'wordbooks')}
+                  onOrganize={organizeItem}
                 />
               ) : (
                 <PracticeReviewPanel
@@ -2734,18 +2776,17 @@ function searchItems(items: VocabItem[], query: string, locale: Locale, labels: 
       const secondaryFields = [
         item.meaning_zh,
         item.core_memory,
-        item.analysis,
         item.explanation_zh,
-        item.grammar_point,
-        item.source_original_sentence,
-        ...(item.grammar_forms?.flatMap((form) => [form.form, form.example, form.meaning_zh, form.connection_zh]) ?? []),
-        ...(item.grammar_features?.flatMap((feature) => [feature.feature, feature.detail_zh]) ?? []),
+        item.source?.sentence,
+        ...itemPatternTexts(item),
+        ...(item.patterns?.flatMap((pattern) => [pattern.connection_zh, pattern.meaning_zh]) ?? []),
+        ...(item.points?.flatMap((point) => [point.label, point.detail_zh]) ?? []),
+        ...(item.images?.map((image) => image.caption) ?? []),
         itemMemory(item, locale),
-        itemAnalysis(item, locale),
+        itemExplanation(item, locale),
         item.jlpt_level,
         item.part_of_speech,
         item.type,
-        ...(item.collocations ?? []),
         ...(item.tags ?? []),
         ...(item.examples?.flatMap((example) => [example.ja, example.zh]) ?? []),
         ...(item.comparisons?.flatMap((comparison) => [comparison.target, comparison.difference_zh]) ?? []),
@@ -2798,28 +2839,6 @@ function normalizeSearchText(value: string) {
     .toLocaleLowerCase()
     .replace(/\s+/g, '')
     .trim();
-}
-
-function normalizeReviewData(data: ReviewData): ReviewData {
-  return {
-    ...data,
-    items: data.items.map((item) => ({
-      ...item,
-      collocations: normalizeCollocations(item.collocations),
-    })),
-  };
-}
-
-function normalizeCollocations(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => typeof entry === 'string' ? entry : isRecord(entry) ? entry.text : undefined)
-    .map((entry) => typeof entry === 'string' ? entry.trim() : '')
-    .filter(Boolean);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function katakanaToHiragana(value: string) {

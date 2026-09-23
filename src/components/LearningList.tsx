@@ -1,39 +1,70 @@
 import { ChevronLeft, ChevronRight, Eye, Minus, Search, X } from 'lucide-react';
 import { Children, createContext, isValidElement, useContext, type ReactNode } from 'react';
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
+import { batchText, type ListSelection } from './ListBatch';
 
 const StandardListContext = createContext(false);
 const ListLabelsContext = createContext<[string, string | null, string | null]>(['名称', '信息', '状态']);
+const SelectionContext = createContext<ListSelection | undefined>(undefined);
+/** Desktop lists show reference codes in their own leading column. */
+const ReferenceColumnContext = createContext(false);
+
+function referenceLabel(locale?: string) {
+  return locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号';
+}
 
 /** Every catalog retains its columns even when there are no matching rows. */
-export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, hasActions }: {
+export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, hasActions, selection }: {
   children?: ReactNode; columns?: ReactNode; locale?: string; columnLabels?: [string, string | null, string | null]; hasActions?: boolean;
+  /** Batch mode: rows with a `selectId` prop get a leading checkbox. */
+  selection?: ListSelection;
 }) {
   const rows = Children.toArray(children);
   const rowLocale = rows.find((row) => isValidElement<{ locale?: string }>(row) && row.props.locale);
   const language = isValidElement<{ locale?: string }>(rowLocale) ? rowLocale.props.locale ?? locale : locale;
   const labels: [string, string | null, string | null] = columnLabels ?? (language === 'ja' ? ['名前', '情報', '状態'] : language === 'en' ? ['Name', 'Details', 'Status'] : ['名称', '信息', '状态']);
   const actions = hasActions ?? rows.some((row) => isValidElement<{ actionIcon?: ReactNode; trailing?: ReactNode; inlineActions?: boolean; secondary?: ReactNode }>(row) && (row.props.actionIcon || row.props.trailing || (row.props.inlineActions && row.props.secondary)));
-  return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}`}>
-    {columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{labels.map((label, index) => label === null ? null : <span key={index}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>}
-    <ListLabelsContext.Provider value={labels}><StandardListContext.Provider value={!columns}>
-      <div className="learning-list unified-list" role="list">{rows.length ? rows : <div role="listitem" className="list-empty-row"><span role="status">{language === 'ja' ? 'データがありません' : language === 'en' ? 'No data' : '没有数据'}</span></div>}</div>
-    </StandardListContext.Provider></ListLabelsContext.Provider>
+  const referenceColumn = rows.some((row) => isValidElement<{ references?: (string | undefined)[] }>(row) && row.props.references?.some(Boolean));
+  const referenceHeading = referenceColumn ? <span key="reference" className="list-column-reference">{referenceLabel(language)}</span> : null;
+  const header = columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{referenceHeading}{labels.map((label, index) => label === null ? null : <span key={index}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>;
+  const text = batchText(language);
+  const rowSelection = (row: ReactNode) => isValidElement<{ selectId?: string; title?: ReactNode }>(row) && row.props.selectId ? { id: row.props.selectId, label: typeof row.props.title === 'string' ? row.props.title : row.props.selectId } : null;
+  const body = selection ? rows.map((row, index) => {
+    const target = rowSelection(row);
+    if (!target) return row;
+    return <div key={isValidElement(row) ? row.key ?? index : index} className={`list-selectable${selection.selected.has(target.id) ? ' is-selected' : ''}`}>
+      <label className="list-select-check"><input type="checkbox" checked={selection.selected.has(target.id)} onChange={() => selection.toggle(target.id)} aria-label={text.selectRow(target.label)}/></label>
+      {row}
+    </div>;
+  }) : rows;
+  return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}${selection ? ' is-selecting' : ''}${referenceColumn ? ' has-list-references' : ''}`}>
+    {header}
+    <ListLabelsContext.Provider value={labels}><StandardListContext.Provider value={!columns}><SelectionContext.Provider value={selection}><ReferenceColumnContext.Provider value={referenceColumn}>
+      <div className="learning-list unified-list" role="list">{rows.length ? body : <div role="listitem" className="list-empty-row"><span role="status">{language === 'ja' ? 'データがありません' : language === 'en' ? 'No data' : '没有数据'}</span></div>}</div>
+    </ReferenceColumnContext.Provider></SelectionContext.Provider></StandardListContext.Provider></ListLabelsContext.Provider>
   </div></div>;
 }
 
-export function LearningListRow({ title, references, reading, description, metadata, status, statusKind, locale, onOpen, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
+export function LearningListRow({ selectId, title, references, reading, description, metadata, status, statusKind, locale, onOpen: openRow, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
+  /** Read by the parent LearningList in batch mode. */
+  selectId?: string;
   title: ReactNode; references?: (string | undefined)[]; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
   locale?: string; onOpen: () => void; actionLabel?: string; actionIcon?: ReactNode; trailing?: ReactNode; secondary?: ReactNode; expanded?: boolean; compact?: boolean; inlineActions?: boolean;
 }) {
   const referenceCodes = [...new Set((references ?? []).filter((code): code is string => Boolean(code)))];
-  const referenceLabel = locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号';
-  const referenceText = referenceCodes.length ? <span className="list-item-references" aria-label={`${referenceLabel} ${referenceCodes.join(', ')}`}>{referenceCodes.map(code => <span key={code}>{code}</span>)}</span> : null;
+  const referenceText = referenceCodes.length ? <span className="list-item-references" aria-label={`${referenceLabel(locale)} ${referenceCodes.join(', ')}`}>{referenceCodes.map(code => <span key={code}>{code}</span>)}</span> : null;
   const standard = useContext(StandardListContext);
+  const referenceColumn = useContext(ReferenceColumnContext) && (standard || Boolean(metadata));
+  // Desktop shows the column cell, mobile the inline codes; CSS hides whichever does not apply.
+  const referenceCell = referenceColumn ? <span className="list-item-reference-cell">{referenceText ?? '—'}</span> : null;
   const labels = useContext(ListLabelsContext);
+  const selection = useContext(SelectionContext);
+  // In batch mode a row click toggles its checkbox instead of navigating away.
+  const onOpen = selection && selectId ? () => selection.toggle(selectId) : openRow;
   const action = actionLabel ?? (expanded ? (locale === 'ja' ? '閉じる' : locale === 'en' ? 'Collapse details' : '收起详情') : (locale === 'ja' ? '詳細を見る' : locale === 'en' ? 'View details' : '查看详情'));
   if (standard) return <div className="standard-list-row" role="listitem">
     <button type="button" className="standard-list-open standard-list-fields" aria-expanded={expanded} onClick={onOpen}>
+      {referenceCell}
       <span className="list-item-name"><strong>{title}</strong>{referenceText}{reading ? <span className="list-item-reading">{reading}</span> : null}</span>
       <span className="standard-list-description" data-mobile-label={labels[1] ?? undefined}>{description || '—'}</span>
       <span className="standard-list-status" data-mobile-label={labels[2] ?? undefined}>{status || '—'}</span>
@@ -47,6 +78,7 @@ export function LearningListRow({ title, references, reading, description, metad
   </div>;
   return <div className={`list-item-row${compact ? ' is-compact' : ''}${inlineActions ? ' has-inline-actions' : ''}${trailing ? ' has-trailing-control' : ''}`} role="listitem">
     <button type="button" className={`list-item-open${status ? '' : ' without-status'}${description ? '' : ' without-description'}${metadata ? ' has-metadata' : ''}`} aria-expanded={expanded} onClick={onOpen}>
+      {referenceCell}
       <span className="list-item-name"><strong>{title}</strong>{referenceText}{reading ? <span className="list-item-reading">{reading}</span> : null}{metadata && description ? <span className="list-item-description">{description}</span> : null}</span>
       {metadata ? <span className="list-item-metadata">{metadata}</span> : <>
       <span className="list-item-description">{description}</span>

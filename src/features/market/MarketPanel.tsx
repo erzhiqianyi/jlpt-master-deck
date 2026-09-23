@@ -1,9 +1,10 @@
 import { loadDiscoveryShares } from '../../lib/discovery';
-import { Undo2 } from 'lucide-react';
+import { Plus, Undo2 } from 'lucide-react';
 import { PracticePanel, PracticeReviewPanel } from "../practice/StudyPanels";
 import type { Question, AnswerState, DisplaySettings, Locale } from "../../types";
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSearch, LearningListSelect } from "../../components/LearningList";
 import { useMobileList } from "../../hooks/useMobileList";
+import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from "../../components/ListBatch";
 import { useEffect, useState } from "react";
 import { apiRequest } from "../../lib/api";
 
@@ -99,6 +100,15 @@ export function MarketPanel({
   const mobileList = useMobileList(filtered.length, `${tab}:${kind}:${query}`, 8);
   const pageCount = Math.max(1, Math.ceil(filtered.length / 8));
   const currentPage = Math.min(page, pageCount - 1);
+  const batch = useListBatch(filtered.map((s) => s.id));
+  const mineIds = new Set(shares.filter((s) => s.mine).map((s) => s.id));
+  const batchActions: BatchAction[] = [
+    { key: "import", icon: <Plus size={16} aria-hidden="true" />, label: "添加到我的内容", appliesTo: (id) => !mineIds.has(id),
+      run: (id) => request("/api/market/import", "POST", { shareId: id }), after: onAdded },
+    { key: "withdraw", danger: true, icon: <Undo2 size={16} aria-hidden="true" />, label: "撤回分享", appliesTo: (id) => mineIds.has(id),
+      confirm: (count) => `将撤回你的 ${count} 份分享，其他人将无法再看到。`,
+      run: (id) => request(`/api/market/${id}`, "DELETE"), after: refresh },
+  ];
   const visibleShares = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * 8, currentPage * 8 + 8);
   return (
     <section className="discovery-panel">
@@ -115,10 +125,12 @@ export function MarketPanel({
               <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>
             )}
           </div>
+          <div className="list-tools"><BatchManageButton batch={batch} /></div>
         </LearningListHeader>
+        <BatchActionBar batch={batch} actions={batchActions} />
         {busy ? <p role="status" className="list-empty">加载中…</p> :
-          !error && <LearningList hasActions columnLabels={["分享内容", "内容简介", "类型"]}>{visibleShares.map((s) =>
-            <LearningListRow key={s.id} title={s.title} status={s.kind === "practice" ? "练习" : "单词本"}
+          !error && <LearningList hasActions selection={batch.selection} columnLabels={["分享内容", "内容简介", "类型"]}>{visibleShares.map((s) =>
+            <LearningListRow key={s.id} selectId={s.id} title={s.title} status={s.kind === "practice" ? "练习" : "单词本"}
               description={`${s.count} ${s.kind === "practice" ? "题" : "词"}${s.description ? " · " + s.description : ""}`}
               onOpen={() => void run(async () => { clearPreview(); setPreview(await getContent(s.id)); setPreviewId(s.id); })}
               inlineActions secondary={s.mine && <button type="button" aria-label="撤回分享" title="撤回分享" className="cute-button-secondary px-3 py-2" disabled={busy} onClick={() => void run(async () => {

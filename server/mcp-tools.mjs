@@ -8,6 +8,8 @@ import { readingFields } from './reading-schema.mjs';
 // caller comes from tool input.
 import { z } from 'zod';
 import {
+  addReviewItemImage,
+  removeReviewItemImage,
   addDraftAnnotation,
   analyzeWeakPoints,
   buildDraftProcessingContext,
@@ -170,7 +172,7 @@ export const tools = [
   tool('get_review_data', 'Read JLPT review items from your personal SQLite item library. JSON files are treated as export/import backups.',
     {}, ro, async (_args, ctx) => text(loadReviewData(uid(ctx)))),
   tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
-    item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form }. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
+    item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. Vocabulary and grammar share one field set: patterns[] { pattern, connection_zh?, meaning_zh?, example?, example_zh? } for connection forms, usage patterns and collocations; points[] { label, detail_zh } for usage features and traps; comparisons[] { target, difference_zh, kind?: "everyday" } for near-synonyms and everyday alternatives; register { level: written|spoken|both|formal, note_zh, exam_tip_zh }; explanation_zh for the detailed explanation; source { sentence, chat_summary } for provenance; input_at as the capture timestamp. Legacy names (grammar_forms, grammar_features, collocations, comparison_notes, everyday_alternatives, usage_register*, exam_register_zh, analysis, date, source_*) are still accepted and converted. Attach images with attach_review_item_image. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form }. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
   }, rw, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
   tool('export_review_data_backup', 'Export your personal SQLite review item library into monthly JSON backup files. Use only when a JSON backup is requested.',
     {}, rw, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
@@ -210,6 +212,20 @@ export const tools = [
   tool('organize_review_item', 'File a review item into one wordbook (an item belongs to exactly one wordbook of its own kind) and/or replace its tags. Omit a field to leave it unchanged.',
     { itemId: z.string(), wordbookId: z.string().optional().describe('Destination wordbook id from list_wordbooks; must match the item deck family.'), tags: z.array(z.string()).optional().describe('Full replacement tag list.') }, rw,
     async ({ itemId, wordbookId, tags }, ctx) => text(found(organizeReviewItem(uid(ctx), itemId, { wordbookId, tags }), 'Review item not found'))),
+  tool('attach_review_item_image', 'Attach a memory image to a vocabulary or grammar item; it appears on the item page and, when enabled, on review cards. Pass either image_url (https) or image_base64 with mime (PNG, JPEG, WebP or GIF, at most 5 MB). An item holds at most 6 images.',
+    {
+      itemId: z.string(),
+      image_url: z.string().url().optional(),
+      image_base64: z.string().optional(),
+      mime: z.enum(['image/png', 'image/jpeg', 'image/webp', 'image/gif']).optional(),
+      caption: z.string().max(120).optional().describe('Short memory hint shown under the image.'),
+    }, rw,
+    async ({ itemId, image_url, image_base64, mime, caption }, ctx) => text(found(addReviewItemImage(uid(ctx), itemId, image_url ? { url: image_url, caption } : { imageBase64: image_base64, mime, caption }), 'Review item not found')),
+    { scope: 'library:write' }),
+  tool('remove_review_item_image', 'Remove one image from a review item, identified by its images[].id or images[].url.',
+    { itemId: z.string(), image: z.string() }, rw,
+    async ({ itemId, image }, ctx) => text(found(removeReviewItemImage(uid(ctx), itemId, image), 'Review item not found')),
+    { scope: 'library:write' }),
   tool('rename_wordbook', 'Rename a wordbook while keeping its id and assigned entries unchanged.',
     { wordbookId: z.string(), title: z.string() }, rw,
     async ({ wordbookId, title }, ctx) => text(found(updateWordbook(uid(ctx), wordbookId, { title }), 'Wordbook not found'))),

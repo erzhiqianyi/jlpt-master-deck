@@ -37,8 +37,9 @@ export function LearningListMetadata({ locale, addedAt, collectionLabel, collect
 export function LearningListColumns({ locale, title, collectionLabel, showPartOfSpeech = false, mobileReview = true }: {
   locale: Locale; title: string; collectionLabel: string; showPartOfSpeech?: boolean; mobileReview?: boolean;
 }) {
+  const referenceLabel = locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号';
   return <div className={`list-column-header${showPartOfSpeech ? ' vocabulary-column-header' : mobileReview ? ' grammar-column-header' : ' reading-column-header'}`} aria-hidden="true">
-    <span>{title}</span><span className="list-column-metadata">
+    <span className="list-column-reference">{referenceLabel}</span><span>{title}</span><span className="list-column-metadata">
       {showPartOfSpeech ? <span className="list-part-of-speech">{locale === 'ja' ? '品詞' : locale === 'en' ? 'Part of speech' : '词性'}</span> : null}
       <span>{locale === 'ja' ? '追加日時' : locale === 'en' ? 'Added' : '添加时间'}</span>
       <span>{collectionLabel}</span>

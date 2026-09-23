@@ -21,7 +21,6 @@ Each item:
 ```json
 {
   "id": "n1-vocab-001",
-  "date": "2026-08-27",
   "input_at": "2026-08-27T20:20:00+09:00",
   "deck": "n1_vocab",
   "type": "word",
@@ -46,25 +45,18 @@ Each item:
     "en": {
       "meaning": "Measurement; determining a numeric value with a method or instrument.",
       "core_memory": "Measure objective data by a standard method.",
-      "analysis": "Use it for measurable quantities such as temperature, blood pressure, concentration, or speed."
+      "explanation": "Use it for measurable quantities such as temperature, blood pressure, concentration, or speed."
     },
     "ja": {
       "meaning": "一定の方法や器具で数値を調べること。",
       "core_memory": "基準や器具を使って客観的な数値を出す。",
-      "analysis": "温度・血圧・濃度・速度など、数値化できる対象で使いやすい。"
+      "explanation": "温度・血圧・濃度・速度など、数値化できる対象で使いやすい。"
     }
   },
   "part_of_speech": "名词・サ变动词",
-  "collocations": ["血圧を測定する", "測定結果"],
-  "collocation_ruby": [
-    [
-      { "text": "血圧", "reading": "けつあつ" },
-      { "text": "測定", "reading": "そくてい" }
-    ],
-    [
-      { "text": "測定", "reading": "そくてい" },
-      { "text": "結果", "reading": "けっか" }
-    ]
+  "patterns": [
+    { "pattern": "血圧を測定する", "meaning_zh": "测量血压" },
+    { "pattern": "測定結果", "meaning_zh": "测定结果" }
   ],
   "examples": [
     {
@@ -83,7 +75,7 @@ Each item:
       "difference_zh": "日常说“量一下”；測定する更正式、客观。"
     }
   ],
-  "analysis": "看到温度、血压、浓度、速度等可数值化对象时，理解为按标准测出数值。",
+  "explanation_zh": "看到温度、血压、浓度、速度等可数值化对象时，理解为按标准测出数值。",
   "tags": ["漢語", "正式語", "技术"]
 }
 ```
@@ -107,7 +99,6 @@ Recommended values:
 ## Required Fields
 
 - `id`
-- `date`
 - `input_at`
 - `deck`
 - `type`
@@ -129,12 +120,29 @@ Recommended values:
 - `part_of_speech`
   - Use a grammatical category such as `名詞`, `名詞句`, `動詞`, `動詞句`, `イ形容詞`, `イ形容詞句`, `ナ形容詞`, or `名詞・サ変動詞`.
   - Do not store generic content labels such as `語句`, `词语`, `word`, or `expression` as the part of speech.
-- `collocations`
-- `collocation_ruby`
+- `patterns`
+- `points`
 - `examples`
 - `comparisons`
-- `analysis`
+- `register`
+- `explanation_zh`
+- `images`
 - `tags`
+
+### Shared Fields for Vocabulary and Grammar
+
+Every deck uses the same fields; the app shows a section only when it has data.
+
+- `patterns[]`: `{ "pattern", "connection_zh"?, "meaning_zh"?, "example"?, "example_zh"? }`. Grammar connection forms (`Vた + とたん（に）`), vocabulary usage patterns (`N＋だけでは済まない`) and collocations (`血圧を測定する`). Leave `example` empty when the sentence is already in `examples[]`.
+- `points[]`: `{ "label", "detail_zh" }`. Grammar features, transitivity (`自他`), orthography, word formation, traps.
+- `comparisons[]`: `{ "target", "difference_zh", "kind"? }`. Near-synonym contrasts; set `kind: "everyday"` for natural conversational alternatives.
+- `register`: `{ "level", "note_zh", "exam_tip_zh" }` with `level` one of `written`, `spoken`, `both`, `formal`.
+- `explanation_zh`: the detailed explanation (one field; there is no separate `analysis`).
+- `source`: `{ "sentence", "chat_summary" }` for provenance. Omit `sentence` when it is already an example.
+- `base_form`: only when it differs from `original`.
+- `images[]`: `{ "url", "caption" }` with an https image URL, or attach an uploaded image with the `attach_review_item_image` tool. Use an image only when it genuinely helps recall (a scene, an object, a gesture).
+
+Legacy names (`grammar_forms`, `grammar_features`, `collocations`, `comparison_notes`, `everyday_alternatives`, `usage_register`, `usage_register_zh`, `exam_register_zh`, `analysis`, `date`, `source_*`) are still accepted and converted, but new items should use the shared fields.
 - `question_kinds`
 - `question_distractors`
 
@@ -142,20 +150,22 @@ Recommended values:
 
 Every `grammar_expression` item should include:
 
-- `usage_register`: one of `written`, `spoken`, `both`, or `formal`.
-- `usage_register_zh`: a concise Chinese explanation of where the form sounds natural. If variants differ, explain each variant separately.
-- `everyday_alternatives`: natural conversational equivalents as `{ "ja": "...", "zh": "..." }` objects. This is especially important for written or formal grammar.
-- `exam_register_zh`: an optional exam-focused note kept separate from real-world register.
+- `register.level`: one of `written`, `spoken`, `both`, or `formal`.
+- `register.note_zh`: a concise Chinese explanation of where the form sounds natural. If variants differ, explain each variant separately.
+- `comparisons[]` with `kind: "everyday"`: natural conversational equivalents as `{ "target": "...", "difference_zh": "...", "kind": "everyday" }`. This is especially important for written or formal grammar.
+- `register.exam_tip_zh`: an optional exam-focused note kept separate from real-world register.
 - `practice_questions[].translation_zh`: the complete Chinese translation of the sentence with the correct answer inserted. It is required for practice analysis and must not be replaced by a partial paraphrase or answer rationale.
 
 Example:
 
 ```json
 {
-  "usage_register": "both",
-  "usage_register_zh": "「〜たと思うと」偏叙述和书面描写；「〜たと思ったら」在日常口语中更常见。",
-  "everyday_alternatives": [
-    { "ja": "Vたらすぐ", "zh": "口语：一……就马上……" }
+  "register": {
+    "level": "both",
+    "note_zh": "「〜たと思うと」偏叙述和书面描写；「〜たと思ったら」在日常口语中更常见。"
+  },
+  "comparisons": [
+    { "target": "Vたらすぐ", "difference_zh": "口语：一……就马上……", "kind": "everyday" }
   ]
 }
 ```
@@ -164,7 +174,7 @@ Example:
 
 Every Japanese field that contains kanji should have kana reading metadata.
 
-The reading page has its own furigana switch. Keep `meaning_ja`, collocations, examples, and analysis as clean Japanese text, and include every needed kanji reading in `ruby_terms` so that switch controls the annotation consistently.
+The reading page has its own furigana switch. Keep `meaning_ja`, patterns, examples, and explanations as clean Japanese text, and include every needed kanji reading in `ruby_terms` so that switch controls the annotation consistently.
 
 Use `ruby_terms` arrays instead of embedding readings directly into display text:
 
@@ -180,8 +190,8 @@ Rules:
 - `text` is the exact kanji-containing substring found in the Japanese field.
 - `reading` is hiragana unless the source requires katakana.
 - Do not add readings for kana-only text.
-- For uncertain proper-name readings, include the most likely reading and mention uncertainty in `analysis`.
-- Keep base fields such as `original`, `collocations`, and `examples[].ja` clean, without parentheses readings.
+- For uncertain proper-name readings, include the most likely reading and mention uncertainty in `explanation_zh`.
+- Keep base fields such as `original`, `patterns[].pattern`, and `examples[].ja` clean, without parentheses readings.
 - Do not add furigana to quiz prompts, choices, selected answers, or correct answers. Use readings in explanations or `ruby_terms`, not as answer hints.
 
 ## Practice Question Types
@@ -225,7 +235,7 @@ Use `localizations` for multilingual learner-facing output. Keys should be BCP 4
     "en": {
       "meaning": "Measurement; determining a numeric value with a method or instrument.",
       "core_memory": "Measure objective data by a standard method.",
-      "analysis": "Use it for measurable quantities such as temperature or speed."
+      "explanation": "Use it for measurable quantities such as temperature or speed."
     }
   }
 }

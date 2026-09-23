@@ -6,11 +6,13 @@ import { ShareButton } from '../../components/ShareButton';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { normalizePracticeExplanations } from '../../domain/practiceExplanations.mjs';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
+import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { useMobileList } from '../../hooks/useMobileList';
-import { Pencil, ChevronLeft, ChevronRight, House, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
+import { Pencil, ChevronLeft, ChevronRight, House, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
-import { localized, itemMeaning } from '../../domain/items';
+import { distinctReading, localized, itemExplanation, itemMeaning } from '../../domain/items';
+import { ItemImage, prepareImageUpload } from '../../components/ItemImage';
 import { filterableTags, itemInWordbook, itemTagList, itemWordbookId, wordbookFamily, wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
 import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
 
@@ -58,7 +60,8 @@ type WordIndexSortKey = 'created-asc' | 'created-desc' | 'level-asc' | 'level-de
 export type WordIndexPracticeFocus =
   | { kind: 'random' }
   | { kind: 'question-kind'; questionKind: QuestionKind }
-  | { kind: 'tag'; tag: string };
+  | { kind: 'tag'; tag: string }
+  | { kind: 'items'; itemIds: string[] };
 function safeIndex(index: number, total: number) {
   return total ? ((index % total) + total) % total : 0;
 }
@@ -91,7 +94,7 @@ function bookLabels(labels: Record<string, string>, family: WordbookFamily) {
 }
 
 function reviewItemTime(item: VocabItem) {
-  const value = Date.parse(item.input_at ?? item.date);
+  const value = Date.parse(item.input_at);
   return Number.isFinite(value) ? value : 0;
 }
 
@@ -853,9 +856,9 @@ function EntryLink({ item, label, compact = false }: { item: VocabItem; label: s
   );
 }
 
-export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange }: {
+export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange, onOrganize }: {
   items: VocabItem[];
-  questions: Question[];
+  questions: QuestionReference[];
   answers: AnswerState;
   progress: ProgressState;
   labels: Record<string, string>;
@@ -875,8 +878,11 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   onSaveCapture?: (input: { body: string; category: LearningCaptureCategory; context?: string; targetDeck?: Deck; targetWordbookId?: string }) => Promise<void>;
   onCreateWordbook?: (title: string, deck?: Deck) => Promise<Wordbook | null>;
   onWordbookChange?: (wordbookId: string) => void;
+  onOrganize?: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<unknown>;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
+  const [batchWordbookId, setBatchWordbookId] = useState('');
+  const [batchTag, setBatchTag] = useState('');
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
  const [showCaptureForm, setShowCaptureForm] = useState(false);
   useAuthoringNavigation(showCaptureForm ? (captureCategory === 'grammar' ? '记一个句型' : '记一个单词') : null, () => { setShowCaptureForm(false); });
@@ -904,7 +910,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   // Both libraries share one design: the wordbooks offered here are the ones of the active family.
   const libraryWordbooks = wordbooksForFamily(wordbooks, isGrammarLibrary ? 'grammar' : 'vocabulary');
   const selectedWordbook = libraryWordbooks.find((wordbook) => wordbook.id === selectedWordbookId);
-  const questionsByItem = useMemo(() => questions.reduce<Record<string, Question[]>>((groups, question) => {
+  const questionsByItem = useMemo(() => questions.reduce<Record<string, QuestionReference[]>>((groups, question) => {
     groups[question.itemId] = [...(groups[question.itemId] ?? []), question];
     return groups;
   }, {}), [questions]);
@@ -958,6 +964,29 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   const mobileItems = sortedItems.slice(0, mobileVisibleCount);
   const pageEnd = pageStart + pageItems.length;
   const mobilePageEnd = Math.min(mobileVisibleCount, sortedItems.length);
+  const batch = useListBatch(useMemo(() => sortedItems.map((item) => item.id), [sortedItems]));
+  const batchT = (zh: string, ja: string, en: string) => locale === 'ja' ? ja : locale === 'en' ? en : zh;
+  const batchTargetWordbook = libraryWordbooks.find((wordbook) => wordbook.id === batchWordbookId) ?? libraryWordbooks[0];
+  const batchActions: BatchAction[] = [
+    ...(onPractice ? [{
+      key: 'practice', icon: <Target size={16} aria-hidden="true" />, label: batchT('练习所选', '選択を練習', 'Practice selected'),
+      runAll: async (ids: string[]) => { batch.exit(); onPractice({ kind: 'items', itemIds: ids }); },
+    }] : []),
+    ...(onOrganize && batchTargetWordbook ? [{
+      key: 'move', label: batchT(`移到${collectionLabel}`, `${collectionLabel}へ移動`, `Move to ${collectionLabel.toLocaleLowerCase()}`),
+      control: <select aria-label={batchT(`目标${collectionLabel}`, `移動先の${collectionLabel}`, `Target ${collectionLabel.toLocaleLowerCase()}`)} value={batchTargetWordbook.id} onChange={(event) => setBatchWordbookId(event.target.value)}>
+        {libraryWordbooks.map((wordbook) => <option key={wordbook.id} value={wordbook.id}>{wordbook.title}</option>)}
+      </select>,
+      appliesTo: (id: string) => { const item = items.find((entry) => entry.id === id); return Boolean(item) && itemWordbookId(item!) !== batchTargetWordbook.id; },
+      run: (id: string) => onOrganize(id, { wordbookId: batchTargetWordbook.id }),
+    }] : []),
+    ...(onOrganize ? [{
+      key: 'tag', label: batchT('添加标签', 'タグを追加', 'Add tag'), disabled: !batchTag.trim(),
+      control: <input aria-label={batchT('标签名', 'タグ名', 'Tag name')} placeholder={batchT('标签名', 'タグ名', 'Tag')} value={batchTag} maxLength={40} onChange={(event) => setBatchTag(event.target.value)} />,
+      appliesTo: (id: string) => !(items.find((item) => item.id === id)?.tags ?? []).includes(batchTag.trim()),
+      run: (id: string) => onOrganize(id, { tags: [...(items.find((item) => item.id === id)?.tags ?? []), batchTag.trim()] }),
+    }] : []),
+  ];
 
   useEffect(() => {
     setPageIndex((index) => Math.min(index, pageCount - 1));
@@ -1102,6 +1131,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
             <span>{labels.wordbookManage}</span>
           </button>
         ) : null}
+        {batchActions.length ? <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div> : null}
       </LearningListHeader> : null}
       <details onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }} onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) event.currentTarget.open = false; }} className={`ledger-word-toolbar learning-list-more border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
         <summary>{locale === 'zh-CN' ? '更多' : locale === 'ja' ? 'その他' : 'More'}</summary>
@@ -1235,20 +1265,21 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
       ) : null}
       {showEntryLibrary ? (
         <>
-        <LearningList locale={locale} columns={showEntryHub ? <LearningListColumns locale={locale}
+        <BatchActionBar batch={batch} actions={batchActions} locale={locale} />
+        <LearningList locale={locale} selection={batch.selection} columns={showEntryHub ? <LearningListColumns locale={locale}
           title={isGrammarLibrary ? (locale === 'ja' ? '文型' : locale === 'en' ? 'Grammar' : '句型') : (locale === 'ja' ? '単語' : locale === 'en' ? 'Word' : '单词')}
           collectionLabel={collectionLabel} showPartOfSpeech={isVocabularyLibrary}/> : undefined}>{(mobileList.mobile ? mobileItems : pageItems).map((item) => {
           const missingBook = locale === 'ja' ? '不明' : locale === 'en' ? 'Unknown' : '未知';
           const wordbookId = itemWordbookId(item);
           const wordbookTitle = wordbooks.find((book) => book.id === wordbookId)?.title
             ?? (wordbookId === item.deck ? deckLabels[item.deck] : missingBook);
-          return <LearningListRow key={item.id}
+          return <LearningListRow key={item.id} selectId={item.id}
             title={item.original}
             references={[item.reference]}
             reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading}
             description={showEntryHub ? undefined : itemMeaning(item, locale)}
             metadata={showEntryHub ? <LearningListMetadata locale={locale}
-              addedAt={item.input_at ?? item.date} collectionLabel={collectionLabel} collection={wordbookTitle}
+              addedAt={item.input_at} collectionLabel={collectionLabel} collection={wordbookTitle}
               nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)}/> : undefined}
             statusKind={progress[item.id]?.status ?? "new"}
             status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew}
@@ -1428,6 +1459,9 @@ export function WordDetailPanel({
   wordbooks = [],
   navigationItems = [],
   onOrganize,
+  token,
+  onAddImage,
+  onRemoveImage,
   onShowRubyChange,
   onPrevious,
   onNext,
@@ -1442,6 +1476,9 @@ export function WordDetailPanel({
   wordbooks?: Wordbook[];
   navigationItems?: VocabItem[];
   onOrganize?: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<VocabItem | null>;
+  token?: string;
+  onAddImage?: (id: string, input: { imageBase64?: string; mime?: string; url?: string; caption?: string }) => Promise<VocabItem | null>;
+  onRemoveImage?: (id: string, image: string) => Promise<VocabItem | null>;
   onShowRubyChange: (checked: boolean) => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -1556,6 +1593,8 @@ export function WordDetailPanel({
         showRuby={showRuby}
         labels={labels}
         locale={locale}
+        token={token}
+        imageEditor={onAddImage && onRemoveImage ? { onAdd: onAddImage, onRemove: onRemoveImage } : undefined}
       />
       {onOrganize ? <EntryOrganizer key={item.id} item={item} wordbooks={wordbooks} labels={labels} onOrganize={onOrganize} /> : null}
     </section>
@@ -1666,88 +1705,94 @@ function ArrowButton({ label, direction, shortcut, onClick, disabled = false }: 
   );
 }
 
+type ImageEditor = {
+  onAdd: (id: string, input: { imageBase64?: string; mime?: string; url?: string; caption?: string }) => Promise<VocabItem | null>;
+  onRemove: (id: string, image: string) => Promise<VocabItem | null>;
+};
+
+/** One detail layout for vocabulary, grammar and names; sections appear when the entry has data. */
 function VocabCard({
   item,
   showRuby,
   labels,
   locale,
+  token,
+  imageEditor,
 }: {
   item: VocabItem;
   showRuby: boolean;
   labels: Record<string, string>;
   locale: Locale;
+  token?: string;
+  imageEditor?: ImageEditor;
 }) {
   const meaning = localized(item, locale, 'meaning') ?? item.meaning_zh;
   const coreMemory = localized(item, locale, 'core_memory') ?? item.core_memory;
-  const analysis = localized(item, locale, 'analysis') ?? item.analysis;
+  const explanation = itemExplanation(item, locale);
   const isGrammarEntry = item.deck === 'grammar_expression';
-  const grammarForms = item.grammar_forms?.filter((form) => form.form || form.example || form.meaning_zh || form.connection_zh) ?? [];
-  const grammarFeatures = item.grammar_features?.filter((feature) => feature.feature || feature.detail_zh) ?? [];
+  const reading = distinctReading(item);
+  const patterns = item.patterns?.filter((pattern) => pattern.pattern || pattern.example || pattern.connection_zh) ?? [];
+  const points = item.points?.filter((point) => point.label || point.detail_zh) ?? [];
   const examples = item.examples?.filter((example) => example.ja || example.zh || example.spoken_ja || example.spoken_zh || example.analysis_zh || example.form_analysis_zh) ?? [];
   const inflectionClass = resolvedInflectionClass(item);
   const baseForm = item.base_form ?? (inflectionClass === 'suru' && item.original.endsWith('する') ? item.original : undefined);
   const conjugations = resolvedConjugations(item, inflectionClass, baseForm);
-  const everydayAlternatives = item.everyday_alternatives?.filter((alternative) => alternative.ja || alternative.zh) ?? [];
-  const registerLabel = item.usage_register
-    ? labels[`usageRegister_${item.usage_register}`] ?? item.usage_register
-    : null;
-  const comparisonNotes = [
-    ...(item.comparison_notes ?? []),
-    ...(item.comparisons ?? []),
-  ].filter((comparison) => comparison.target || comparison.difference_zh);
+  const everydayAlternatives = item.comparisons?.filter((comparison) => comparison.kind === 'everyday' && (comparison.target || comparison.difference_zh)) ?? [];
+  const comparisons = item.comparisons?.filter((comparison) => comparison.kind !== 'everyday' && (comparison.target || comparison.difference_zh)) ?? [];
+  const register = item.register ?? {};
+  const registerLabel = register.level ? labels[`usageRegister_${register.level}`] ?? register.level : null;
+  const sectionClass = 'mt-5 border-t border-[#f0d4dd] pt-5';
+  const headingClass = 'text-xs font-bold text-[#a84269]';
   return (
     <article className="cute-practice-card min-w-0 border p-4 md:p-6">
       <h3 className="text-3xl font-black text-[#3d3036]">
         <RubyText text={item.original} items={[item]} enabled={showRuby} />
       </h3>
+      {reading ? <p lang="ja" className="mt-1 text-sm font-semibold text-[#8f365b]">{reading}</p> : null}
+      {item.images?.length || imageEditor ? (
+        <EntryImages item={item} token={token} editor={imageEditor} />
+      ) : null}
       <div className="mt-5 space-y-5 border-t border-[#f0d4dd] pt-5">
         <section>
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.japaneseMeaning}</h4>
+          <h4 className={headingClass}>{labels.japaneseMeaning}</h4>
           <p className="mt-2 text-sm leading-7 text-[#3d3036]">
             <RubyText text={item.meaning_ja ?? '-'} items={[item]} enabled={showRuby} />
           </p>
         </section>
         {locale !== 'ja' ? (
           <section className="border-t border-[#f0d4dd] pt-5">
-            <h4 className="text-xs font-bold text-[#a84269]">{labels.localizedMeaning}</h4>
+            <h4 className={headingClass}>{labels.localizedMeaning}</h4>
             <p className="mt-2 text-sm leading-7 text-[#3d3036]">{meaning}</p>
           </section>
         ) : null}
       </div>
-      {isGrammarEntry && item.formation ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">形成・接续</h4>
-          <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{item.formation}</p>
-        </section>
-      ) : null}
-      <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-        <h4 className="text-xs font-bold text-[#a84269]">{labels.examQuickNote}</h4>
+      <section className={sectionClass}>
+        <h4 className={headingClass}>{labels.examQuickNote}</h4>
         <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{coreMemory}</p>
       </section>
-      {item.collocations?.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.collocationsLabel}</h4>
-          <ol className="mt-3 space-y-4">
-            {item.collocations.slice(0, 4).map((collocation, collocationIndex) => {
-              const separatorIndex = collocation.search(/[：:]/);
-              const phrase = (separatorIndex < 0 ? collocation : collocation.slice(0, separatorIndex)).trim();
-              const translation = separatorIndex < 0 ? '' : collocation.slice(separatorIndex + 1).trim();
-              return (
-                <li key={`${collocation}-${collocationIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                  <p className="text-sm font-bold leading-7 text-[#3d3036]">
-                    <span className="journal-number mr-2 text-[#a84269]">{collocationIndex + 1}.</span>
-                    <RubyText text={phrase} items={[item]} enabled={showRuby} />
-                  </p>
-                  {translation ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{translation}</p> : null}
-                </li>
-              );
-            })}
-          </ol>
+      {patterns.length ? (
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{isGrammarEntry ? labels.grammarConnection ?? '接续格式' : labels.collocationsLabel}</h4>
+          <div className="mt-3 space-y-3">
+            {patterns.map((pattern, patternIndex) => (
+              <div key={`${pattern.pattern ?? 'pattern'}-${patternIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
+                {pattern.pattern ? (
+                  <p className="text-sm font-bold leading-7 text-[#3d3036]"><RubyText text={pattern.pattern} items={[item]} enabled={showRuby} /></p>
+                ) : null}
+                {pattern.connection_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.connection_zh}</p> : null}
+                {pattern.meaning_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.meaning_zh}</p> : null}
+                {pattern.example ? (
+                  <p className="mt-1 text-sm leading-7 text-[#3d3036]"><RubyText text={pattern.example} items={[item]} enabled={showRuby} /></p>
+                ) : null}
+                {pattern.example_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.example_zh}</p> : null}
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
       {!isGrammarEntry && examples.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.vocabularyExamples}</h4>
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.vocabularyExamples}</h4>
           <ol className="mt-3 space-y-4">
             {examples.slice(0, 2).map((example, exampleIndex) => (
               <li key={`${example.ja}-${exampleIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
@@ -1763,10 +1808,10 @@ function VocabCard({
           </ol>
         </section>
       ) : null}
-      {!isGrammarEntry && conjugations.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
+      {conjugations.length ? (
+        <section className={sectionClass}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h4 className="text-xs font-bold text-[#a84269]">{labels.conjugationsLabel}</h4>
+            <h4 className={headingClass}>{labels.conjugationsLabel}</h4>
             <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
               {inflectionClass ? (
                 <span className="rounded-full bg-[#fff0f5] px-2.5 py-1 font-bold text-[#8f365b]">
@@ -1788,41 +1833,22 @@ function VocabCard({
           </dl>
         </section>
       ) : null}
-      {isGrammarEntry && grammarForms.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.grammarConnection ?? '接续格式'}</h4>
-          <div className="mt-3 space-y-3">
-            {grammarForms.map((form, formIndex) => (
-              <div key={`${form.form ?? 'form'}-${formIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                {form.form ? <p className="text-sm font-bold leading-7 text-[#3d3036]">{form.form}</p> : null}
-                {form.connection_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{form.connection_zh}</p> : null}
-                {form.example ? (
-                  <p className="mt-1 text-sm leading-7 text-[#3d3036]">
-                    <RubyText text={form.example} items={[item]} enabled={showRuby} />
-                  </p>
-                ) : null}
-                {form.meaning_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{form.meaning_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {isGrammarEntry && grammarFeatures.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.grammarTips ?? '用法技巧'}</h4>
+      {points.length ? (
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.grammarTips ?? '用法技巧'}</h4>
           <div className="mt-3 divide-y divide-[#f0d4dd] border-y border-[#f0d4dd]">
-            {grammarFeatures.map((feature, featureIndex) => (
-              <div key={`${feature.feature ?? 'feature'}-${featureIndex}`} className="py-3">
-                {feature.feature ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{feature.feature}</p> : null}
-                {feature.detail_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{feature.detail_zh}</p> : null}
+            {points.map((point, pointIndex) => (
+              <div key={`${point.label ?? 'point'}-${pointIndex}`} className="py-3">
+                {point.label ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{point.label}</p> : null}
+                {point.detail_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{point.detail_zh}</p> : null}
               </div>
             ))}
           </div>
         </section>
       ) : null}
       {isGrammarEntry && examples.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.exampleAnalysis ?? '例句分析'}</h4>
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.exampleAnalysis ?? '例句分析'}</h4>
           <div className="mt-3 space-y-4">
             {examples.map((example, exampleIndex) => (
               <div key={`${example.ja}-${exampleIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
@@ -1850,22 +1876,20 @@ function VocabCard({
           </div>
         </section>
       ) : null}
-      {isGrammarEntry && (registerLabel || item.usage_register_zh || item.exam_register_zh || everydayAlternatives.length) ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.grammarRegister ?? '语体与口语说法'}</h4>
+      {registerLabel || register.note_zh || register.exam_tip_zh || everydayAlternatives.length ? (
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.grammarRegister ?? '语体与口语说法'}</h4>
           <div className="mt-3 space-y-3">
-            {registerLabel ? (
+            {registerLabel || register.note_zh ? (
               <div className="flex flex-wrap items-start gap-2">
-                <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-bold text-[#8f365b]">{registerLabel}</span>
-                {item.usage_register_zh ? <p className="min-w-0 flex-1 text-sm leading-6 text-[#3d3036]">{item.usage_register_zh}</p> : null}
+                {registerLabel ? <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-bold text-[#8f365b]">{registerLabel}</span> : null}
+                {register.note_zh ? <p className="min-w-0 flex-1 text-sm leading-6 text-[#3d3036]">{register.note_zh}</p> : null}
               </div>
-            ) : item.usage_register_zh ? (
-              <p className="text-sm leading-6 text-[#3d3036]">{item.usage_register_zh}</p>
             ) : null}
-            {item.exam_register_zh ? (
+            {register.exam_tip_zh ? (
               <p className="rounded-xl bg-[#fffaf5] px-3 py-2 text-sm leading-6 text-[#74646b]">
                 <span className="font-bold text-[#8f365b]">{labels.examRegisterNote ?? '考试提示'}：</span>
-                {item.exam_register_zh}
+                {register.exam_tip_zh}
               </p>
             ) : null}
             {everydayAlternatives.length ? (
@@ -1873,9 +1897,9 @@ function VocabCard({
                 <p className="text-xs font-bold text-[#8f365b]">{labels.spokenAlternatives ?? '口语一般这样说'}</p>
                 <div className="mt-2 space-y-2">
                   {everydayAlternatives.map((alternative, alternativeIndex) => (
-                    <div key={`${alternative.ja ?? 'alt'}-${alternativeIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                      {alternative.ja ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{alternative.ja}</p> : null}
-                      {alternative.zh ? <p className="mt-0.5 text-sm leading-6 text-[#74646b]">{alternative.zh}</p> : null}
+                    <div key={`${alternative.target ?? 'alt'}-${alternativeIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
+                      {alternative.target ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{alternative.target}</p> : null}
+                      {alternative.difference_zh ? <p className="mt-0.5 text-sm leading-6 text-[#74646b]">{alternative.difference_zh}</p> : null}
                     </div>
                   ))}
                 </div>
@@ -1884,11 +1908,11 @@ function VocabCard({
           </div>
         </section>
       ) : null}
-      {isGrammarEntry && comparisonNotes.length ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.comparisonNotes ?? '近义辨析'}</h4>
+      {comparisons.length ? (
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.comparisonNotes ?? '近义辨析'}</h4>
           <div className="mt-3 divide-y divide-[#f0d4dd] border-y border-[#f0d4dd]">
-            {comparisonNotes.map((comparison, comparisonIndex) => (
+            {comparisons.map((comparison, comparisonIndex) => (
               <div key={`${comparison.target ?? 'comparison'}-${comparisonIndex}`} className="py-3">
                 {comparison.target ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{comparison.target}</p> : null}
                 {comparison.difference_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{comparison.difference_zh}</p> : null}
@@ -1897,10 +1921,10 @@ function VocabCard({
           </div>
         </section>
       ) : null}
-      {analysis ? (
-        <section className="mt-5 border-t border-[#f0d4dd] pt-5">
-          <h4 className="text-xs font-bold text-[#a84269]">{labels.analysis}</h4>
-          <StudyText className="mt-2 text-sm text-[#74646b]" text={analysis} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />
+      {explanation ? (
+        <section className={sectionClass}>
+          <h4 className={headingClass}>{labels.analysis}</h4>
+          <StudyText className="mt-2 text-sm text-[#74646b]" text={explanation} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />
         </section>
       ) : null}
       {item.content_origin === 'ai_generated' && item.verification_status !== 'verified' ? (
@@ -1909,6 +1933,71 @@ function VocabCard({
         </p>
       ) : null}
     </article>
+  );
+}
+
+const MAX_ENTRY_IMAGES = 6;
+
+/** Memory images of an entry, with upload and removal when the entry is editable. */
+function EntryImages({ item, token, editor }: { item: VocabItem; token?: string; editor?: ImageEditor }) {
+  const images = item.images ?? [];
+  const [caption, setCaption] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function run(action: () => Promise<unknown>) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '图片保存失败，请稍后重试。');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function upload(file: File | undefined) {
+    if (!file || !editor) return;
+    void run(async () => {
+      await editor.onAdd(item.id, { ...(await prepareImageUpload(file)), caption: caption.trim() || undefined });
+      setCaption('');
+    });
+  }
+
+  return (
+    <section className="mt-5 border-t border-[#f0d4dd] pt-5" aria-label="记忆图片">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-xs font-bold text-[#a84269]">记忆图片</h4>
+        {editor && images.length < MAX_ENTRY_IMAGES ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={120} disabled={busy} placeholder="图片说明（可选）" aria-label="图片说明" className="h-9 w-40 rounded-md border border-[#d9d0c3] bg-white px-2 text-sm outline-none focus:border-[#24473f] disabled:opacity-60" />
+            <button type="button" disabled={busy} onClick={() => fileInput.current?.click()} className="inline-flex h-9 items-center gap-1 rounded-md border border-[#f0c9d4] bg-white px-3 text-sm font-semibold text-[#a84269] hover:bg-[#fff0f5] disabled:opacity-60">
+              {busy ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <ImagePlus size={15} aria-hidden="true" />}添加图片
+            </button>
+            <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ''; }} />
+          </div>
+        ) : null}
+      </div>
+      {images.length ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((image) => (
+            <figure key={image.id ?? image.url} className="relative m-0 overflow-hidden rounded-xl border border-[#f0d4dd] bg-[#fffaf5]">
+              <ItemImage image={image} token={token} alt={image.caption || item.original} className="aspect-[4/3] w-full object-contain" />
+              {image.caption ? <figcaption className="px-2 py-1.5 text-xs leading-5 text-[#74646b]">{image.caption}</figcaption> : null}
+              {editor ? (
+                <button type="button" disabled={busy} aria-label={`删除图片${image.caption ? `：${image.caption}` : ''}`} onClick={() => void run(() => editor.onRemove(item.id, image.id ?? image.url ?? ''))} className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#8f365b] shadow hover:bg-white disabled:opacity-60">
+                  <X size={14} aria-hidden="true" />
+                </button>
+              ) : null}
+            </figure>
+          ))}
+        </div>
+      ) : editor ? <p className="mt-2 text-xs leading-5 text-[#74646b]">给这个词条配一张能唤起记忆的图片，复习卡片上也会显示。</p> : null}
+      {error ? <p role="alert" className="mt-2 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
+    </section>
   );
 }
 

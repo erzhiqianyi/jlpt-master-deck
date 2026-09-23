@@ -4,10 +4,11 @@ import { sqliteAdapter } from './sqlite-adapter.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
-import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser } from '../server/storage.mjs';
+import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser, itemImageForUser } from '../server/storage.mjs';
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
 import { ensureReferenceSchema } from '../server/references.mjs';
 import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
+import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
 
@@ -29,6 +30,7 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV2(this.db);
         migrateCloudSchemaV3(this.db);
         migrateReviewItemOwnership(this.db);
+        ensureItemSchema(this.db);
         ensureQuerySchema(this.db);
         ensureReferenceSchema(this.db);
       });
@@ -96,6 +98,17 @@ export class JlptDatabase extends DurableObject {
       const object = await this.env.MEDIA.get(objectKey(row.audio_path));
       if (!object) return new Response('Not found',{status:404});
       return new Response(object.body,{headers:{'content-type':row.audio_mime,'content-length':String(object.size),'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+    }
+    const image = /^\/api\/item-images\/([^/]+)$/.exec(url.pathname);
+    if (image && request.method === 'GET') {
+      const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
+      const user = userForToken(token);
+      if (!user) return Response.json({error:'Authentication required'},{status:401});
+      const row = itemImageForUser(user.id, image[1]);
+      if (!row) return new Response('Not found',{status:404});
+      const object = await this.env.MEDIA.get(objectKey(row.image_path));
+      if (!object) return new Response('Not found',{status:404});
+      return new Response(object.body,{headers:{'content-type':row.mime,'content-length':String(object.size),'cache-control':'private, max-age=86400','x-content-type-options':'nosniff'}});
     }
     const headers = Object.fromEntries(request.headers);
     headers.host = url.host;

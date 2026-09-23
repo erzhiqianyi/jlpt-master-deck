@@ -153,7 +153,7 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
 .ledger-word-index .learning-list-columns .list-item-open.has-metadata {
   display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(0, 3fr); gap: 24px; padding: 12px 22px;
 }
-.list-column-header { background: #f5f8f5; border-bottom: 1px solid #e1e7df; color: #657a70; font-size: 12px; font-weight: 600; }
+.list-column-header { background: #f5f8f5; border-bottom: 1px solid #e1e7df; color: #657a70; font-size: 12px; font-weight: 600; align-items: center; }
 /* Header labels read as column headings, so they center over the data beneath them; the data itself stays left-aligned. */
 .list-column-header > span:not(.list-column-title) { text-align: center; }
 .list-column-metadata,

@@ -352,7 +352,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       ) : null}
 
       {showLibrary ? <LearningCatalog columns={<div className="list-column-header listening-column-header" aria-hidden="true">
-        <span>{locale === 'ja' ? '音声' : locale === 'en' ? 'Audio' : '音频'}</span>
+        <span className="list-column-reference">{locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号'}</span>
+        <span className="list-column-title">{locale === 'ja' ? '音声' : locale === 'en' ? 'Audio' : '音频'}</span>
         <span className="list-column-metadata">
           <span>{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>
           <span>{locale === 'ja' ? '追加日' : locale === 'en' ? 'Added' : '添加时间'}</span>

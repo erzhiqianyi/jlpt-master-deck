@@ -298,10 +298,12 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   }
 }
 
-/* The name cell stacks title / reference / reading as separate rows (display:grid, gap:4px);
-   styling the reference as a bordered chip is what reads it as its own element on desktop. */
+/* Reference codes render as bordered chips: inline under the title on mobile, and in their
+   own leading column on desktop (toggled below, once .has-list-references is known). */
 .list-item-references { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 2px; }
-.list-item-references > span { display: inline-flex; padding: 1px 7px; border: 1px solid #d7e2da; border-radius: 6px; background: #f5f9f6; font: 11px/1.6 ui-monospace, SFMono-Regular, monospace; color: #52645b; user-select: text; overflow-wrap: anywhere; }
+.list-item-references > span, .list-item-reference-cell > span:not(.list-item-reference-empty) { display: inline-flex; padding: 1px 7px; border: 1px solid #d7e2da; border-radius: 6px; background: #f5f9f6; font: 11px/1.6 ui-monospace, SFMono-Regular, monospace; color: #52645b; user-select: text; overflow-wrap: anywhere; }
+.list-item-reference-cell { display: none; }
+.list-item-reference-empty { color: #98a49c; }
 
 /* Batch mode: a leading checkbox column, a toggle in the toolbar and an action bar under the header. */
 .list-batch-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; font-weight: 600; }
@@ -335,4 +337,45 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   .list-batch-action > :is(select, input) { max-width: none; flex: 1; }
   .list-selectable { grid-template-columns: 40px minmax(0, 1fr); }
   .list-select-check { padding-left: 8px; }
+}
+
+/* Reference column: its own leading column on desktop, replacing the inline chips under the title. */
+@media (min-width: 768px) {
+  .learning-list-columns.has-list-references .list-item-references { display: none; }
+  .list-column-reference { display: none; }
+  .learning-list-columns.has-list-references .list-column-reference { display: block; padding: 12px 8px; text-align: center; font: 11px/1.4 ui-monospace, SFMono-Regular, monospace; color: #657a70; }
+
+  /* Standard lists (drafts, market, wordbook manager): reference is the first child of .standard-list-fields,
+     a plain grid with no hardcoded grid-column on its other children, so it can just prepend a track. */
+  .learning-list-columns.has-list-references .standard-list-fields { grid-template-columns: 88px minmax(0, 1.3fr) minmax(0, 1.4fr) minmax(0, .8fr); }
+  .learning-list-columns.has-list-references.without-list-status .standard-list-fields,
+  .learning-list-columns.has-list-references.without-list-description .standard-list-fields { grid-template-columns: 88px minmax(0, 1.3fr) minmax(0, 1.4fr); }
+  .learning-list-columns.has-list-references.without-list-status.without-list-description .standard-list-fields { grid-template-columns: 88px minmax(0, 1fr); }
+  .learning-list-columns.has-list-references .standard-list-fields > .list-item-reference-cell { display: grid; place-items: center; }
+
+  /* Metadata catalogs (word/grammar index, reading, listening library): the metadata block has a
+     hardcoded grid-column of its own, so the new leading track needs an explicit grid-column too. */
+  .learning-list-columns.has-list-references .list-column-header,
+  .ledger-word-index .learning-list-columns.has-list-references .list-item-open.has-metadata {
+    grid-template-columns: 88px minmax(150px, 1.2fr) minmax(0, 3fr);
+  }
+  .learning-list-columns.has-list-references:has(> .listening-column-header) .list-column-header,
+  .ledger-word-index .learning-list-columns.has-list-references:has(> .listening-column-header) .list-item-open.has-metadata {
+    grid-template-columns: 88px minmax(280px, 1.7fr) minmax(0, 2.3fr);
+  }
+  .learning-list-columns.has-list-references .list-column-reference,
+  .learning-list-columns.has-list-references .list-item-open.has-metadata > .list-item-reference-cell {
+    grid-column: 1; grid-row: 1;
+  }
+  .learning-list-columns.has-list-references .list-column-title,
+  .learning-list-columns.has-list-references .list-item-open.has-metadata > .list-item-name {
+    grid-column: 2; grid-row: 1;
+  }
+  .learning-list-columns.has-list-references .list-column-metadata,
+  .learning-list-columns.has-list-references .list-item-open.has-metadata > .list-item-metadata {
+    grid-column: 3; grid-row: 1;
+  }
+  .learning-list-columns.has-list-references .list-item-open.has-metadata > .list-item-reference-cell {
+    display: grid; place-items: center;
+  }
 }

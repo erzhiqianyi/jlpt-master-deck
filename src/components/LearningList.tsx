@@ -26,7 +26,7 @@ export function LearningList({ children, columns, locale = 'zh-CN', columnLabels
   const actions = hasActions ?? rows.some((row) => isValidElement<{ actionIcon?: ReactNode; trailing?: ReactNode; inlineActions?: boolean; secondary?: ReactNode }>(row) && (row.props.actionIcon || row.props.trailing || (row.props.inlineActions && row.props.secondary)));
   const referenceColumn = rows.some((row) => isValidElement<{ references?: (string | undefined)[] }>(row) && row.props.references?.some(Boolean));
   const referenceHeading = referenceColumn ? <span key="reference" className="list-column-reference">{referenceLabel(language)}</span> : null;
-  const header = columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{referenceHeading}{labels.map((label, index) => label === null ? null : <span key={index}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>;
+  const header = columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{referenceHeading}{labels.map((label, index) => label === null ? null : <span key={index} className={index === 0 ? 'list-column-title' : undefined}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>;
   const text = batchText(language);
   const rowSelection = (row: ReactNode) => isValidElement<{ selectId?: string; title?: ReactNode }>(row) && row.props.selectId ? { id: row.props.selectId, label: typeof row.props.title === 'string' ? row.props.title : row.props.selectId } : null;
   const body = selection ? rows.map((row, index) => {

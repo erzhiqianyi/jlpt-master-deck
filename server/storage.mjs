@@ -870,21 +870,37 @@ export function findListeningAudioQuestions(userId, hash) {
 
 export function createListeningQuestion(userId, payload) {
   const question = String(payload?.question ?? '').trim();
-  const choices = Array.isArray(payload?.choices)
+  const questionTypeId = normalizeListeningQuestionTypeId(payload?.questionTypeId);
+  const rawChoices = Array.isArray(payload?.choices)
     ? payload.choices.map((choice) => String(choice ?? '').trim())
     : [];
+  // 基础训练 questions can be fill-in-the-blank items with fewer than four
+  // options (or none at all, i.e. a genuine free-response fill-in-the-blank),
+  // so trailing blank option fields are dropped instead of forcing a full
+  // set of four.
+  const flexibleChoiceCountTypes = ['listening-basic-training'];
+  const choices = flexibleChoiceCountTypes.includes(questionTypeId)
+    ? (() => {
+        const trimmed = [...rawChoices];
+        while (trimmed.length > 0 && !trimmed[trimmed.length - 1]) trimmed.pop();
+        return trimmed;
+      })()
+    : rawChoices;
   const answerIndex = Number(payload?.answerIndex);
-  const questionTypeId = normalizeListeningQuestionTypeId(payload?.questionTypeId);
   const audioMime = String(payload?.audioMime ?? '').toLowerCase();
   const audioFileName = String(payload?.audioFileName ?? 'listening-audio').trim().slice(0, 180);
   const audioBase64 = String(payload?.audioBase64 ?? '').replace(/\s/g, '');
   const emptyChoices = choices.every((choice) => !choice);
   const freeResponse = false;
-  const choicesOptional = emptyChoices && ['listening-outline', 'listening-quick', 'listening-integrated'].includes(questionTypeId);
-  if (!question || (!freeResponse && !choicesOptional && ![3, 4].includes(choices.length)) || (!freeResponse && !choicesOptional && choices.some((choice) => !choice))) {
-    throw new Error('Question requires three or four non-empty choices, or four empty choices for free response');
+  const isFreeResponseSubmission = flexibleChoiceCountTypes.includes(questionTypeId) && choices.length === 0;
+  const choicesOptional = emptyChoices && ['listening-outline', 'listening-quick', 'listening-integrated', ...flexibleChoiceCountTypes].includes(questionTypeId);
+  const validChoiceCount = flexibleChoiceCountTypes.includes(questionTypeId)
+    ? choices.length === 0 || (choices.length >= 2 && choices.length <= 4)
+    : [3, 4].includes(choices.length);
+  if (!question || (!freeResponse && !choicesOptional && !validChoiceCount) || (!freeResponse && !choicesOptional && choices.some((choice) => !choice))) {
+    throw new Error('Question requires two to four non-empty choices, or empty choices for free response');
   }
-  if (!Number.isInteger(answerIndex) || (freeResponse ? answerIndex !== -1 : answerIndex < 0 || answerIndex >= choices.length)) {
+  if (!Number.isInteger(answerIndex) || ((freeResponse || isFreeResponseSubmission) ? answerIndex !== -1 : answerIndex < 0 || answerIndex >= choices.length)) {
     throw new Error('Choose a valid correct answer');
   }
   if (!audioMime.startsWith('audio/') || !audioBase64) {

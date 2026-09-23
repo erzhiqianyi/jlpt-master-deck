@@ -1487,7 +1487,10 @@ export default function App() {
       : route.view === 'listening' ? listeningQuestions.find((item) => item.id === route.itemId)?.title
       : data.items.find((item) => item.id === route.itemId)?.original)
     : undefined;
-  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale);
+  const listeningDetailReference = route.view === 'listening' && route.page === 'words' && route.itemId
+    ? listeningQuestions.find((item) => item.id === route.itemId)?.reference
+    : undefined;
+  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference);
   if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
   const parentCrumbRoute = pageCrumbs.at(-2)?.route;
   const defaultDataTab = dataTabForRoute(activeView);
@@ -2663,7 +2666,7 @@ function defaultDesktopStudyPage(view: AppView): StudyPage {
   return view === 'vocabulary' || view === 'grammar' || view === 'listening' || view === 'reading' ? 'words' : 'tips';
 }
 
-function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN'): Array<{ label: string; route?: AppRoute }> {
+function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN', listeningDetailReference?: string): Array<{ label: string; route?: AppRoute }> {
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
@@ -2681,7 +2684,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: 'words' } });
     if (supportsStudyPage(route.view)) {
       if (route.page !== 'words') crumbs.push({ label: studyPageLabelFor(route.view, route.page, labels), route: { view: route.view, page: route.page } });
-      if (route.itemId) crumbs.push({ label: detailTitle || '详情', route });
+      if (route.itemId) crumbs.push({ label: route.view === 'listening' ? listeningDetailReference || '详情' : detailTitle || '详情', route });
     }
     return crumbs;
   }

@@ -26,7 +26,7 @@ const listeningTypeGuidance: Record<string, { prompt: string; choiceCount: numbe
   // 統合理解 has two source formats: numbered answers only, or four
   // transcribed choice texts. Both still require selecting 1-4.
   'listening-integrated': { prompt: 'まず話を聞いてください。それから、質問と選択肢を聞いて、1から4の中から、最もよいものを一つ選んでください。二つの質問がある場合は、それぞれ答えてください。', choiceCount: 4, choicesOptional: true },
-  'listening-basic-training': { prompt: 'まず音声を聞いてください。それから、質問と選択肢を聞いて、最もよいものを一つ選んでください。', choiceCount: 4 },
+  'listening-basic-training': { prompt: 'まず音声を聞いてください。それから、質問と選択肢を聞いて、最もよいものを一つ選んでください。', choiceCount: 4, choicesOptional: true },
 };
 
 type RecordPractice = (item: ListeningQuestion) => Promise<void>;
@@ -68,6 +68,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   const audioSelection = useRef(0);
   const tailDraft = useRef<ListeningDraft | null>(null);
   const typeGuidance = listeningTypeGuidance[questionTypeId] ?? listeningTypeGuidance['listening-task'];
+  const isBlankBasicTraining = questionTypeId === 'listening-basic-training' && choices.every((choice) => !choice.trim());
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -121,8 +122,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <ChevronLeft size={18} />
           </button>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-[#a84269]">{labels.listeningLibrary}</p>
-            <h2 className="truncate text-lg font-black text-[#3d3036]">ID {activeLibraryQuestion.id} · {listeningQuestionTypeName(activeLibraryQuestion.questionTypeId)}</h2>
+            <h2 className="truncate text-lg font-black text-[#3d3036]">{activeLibraryQuestion.reference ? `${activeLibraryQuestion.reference} · ` : ''}{listeningQuestionTypeName(activeLibraryQuestion.questionTypeId)}</h2>
           </div>
         </div>
         <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => <ListeningQuestionItem onRecordPractice={recordPractice} key={item.id} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />)}</div>
@@ -147,7 +147,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       const currentDraft = { title, questionTypeId, question, choices, answerIndex, explanation };
       const drafts = activeDraftIndex === null ? [...queuedDrafts, currentDraft] : queuedDrafts.map((draft, index) => index === activeDraftIndex ? { ...draft, ...currentDraft } : draft);
       for (const draft of drafts) {
-        const normalizedAnswerIndex = draft.questionTypeId === 'listening-outline' && draft.answerIndex < 0 ? 0 : draft.answerIndex;
+        const isBlankBasicTraining = draft.questionTypeId === 'listening-basic-training' && draft.choices.every((choice) => !choice.trim());
+        const normalizedAnswerIndex = isBlankBasicTraining ? -1 : draft.questionTypeId === 'listening-outline' && draft.answerIndex < 0 ? 0 : draft.answerIndex;
         await onCreate({ ...draft, answerIndex: normalizedAnswerIndex, audioFileName: audioFile.name, audioMime: audioFile.type || audioMimeFromName(audioFile.name), audioBase64 });
       }
       setTitle('');
@@ -304,14 +305,18 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             </label>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm font-semibold text-[#46514c]">
-              {labels.listeningCorrectAnswer}
-              <select value={answerIndex} onChange={(event) => setAnswerIndex(Number(event.target.value))} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
-                {typeGuidance.freeResponse ? <option value={-1}>自由作答（练习时自行输入）</option> : choices.slice(0, typeGuidance.choiceCount).map((choice, index) => <option key={index} value={index}>{index + 1}. {choice || labels.listeningChoice.replace('{number}', String(index + 1))}</option>)}
-              </select>
-            </label>
-          </div>
+          {!isBlankBasicTraining ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-semibold text-[#46514c]">
+                {labels.listeningCorrectAnswer}
+                <select value={answerIndex} onChange={(event) => setAnswerIndex(Number(event.target.value))} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
+                  {typeGuidance.freeResponse ? <option value={-1}>自由作答（练习时自行输入）</option> : choices.slice(0, typeGuidance.choiceCount).map((choice, index) => <option key={index} value={index}>{index + 1}. {choice || labels.listeningChoice.replace('{number}', String(index + 1))}</option>)}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <p className="text-xs font-normal text-[#68716b]">全部选项已留空：这是一道填空题，练习时会显示文本输入框，请在下方解析中写出参考答案。</p>
+          )}
 
           <label className="block text-sm font-semibold text-[#46514c]">
             {labels.listeningQuestion}
@@ -333,6 +338,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             ))}
           </div>
           {typeGuidance.freeResponse ? <p className="text-xs font-normal text-[#68716b]">自由作答题不需要填写四个选项；解析中请写明参考回应、语气和判断要点。</p> : null}
+          {!typeGuidance.freeResponse && typeGuidance.choicesOptional && questionTypeId === 'listening-basic-training' && !isBlankBasicTraining ? <p className="text-xs font-normal text-[#68716b]">基础训练题可以只填 2～3 个选项，从最后一个开始留空即可；若是纯填空题，可将全部选项留空。</p> : null}
 
           <label className="block text-sm font-semibold text-[#46514c]">
             {labels.listeningExplanation}
@@ -529,11 +535,12 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const [freeResponse, setFreeResponse] = useState('');
   const savingRef = useRef(false);
   const [savingPractice, setSavingPractice] = useState(false);
   async function confirmPractice() {
     if (savingRef.current) return;
-    if (selected === null) { setAnswerNotice(labels.listeningSelectAnswer); return; }
+    if (isFreeResponse(item) ? !freeResponse.trim() : selected === null) { setAnswerNotice(isFreeResponse(item) ? '请先写下你的回答' : labels.listeningSelectAnswer); return; }
     savingRef.current = true;
     setSavingPractice(true);
     setAnswerNotice('');
@@ -587,7 +594,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <RecordReference reference={item.reference} locale={locale} />
-          <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber} · ${listeningQuestionTypeName(item.questionTypeId)}` : item.title}</h3>
+          <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber} · ${item.title}` : item.title}</h3>
           {showAudio ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
         </div>
         <div className="flex shrink-0 justify-end gap-1">
@@ -599,7 +606,8 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
       </div> : null}
       {detail && showRecording ? <ListeningRecordingAnalysisPanel item={item} labels={labels} locale={locale} token={token} /> : null}
       {!detail && hasDistinctListeningQuestion(item) ? <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p> : null}
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {isFreeResponse(item) ? <textarea value={freeResponse} onChange={(event) => { setFreeResponse(event.target.value); setRevealed(false); setAnswerNotice(''); }} placeholder="写下你的回答" className="mt-3 min-h-24 w-full rounded-md border border-[#d8e0d7] bg-white p-3 text-sm leading-6" /> : null}
+      {!isFreeResponse(item) ? <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {item.choices.map((choice, index) => {
           const resultClass = revealed
             ? index === item.answerIndex ? 'border-[#6f947c] !bg-[#edf5ee]' : selected === index ? 'border-[#c9907d] !bg-[#fbf1ed]' : 'border-[#d8e0d7] !bg-white'
@@ -611,11 +619,11 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
             </label>
           );
         })}
-      </div>
+      </div> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" disabled={savingPractice} onClick={() => void confirmPractice()} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.listeningShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
-        {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
+        {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed && item.explanation ? <p className="mt-4 whitespace-pre-wrap rounded-md bg-[#f5f7f3] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
       {revealed ? <ListeningAnswerBreakdown item={item} /> : null}
@@ -880,9 +888,10 @@ function hasDistinctListeningQuestion(item: ListeningQuestion) {
 }
 
 function isFreeResponse(item: ListeningQuestion) {
-  // Empty choice text means the source only prints numbered answer boxes.
-  // It is still a multiple-choice question, not a free-text response.
-  return false;
+  // A blank-text choice still means the source only prints numbered answer
+  // boxes (still multiple choice); no choices at all means the author left
+  // every option field empty, i.e. a genuine fill-in-the-blank question.
+  return item.choices.length === 0;
 }
 
 function ListeningAnswerBreakdown({ item }: { item: ListeningQuestion }) {

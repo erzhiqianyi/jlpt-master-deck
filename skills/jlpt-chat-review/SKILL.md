@@ -46,6 +46,8 @@ For each item:
 - Every non-`proper_name` item should have enough data to generate at least one complete scored question with one prompt, four choices, one answer, and a full explanation. If the user's source lacks a natural context sentence, create a conservative example sentence and mark uncertain parts in `analysis`.
 - For ordinary vocabulary, add `meaning` (`言い換え類義`) when a natural Japanese paraphrase exists, add `moji_goi` (`文脈規定`) when there is a complete natural sentence that can be blanked, and add `kanji_to_kana` (`漢字読み`) when the item contains kanji and has a reliable reading.
 - Add `kana_to_kanji` (`表記`) mainly for N2-N5 vocabulary when the spelling contrast is appropriate. Do not default to `kana_to_kanji` for N1 vocabulary.
+- Add `usage` (`用法`, N3-N1) as an authored `practice_questions` entry: the word as prompt, four sentences, one natural use and three typical misuses. Add `word_formation` (`語形成`, N2-N3) only for words built with a productive prefix or suffix.
+- Every authored `practice_questions` entry needs four choices including the answer, `explanation_zh`, and `distractor_notes` with a concrete reason for each wrong choice; `upsert_review_item` rejects it otherwise.
 - For `proper_name` items, keep `question_kinds: []` unless a reliable name-reading practice is explicitly requested and verified.
 - Add `question_distractors` when a question needs controlled, type-appropriate wrong choices. For name readings, use reading-shaped distractors and never present another valid reading of the same person as wrong.
 

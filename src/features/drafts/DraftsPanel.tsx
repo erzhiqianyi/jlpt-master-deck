@@ -940,6 +940,8 @@ function readableQuestionKind(kind?: string) {
   if (kind === 'kana_to_kanji') return '表記';
   if (kind === 'moji_goi') return '文脈規定';
   if (kind === 'meaning') return '言い換え類義';
+  if (kind === 'word_formation') return '語形成';
+  if (kind === 'usage') return '用法';
   if (kind === 'grammar') return '文の文法1';
   return kind ? kind.replaceAll('_', ' ') : '题型';
 }

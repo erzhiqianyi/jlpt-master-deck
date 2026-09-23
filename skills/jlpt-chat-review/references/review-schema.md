@@ -192,6 +192,8 @@ Generate mixed JLPT-style practice types from item data:
 - `moji_goi`: `文脈規定`; choose the word that fits a Japanese sentence blank.
 - `meaning`: `言い換え類義`; underline the target in a complete sentence and choose its closest Japanese paraphrase from four Japanese choices. This type requires `paraphrase_ja`.
 - `kana_to_kanji`: `表記`; underline the kana target in a complete sentence and choose the correct kanji form. Use this for N2-N5, not N1.
+- `word_formation`: `語形成`; a sentence blank tested on a prefix or suffix (e.g. `（　）規制` → 脱, or `国際（　）` → 化). Choices are affixes that plausibly attach to similar words. N2-N3 only; authored in `practice_questions`.
+- `usage`: `用法`; the prompt is the target word alone and the four choices are complete sentences using it, exactly one natural. Wrong sentences must be typical misuses (wrong collocation, register, or confusion with a near-synonym), not ungrammatical nonsense. N3-N1; authored in `practice_questions`.
 - `kanji_to_kana`: `漢字読み`; use a complete natural Japanese sentence, mark the target kanji substring for visual underlining, and choose the correct reading from four kana-only options. Keep the shared task instruction separate from the sentence and do not repeat the target in a meta-prompt. Distractors should model plausible reading mistakes for the same kanji, not unrelated vocabulary readings.
 
 Every website question uses the official booklet pattern: a Japanese task instruction separate from the item, one natural Japanese sentence, four numbered choices, and no translated hint in the prompt or options. Question prompts, choices, and answer keys stay plain text. Full explanations may use the selected learner language and can be annotated by the app when explanation furigana is enabled.
@@ -202,12 +204,14 @@ Do not generate all types for every item. The website mixes suitable question ty
 
 Every non-`proper_name` item should be covered by at least one complete scored question. A complete question has one JLPT-style instruction, one natural Japanese prompt, four choices, one answer, and a full explanation. If the source material lacks a natural sentence, create a conservative example sentence before enabling a scored question.
 
-- N1 kanji vocabulary with a reliable reading, natural sentence, and Japanese paraphrase can use `moji_goi`, `meaning`, and `kanji_to_kana`; N1 does not use `kana_to_kanji` by default.
+- N1 kanji vocabulary with a reliable reading, natural sentence, and Japanese paraphrase can use `moji_goi`, `meaning`, `kanji_to_kana`, and `usage` (the four N1 vocabulary types); N1 does not use `kana_to_kanji` or `word_formation` by default.
 - N2-N5 kanji vocabulary may also use `kana_to_kanji` when the orthographic contrast is appropriate.
 - Kana-only vocabulary should not generate `kana_to_kanji` or `kanji_to_kana` unless the item explicitly teaches an orthographic contrast.
 - Grammar expressions and verb forms normally use `grammar` with a sentence blank and controlled, function-specific distractors. Add reading or spelling questions only when that is the learner's actual confusion.
 - `proper_name` items normally use only the supplementary `kanji_to_kana` practice, and only when the source establishes one intended reading. Do not present it as an official JLPT type.
 - Names with multiple valid readings, uncertain readings, or AI-inferred candidate readings must use `question_kinds: []` until verified.
+
+Authored questions go in `practice_questions[]` as `{ id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }`. An authored question replaces the synthetic question of the same kind. `upsert_review_item` rejects it unless it has at least four distinct choices including `answer`, a non-empty `explanation_zh`, and a specific `distractor_notes[choice]` for every wrong choice explaining the concrete confusion (on/kun reading, voicing, long vowel, collocation, register, near-synonym), never just "does not fit".
 
 Use `question_distractors` to provide controlled wrong options per question type. Distractors must be plausible for the tested skill, must not duplicate the answer, and must not be another valid answer in the given context. For a name-reading question, explain that the answer is the recorded whole-name reading and should be confirmed from the source rather than mechanically assembled from individual kanji.
 

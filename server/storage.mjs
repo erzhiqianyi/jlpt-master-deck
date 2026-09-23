@@ -1,6 +1,7 @@
 import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
-import { normalizePracticeExplanations, assertPracticeExplanations } from '../src/domain/practiceExplanations.mjs';
+import { normalizePracticeExplanations, assertPracticeExplanations, isEmptyReason } from '../src/domain/practiceExplanations.mjs';
+import { readingDistractors, describeReadingConfusion } from '../src/domain/readingDistractors.mjs';
 import { progressAfterAnswer } from '../src/domain/srs.mjs';
 import { restorePracticeName } from './practice-names.mjs';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from './files.mjs';
@@ -418,6 +419,7 @@ function ensureReviewItemsSeeded() {
 export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
   const normalized = normalizeReviewItem(item);
+  if (normalized.deck !== 'grammar_expression') assertVocabSeeds(normalized.practice_questions);
   const now = new Date().toISOString();
   const existing = getDb().prepare('SELECT created_at, user_id FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
   const book = wordbookById(userId, itemWordbookId(normalized));
@@ -1567,11 +1569,30 @@ export function analyzeWeakPoints(userId) {
   };
 }
 
+// Authored JLPT vocabulary questions replace the synthetic ones, so they must be complete:
+// four choices containing the answer and a specific reason for every wrong choice.
+function assertVocabSeeds(seeds) {
+  for (const [index, seed] of (Array.isArray(seeds) ? seeds : []).entries()) {
+    const kind = normalizeQuestionKind(seed?.kind);
+    if (!kind || kind === 'grammar') continue;
+    const label = `practice_questions[${index}] (${kind})`;
+    const choices = Array.isArray(seed.choices) ? seed.choices.map(String) : [];
+    if (new Set(choices).size < 4 || !choices.includes(String(seed.answer ?? ''))) {
+      throw new Error(`${label} requires at least four distinct choices including the answer`);
+    }
+    if (isEmptyReason(seed.explanation_zh)) throw new Error(`${label} requires explanation_zh for the correct answer`);
+    const missing = choices.filter((choice) => choice !== seed.answer && isEmptyReason(seed.distractor_notes?.[choice]));
+    if (missing.length) throw new Error(`${label} requires distractor_notes explaining ${missing.map((choice) => `「${choice}」`).join('、')}`);
+  }
+}
+
 function questionKindFromId(questionId = '') {
   if (questionId.includes('-kanji-to-kana-')) return 'kanji_to_kana';
   if (questionId.includes('-kana-to-kanji-')) return 'kana_to_kanji';
   if (questionId.includes('-moji-goi-')) return 'moji_goi';
   if (questionId.includes('-meaning-')) return 'meaning';
+  if (questionId.includes('-word-formation-')) return 'word_formation';
+  if (questionId.includes('-usage-')) return 'usage';
   if (questionId.includes('-grammar-')) return 'grammar';
   return 'unknown';
 }
@@ -1689,7 +1710,7 @@ function choiceList(answer, distractors = [], fallback = []) {
 
 function generatedKanjiToKanaQuestion(item, index) {
   if (!item.reading || !containsKanjiText(item.original) || !isKanaReading(item.reading)) return null;
-  const choices = choiceList(item.reading, item.question_distractors?.kanji_to_kana, readingDistractorsForPack(item.reading));
+  const choices = choiceList(item.reading, item.question_distractors?.kanji_to_kana, readingDistractors(item.reading));
   if (choices.length < 4) return null;
   return {
     id: `target-kanji-${String(index + 1).padStart(2, '0')}`,
@@ -1806,36 +1827,9 @@ function generatedQuestionForKind(item, kind, index) {
   if (kind === 'meaning') return generatedMeaningQuestion(item, index);
   if (kind === 'grammar') return isGrammarItem ? generatedGrammarQuestion(item, index) : null;
   if (kind === 'moji_goi') return generatedMojiGoiQuestion(item, index);
+  // 表記・語形成・用法 need authored choices (kanji spellings, affixes, four sentences); only item seeds provide them.
+  if (['kana_to_kanji', 'word_formation', 'usage'].includes(kind)) return null;
   return generatedMeaningQuestion(item, index) ?? generatedGrammarQuestion(item, index) ?? generatedKanjiToKanaQuestion(item, index);
-}
-
-function readingDistractorsForPack(reading) {
-  const replacements = [
-    ['ねん', 'とし'],
-    ['ねん', 'ねい'],
-    ['とし', 'ねん'],
-    ['てい', 'たい'],
-    ['せい', 'しょう'],
-    ['しょう', 'せい'],
-    ['こう', 'こ'],
-    ['そう', 'そ'],
-    ['かん', 'がん'],
-    ['にん', 'じん'],
-  ];
-  const variants = replacements
-    .map(([source, target]) => reading.includes(source) ? reading.replace(source, target) : '')
-    .filter(Boolean);
-  const synthetic = [
-    reading.replace(/ん/u, 'い'),
-    reading.replace(/(.)\1/u, '$1'),
-    reading.includes('ん') ? reading.replace(/ん/u, 'う') : '',
-    reading.length > 2 ? `${reading.slice(0, -1)}い` : '',
-    reading.length > 2 ? `${reading.slice(0, -1)}う` : '',
-    `${reading.slice(0, Math.max(1, reading.length - 1))}ん`,
-  ];
-  return [...new Set([...variants, ...synthetic])]
-    .filter((choice) => choice && choice !== reading)
-    .slice(0, 6);
 }
 
 function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
@@ -1881,7 +1875,7 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
       if (!pool) continue;
       while (pool.cursor < pool.items.length) {
         const item = pool.items[pool.cursor++];
-      const question = generatedQuestionForKind(item, kind, generatedPractice.length);
+      const question = seededQuestionForKind(item, kind) ?? generatedQuestionForKind(item, kind, generatedPractice.length);
       if (!question) continue;
       const key = `${question.type}|${question.prompt}|${question.answer}|${(question.choices ?? []).join('|')}`;
       if (seenQuestion.has(key)) continue;
@@ -2026,7 +2020,7 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
 // state) so an MCP client can run the whole session — questions, answers, SRS — without the browser.
 // Answers land in the same `answers` / `progress` / attempt history the web app uses.
 
-export const PRACTICE_KINDS = ['meaning', 'grammar', 'kanji_to_kana', 'moji_goi'];
+export const PRACTICE_KINDS = ['meaning', 'grammar', 'kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'usage'];
 
 export function createTopicPractice(userId, { title, deck, kinds, wordbookId, jlptLevel, onlyDue = false, statuses, count = 10, date } = {}) {
   const practiceDate = normalizePracticeDate(date);
@@ -2127,6 +2121,7 @@ function seededQuestionForKind(item, kind) {
     answer: seed.answer,
     explanation_zh: seed.explanation_zh ?? item.explanation_zh ?? '',
     translation_zh: seed.translation_zh ?? '',
+    distractor_notes: seed.distractor_notes,
   };
 }
 
@@ -2360,7 +2355,9 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
 function draftQuestionKind(value) {
   const text = String(value ?? '');
   if (text.includes('文脈')) return 'moji_goi';
-  if (text.includes('言い換え') || text.includes('類義') || text.includes('説明') || text.includes('用法')) return 'meaning';
+  if (text.includes('語形成')) return 'word_formation';
+  if (text.includes('用法')) return 'usage';
+  if (text.includes('言い換え') || text.includes('類義') || text.includes('説明')) return 'meaning';
   if (text.includes('漢字読み')) return 'kanji_to_kana';
   if (text.includes('表記')) return 'kana_to_kanji';
   if (text.includes('文法') || text.includes('組み立て')) return 'grammar';
@@ -2510,6 +2507,8 @@ function questionKindSummaryLabel(kind) {
   if (kind === 'grammar') return '语法';
   if (kind === 'moji_goi') return '文字词汇';
   if (kind === 'meaning') return '词义辨析';
+  if (kind === 'word_formation') return '语形成';
+  if (kind === 'usage') return '用法';
   return String(kind || '综合');
 }
 
@@ -2587,7 +2586,7 @@ function normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems
     choiceAnalysis: choices.map((choice) => ({
       choice,
       correct: choice === answer,
-      explanation: dailyPracticeChoiceExplanation({
+      explanation: (choice !== answer && question.distractor_notes?.[choice]) || dailyPracticeChoiceExplanation({
         choice,
         correct: choice === answer,
         kind,
@@ -2636,6 +2635,10 @@ function dailyPracticeChoiceExplanation({ choice, correct, kind, prompt, correct
   if (correct) {
     return `「${choice}」符合本句的接续和语义。${correctReason}`;
   }
+  if (kind === 'kanji_to_kana') {
+    const confusion = describeReadingConfusion(choice, sourceItem?.reading ?? '', sourceItem?.original ?? '');
+    if (confusion) return confusion;
+  }
   if (kind !== 'grammar' || !sourceItem) {
     const candidate = reviewItems.find((item) => item.original === choice || item.paraphrase_ja === choice || item.reading === choice);
     const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.explanation_zh ?? '');
@@ -2680,8 +2683,11 @@ function firstExplanationSentence(value) {
 
 function normalizeQuestionKind(value) {
   const text = String(value ?? '');
-  if (['grammar', 'moji_goi', 'meaning', 'kana_to_kanji', 'kanji_to_kana'].includes(text)) return text;
+  if (['grammar', 'moji_goi', 'meaning', 'kana_to_kanji', 'kanji_to_kana', 'word_formation', 'usage'].includes(text)) return text;
   if (text.includes('漢字読み')) return 'kanji_to_kana';
+  if (text.includes('表記')) return 'kana_to_kanji';
+  if (text.includes('語形成')) return 'word_formation';
+  if (text.includes('用法')) return 'usage';
   if (text.includes('言い換え') || text.includes('類義')) return 'meaning';
   if (text.includes('文脈')) return 'moji_goi';
   if (text.includes('文の文法') || text.includes('文の組み立て') || text.includes('grammar')) return 'grammar';
@@ -2693,6 +2699,8 @@ function questionTitleForKind(kind) {
   if (kind === 'moji_goi') return '文字・語彙练习';
   if (kind === 'kanji_to_kana') return '漢字読み练习';
   if (kind === 'kana_to_kanji') return '表記练习';
+  if (kind === 'word_formation') return '語形成练习';
+  if (kind === 'usage') return '用法练习';
   return '言い換え练习';
 }
 

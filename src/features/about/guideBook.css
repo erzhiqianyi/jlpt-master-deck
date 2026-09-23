@@ -1,0 +1,68 @@
+.handbook { display:grid; grid-template-columns:172px minmax(0,1fr); gap:34px; color:#294b40; align-items:start; }
+.handbook-toc { position:sticky; top:24px; display:grid; gap:6px; border:1px solid #dfe8df; border-radius:12px; padding:18px 10px; background:#fffefa; }
+.handbook-toc > strong { padding:16px 10px 12px; font-size:17px; }
+.handbook-toc a { display:flex; align-items:center; gap:9px; padding:12px 10px; border-radius:5px; text-decoration:none; font-size:14px; line-height:1.5; color:#61746d; }
+.handbook-toc a span { font-variant-numeric:tabular-nums; color:#7b8c83; }
+.handbook-toc a[aria-current=page] { background:#edf5eb; color:#214e3c; font-weight:700; box-shadow:inset 3px 0 #58976a; }
+.handbook-toc a:hover { background:#f2f6ef; }
+.handbook-toc a.handbook-extra { border-top:1px solid #e3e9df; margin-top:18px; padding-top:18px; font-size:12px; }
+.handbook-toc a.handbook-back { font-size:12px; padding:4px 10px; }
+.handbook-article { position:relative; min-width:0; padding:8px 0 0; max-width:1040px; }
+.handbook-eyebrow { margin:0 0 12px; color:#a4633d; font-size:12px; font-weight:600; letter-spacing:.12em; }
+.handbook-article h1,.handbook-home-heading h1 { font-family:'Songti SC','Noto Serif CJK SC','Yu Mincho',serif; margin:0 0 16px; font-size:clamp(28px,3.1vw,44px); line-height:1.4; letter-spacing:.015em; font-weight:800; color:#163d30; }
+.handbook-intro { margin:0; color:#6b7d75; font-size:16px; line-height:1.95; max-width:65ch; }
+.handbook-outcome { display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#fbf5e9; padding:14px 18px; border-radius:10px; margin:22px 0; font-size:13px; color:#735335; }
+.handbook-outcome > svg { color:#b47c43; flex-shrink:0; }
+.handbook-outcome p { display:flex; align-items:center; gap:7px; margin:0; color:#435646; }
+.handbook-outcome p svg { flex-shrink:0; color:#679765; }
+.handbook-outcome > span { display:none; }
+.handbook-figure { margin:24px 0 28px; }
+.handbook-figure img { display:block; width:100%; height:auto; aspect-ratio:12/5; object-fit:contain; border-radius:8px; background:#fffefa; }
+.handbook-figure figcaption { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:12px; }
+.handbook-figure figcaption div { display:flex; gap:9px; align-items:center; justify-content:center; font-size:14px; }
+.handbook-figure figcaption span,.handbook-steps > li > span { flex-shrink:0; display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:#e4f0e0; color:#35644b; font-weight:700; }
+.handbook-figure > p { margin:16px 0 0; text-align:center; font-size:11px; color:#7c897e; }
+.handbook-block { margin:30px 0; }
+.handbook-block h2 { margin:0 0 16px; padding-left:13px; border-left:3px solid #4e8a65; color:#244a3b; font-size:21px; line-height:1.3; font-weight:750; }
+.handbook-block > p,.handbook-details > p { font-size:15px; line-height:1.9; color:#5e7269; margin:12px 0; max-width:70ch; }
+.handbook-copy { display:flex; flex-wrap:wrap; align-items:center; gap:12px; background:#f4f8f1; border:1px solid #dbe6d8; border-radius:9px; padding:16px 18px; margin:14px 0; }
+.handbook-copy > p { flex:1; min-width:160px; margin:0; font-size:14px; line-height:1.85; color:#254737; overflow-wrap:anywhere; white-space:pre-wrap; user-select:text; }
+.handbook-copy button { flex-shrink:0; display:inline-flex; gap:7px; align-items:center; justify-content:center; min-height:40px; padding:9px 15px; border-radius:7px; background:#326c51; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+.handbook-copy button:hover { background:#22593e; }
+.handbook-copy-error { flex-basis:100%; color:#a4433d; font-size:12px; }
+.handbook a:focus-visible,.handbook button:focus-visible,.handbook select:focus-visible,.handbook summary:focus-visible { outline:3px solid #8caf6d; outline-offset:4px; }
+.handbook-steps { list-style:none; padding:0; display:grid; gap:20px; margin:18px 0; }
+.handbook-steps li { display:flex; align-items:flex-start; gap:14px; }
+.handbook-steps p { margin:0; font-size:15px; color:#52685c; line-height:1.9; }
+.handbook-block p.handbook-note { padding:14px 17px; background:#f8f3e8; border-radius:6px; font-size:13px; }
+.handbook-text-link { display:inline-flex; gap:7px; align-items:center; color:#316449; font-size:14px; font-weight:650; text-decoration:underline; text-underline-offset:4px; }
+.handbook-case-picker { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:16px 0; border-block:1px solid #e0e7dd; font-size:13px; color:#697b6e; }
+.handbook-case-picker select { max-width:100%; padding:10px 30px 10px 12px; border:1px solid #d5e1d1; border-radius:6px; background:#fffefa; color:#31533f; font-size:14px; }
+.handbook-example { border-top:1px solid #dfdfcd; border-bottom:1px solid #dfdfcd; padding:20px; background:#fffdf5; }
+.handbook-example > span { color:#8b8468; font-size:11px; }
+.handbook-example h3 { font-size:26px; margin:12px 0 18px; font-family:serif; }
+.handbook-example dl { display:grid; grid-template-columns:70px 1fr; gap:10px; font-size:14px; line-height:1.8; }
+.handbook-example dt { color:#7e866b; }.handbook-example dd { margin:0; }
+.handbook-details { border-block:1px solid #dfe7dc; padding:17px 0; font-size:14px; }
+.handbook-details summary { cursor:pointer; font-weight:650; color:#355c43; }
+.handbook-pagination { display:flex; gap:16px; justify-content:space-between; margin-top:36px; padding:22px 0; border-top:1px solid #dfe7dc; font-size:13px; }
+.handbook-pagination a { display:flex; align-items:center; gap:8px; color:#3a6950; text-decoration:none; }
+.handbook-compare { display:grid; gap:18px; }
+.handbook-compare > div { display:grid; grid-template-columns:70px 1fr; gap:18px; padding:16px 0; border-bottom:1px solid #e1e7dc; font-size:15px; line-height:1.85; }
+.handbook-compare dt { font-weight:700; }.handbook-compare dd { margin:0; color:#5e7269; }
+.handbook-client-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.handbook-client-tabs button { min-height:40px; padding:8px 14px; border:1px solid #cfdccc; border-radius:7px; font-size:13px; cursor:pointer; }
+.handbook-client-tabs button[aria-pressed=true] { background:#326c51; color:#fff; border-color:#326c51; }
+.handbook-source { font-size:12px!important; }.handbook-source a { display:inline-flex; align-items:center; gap:5px; text-decoration:underline; }
+.handbook-results { display:grid; }
+.handbook-results a { display:grid; grid-template-columns:1fr auto; gap:8px; padding:18px 0; border-bottom:1px solid #e0e7dc; text-decoration:none; }
+.handbook-results strong { font-size:15px; }.handbook-results span { color:#6c7d70; font-size:13px; grid-column:1; }.handbook-results svg { grid-column:2; grid-row:1 / 3; align-self:center; }
+.handbook-home-heading > span { color:#a4633d; font-size:12px; letter-spacing:.12em; }.handbook-home-heading h1 { margin:8px 0; }.handbook-home-heading p { margin:0; color:#637969; font-size:15px; }
+.handbook-entry { display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:center; padding:30px 0; border-block:1px solid #dce6d8; text-decoration:none; color:#244a36; }
+.handbook-entry h2 { font-family:'Songti SC',serif; font-size:30px; margin:12px 0; font-weight:750; }.handbook-entry p { color:#657966; font-size:15px; line-height:1.9; max-width:40ch; }.handbook-entry strong { display:inline-flex; align-items:center; gap:10px; font-size:14px; margin-top:15px; }.handbook-entry img { width:100%; border-radius:8px; }
+.handbook-home-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }.handbook-home-links a { position:relative; display:grid; gap:8px; padding:12px 26px 12px 0; text-decoration:none; }.handbook-home-links strong { color:#355c43; font-size:15px; }.handbook-home-links span { color:#758475; font-size:13px; line-height:1.7; }.handbook-home-links svg { position:absolute; right:0; top:13px; color:#56705c; }
+@media(min-width:1380px) { .handbook { gap:38px; }.handbook-article { margin-right:172px; }.handbook-outcome { position:absolute; left:calc(100% + 24px); top:0; width:148px; margin:0; padding:24px 17px; display:grid; gap:17px; }.handbook-outcome p { align-items:flex-start; line-height:1.9; }.handbook-outcome > span { display:block; margin-top:36px; color:#a1977c; font-family:serif; line-height:2; } }
+@media(max-width:1000px) { .handbook { grid-template-columns:146px minmax(0,1fr); gap:22px; }.handbook-toc { padding:12px 5px; }.handbook-toc a { font-size:12px; padding:12px 8px; }.handbook-figure figcaption div { font-size:12px; gap:5px; }.handbook-figure figcaption span { width:24px; height:24px; } }
+@media(max-width:700px) { .handbook { display:block; }.handbook-toc { position:static; display:flex; flex-wrap:wrap; gap:4px; padding:10px 0 14px; border:0; border-bottom:1px solid #dfe8df; background:transparent; border-radius:0; margin-bottom:24px; }.handbook-toc > strong { flex-basis:100%; padding:6px 0; }.handbook-toc a { min-height:40px; font-size:12px; }.handbook-toc a.handbook-back { flex-basis:100%; padding:0; }.handbook-toc a.handbook-extra { margin:0; padding:10px; border:0; }.handbook-article h1 { font-size:29px; }.handbook-intro { font-size:14px; }.handbook-outcome { font-size:12px; padding:12px; }.handbook-outcome p { line-height:1.7; }.handbook-figure { margin:20px 0; }.handbook-figure figcaption { gap:6px; }.handbook-figure figcaption div { flex-direction:column; text-align:center; font-size:11px; line-height:1.65; }.handbook-block h2 { font-size:19px; }.handbook-copy { padding:13px; }.handbook-copy button { margin-left:auto; }.handbook-pagination { flex-wrap:wrap; }.handbook-entry { grid-template-columns:1fr; gap:18px; }.handbook-entry img { grid-row:1; }.handbook-entry h2 { font-size:26px; }.handbook-home-links { grid-template-columns:1fr; gap:6px; }.handbook-home-links a { border-bottom:1px solid #e0e7dc; padding:16px 28px 16px 0; } }
+
+@media(min-width:1380px){.handbook-outcome{min-height:560px;align-content:start}.handbook-figure{margin-top:22px}.handbook-toc{min-height:680px;align-content:start}}

@@ -522,6 +522,31 @@ export default function App() {
       .filter((item) => !progress[item.id]?.nextReviewAt || (progress[item.id]?.nextReviewAt ?? '') <= now)
       .sort((left, right) => (progress[left.id]?.nextReviewAt ?? '9999').localeCompare(progress[right.id]?.nextReviewAt ?? '9999'));
   }, [routeReady, activeView, data.items, progress]);
+  // FocusedMemoryReview snapshots its queue on mount, so reload the library and progress
+  // before mounting it: items added elsewhere (e.g. via MCP) since the session loaded must be included.
+  const [memoryReviewReady, setMemoryReviewReady] = useState(false);
+  const isMemoryReview = activeView === 'memory-review';
+  useEffect(() => {
+    if (!isMemoryReview || !user || !authToken) {
+      setMemoryReviewReady(false);
+      return;
+    }
+    let cancelled = false;
+    setMemoryReviewReady(false);
+    Promise.all([
+      apiRequest<ReviewData>('/api/review-data', { token: authToken }),
+      apiRequest<StudyState>('/api/study-state', { token: authToken }),
+    ]).then(([reviewData, studyState]) => {
+      if (cancelled) return;
+      setData(normalizeReviewData(reviewData));
+      applyStudyState(studyState);
+    }).catch(() => {
+      // Fall back to the data already in memory during a temporary connection failure.
+    }).finally(() => {
+      if (!cancelled) setMemoryReviewReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [isMemoryReview, user?.id, authToken]);
   const hasStudyControls = !['samples', 'wordbooks'].includes(studyPage) && supportsStudyPage(activeView) && activeView !== 'mixed' && activeView !== 'daily-practice';
   const hasLibraryPage = activeView === 'vocabulary' || activeView === 'grammar' || activeView === 'listening' || activeView === 'reading';
   const libraryPageLabel = activeView === 'listening' || activeView === 'reading' ? labels.questionBankPage : labels.wordPage;
@@ -1408,6 +1433,7 @@ export default function App() {
     return <LoginScreen error={authError} loading={authLoading || authMode === null} onSubmit={handleAuth} firebase={authMode === 'firebase'} onGoogle={() => void handleGoogleLogin()} />;
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
+  if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
   if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
@@ -1423,7 +1449,7 @@ export default function App() {
       : route.view === 'listening' ? listeningQuestions.find((item) => item.id === route.itemId)?.title
       : data.items.find((item) => item.id === route.itemId)?.original)
     : undefined;
-  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle);
+  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale);
   if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
   const parentCrumbRoute = pageCrumbs.at(-2)?.route;
   const defaultDataTab = dataTabForRoute(activeView);
@@ -2536,6 +2562,7 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   if (route.view === 'settings' && route.itemId) {
     return { view: 'settings', page: 'questions' };
   }
+  if (route.view === 'about' && route.itemId?.startsWith('guide-')) return { view: 'about', page: 'questions', itemId: 'guide' };
   if (route.view === 'about' && route.itemId) {
     return { view: 'about', page: 'questions' };
   }
@@ -2594,7 +2621,7 @@ function defaultDesktopStudyPage(view: AppView): StudyPage {
   return view === 'vocabulary' || view === 'grammar' || view === 'listening' || view === 'reading' ? 'words' : 'tips';
 }
 
-function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string): Array<{ label: string; route?: AppRoute }> {
+function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN'): Array<{ label: string; route?: AppRoute }> {
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
@@ -2625,6 +2652,13 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   if (route.view === 'news-cycle') {
     crumbs.push({ label: '新闻练习', route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
     if (route.itemId) crumbs.push({ label: route.itemId });
+    return crumbs;
+  }
+
+  if (route.view === 'about') {
+    crumbs.push({ label: labels.aboutTitle, route: route.itemId ? { view: 'about', page: 'questions' } : undefined });
+    if (isAboutSection(route.itemId) && route.itemId.startsWith('guide-')) crumbs.push({ label: aboutSectionTitle('guide', locale), route: { view: 'about', page: 'questions', itemId: 'guide' } });
+    if (isAboutSection(route.itemId)) crumbs.push({ label: aboutSectionTitle(route.itemId, locale), route });
     return crumbs;
   }
 

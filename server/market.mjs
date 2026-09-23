@@ -123,6 +123,8 @@ export function validatePackage(input) {
           "meaning",
           "kana_to_kanji",
           "kanji_to_kana",
+          "word_formation",
+          "usage",
         ].includes(record.kind)
       )
         throw new Error("练习题缺少题干、选项或有效答案");

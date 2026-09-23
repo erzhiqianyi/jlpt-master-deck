@@ -114,6 +114,8 @@ function questionKindLabel(kind: QuestionKind, labels: Record<string, string>) {
   if (kind === 'moji_goi') return labels.mojiGoi;
   if (kind === 'kana_to_kanji') return labels.kanaToKanji;
   if (kind === 'kanji_to_kana') return labels.kanjiToKana;
+  if (kind === 'word_formation') return labels.wordFormation;
+  if (kind === 'usage') return labels.usage;
   return kind;
 }
 

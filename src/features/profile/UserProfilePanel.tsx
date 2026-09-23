@@ -4,7 +4,7 @@ import type { AuthUser, LearningCapture, Locale, PracticeAttempt, ProgressState,
 
 type T = (zh: string, ja: string, en: string) => string;
 
-const kinds: QuestionKind[] = ['grammar', 'moji_goi', 'meaning', 'kana_to_kanji', 'kanji_to_kana'];
+const kinds: QuestionKind[] = ['grammar', 'moji_goi', 'meaning', 'kana_to_kanji', 'kanji_to_kana', 'word_formation', 'usage'];
 
 /** Account page reached from the home greeting: what the learner has done, what stands out, and sign out. */
 export function UserProfilePanel({ user, locale, attempts, captures, progress, plan, itemCount, onLogout }: {
@@ -25,6 +25,8 @@ export function UserProfilePanel({ user, locale, attempts, captures, progress, p
     meaning: t('释义', '意味', 'Meaning'),
     kana_to_kanji: t('假名→汉字', 'かな→漢字', 'Kana→kanji'),
     kanji_to_kana: t('汉字→假名', '漢字→かな', 'Kanji→kana'),
+    word_formation: t('语形成', '語形成', 'Word formation'),
+    usage: t('用法', '用法', 'Usage'),
   })[kind];
   const insights = buildInsights(stats, t, kindLabel);
   const examDays = daysUntil(plan.profile.examDate);

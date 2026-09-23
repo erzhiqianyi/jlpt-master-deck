@@ -139,7 +139,7 @@ const tool = (name, description, inputSchema, annotations, handler, extra = {}) 
 // learner (not the model) does the work; the same shape drives the inline MCP App view.
 const practiceFilters = {
   deck: z.enum(['n1_vocab', 'name_reading', 'grammar_expression']).optional().describe('Restrict to one deck; omit for all decks.'),
-  kinds: z.array(z.enum(PRACTICE_KINDS)).max(4).optional().describe('Question kinds to rotate through. Default: all four.'),
+  kinds: z.array(z.enum(PRACTICE_KINDS)).max(7).optional().describe('Question kinds to rotate through. Default: all. kana_to_kanji (表記), word_formation (語形成) and usage (用法) only come from item practice_questions seeds.'),
   wordbook_id: z.string().optional().describe('Restrict to items assigned to this wordbook (see list_wordbooks).'),
   jlpt_level: z.string().optional().describe('N1–N5; matches the item jlpt_level.'),
   only_due: z.boolean().optional().describe('Only items whose spaced-repetition review is due (or never reviewed).'),
@@ -170,7 +170,7 @@ export const tools = [
   tool('get_review_data', 'Read JLPT review items from your personal SQLite item library. JSON files are treated as export/import backups.',
     {}, ro, async (_args, ctx) => text(loadReviewData(uid(ctx)))),
   tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
-    item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form }.'),
+    item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form }. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
   }, rw, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
   tool('export_review_data_backup', 'Export your personal SQLite review item library into monthly JSON backup files. Use only when a JSON backup is requested.',
     {}, rw, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
@@ -285,7 +285,7 @@ export const tools = [
   tool('get_daily_practice', 'Read one formal daily practice with its generated questions.',
     { practice_id: z.string() }, ro,
     async ({ practice_id }, ctx) => text(found(getDailyPractice(uid(ctx), practice_id), 'Daily practice not found'))),
-  tool('create_review_pack_draft', 'Save generated review-pack content as a draft for in-app preview. Include content.description: a concise learner-facing explanation of scope, target level and learning objectives, based on the actual questions; do not include private source notes.',
+  tool('create_review_pack_draft', 'Save generated review-pack content as a draft for in-app preview. Include content.description: a concise learner-facing explanation of scope, target level and learning objectives, based on the actual questions; do not include private source notes. Questions go in content.sections[].questions[] as { id, kind, tested, target, prompt, choices, answer, explanation_zh, choiceAnalysis: [{ choice, explanation }] }; kind is the JLPT label 漢字読み, 表記, 語形成, 文脈規定, 言い換え類義, 用法 or 文法. Publishing requires a specific explanation for every choice.',
     { title: z.string(), content: z.record(z.string(), z.unknown()) }, rw,
     async ({ title, content }, ctx) => text(createReviewPackDraft(uid(ctx), { title, content }))),
   tool('list_review_pack_drafts', 'List saved review-pack drafts for the authenticated user.',

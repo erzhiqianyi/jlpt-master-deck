@@ -100,7 +100,7 @@ export const entities = {
       practice_id: field('practice_id', 'string', { groupable: true }),
       practice_date: field('practice_date', 'date', { groupable: true }),
       item_id: field('item_id', 'string', { groupable: true, nullable: true, description: 'Library item the question was generated from, when known.' }),
-      kind: field('kind', 'string', { groupable: true, nullable: true, description: 'meaning | grammar | kanji_to_kana | kana_to_kanji | moji_goi' }),
+      kind: field('kind', 'string', { groupable: true, nullable: true, description: 'meaning | grammar | kanji_to_kana | kana_to_kanji | moji_goi | word_formation | usage' }),
       title: field('title', 'string', { nullable: true }),
       prompt_preview: preview('prompt', 'prompt'),
       created_at: field('created_at', 'timestamp', { sortable: true }),

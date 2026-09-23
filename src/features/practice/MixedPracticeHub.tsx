@@ -8,6 +8,7 @@ import { OpinionPracticePanel } from './OpinionPracticePanel';
 import { opinionPractices } from '../../data/opinionPractice';
 import { dialoguePractices } from '../../data/dialoguePractice';
 import { useMobileList } from '../../hooks/useMobileList';
+import { buildQuestionIndex, questionKindsForItem } from '../../domain/questions';
 import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
@@ -221,6 +222,7 @@ export function MixedEntryIndexPanel({
 function combinedEntries(items: VocabItem[], listeningQuestions: ListeningQuestion[], readingQuestions: ReadingQuestion[], labels: Record<string, string>) {
   const itemEntries: CombinedEntry[] = items.map((item) => {
     const module = item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary';
+    const kinds = questionKindsForItem(item);
     return {
       id: item.id,
       module,
@@ -229,10 +231,10 @@ function combinedEntries(items: VocabItem[], listeningQuestions: ListeningQuesti
       createdAt: item.input_at ?? item.date,
       level: item.jlpt_level,
       tags: [
-        ...(item.question_kinds ?? []).map((kind) => questionKindLabel(kind, labels)),
+        ...kinds.map((kind) => questionKindLabel(kind, labels)),
         ...(item.tags ?? []).map((tag) => tag === 'mcp-draft' ? labels.entryTagDraft : tag === 'codex-chat-review' ? labels.entryTagChatReview : tag),
       ].filter(Boolean),
-      questionCount: item.question_kinds?.length || item.practice_questions?.length || 0,
+      questionCount: buildQuestionIndex([item]).length,
     };
   });
   const listeningEntries: CombinedEntry[] = listeningQuestions.map((question) => ({
@@ -263,6 +265,8 @@ function questionKindLabel(kind: string, labels: Record<string, string>) {
   if (kind === 'moji_goi') return labels.mojiGoi;
   if (kind === 'kana_to_kanji') return labels.kanaToKanji;
   if (kind === 'kanji_to_kana') return labels.kanjiToKana;
+  if (kind === 'word_formation') return labels.wordFormation;
+  if (kind === 'usage') return labels.usage;
   return kind;
 }
 

@@ -80,6 +80,8 @@ const views = {
           WHEN a.question_id LIKE '%-kana-to-kanji-%' THEN 'kana_to_kanji'
           WHEN a.question_id LIKE '%-moji-goi-%' THEN 'moji_goi'
           WHEN a.question_id LIKE '%-meaning-%' THEN 'meaning'
+          WHEN a.question_id LIKE '%-word-formation-%' THEN 'word_formation'
+          WHEN a.question_id LIKE '%-usage-%' THEN 'usage'
           WHEN a.question_id LIKE '%-grammar-%' THEN 'grammar'
         END) AS kind,
       q.practice_id,

@@ -1,5 +1,5 @@
 export type Deck = 'n1_vocab' | 'name_reading' | 'grammar_expression';
-export type QuestionKind = 'grammar' | 'moji_goi' | 'meaning' | 'kana_to_kanji' | 'kanji_to_kana';
+export type QuestionKind = 'grammar' | 'moji_goi' | 'meaning' | 'kana_to_kanji' | 'kanji_to_kana' | 'word_formation' | 'usage';
 export type Locale = 'zh-CN' | 'ja' | 'en';
 export type AppView = 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'profile' | 'settings';
 export type StudyPage = 'tips' | 'questions' | 'words' | 'wordbooks' | 'review' | 'samples' | 'mock';
@@ -433,6 +433,7 @@ export type PracticeQuestionSeed = {
   translation_zh?: string;
   explanation_zh?: string;
   tested_expression?: string;
+  target?: string;
   form_analysis_zh?: string;
   distractor_notes?: Record<string, string>;
 };

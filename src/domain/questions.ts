@@ -1,6 +1,7 @@
 import { itemAnalysis, itemMeaning, itemMemory } from './items';
 import { translations } from '../i18n/translations';
-import type { Deck, Locale, Question, QuestionKind, VocabItem } from '../types';
+import { describeReadingConfusion, readingDistractors } from './readingDistractors.mjs';
+import type { Deck, Locale, PracticeQuestionSeed, Question, QuestionKind, VocabItem } from '../types';
 
 export type QuestionReference = Pick<Question, 'id' | 'itemId' | 'kind'>;
 
@@ -11,9 +12,10 @@ export function buildQuestionIndex(items: VocabItem[]): QuestionReference[] {
       return item.practice_questions.flatMap((seed, index) => !seed.kind || seed.kind === 'grammar'
         ? [{ id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`, itemId: item.id, kind: 'grammar' as const }] : []);
     }
-    const seeded = (item.practice_questions ?? []).filter((seed) => seed.kind === 'moji_goi');
-    const result: QuestionReference[] = seeded.map((seed, index) => ({
-      id: seed.id ?? `${item.id}-moji-goi-seed-${index + 1}`, itemId: item.id, kind: 'moji_goi',
+    const seeded = vocabSeeds(item);
+    const seededKinds = new Set(seeded.map(({ kind }) => kind));
+    const result: QuestionReference[] = seeded.map(({ seed, kind }, index) => ({
+      id: seedQuestionId(item, seed, kind, index), itemId: item.id, kind,
     }));
     const allowed = new Set(questionKindsForItem(item));
     const suffixes = {
@@ -22,7 +24,7 @@ export function buildQuestionIndex(items: VocabItem[]): QuestionReference[] {
       kana_to_kanji: 'kana-to-kanji-jlpt-v1',
     };
     for (const kind of ['grammar', 'moji_goi', 'meaning', 'kanji_to_kana', 'kana_to_kanji'] as const) {
-      if (!allowed.has(kind) || (kind === 'moji_goi' && seeded.length)) continue;
+      if (!allowed.has(kind) || seededKinds.has(kind)) continue;
       if (kind === 'meaning' && !(item.paraphrase_ja ?? item.meaning_ja)) break;
       if ((kind === 'kanji_to_kana' || kind === 'kana_to_kanji') && !item.reading) continue;
       result.push({ id: `${item.id}-${suffixes[kind]}`, itemId: item.id, kind });
@@ -38,7 +40,8 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
   items.forEach((item, index) => {
     if (questions.length >= maxQuestions || (selectedItemIds && !selectedItemIds.has(item.id))) return;
     const allowedKinds = new Set(questionKindsForItem(item));
-    const seededMojiGoiQuestions = (item.practice_questions ?? []).filter((seed) => seed.kind === 'moji_goi');
+    const seeded = vocabSeeds(item);
+    const seededKinds = new Set(seeded.map(({ kind }) => kind));
     if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
       item.practice_questions.forEach((seed, seedIndex) => {
         if (questions.length >= maxQuestions) return;
@@ -48,9 +51,9 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
       return;
     }
 
-    seededMojiGoiQuestions.forEach((seed, seedIndex) => {
+    seeded.forEach(({ seed, kind }, seedIndex) => {
       if (questions.length >= maxQuestions) return;
-      questions.push(buildSeededMojiGoiQuestion(item, seed, seedIndex, locale));
+      questions.push(buildSeededVocabQuestion(item, seed, kind, seedIndex, locale, items));
     });
 
     const sentence = questionSentence(item);
@@ -61,11 +64,11 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
       questions.push(buildGrammarQuestion(item, items, index, locale));
     }
 
-    if (allowedKinds.has('moji_goi') && seededMojiGoiQuestions.length === 0) {
+    if (allowedKinds.has('moji_goi') && !seededKinds.has('moji_goi')) {
       questions.push(buildMojiGoiQuestion(item, items, index, locale));
     }
 
-    if (allowedKinds.has('meaning')) {
+    if (allowedKinds.has('meaning') && !seededKinds.has('meaning')) {
       const meaningAnswer = item.paraphrase_ja ?? item.meaning_ja;
       if (!meaningAnswer) {
         return;
@@ -85,7 +88,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
       });
     }
 
-    if (item.reading && allowedKinds.has('kanji_to_kana')) {
+    if (item.reading && allowedKinds.has('kanji_to_kana') && !seededKinds.has('kanji_to_kana')) {
       const isProperName = item.deck === 'name_reading' || item.type === 'proper_name';
       const kanjiToKanaChoices = choices(item.reading, questionPool(item, 'kanji_to_kana', items), index + 3, fallbackChoicesForKind(item, 'kanji_to_kana'));
       questions.push({
@@ -102,7 +105,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
       });
     }
 
-    if (item.reading && allowedKinds.has('kana_to_kanji')) {
+    if (item.reading && allowedKinds.has('kana_to_kanji') && !seededKinds.has('kana_to_kanji')) {
       const kanaToKanjiChoices = choices(item.original, questionPool(item, 'kana_to_kanji', items), index + 2, fallbackChoicesForKind(item, 'kana_to_kanji'));
       questions.push({
         id: `${item.id}-kana-to-kanji-jlpt-v1`,
@@ -122,7 +125,12 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
   return questions.slice(0, maxQuestions);
 }
 
-function questionKindsForItem(item: VocabItem): QuestionKind[] {
+export function questionKindsForItem(item: VocabItem): QuestionKind[] {
+  const seededKinds = item.deck === 'grammar_expression' ? [] : vocabSeeds(item).map(({ kind }) => kind);
+  return unique([...seededKinds, ...inferredQuestionKinds(item)]);
+}
+
+function inferredQuestionKinds(item: VocabItem): QuestionKind[] {
   if (item.deck === 'name_reading' || item.type === 'proper_name') {
     return item.reading && containsKanji(item.original) && fallbackChoicesForKind(item, 'kanji_to_kana').length >= 3
       ? ['kanji_to_kana']
@@ -219,38 +227,6 @@ function questionPool(item: VocabItem, kind: QuestionKind, items: VocabItem[]) {
   return candidates.map((candidate) => candidate.original);
 }
 
-function readingDistractors(reading: string) {
-  const replacements: [string, string][] = [
-    ['てい', 'たい'],
-    ['せい', 'しょう'],
-    ['せい', 'さい'],
-    ['せい', 'せ'],
-    ['しょう', 'せい'],
-    ['こう', 'こ'],
-    ['そう', 'そ'],
-    ['けい', 'け'],
-    ['ぼう', 'ほう'],
-    ['ほう', 'ぼう'],
-    ['かん', 'がん'],
-    ['にん', 'じん'],
-    ['く', 'っ'],
-    ['っ', 'く'],
-  ];
-  const variants = replacements
-    .map(([source, target]) => reading.includes(source) ? reading.replace(source, target) : '')
-    .filter(Boolean);
-  const synthetic = [
-    reading.replace(/う$/u, ''),
-    reading.replace(/(.)\1/u, '$1'),
-    reading.replace('ん', 'っ'),
-    reading.replace('ん', 'い'),
-    reading.replace('ん', 'んで'),
-    reading.length > 2 ? `${reading.slice(0, -1)}い` : '',
-    `${reading.slice(0, Math.max(1, reading.length - 1))}ん`,
-  ];
-  return unique([...variants, ...synthetic].filter((value) => value && value !== reading)).slice(0, 6);
-}
-
 export function deckLabelsFor(locale: Locale): Record<Deck | 'all', string> {
   const labels = translations[locale];
   return {
@@ -323,28 +299,66 @@ function buildSeededGrammarQuestion(
   };
 }
 
-function buildSeededMojiGoiQuestion(
+const SEED_KIND_ALIASES: [RegExp, QuestionKind][] = [
+  [/^(?:kanji_to_kana|漢字読み)/u, 'kanji_to_kana'],
+  [/^(?:kana_to_kanji|表記)/u, 'kana_to_kanji'],
+  [/^(?:moji_goi|文脈規定)/u, 'moji_goi'],
+  [/^(?:meaning|言い換え)/u, 'meaning'],
+  [/^(?:word_formation|語形成)/u, 'word_formation'],
+  [/^(?:usage|用法)/u, 'usage'],
+];
+
+// JLPT vocabulary question kinds authored on the item; they replace the synthetic question of that kind.
+function vocabSeeds(item: VocabItem) {
+  return (item.practice_questions ?? []).flatMap((seed) => {
+    const kind = SEED_KIND_ALIASES.find(([pattern]) => pattern.test(String(seed.kind ?? '')))?.[1];
+    const answer = seed.answer ?? (kind === 'moji_goi' ? item.original : undefined);
+    const usable = kind && answer && (kind === 'moji_goi' || (seed.choices ?? []).includes(answer));
+    return usable ? [{ seed, kind }] : [];
+  });
+}
+
+function seedQuestionId(item: VocabItem, seed: PracticeQuestionSeed, kind: QuestionKind, index: number) {
+  return seed.id ?? `${item.id}-${kind.replaceAll('_', '-')}-seed-${index + 1}`;
+}
+
+const SEED_TITLES: Record<QuestionKind, ['mojiGoi' | 'meaning' | 'kanjiToKana' | 'kanaToKanji' | 'wordFormation' | 'usage' | 'grammar', string]> = {
+  moji_goi: ['mojiGoi', 'mojiGoiInstruction'],
+  meaning: ['meaning', 'meaningInstruction'],
+  kanji_to_kana: ['kanjiToKana', 'kanjiToKanaInstruction'],
+  kana_to_kanji: ['kanaToKanji', 'kanaToKanjiInstruction'],
+  word_formation: ['wordFormation', 'wordFormationInstruction'],
+  usage: ['usage', 'usageInstruction'],
+  grammar: ['grammar', 'grammarInstruction'],
+};
+
+function buildSeededVocabQuestion(
   item: VocabItem,
-  seed: NonNullable<VocabItem['practice_questions']>[number],
+  seed: PracticeQuestionSeed,
+  kind: QuestionKind,
   index: number,
   locale: Locale,
+  allItems: VocabItem[],
 ): Question {
-  const labels = translations[locale];
+  const labels = translations[locale] as Record<string, string>;
   const answer = seed.answer ?? item.original;
   const explicitChoices = unique((seed.choices ?? []).filter(Boolean));
-  const choiceList = explicitChoices.length === 4 && explicitChoices.includes(answer)
-    ? explicitChoices
-    : choices(answer, explicitChoices, index, fallbackChoicesForKind(item, 'moji_goi'));
-  const prompt = seed.prompt ?? questionSentence(item).replace(item.original, '（　）');
+  const choiceList = explicitChoices.length >= 4 && explicitChoices.includes(answer)
+    ? explicitChoices.slice(0, Math.max(4, explicitChoices.indexOf(answer) + 1))
+    : choices(answer, explicitChoices, index, fallbackChoicesForKind(item, kind));
+  const prompt = seed.prompt ?? (kind === 'usage' ? item.original : questionSentence(item).replace(item.original, '（　）'));
   const context = [seed.instruction, prompt].filter(Boolean).join(' ');
+  const [titleKey, instructionKey] = SEED_TITLES[kind];
+  const notes = seed.distractor_notes ?? {};
 
   return {
-    id: seed.id ?? `${item.id}-moji-goi-seed-${index + 1}`,
+    id: seedQuestionId(item, seed, kind, index),
     itemId: item.id,
-    kind: 'moji_goi',
-    title: labels.mojiGoiTitle,
-    instruction: seed.instruction ?? labels.mojiGoiInstruction,
+    kind,
+    title: labels[`${titleKey}Title`] ?? labels[titleKey] ?? kind,
+    instruction: seed.instruction ?? labels[instructionKey],
     prompt,
+    promptTarget: seed.target ?? (kind === 'moji_goi' ? undefined : item.original),
     choices: choiceList,
     answer,
     translationZh: seed.translation_zh,
@@ -356,7 +370,7 @@ function buildSeededMojiGoiQuestion(
       correct: choice === answer,
       explanation: choice === answer
         ? seed.explanation_zh ?? `「${answer}」符合本句的词义、词形和搭配。`
-        : `「${choice}」不符合本句需要的词义、词形或自然搭配。`,
+        : notes[choice] ?? choiceExplanationFor(choice, false, item, kind, allItems, locale),
     })),
   };
 }
@@ -515,6 +529,10 @@ function choiceExplanationFor(
       if (locale === 'ja') return `「${choice}」は、この文が求める接続または「手順・手続きを実際に経る」という意味に合いません。`;
       if (locale === 'en') return `“${choice}” does not match the required connection or the meaning of actually going through a step or procedure.`;
       return `「${choice}」不符合本句需要的接续形式，或不能表达实际经过步骤、手续的含义。`;
+    }
+    if (kind === 'kanji_to_kana' && locale === 'zh-CN') {
+      const confusion = describeReadingConfusion(choice, target.reading ?? '', target.original);
+      if (confusion) return confusion;
     }
     if (isProperNameReading) {
       if (locale === 'ja') return `「${choice}」は、この項目に記録された「${target.original}」全体の読みではありません。人名は漢字を一字ずつ機械的に読みません。`;

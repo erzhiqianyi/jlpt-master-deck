@@ -1,3 +1,5 @@
+import { LookupText } from './WordLookup';
+import { RecordReference } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
 import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -77,14 +79,19 @@ export function FocusedMemoryReview({ items, locale, token, frontFields, backFie
           aria-label={!revealed ? `显示「${item.original}」的答案` : undefined}
         >
           <div className="ledger-memory-flip-inner">
-            <article className="ledger-memory-card ledger-memory-face ledger-memory-front" aria-hidden={revealed}>
+            <article className="ledger-memory-card ledger-memory-face ledger-memory-front" aria-hidden={revealed} inert={revealed}>
               <div className="ledger-memory-content">
                 <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={frontFields} revealed={false} />
               </div>
             </article>
-            <article className="ledger-memory-card ledger-memory-face ledger-memory-back" aria-hidden={!revealed}>
+            <article className="ledger-memory-card ledger-memory-face ledger-memory-back" aria-hidden={!revealed} inert={!revealed}>
               <div className="ledger-memory-content">
+                <p className="word-lookup-context">点击日文单词查询 · 未收录可加入解析队列</p>
                 <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={backFields} revealed />
+                <dl className="ledger-memory-tracking-id">
+                  <dt>ID 编号</dt>
+                  <dd><RecordReference key={item.id} reference={item.id} locale={locale} /></dd>
+                </dl>
               </div>
             </article>
           </div>
@@ -191,7 +198,7 @@ function isMetaLearningExample(value: string) {
 const joined = (parts: (string | undefined)[], separator = '：') => parts.map((part) => part?.trim()).filter(Boolean).join(separator);
 
 function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardField): ReactNode | null {
-  const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{value}</span> : null;
+  const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{lang === 'ja' ? <LookupText text={value} /> : value}</span> : null;
   const lines = (values: string[], lang?: string) => {
     const kept = values.filter(Boolean);
     return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}>{value}</span>)}</span> : null;
@@ -204,7 +211,7 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'part_of_speech': return scalar(item.part_of_speech);
     // Rendered as figures in their own slot.
     case 'images': return null;
-    case 'meaning': return scalar(itemMeaning(item, locale));
+    case 'meaning': return scalar(itemMeaning(item, locale), locale === 'ja' ? 'ja' : undefined);
     case 'meaning_ja': return scalar(item.meaning_ja, 'ja');
     case 'core_memory': return itemMemory(item, locale) ? <StudyText text={itemMemory(item, locale) ?? ''} /> : null;
     case 'explanation': return itemExplanation(item, locale) ? <StudyText text={itemExplanation(item, locale) ?? ''} /> : null;
@@ -215,7 +222,7 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'conjugations': return item.conjugations?.length ? <ConjugationPattern item={item} /> : null;
     case 'examples': {
       const example = item.examples?.find((candidate) => !isMetaLearningExample(candidate.ja));
-      return example ? <><span lang="ja">{example.ja}</span><small>{example.zh}</small></> : null;
+      return example ? <><span lang="ja"><LookupText text={example.ja} /></span><small>{example.zh}</small></> : null;
     }
     case 'notes': return lines(item.notes ?? []);
     case 'tags': return item.tags?.length ? <span>{item.tags.join(' · ')}</span> : null;

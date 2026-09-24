@@ -2,6 +2,7 @@ import { RecordReference } from '../../components/RecordReference';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningListRow } from '../../components/LearningList';
 import { isTopicDraft } from '../../domain/practicePurpose';
+import { normalizePracticeExplanations } from '../../domain/practiceExplanations.mjs';
 import { useConfirmation } from '../../components/confirmation';
 import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
 import { ArrowLeft, ChevronRight, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
@@ -350,6 +351,12 @@ type DraftQuestion = {
   answer?: string;
   answerIndex?: number;
   explanation_zh?: string;
+  explanation?: string;
+  correctReason?: string;
+  translationZh?: string;
+  memoryPoint?: string;
+  choiceAnalysis?: { choice: string; correct?: boolean; explanation?: string; explanation_zh?: string }[];
+  choice_analysis?: { choice: string; explanation?: string; explanation_zh?: string }[];
   tested_expression?: string;
   tested?: string;
   full_order?: string;
@@ -822,6 +829,10 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
           : numericAnswerIndex(question.answer);
         const hasStarResult = Boolean(question.full_order || question.target_blank_index || answerChoiceNumber);
         const isRevealed = revealedQuestionIds.has(questionId);
+        const explanationDetails = normalizePracticeExplanations({
+          ...question,
+          answer: answerChoiceNumber !== null ? question.choices?.[answerChoiceNumber - 1] ?? question.answer : question.answer,
+        });
         return (
           <article key={questionId} className="py-4 first:pt-0 last:pb-0">
             <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
@@ -854,7 +865,26 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
             <button type="button" onClick={() => toggleAnswer(questionId)} className="mt-3 h-9 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f] hover:bg-[#f8faf7]">
               {isRevealed ? labels.draftHideAnswer : labels.draftShowAnswer}
             </button>
-            {isRevealed && question.explanation_zh ? <p className="mt-3 text-sm leading-6 text-[#68716b]">{question.explanation_zh}</p> : null}
+            {isRevealed ? (
+              <div className="mt-4 grid gap-4 text-sm leading-6 text-[#4f5b55]">
+                {question.translationZh ? <ResultField label={labels.fullChineseTranslation ?? '完整中文翻译'} value={question.translationZh} /> : null}
+                {explanationDetails.correctReason ? <ResultField label={labels.correctReasonLabel ?? '正确理由'} value={explanationDetails.correctReason} /> : null}
+                {explanationDetails.choiceAnalysis.some((choice) => choice.explanation) ? (
+                  <section aria-label={labels.choiceAnalysisLabel ?? '选项辨析'}>
+                    <h5 className="font-semibold text-[#27312c]">{labels.choiceAnalysisLabel ?? '选项辨析'}</h5>
+                    <ol className="mt-2 grid gap-2">
+                      {explanationDetails.choiceAnalysis.map((choice, choiceIndex) => (
+                        <li key={`${choice.choice}-${choiceIndex}`} className="rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3">
+                          <p className="font-semibold text-[#27312c]">{choiceIndex + 1}. {choice.choice}{choice.correct ? <span className="ml-2 text-xs text-[#31564c]">{labels.draftCorrectAnswer}</span> : null}</p>
+                          <p className="mt-1 whitespace-pre-wrap">{choice.explanation || '这项还没有记录具体解析。'}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                ) : null}
+                {question.memoryPoint ? <ResultField label={labels.memoryPointLabel ?? '记忆要点'} value={question.memoryPoint} /> : null}
+              </div>
+            ) : null}
           </article>
         );
       })}
@@ -866,7 +896,7 @@ function ResultField({ label, value, strong = false }: { label: string; value: s
   return (
     <p>
       <span className="block text-xs font-semibold text-[#68716b]">{label}</span>
-      <span className={`mt-1 block ${strong ? 'text-base font-semibold text-[#24473f]' : 'font-semibold text-[#27312c]'}`}>{value}</span>
+      <span className={`mt-1 block whitespace-pre-wrap ${strong ? 'text-base font-semibold text-[#24473f]' : 'font-semibold text-[#27312c]'}`}>{value}</span>
     </p>
   );
 }

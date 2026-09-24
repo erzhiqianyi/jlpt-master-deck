@@ -1,3 +1,4 @@
+import { WordLookupProvider } from './features/review/WordLookup';
 import { listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
 'use client';
 
@@ -1472,7 +1473,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} />;
+  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);

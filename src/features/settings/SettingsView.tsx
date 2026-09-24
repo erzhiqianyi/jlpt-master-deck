@@ -1,5 +1,5 @@
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot } from 'lucide-react';
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot, Bug } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import type { DisplaySettings, Locale } from '../../types';
@@ -27,6 +27,8 @@ type SettingsCopy = {
   connectedAgentsHint: string;
   learningLanguage: string;
   nativeLanguage: string;
+  mcpInspector: string;
+  mcpInspectorHint: string;
 };
 
 const settingsPageCopy: Record<Locale, SettingsCopy> = {
@@ -40,6 +42,8 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgentsHint: 'MCP · OAuth 授权 · 断开连接',
     learningLanguage: '学习 日本语',
     nativeLanguage: '母语 中文',
+    mcpInspector: 'MCP 调试工具',
+    mcpInspectorHint: '本地开发 · 查看 Schema、授权与调试工具调用',
   },
   ja: {
     displayAndReading: '表示と読みやすさ',
@@ -51,6 +55,8 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgentsHint: 'MCP · OAuth 認可 · 接続解除',
     learningLanguage: '学習 日本語',
     nativeLanguage: '母語 中国語',
+    mcpInspector: 'MCP デバッグツール',
+    mcpInspectorHint: 'ローカル開発 · スキーマ・認可・ツール呼び出しを確認',
   },
   en: {
     displayAndReading: 'Display and Reading',
@@ -62,6 +68,8 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgentsHint: 'MCP · OAuth consent · Disconnect',
     learningLanguage: 'Learning Japanese',
     nativeLanguage: 'Native Chinese',
+    mcpInspector: 'MCP Inspector',
+    mcpInspectorHint: 'Local development · Inspect schemas, authorization and tool calls',
   },
 };
 
@@ -92,6 +100,7 @@ export function SettingsView({ labels, settings, username, authToken, activeSect
             <SettingsSectionContent section={section} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </SettingsSection>
         ))}
+        <McpInspectorLink copy={copy} />
         <div className="settings-desktop-footer">
           <span>{labels.currentUser}: <strong>{username}</strong></span>
           <button type="button" onClick={onLogout} className="settings-logout-button"><LogOut size={18} />{labels.logout}</button>
@@ -184,9 +193,15 @@ function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: Setting
       <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
       <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
       <SettingsNavItem icon={<MessageSquareText size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
+      <McpInspectorLink copy={copy} />
       <NavigationCard icon={<Bot size={22} />} title={labels.aboutTitle} description={labels.settingsAboutBody} href="#/about" />
     </div>
   );
+}
+
+function McpInspectorLink({ copy }: { copy: SettingsCopy }) {
+  if (!import.meta.env.DEV || !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) return null;
+  return <NavigationCard icon={<Bug size={22} />} title={copy.mcpInspector} description={copy.mcpInspectorHint} href="/api/jlpt/mcp/inspector" />;
 }
 
 function SettingsNavItem({ icon, title, subtitle, onClick }: { icon: ReactNode; title: string; subtitle: string; onClick: () => void }) {

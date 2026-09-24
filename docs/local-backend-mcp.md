@@ -83,7 +83,9 @@ Planned tool boundary:
 - `list_listening_questions`: read personal listening prompts, choices, answers, explanations, and audio metadata without returning audio bytes.
 - `create_listening_question`: write a local listening question only when real local audio bytes are available.
 - `update_listening_question`: partially update an owned listening question's text fields (title, type, question, choices, answer, explanation) and/or move it to a new `libraryNumber` (题号) position, shifting intervening questions to keep numbers contiguous. Audio is unchanged.
-- `delete_listening_question`: permanently delete one owned listening question; its audio file and recordings go with it once no other question shares the same audio asset.
+- `edit_listening_question` / `patch_listening_question`: aliases of `update_listening_question`, with the same schema and ownership checks.
+- `upsert_listening_question`: with `id`, partially update an existing owned question (missing/unowned IDs fail, never insert). Without `id`, create with required `question`, `choices`, `answerIndex`, `audioFileName`, `audioMime`, and real `audioBase64`. Audio fields are rejected on updates; `libraryNumber` requires an existing ID.
+- `delete_listening_question`: permanently delete one owned listening question and its recordings; remove shared audio only after its last question is deleted.
 - `list_reading_questions`: list the authenticated learner's reading questions, including saved analysis.
 - `get_reading_question`: fetch a complete owned reading question by `id`.
 - `create_reading_question`: create a reading question; accepts the structured explanation fields below.
@@ -110,3 +112,28 @@ Use `""`, `[]`, or `{ "summary": "", "structure": "", "keySentences": [] }` to c
 - `get_draft_processing_context`: read an approved draft, unknown-word marks, pending captures, study record, and routing rules for agent-driven library updates.
 
 The browser does not call an AI backend directly. Draft confirmation is the explicit user review step: it marks the draft as approved and copies an agent instruction. The agent must call `get_draft_processing_context`, route content by original question type, update the matching library, and report exactly what was changed. Vocabulary, grammar, kanji-reading, and other text-based practice seeds live in SQLite `review_items`; reading and listening questions live in their local question-bank tables. Audio bytes stay outside SQLite in local files.
+
+## MCP write and deletion permissions
+
+Listening create/update/edit/patch/upsert and all seven deletion tools require OAuth `library:write`: `delete_review_item`, `delete_listening_question`, `delete_reading_question`, `delete_wordbook`, `delete_review_pack_draft`, `delete_listening_recording`, and `delete_daily_practice`. A `study`-only grant cannot discover or call these tools. Existing clients with only `study` must authorize `library:write` before using them. Local stdio already supplies both scopes.
+
+Deletion is always restricted to the authenticated owner; an input cannot select another user. All deletion tools declare `destructiveHint: true`. Built-in wordbooks and non-empty custom wordbooks cannot be deleted. Review-item deletion also removes that user's item progress and answers, and unused images. Draft and reading deletion remove the owned record. There are no standalone MCP deletion tools for answer history, study plans, or learning captures.
+
+Listening basic-training questions accept empty `choices` with `answerIndex: -1`; other choice/answer combinations remain subject to storage validation. Updates preserve audio.
+
+### Independent recording and daily-practice deletion
+
+- `delete_listening_recording({ recording_id })`: removes one owned recording, its stored audio and its analysis (including pending/analyzing recordings). Missing audio files do not prevent metadata cleanup. The listening question, reference audio and sibling recordings remain.
+- `delete_daily_practice({ practice_id })`: removes one owned practice, its matching attempt history and active attempt, and answers for its questions unless another owned practice still uses those question IDs. These database changes are transactional. Source drafts, vocabulary items, cumulative mastery and other practices remain. Legacy daily-practice attempts without a practice ID are removed only if all their question IDs belong to the deleted practice.
+
+Both return `{ "ok": true }` on success and report not found for unknown or unowned IDs. Both require `library:write` and carry `destructiveHint: true`. The independent entries are MCP tools; this change does not add browser buttons or REST routes.
+
+### Review-card MCP App resource
+
+`resources/list` now includes `ui://jlpt/review-cards.html` (`jlpt-review-cards`, `text/html;profile=mcp-app`) alongside the practice view. The read-only `get_review_cards` tool links to it with `_meta.ui.resourceUri` and returns owned cards in `structuredContent`.
+
+Inputs: optional `deck`, `wordbook_id`, `only_due` (default true), `limit` (1–50, default 20), and `offset` (default 0). Results include `cards`, `total`, `next_offset`, `filters` and locale. Each card contains the saved front/back text fields. Never-reviewed items count as due. Private media paths and images are excluded; the widget requires no external network resources.
+
+The vanilla MCP App supports reveal/hide, previous/next card and previous/next page. It can load due cards when opened directly by an MCP Apps host, or render the originating tool result. It does not record a memory rating or change mastery. Build both views with `npm run build:mcp-app`; the Cloudflare bundler embeds both HTML documents. Restart the backend and refresh client discovery to see newly registered resources.
+
+Protocol reference: [OpenAI MCP Apps UI documentation](https://developers.openai.com/plugins/build/chatgpt-ui).

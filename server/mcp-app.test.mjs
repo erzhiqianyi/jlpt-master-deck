@@ -11,8 +11,8 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
-const { createUser, loginUser, createLearningCapture, upsertReviewItem, getStudyState } = await import('./storage.mjs');
-const { PRACTICE_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
+const { createUser, loginUser, createLearningCapture, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft } = await import('./storage.mjs');
+const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
 
@@ -133,6 +133,16 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   assert.ok(names.includes('list_learning_captures'));
   assert.ok(names.includes('get_review_data'));
   assert.ok(!names.includes('upsert_review_item'), 'library:write was not granted');
+  const protectedTools = tools.filter((tool) => tool.name.startsWith('delete_') || /^(create|update|edit|patch|upsert)_listening_question$/.test(tool.name));
+  for (const tool of protectedTools) {
+    assert.equal(tool.scope, 'library:write', tool.name);
+    assert.ok(!names.includes(tool.name), tool.name);
+    const denied = await rpcResult(await rpc(issued.access_token, 'tools/call', {
+      name: tool.name, arguments: { id: 'missing', draft_id: 'missing', wordbookId: 'missing' },
+    }));
+    assert.ok(denied.error || denied.result?.isError, `${tool.name} must reject an ungranted call`);
+  }
+
   assert.ok(!list.result.tools.some((tool) => 'token' in (tool.inputSchema.properties ?? {})));
 
   const called = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'list_learning_captures', arguments: { status: 'inbox' } }, 3));
@@ -147,11 +157,18 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   // All six JLPT vocabulary types (plus grammar) are selectable through the published MCP schema.
   assert.deepEqual(startTool.inputSchema.properties.kinds.items.enum, ['meaning', 'grammar', 'kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'usage']);
   const resourcesList = await rpcResult(await rpc(issued.access_token, 'resources/list', {}, 10));
-  assert.deepEqual(resourcesList.result.resources.map((entry) => [entry.uri, entry.mimeType]), [[PRACTICE_UI_URI, MCP_APP_MIME]]);
+  assert.deepEqual(resourcesList.result.resources.map((entry) => [entry.uri, entry.mimeType]), [[PRACTICE_UI_URI, MCP_APP_MIME], [REVIEW_CARDS_UI_URI, MCP_APP_MIME]]);
   if (practiceViewAvailable()) {
     const read = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: PRACTICE_UI_URI }, 11));
     assert.equal(read.result.contents[0].mimeType, MCP_APP_MIME);
     assert.match(read.result.contents[0].text, /<div id="app"><\/div>/);
+    const reviewResource = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: REVIEW_CARDS_UI_URI }));
+    assert.equal(reviewResource.result.contents[0].mimeType, MCP_APP_MIME);
+    assert.match(reviewResource.result.contents[0].text, /get_review_cards/);
+    const cards = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_review_cards', arguments: {} }));
+    assert.ok(Array.isArray(cards.result.structuredContent.cards));
+    assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_review_cards')._meta, { ui: { resourceUri: REVIEW_CARDS_UI_URI } });
+
   }
 
   upsertReviewItem({
@@ -193,6 +210,40 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   assert.equal(grants.length, 1);
   assert.equal(grants[0].name, 'Claude Code');
   assert.deepEqual(await mcp.listGrants(String(other.id)), []);
+  // A separately approved write grant exposes the tools and still enforces ownership.
+  const writeAuthorize = await mcp.fetch(new Request(origin + '/api/jlpt/oauth/authorize?' + new URLSearchParams(authorizeParams), { redirect: 'manual' }));
+  const writeConsent = new URL(writeAuthorize.headers.get('location'));
+  const writeApproval = await (await mcp.fetch(jsonRequest('/api/jlpt/oauth/approve', {
+    ...Object.fromEntries(writeConsent.searchParams), decision: 'approve', scopes: ['study', 'library:write'],
+  }, { authorization: `Bearer ${session.token}` }))).json();
+  const writeToken = await (await mcp.fetch(new Request(origin + '/api/jlpt/oauth/token', {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'authorization_code', code: new URL(writeApproval.redirect).searchParams.get('code'), code_verifier: verifier, client_id: registered.client_id, redirect_uri: authorizeParams.redirect_uri, resource: authorizeParams.resource }),
+  }))).json();
+  assert.ok(writeToken.access_token);
+  const writeList = await rpcResult(await rpc(writeToken.access_token, 'tools/list'));
+  for (const tool of protectedTools) {
+    const exposed = writeList.result.tools.find((entry) => entry.name === tool.name);
+    assert.ok(exposed, tool.name);
+    if (tool.name.startsWith('delete_')) assert.equal(exposed.annotations.destructiveHint, true);
+  }
+  const book = createWordbook(user.id, { title: 'delete-owned', deck: 'grammar_expression' });
+  const otherBook = createWordbook(other.id, { title: 'keep-other', deck: 'grammar_expression' });
+  const draft = createReviewPackDraft(user.id, { title: 'delete-owned', content: {} });
+  const otherDraft = createReviewPackDraft(other.id, { title: 'keep-other', content: {} });
+  for (const [name, ownArgs, otherArgs] of [
+    ['delete_wordbook', { wordbookId: book.id }, { wordbookId: otherBook.id }],
+    ['delete_review_pack_draft', { draft_id: draft.id }, { draft_id: otherDraft.id }],
+  ]) {
+    const rejected = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name, arguments: otherArgs }));
+    assert.equal(rejected.result.isError, true);
+    const deleted = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name, arguments: ownArgs }));
+    assert.equal(JSON.parse(deleted.result.content[0].text).ok, true);
+  }
+  assert.ok(listWordbooks(other.id).some((entry) => entry.id === otherBook.id));
+  assert.ok(getReviewPackDraft(other.id, otherDraft.id));
+  assert.ok(!listWordbooks(user.id).some((entry) => entry.id === book.id));
+  assert.equal(getReviewPackDraft(user.id, draft.id), null);
   await mcp.revokeGrant(String(user.id), grants[0].id);
   assert.equal((await rpc(issued.access_token, 'tools/list', {}, 4)).status, 401);
 });

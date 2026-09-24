@@ -13,7 +13,7 @@
     "mcp": "node server/mcp-server.mjs",
     "mcp:setup": "node scripts/setup-project-mcp.mjs",
     "build": "vite build && npm run build:mcp-app",
-    "build:mcp-app": "vite build --config vite.mcp-app.config.ts",
+    "build:mcp-app": "vite build --config vite.mcp-app.config.ts && vite build --config vite.mcp-app.config.ts --mode review-cards",
     "start": "vite preview",
     "tunnel": "cloudflared tunnel --config ~/.cloudflared/config.yml run satori-local",
     "dev:tunnel": "bash scripts/dev-with-tunnel.sh",

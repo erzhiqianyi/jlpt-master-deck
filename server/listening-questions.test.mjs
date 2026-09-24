@@ -93,3 +93,36 @@ test('invalid updates are rejected and leave the stored question unchanged', asy
   assert.deepEqual(unchanged.choices, saved.choices);
   assert.equal(unchanged.answerIndex, saved.answerIndex);
 });
+
+for (const name of ['edit_listening_question', 'patch_listening_question', 'upsert_listening_question']) {
+  test(`${name} preserves omitted fields and rejects unowned or missing ids`, async () => {
+    const saved = await call('create_listening_question', makeInput(name));
+    const updated = await call(name, { id: saved.id, explanation: '更新' });
+    assert.equal(updated.explanation, '更新');
+    assert.equal(updated.question, saved.question);
+    assert.equal(updated.audioAssetId, saved.audioAssetId);
+    await assert.rejects(call(name, { id: saved.id, explanation: 'unauthorized' }, bob), /not found/i);
+    await assert.rejects(call(name, { id: 'missing', explanation: 'missing' }), /not found/i);
+    assert.equal(storage.listeningQuestionForUser(alice.id, saved.id).explanation, '更新');
+  });
+}
+
+test('upsert creates with complete audio input and rejects ambiguous operations before writing', async () => {
+  const before = storage.listListeningQuestions(alice.id).length;
+  await assert.rejects(call('upsert_listening_question', { question: 'missing audio' }));
+  await assert.rejects(call('upsert_listening_question', { ...makeInput('bad-order'), libraryNumber: 1 }), /requires an existing/);
+  assert.equal(storage.listListeningQuestions(alice.id).length, before);
+  const saved = await call('upsert_listening_question', makeInput('upsert-create'));
+  assert.equal(storage.listListeningQuestions(alice.id).length, before + 1);
+  await assert.rejects(call('upsert_listening_question', { id: saved.id, audioBase64, explanation: 'must not save' }), /cannot be supplied/);
+  assert.equal(storage.listeningQuestionForUser(alice.id, saved.id).explanation, saved.explanation);
+});
+
+test('MCP supports basic-training questions without choices', async () => {
+  const saved = await call('upsert_listening_question', {
+    ...makeInput('free-response'), questionTypeId: 'listening-basic-training', choices: [], answerIndex: -1,
+  });
+  const updated = await call('patch_listening_question', { id: saved.id, choices: [], answerIndex: -1 });
+  assert.deepEqual(updated.choices, []);
+  assert.equal(updated.answerIndex, -1);
+});

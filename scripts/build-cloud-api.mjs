@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { practiceViewHtml } from '../server/mcp-ui.mjs';
+import { practiceViewHtml, reviewCardsViewHtml } from '../server/mcp-ui.mjs';
 export async function buildCloudApi(entry='cloudflare/api-worker.mjs', outfile='.local/cloud-api-build/worker.mjs') {
 mkdirSync('.local/cloud-api-build',{recursive:true});
 await build({
@@ -14,7 +14,8 @@ await build({
     name:'cloud-platform',setup(api){
       api.onResolve({filter:/firebase-auth\.mjs$/},()=>({path:resolve('cloudflare/firebase-auth.mjs')}));
       api.onResolve({filter:/^jlpt:practice-html$/},()=>({path:'practice-html',namespace:'jlpt'}));
-      api.onLoad({filter:/.*/,namespace:'jlpt'},()=>({contents:practiceViewHtml(),loader:'text'}));
+      api.onResolve({filter:/^jlpt:review-cards-html$/},()=>({path:'review-cards-html',namespace:'jlpt'}));
+      api.onLoad({filter:/.*/,namespace:'jlpt'},(args)=>({contents:args.path === 'review-cards-html' ? reviewCardsViewHtml() : practiceViewHtml(),loader:'text'}));
     },
   }],
 });

@@ -30,6 +30,8 @@ import {
   createTopicPractice,
   createWordbook,
   deleteListeningQuestion,
+  deleteListeningRecording,
+  deleteDailyPractice,
   deleteReadingQuestion,
   deleteReviewItem,
   deleteReviewPackDraft,
@@ -60,14 +62,15 @@ import {
   updateWordbook,
   PRACTICE_KINDS,
 } from './storage.mjs';
-import { practiceResource, practiceToolMeta } from './mcp-ui.mjs';
+import { getReviewCards } from './review-cards.mjs';
+import { reviewCardsResource, reviewCardsToolMeta, practiceResource, practiceToolMeta } from './mcp-ui.mjs';
 import { createQueryTools } from './mcp-query.mjs';
 import { getDb } from './storage.mjs';
 
 /** Scope catalogue. `study` covers everything filtered by user id; `library:write` permits personal item writes. */
 export const scopes = {
   study: { description: '读取并更新你的学习记录、计划、草稿、词书和题目', required: true },
-  'library:write': { description: '修改你的题库（新增/更新复习条目、导出 JSON 备份）', default: false },
+  'library:write': { description: '新增/更新听力题和复习条目、导出备份；删除你自己的复习条目、听力题、阅读题、词书、草稿、录音和每日练习', default: false },
 };
 
 const ro = { readOnlyHint: true, openWorldHint: false };
@@ -156,6 +159,29 @@ const practiceFilters = {
   date: dateString.optional().describe('Practice date, default today in Asia/Tokyo.'),
 };
 
+const listeningCreateFields = {
+  title: z.string().optional(),
+  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
+  question: z.string(),
+  choices: z.array(z.string()).max(4),
+  answerIndex: z.number().int(),
+  explanation: z.string().optional(),
+  audioFileName: z.string(),
+  audioMime: z.string(),
+  audioBase64: z.string(),
+};
+const listeningUpdateFields = {
+  id: z.string().min(1),
+  title: z.string().optional(),
+  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
+  question: z.string().optional(),
+  choices: z.array(z.string()).max(4).optional(),
+  answerIndex: z.number().int().optional(),
+  explanation: z.string().optional(),
+  libraryNumber: z.number().int().min(1).optional().describe('New 1-based 题号 position in the owner\'s listening library, e.g. move question #11 to #1.'),
+};
+const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, answer or explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
+
 export const tools = [
   tool('get_reference_metadata', 'Read owned listening, audio asset, recording, capture or wordbook metadata by public reference. Does not expose audio bytes or filesystem paths.',
     { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(getReferenceMetadata(getDb(), uid(ctx), reference), 'Reference not found'))),
@@ -238,7 +264,7 @@ export const tools = [
     async ({ wordbookId, title }, ctx) => text(found(updateWordbook(uid(ctx), wordbookId, { title }), 'Wordbook not found'))),
   tool('delete_wordbook', 'Delete a custom wordbook. Refuses built-in wordbooks and any wordbook that still has items; move its items to another wordbook with organize_review_item first.',
     { wordbookId: z.string() }, destructive,
-    async ({ wordbookId }, ctx) => text({ ok: found(deleteWordbook(uid(ctx), wordbookId), 'Wordbook not found') })),
+    async ({ wordbookId }, ctx) => text({ ok: found(deleteWordbook(uid(ctx), wordbookId), 'Wordbook not found') }), { scope: 'library:write' }),
   tool('get_study_plan', "Read the learner's saved JLPT exam plan, materials, weekly frequency, and available study time.",
     {}, ro, async (_args, ctx) => text(getStudyPlan(uid(ctx)))),
   tool('get_plan_generation_context', 'Read the learner profile, recent practice, weak points, daily summaries, and instructions needed to generate or revise a daily JLPT plan.',
@@ -247,6 +273,14 @@ export const tools = [
     phases: z.array(planPhase).max(12).optional().describe('2 to 5 non-overlapping phases covering the study period, ordered by date.'),
     tasks: z.array(planTask).max(730),
   }, rw, async ({ tasks, phases }, ctx) => text(saveGeneratedStudyPlan(uid(ctx), { tasks, phases }))),
+  tool('get_review_cards', 'Use this to browse the learner’s vocabulary and grammar as read-only flip cards. Defaults to due and never-reviewed items. Respects saved front/back text fields; images are not included. Supports deck/wordbook filters and offset pagination. Flipping does not grade answers or update mastery.', {
+    deck: z.enum(['n1_vocab', 'name_reading', 'grammar_expression']).optional(),
+    wordbook_id: z.string().optional(),
+    only_due: z.boolean().optional(),
+    limit: z.number().int().min(1).max(50).optional(),
+    offset: z.number().int().min(0).optional(),
+  }, ro, async (args, ctx) => structured(getReviewCards(uid(ctx), args)),
+  { title: '复习卡片', _meta: reviewCardsToolMeta }),
   tool('list_due_reviews', 'List items whose nextReviewAt is due or overdue.',
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
   tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata. Audio bytes stay in local storage.",
@@ -257,29 +291,33 @@ export const tools = [
   tool('list_listening_recordings', 'Read all your recordings for a listening question, including completed analyses; this does not claim or change a recording.',
     { question_id: z.string() }, ro,
     async ({ question_id }, ctx) => text(listListeningRecordings(uid(ctx), question_id))),
-  tool('create_listening_question', 'Create a local listening question from agent-prepared metadata and audio bytes. Use only when real local audioBase64 is available.', {
-    title: z.string().optional(),
-    questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
-    question: z.string(),
-    choices,
-    answerIndex: z.number(),
-    explanation: z.string().optional(),
-    audioFileName: z.string(),
-    audioMime: z.string(),
-    audioBase64: z.string(),
-  }, rw, async (args, ctx) => text(createListeningQuestion(uid(ctx), args))),
-  tool('update_listening_question', "Partially update an owned listening question's title, type, question text, choices, answer or explanation, and/or move it to a new 题号 (libraryNumber, 1-based) within the learner's listening library. Omitted fields are preserved. Moving libraryNumber shifts the intervening questions by one to keep numbers contiguous and unique; it never overwrites another question. Audio is unchanged — use create_listening_question with existingQuestionId to replace audio-bound content.", {
-    id: z.string(),
-    title: z.string().optional(),
-    questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
-    question: z.string().optional(),
-    choices: choices.optional(),
-    answerIndex: z.number().optional(),
-    explanation: z.string().optional(),
-    libraryNumber: z.number().int().min(1).optional().describe('New 1-based 题号 position in the owner\'s listening library, e.g. move question #11 to #1.'),
-  }, rw, async ({ id, ...patch }, ctx) => text(found(updateListeningQuestion(uid(ctx), id, patch), 'Listening question not found'))),
-  tool('delete_listening_question', 'Permanently delete one owned listening question. Its audio file and recordings are also removed once no other question references the same audio asset. This cannot be undone.',
-    { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteListeningQuestion(uid(ctx), id), 'Listening question not found') })),
+  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Empty choices with answerIndex -1 are supported for listening-basic-training.',
+    listeningCreateFields, rw, async (args, ctx) => text(createListeningQuestion(uid(ctx), args)), { scope: 'library:write' }),
+  ...['update_listening_question', 'edit_listening_question', 'patch_listening_question'].map((name) =>
+    tool(name, listeningUpdateDescription, listeningUpdateFields, rw,
+      async ({ id, ...patch }, ctx) => text(found(updateListeningQuestion(uid(ctx), id, patch), 'Listening question not found')),
+      { scope: 'library:write' })),
+  tool('upsert_listening_question', 'With id: partially update an owned question, preserving audio; unknown or unowned ids fail and never create a record. Without id: create a question, requiring question, choices, answerIndex, audioFileName, audioMime and real audioBase64. Audio fields are forbidden when updating; libraryNumber is only supported when updating.', {
+    ...Object.fromEntries(Object.entries(listeningCreateFields).map(([key, schema]) => [key, schema.optional()])),
+    ...listeningUpdateFields,
+    id: z.string().min(1).optional(),
+  }, rw, async (args, ctx) => {
+    if (args.id !== undefined) {
+      for (const key of ['audioFileName', 'audioMime', 'audioBase64']) {
+        if (args[key] !== undefined) throw new Error(`${key} cannot be supplied when updating; audio is unchanged`);
+      }
+      const { id, ...patch } = z.object(listeningUpdateFields).parse(args);
+      return text(found(updateListeningQuestion(uid(ctx), id, patch), 'Listening question not found'));
+    }
+    if (args.libraryNumber !== undefined) throw new Error('libraryNumber requires an existing question id');
+    return text(createListeningQuestion(uid(ctx), z.object(listeningCreateFields).parse(args)));
+  }, { scope: 'library:write' }),
+  tool('delete_listening_question', 'Permanently delete one owned listening question. Its recordings are removed; the shared audio file is removed only when no other question references it. This cannot be undone.',
+    { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteListeningQuestion(uid(ctx), id), 'Listening question not found') }), { scope: 'library:write' }),
+  tool('delete_listening_recording', 'Permanently delete one owned recording, including its audio and analysis. Preserve the listening question, reference audio and other recordings. This cannot be undone.',
+    { recording_id: z.string().min(1) }, destructive,
+    async ({ recording_id }, ctx) => text({ ok: found(deleteListeningRecording(uid(ctx), recording_id), 'Listening recording not found') }),
+    { scope: 'library:write' }),
   tool('list_pending_listening_recordings', 'List learner recordings waiting for local Agent analysis. Use get_listening_recording_analysis_context to claim one recording and obtain both local audio paths.',
     {}, ro, async (_args, ctx) => text(listPendingListeningRecordings(uid(ctx)))),
   tool('get_listening_recording_analysis_context', 'Claim one learner recording for analysis and return the local learner-recording path, reference-audio path, question metadata, and evidence rules.',
@@ -298,7 +336,7 @@ export const tools = [
     { id: z.string(), ...Object.fromEntries(Object.entries(readingFields).map(([key, schema]) => [key, schema.optional()])) }, rw,
     async ({ id, ...patch }, ctx) => text(found(updateReadingQuestion(uid(ctx), id, patch), 'Reading question not found'))),
   tool('delete_reading_question', 'Permanently delete one owned reading question. This cannot be undone.',
-    { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteReadingQuestion(uid(ctx), id), 'Reading question not found') })),
+    { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteReadingQuestion(uid(ctx), id), 'Reading question not found') }), { scope: 'library:write' }),
   tool('analyze_weak_points', 'Analyze wrong answers, learning items, due items, and mastery totals.',
     {}, ro, async (_args, ctx) => text(analyzeWeakPoints(uid(ctx)))),
   tool('generate_daily_review_pack', 'Create a personalized daily review-pack draft that the user can preview and annotate.',
@@ -325,6 +363,10 @@ export const tools = [
   tool('get_daily_practice', 'Read one formal daily practice with its generated questions.',
     { practice_id: z.string() }, ro,
     async ({ practice_id }, ctx) => text(found(getDailyPractice(uid(ctx), practice_id), 'Daily practice not found'))),
+  tool('delete_daily_practice', 'Permanently delete one owned daily practice, its attempts and active attempt, and answers not shared by another practice. Preserve vocabulary items, cumulative mastery, source drafts and other practices. This cannot be undone.',
+    { practice_id: z.string().min(1) }, destructive,
+    async ({ practice_id }, ctx) => text({ ok: found(deleteDailyPractice(uid(ctx), practice_id), 'Daily practice not found') }),
+    { scope: 'library:write' }),
   tool('create_review_pack_draft', 'Save generated review-pack content as a draft for in-app preview. Include content.description: a concise learner-facing explanation of scope, target level and learning objectives, based on the actual questions; do not include private source notes. Questions go in content.sections[].questions[] as { id, kind, tested, target, prompt, choices, answer, explanation_zh, choiceAnalysis: [{ choice, explanation }] }; kind is the JLPT label 漢字読み, 表記, 語形成, 文脈規定, 言い換え類義, 用法 or 文法. Publishing requires a specific explanation for every choice.',
     { title: z.string(), content: z.record(z.string(), z.unknown()) }, rw,
     async ({ title, content }, ctx) => text(createReviewPackDraft(uid(ctx), { title, content }))),
@@ -335,7 +377,7 @@ export const tools = [
     async ({ draft_id }, ctx) => text(found(getReviewPackDraft(uid(ctx), draft_id), 'Draft not found'))),
   tool('delete_review_pack_draft', 'Delete one saved review-pack draft for the authenticated user.',
     { draft_id: z.string() }, destructive,
-    async ({ draft_id }, ctx) => text({ ok: Boolean(found(deleteReviewPackDraft(uid(ctx), draft_id), 'Draft not found')) })),
+    async ({ draft_id }, ctx) => text({ ok: Boolean(found(deleteReviewPackDraft(uid(ctx), draft_id), 'Draft not found')) }), { scope: 'library:write' }),
   tool('add_draft_annotation', 'Attach a user or agent annotation to a draft.',
     { draft_id: z.string(), body: z.string() }, rw,
     async ({ draft_id, body }, ctx) => text(found(addDraftAnnotation(uid(ctx), draft_id, { body }), 'Draft not found'))),
@@ -352,7 +394,7 @@ export const tools = [
 ];
 
 /** Static resources served next to the tools: the MCP App view for practice sessions. */
-export const resources = [practiceResource];
+export const resources = [practiceResource, reviewCardsResource];
 
 /** JSON Schema view of a tool's input, for surfaces that do not speak zod (the stdio server). */
 export function toolJsonSchema(entry) {

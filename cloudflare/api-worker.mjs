@@ -11,6 +11,7 @@ import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
 import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
+import reviewCardsHtml from 'jlpt:review-cards-html';
 
 class RouteFailure extends Error { constructor(response) { super('Request rejected'); this.response = response; } }
 
@@ -41,7 +42,7 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { db: this.db, files: files.files, firebase: this.firebase, practiceHtml, dataSource: 'cloudflare-sqlite' };
+      const platform = { db: this.db, files: files.files, firebase: this.firebase, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite' };
       try {
         const response = await this.ctx.storage.transaction(async () => withPlatform(platform, async () => {
           const mcp = createJlptMcp({ onEvent() {}, origins: () => ({ publicOrigin: this.env.PUBLIC_ORIGIN, webOrigin: this.env.PUBLIC_ORIGIN }) });

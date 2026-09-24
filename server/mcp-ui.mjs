@@ -63,3 +63,22 @@ export const practiceResource = {
   _meta: practiceResourceMeta,
   read: async () => [{ uri: PRACTICE_UI_URI, mimeType: MCP_APP_MIME, text: practiceViewHtml(), _meta: practiceResourceMeta }],
 };
+
+export const REVIEW_CARDS_UI_URI = 'ui://jlpt/review-cards.html';
+export const reviewCardsToolMeta = { ui: { resourceUri: REVIEW_CARDS_UI_URI } };
+
+export function reviewCardsViewHtml() {
+  if (currentPlatform()?.reviewCardsHtml) return currentPlatform().reviewCardsHtml;
+  const scriptPath = join(buildDir, 'review-cards.js');
+  if (!existsSync(scriptPath)) throw new Error('Review cards view not built: run npm run build:mcp-app');
+  const script = readFileSync(scriptPath, 'utf8');
+  const css = readFileSync(join(buildDir, 'review-cards.css'), 'utf8');
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>JLPT 复习卡片</title><style>${css}</style></head><body><div id="app"></div><script>${script.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+}
+
+export const reviewCardsResource = {
+  uri: REVIEW_CARDS_UI_URI, name: 'jlpt-review-cards', title: 'JLPT 复习卡片',
+  description: 'Read-only vocabulary and grammar flip cards. Loads owned due cards with get_review_cards; respects front/back text settings and does not change mastery.',
+  mimeType: MCP_APP_MIME, _meta: practiceResourceMeta,
+  read: async () => [{ uri: REVIEW_CARDS_UI_URI, mimeType: MCP_APP_MIME, text: reviewCardsViewHtml(), _meta: practiceResourceMeta }],
+};

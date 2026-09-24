@@ -1073,7 +1073,7 @@ function reorderListeningQuestion(userId, id, rawNumber) {
   });
 }
 
-/** Partial update of an owned listening question's text metadata and/or its 题号 (library_number) position. Audio is unchanged; re-upload via create_listening_question's existingQuestionId to replace it. */
+/** Partial update of an owned listening question's text metadata and/or its 题号 (library_number) position. Audio is unchanged. */
 export function updateListeningQuestion(userId, id, payload) {
   const current = listeningQuestionForUser(userId, id);
   if (!current) return null;
@@ -1149,6 +1149,15 @@ export function createListeningRecording(userId, listeningQuestionId, payload) {
     throw error;
   }
   return listeningRecordingForUser(userId, id);
+}
+
+export function deleteListeningRecording(userId, id) {
+  const database = getDb();
+  const recording = database.prepare('SELECT audio_path FROM listening_recordings WHERE user_id = ? AND id = ?').get(userId, id);
+  if (!recording) return false;
+  // Remove bytes first so a filesystem error leaves the row available for retry.
+  if (existsSync(recording.audio_path)) unlinkSync(recording.audio_path);
+  return database.prepare('DELETE FROM listening_recordings WHERE user_id = ? AND id = ?').run(userId, id).changes > 0;
 }
 
 export function listListeningRecordings(userId, listeningQuestionId) {
@@ -2664,6 +2673,30 @@ export function getDailyPractice(userId, id) {
     `)
     .get(userId, id);
   return row ? rowToDailyPractice(row) : null;
+}
+
+export function deleteDailyPractice(userId, id) {
+  const database = getDb();
+  return transaction(database, () => {
+    const practice = getDailyPractice(userId, id);
+    if (!practice) return false;
+    const questionIds = new Set(practice.questions.map((question) => question.id));
+    const belongsToPractice = (attempt) => attempt?.practiceId === id || (
+      !attempt?.practiceId && attempt?.view === 'daily-practice' && attempt.questionIds?.length > 0
+      && attempt.questionIds.every((questionId) => questionIds.has(questionId))
+    );
+    const state = getPracticeState(userId);
+    database.prepare('DELETE FROM daily_practices WHERE user_id = ? AND id = ?').run(userId, id);
+    // Imported sets may share question IDs: preserve answers still used by another set.
+    database.prepare(`DELETE FROM answers WHERE user_id = ?
+      AND question_id IN (SELECT value FROM json_each(?))
+      AND NOT EXISTS (SELECT 1 FROM daily_practices d, json_each(d.practice_json, '$.questions') q
+        WHERE d.user_id = answers.user_id AND json_extract(q.value, '$.id') = answers.question_id)`)
+      .run(userId, JSON.stringify([...questionIds]));
+    upsertPracticeState(userId, state.attemptHistory.filter((attempt) => !belongsToPractice(attempt)),
+      belongsToPractice(state.activeAttempt) ? null : state.activeAttempt);
+    return true;
+  });
 }
 
 export function refreshDailyPracticeExplanations(userId, id) {

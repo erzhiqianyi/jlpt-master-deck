@@ -73,6 +73,7 @@ Planned tool boundary:
 
 - `get_review_data`: read review items from SQLite.
 - `upsert_review_item`: create or update vocabulary, grammar, kanji-reading, meaning, kana-to-kanji, or other text-based practice seeds in SQLite.
+- `delete_review_item`: permanently delete one owned review item, along with its progress, answer history and now-unused images.
 - `export_review_data_backup`: export SQLite review items into monthly JSON backup files.
 - `get_study_record`: read the combined personal study record.
 - `get_study_plan`: read the current profile, generated tasks, completion state, and automatic daily summaries.
@@ -81,10 +82,14 @@ Planned tool boundary:
 - `list_due_reviews`: find items that need review.
 - `list_listening_questions`: read personal listening prompts, choices, answers, explanations, and audio metadata without returning audio bytes.
 - `create_listening_question`: write a local listening question only when real local audio bytes are available.
+- `update_listening_question`: partially update an owned listening question's text fields (title, type, question, choices, answer, explanation) and/or move it to a new `libraryNumber` (题号) position, shifting intervening questions to keep numbers contiguous. Audio is unchanged.
+- `delete_listening_question`: permanently delete one owned listening question; its audio file and recordings go with it once no other question shares the same audio asset.
 - `list_reading_questions`: list the authenticated learner's reading questions, including saved analysis.
 - `get_reading_question`: fetch a complete owned reading question by `id`.
 - `create_reading_question`: create a reading question; accepts the structured explanation fields below.
 - `update_reading_question`: partially update an owned question by `id`. Omitted fields are preserved; supplied arrays and `readingAnalysis` replace those fields completely.
+- `delete_reading_question`: permanently delete one owned reading question.
+- `delete_wordbook`: delete a custom wordbook. Refuses built-in wordbooks and any wordbook that still has items; move its items with `organize_review_item` first.
 
 Reading analysis fields (optional; older questions continue to use `explanation`):
 

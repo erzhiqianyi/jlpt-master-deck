@@ -67,6 +67,16 @@ test('invalid updates fail atomically; choice order cannot silently detach from 
   assert.equal(cleared.explanation, input.explanation);
 });
 
+test('MCP delete_reading_question removes an owned question and is ownership-scoped', async () => {
+  const saved = await call('create_reading_question', input);
+  await assert.rejects(call('delete_reading_question', { id: saved.id }, bob), /not found/i);
+  assert.ok(storage.readingQuestionForUser(alice.id, saved.id));
+  const result = await call('delete_reading_question', { id: saved.id });
+  assert.equal(result.ok, true);
+  assert.equal(storage.readingQuestionForUser(alice.id, saved.id), null);
+  await assert.rejects(call('delete_reading_question', { id: saved.id }), /not found/i);
+});
+
 test('HTTP get/patch honor ownership and return validation errors', async () => {
   const token = storage.loginUser('reader', 'password-one').token;
   const handler = createApiHandler({});

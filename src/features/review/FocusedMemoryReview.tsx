@@ -86,12 +86,12 @@ export function FocusedMemoryReview({ items, locale, token, frontFields, backFie
             </article>
             <article className="ledger-memory-card ledger-memory-face ledger-memory-back" aria-hidden={!revealed} inert={!revealed}>
               <div className="ledger-memory-content">
-                <p className="word-lookup-context">点击日文单词查询 · 未收录可加入解析队列</p>
                 <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={backFields} revealed />
-                <dl className="ledger-memory-tracking-id">
-                  <dt>ID 编号</dt>
-                  <dd><RecordReference key={item.id} reference={item.id} locale={locale} /></dd>
-                </dl>
+                {item.reference ? (
+                  <div className="ledger-memory-tracking-id">
+                    <RecordReference key={item.id} reference={item.reference} locale={locale} />
+                  </div>
+                ) : null}
               </div>
             </article>
           </div>

@@ -61,3 +61,5 @@
 .reading-answer-section blockquote { margin-block: 14px; padding-left: 14px; border-left: 2px solid #b9cdc0; white-space: pre-wrap; }
 .reading-error-type { display: flex; gap: 16px; padding-top: 12px; }
 .reading-error-type dt { flex-shrink: 0; color: #68716b; }
+
+.reading-segmented button.lookup-word { margin-inline: 2px; padding-inline: 2px; }

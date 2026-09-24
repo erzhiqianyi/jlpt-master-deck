@@ -1883,6 +1883,7 @@ export default function App() {
               />
             ) : null}
             {activeView === 'reading' && studyPage === 'questions' ? (
+              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}>
               <ReadingPanel
                 mode="practice"
                 labels={labels}
@@ -1897,8 +1898,10 @@ export default function App() {
                 onTips={() => navigateTo('reading', 'tips')}
                 onReview={() => navigateTo('reading', 'review')}
               />
+              </WordLookupProvider>
             ) : null}
             {activeView === 'reading' && studyPage === 'words' ? (
+              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}>
               <ReadingPanel
                 mode="library"
                 labels={labels}
@@ -1912,6 +1915,7 @@ export default function App() {
                 onTips={() => navigateTo('reading', 'tips')}
                 onReview={() => navigateTo('reading', 'review')}
               />
+              </WordLookupProvider>
             ) : null}
 	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (

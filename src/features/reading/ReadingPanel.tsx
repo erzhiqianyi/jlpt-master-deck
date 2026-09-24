@@ -1,3 +1,4 @@
+import { LookupText } from '../review/WordLookup';
 import { RecordReference } from '../../components/RecordReference';
 import { ReadingExplanation } from './ReadingExplanation';
 import './reading.css';
@@ -284,13 +285,18 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
 
 function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQuestion[]; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const item = items[0];
+  const [segmented, setSegmented] = useState(false);
   return <article className="reading-passage min-w-0">
     <h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2>
     <RecordReference reference={item.reference} locale={locale} />
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
     <details className="reading-passage-body mt-6" open>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
-      <p lang="ja" className="mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]">{item.passage}</p>
+      <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-[#31564c]">
+        <input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} />
+        {locale === 'ja' ? '分かち書き・単語検索' : locale === 'en' ? 'Segment and look up words' : '分词查词'}
+      </label>
+      <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
     <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
       {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} labels={labels} locale={locale} onDelete={onDelete} />)}

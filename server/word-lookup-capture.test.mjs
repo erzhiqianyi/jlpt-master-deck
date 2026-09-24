@@ -27,3 +27,28 @@ test('word lookup capture POST retains context and is readable by the owner thro
   assert.equal(storage.listLearningCaptures(user.id, 'inbox')[0].context, input.context);
   assert.ok(!JSON.stringify(await read(other)).includes(body.capture.id));
 });
+
+test('queue schema supports type filtering and owner-scoped completion/retry', async () => {
+  const { z } = await import('zod');
+  const { toolJsonSchema } = await import('./mcp-tools.mjs');
+  const user = storage.createUser('queue-worker', 'password-one');
+  const other = storage.createUser('queue-outsider', 'password-two');
+  const call = async (name, args, owner = user) => {
+    const tool = tools.find((entry) => entry.name === name);
+    const result = await tool.handler(z.object(tool.inputSchema).parse(args), { ownerId: String(owner.id) });
+    return JSON.parse(result.content[0].text);
+  };
+  const word = storage.createLearningCapture(user.id, { body: '裁量', category: 'word', context: '阅读 RD-000048：個人の裁量' });
+  storage.createLearningCapture(user.id, { body: 'のではないか', category: 'grammar' });
+  const list = tools.find((entry) => entry.name === 'list_learning_captures');
+  assert.ok(toolJsonSchema(list).properties.category.enum.includes('reading'));
+  assert.equal((await call('list_learning_captures', { status: 'inbox' })).length, 2);
+  assert.deepEqual((await call('list_learning_captures', { status: 'inbox', category: 'word' })).map(c => c.id), [word.id]);
+  await assert.rejects(call('update_learning_capture_status', { id: word.id, status: 'processed' }, other), /not found/);
+  assert.equal((await call('update_learning_capture_status', { id: word.id, status: 'processed' })).status, 'processed');
+  assert.deepEqual(await call('list_learning_captures', { status: 'inbox', category: 'word' }), []);
+  assert.equal((await call('list_learning_captures', { status: 'processed', category: 'word' }))[0].context, word.context);
+  await call('update_learning_capture_status', { id: word.id, status: 'inbox' });
+  assert.equal((await call('list_learning_captures', { status: 'inbox', category: 'word' })).length, 1);
+  await assert.rejects(call('update_learning_capture_status', { id: word.id, status: 'invalid' }));
+});

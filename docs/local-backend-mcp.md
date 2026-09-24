@@ -113,6 +113,18 @@ Use `""`, `[]`, or `{ "summary": "", "structure": "", "keySentences": [] }` to c
 
 The browser does not call an AI backend directly. Draft confirmation is the explicit user review step: it marks the draft as approved and copies an agent instruction. The agent must call `get_draft_processing_context`, route content by original question type, update the matching library, and report exactly what was changed. Vocabulary, grammar, kanji-reading, and other text-based practice seeds live in SQLite `review_items`; reading and listening questions live in their local question-bank tables. Audio bytes stay outside SQLite in local files.
 
+### Reading word lookup and the AI queue
+
+Reading passage detail and practice pages offer an opt-in segmentation switch. Click a token to query the loaded vocabulary (including saved conjugations); edit the query if a token boundary needs adjustment. Unknown words can be saved to the existing capture inbox with the reading reference/title and passage context. Enqueueing does not itself start an AI worker.
+
+MCP consumers can process the same queue on HTTP and stdio:
+
+1. Call `list_learning_captures` with `status: "inbox"`, optionally filtering `category` (`word`, `grammar`, `sentence`, `listening`, `reading`, `unsure`). Omitting status preserves the existing all-status listing.
+2. Parse each entry with its context. For word/grammar, check existing items and use `upsert_review_item`, preserving the requested deck/wordbook and source. For reading, use the reading create/update tools. For listening, require genuine audio before creating a question. Classify sentence/unsure inputs before choosing a destination; leave ambiguous inputs pending.
+3. After the result is successfully saved, call `update_learning_capture_status` with its `id` and `status: "processed"`. Failed writes stay in `inbox`; retry by checking for an already-saved result before writing again. `inbox` reopens an entry, and `archived` dismisses it. Both tools are scoped to the authenticated owner.
+
+These are shared catalogue changes; hosted MCP receives them only after the cloud API is deployed.
+
 ## MCP write and deletion permissions
 
 Listening create/update/edit/patch/upsert and all seven deletion tools require OAuth `library:write`: `delete_review_item`, `delete_listening_question`, `delete_reading_question`, `delete_wordbook`, `delete_review_pack_draft`, `delete_listening_recording`, and `delete_daily_practice`. A `study`-only grant cannot discover or call these tools. Existing clients with only `study` must authorize `library:write` before using them. Local stdio already supplies both scopes.

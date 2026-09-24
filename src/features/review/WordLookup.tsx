@@ -7,12 +7,18 @@ import './WordLookup.css';
 type CaptureInput = { body: string; category: 'word'; context: string; targetDeck: 'n1_vocab' };
 const LookupContext = createContext<{ forms: Set<string>; open: (word: string, context: string) => void } | null>(null);
 
-export function LookupText({ text }: { text: string }) {
+export function LookupText({ text, source }: { text: string; source?: string }) {
   const lookup = useContext(LookupContext);
   const parts = useMemo(() => segmentJapanese(text, lookup?.forms), [text, lookup?.forms]);
   if (!lookup) return <>{text}</>;
+  let offset = 0;
+  const contexts = parts.map((part) => {
+    const context = text.slice(Math.max(0, offset - 400), offset + part.text.length + 400);
+    offset += part.text.length;
+    return source ? `${source}\n${context}` : context;
+  });
   return <>{parts.map((part, index) => part.word
-    ? <button type="button" className="lookup-word" key={index} aria-label={`查询「${part.text}」`} onClick={(event) => { event.stopPropagation(); lookup.open(part.text, text); }} onKeyDown={(event) => event.stopPropagation()}>{part.text}</button>
+    ? <button type="button" className="lookup-word" key={index} aria-label={`查询「${part.text}」`} onClick={(event) => { event.stopPropagation(); lookup.open(part.text, contexts[index]); }} onKeyDown={(event) => event.stopPropagation()}>{part.text}</button>
     : <span key={index}>{part.text}</span>)}</>;
 }
 
@@ -40,7 +46,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
   const [error, setError] = useState('');
   const word = normalizeLookup(query);
   const matches = useMemo(() => findLookupItems(items, word), [items, word]);
-  const queued = saved.includes(word) || captures.some((capture) => capture.status === 'inbox' && normalizeLookup(capture.body) === word);
+  const queued = saved.includes(word) || captures.some((capture) => capture.status === 'inbox' && capture.category === 'word' && normalizeLookup(capture.body) === word);
   useEffect(() => {
     const element = dialog.current;
     const active = document.activeElement as HTMLElement | null;
@@ -53,7 +59,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
     if (!word || queued || busy.current || !enabled) return;
     busy.current = true; setSaving(true); setError('');
     try {
-      await onCapture({ body: word, category: 'word', targetDeck: 'n1_vocab', context: `记忆卡点词查询\n原文：${selection.context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` });
+      await onCapture({ body: word, category: 'word', targetDeck: 'n1_vocab', context: `点词查询\n原文：${selection.context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` });
       setSaved((current) => [...current, word]);
     } catch (err) { setError(err instanceof Error ? err.message : '加入失败，请重试。'); }
     finally { busy.current = false; setSaving(false); }

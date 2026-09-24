@@ -9,7 +9,7 @@ const dir = mkdtempSync(join(tmpdir(), 'jlpt-item-schema-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, upsertReviewItem, loadReviewData, addReviewItemImage, removeReviewItemImage, itemImageForUser } = await import('./storage.mjs');
+const { createUser, upsertReviewItem, loadReviewData, addReviewItemImage, removeReviewItemImage, itemImageForUser, deleteReviewItem, reviewItemById, getDb } = await import('./storage.mjs');
 
 const legacyGrammar = {
   id: 'g-totan', date: '2026-08-31', input_at: '2026-08-31T10:00:00+09:00', deck: 'grammar_expression', type: 'expression',
@@ -87,5 +87,26 @@ test('stored items read back canonical and images attach, dedupe and detach', ()
   const removed = removeReviewItemImage(user.id, 'g-totan', image.id);
   assert.deepEqual(removed.images, [{ url: 'https://example.com/door.png' }]);
   assert.equal(itemImageForUser(user.id, image.id), null);
+  assert.equal(existsSync(asset.image_path), false);
+});
+
+test('deleteReviewItem removes the item, its progress/answers and any now-unused image', () => {
+  const user = createUser('delete-owner', 'test-pass');
+  const png = Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex').toString('base64');
+  upsertReviewItem({ id: 'to-delete', deck: 'grammar_expression', type: 'grammar', original: '〜ざるを得ない', meaning_zh: '不得不' }, { userId: user.id });
+  const withImage = addReviewItemImage(user.id, 'to-delete', { imageBase64: png, mime: 'image/png' });
+  const asset = itemImageForUser(user.id, withImage.images[0].id);
+  const now = new Date().toISOString();
+  getDb().prepare('INSERT INTO progress (user_id, item_id, progress_json, updated_at) VALUES (?, ?, ?, ?)').run(user.id, 'to-delete', '{}', now);
+  getDb().prepare('INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at) VALUES (?, ?, ?, ?, ?, ?)').run(user.id, 'q1', 'to-delete', 'A', 1, now);
+
+  assert.equal(deleteReviewItem(user.id, 'missing'), false);
+  assert.equal(deleteReviewItem(user.id, 'to-delete'), true);
+
+  assert.equal(reviewItemById('to-delete', user.id), null);
+  assert.ok(!loadReviewData(user.id).items.some((item) => item.id === 'to-delete'));
+  assert.equal(getDb().prepare('SELECT COUNT(*) AS n FROM progress WHERE user_id = ? AND item_id = ?').get(user.id, 'to-delete').n, 0);
+  assert.equal(getDb().prepare('SELECT COUNT(*) AS n FROM answers WHERE user_id = ? AND item_id = ?').get(user.id, 'to-delete').n, 0);
+  assert.equal(itemImageForUser(user.id, withImage.images[0].id), null);
   assert.equal(existsSync(asset.image_path), false);
 });

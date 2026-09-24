@@ -603,6 +603,35 @@ export function organizeReviewItem(userId, id, { wordbookId, tags } = {}) {
   return item;
 }
 
+/** Permanently remove one review item (owned or imported) and its progress, answers and now-unused images. */
+export function deleteReviewItem(userId, id) {
+  const itemId = String(id ?? '').trim();
+  const found = ownedItemRow(userId, itemId);
+  if (!found) return false;
+  const imageIds = (found.item.images ?? []).map((image) => image.id).filter(Boolean);
+  const database = getDb();
+  transaction(database, () => {
+    if (found.owned) database.prepare('DELETE FROM owned_review_items WHERE id = ? AND user_id = ?').run(itemId, userId);
+    else database.prepare('DELETE FROM user_review_items WHERE id = ? AND user_id = ?').run(itemId, userId);
+    database.prepare('DELETE FROM progress WHERE user_id = ? AND item_id = ?').run(userId, itemId);
+    database.prepare('DELETE FROM answers WHERE user_id = ? AND item_id = ?').run(userId, itemId);
+    if (!imageIds.length) return;
+    const remaining = [
+      ...database.prepare('SELECT item_json FROM owned_review_items WHERE user_id = ?').all(userId),
+      ...database.prepare('SELECT item_json FROM user_review_items WHERE user_id = ?').all(userId),
+    ];
+    for (const imageId of imageIds) {
+      const stillUsed = remaining.some((row) => (JSON.parse(row.item_json).images ?? []).some((image) => image?.id === imageId));
+      if (stillUsed) continue;
+      const asset = database.prepare('SELECT image_path FROM item_images WHERE id = ? AND user_id = ?').get(imageId, userId);
+      if (!asset) continue;
+      database.prepare('DELETE FROM item_images WHERE id = ? AND user_id = ?').run(imageId, userId);
+      if (existsSync(asset.image_path)) unlinkSync(asset.image_path);
+    }
+  });
+  return true;
+}
+
 export function exportReviewDataBackup(userId) {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
   const data = decorateReferences(getDb(), userId, loadReviewData(userId));
@@ -1584,6 +1613,26 @@ export function updateWordbook(userId, id, { title } = {}) {
   }
   updateReviewItemWordbookTitles(wordbookId, normalizedTitle, now);
   return wordbookById(userId, wordbookId);
+}
+
+/** Delete a custom wordbook. Refuses built-in wordbooks and non-empty ones; reassign items first with organize_review_item. */
+export function deleteWordbook(userId, id) {
+  const wordbookId = String(id ?? '').trim();
+  const existing = wordbookById(userId, wordbookId);
+  if (!existing) return null;
+  if (existing.builtIn) throw new Error('Built-in wordbooks cannot be deleted');
+  const database = getDb();
+  const itemCount = Number(database.prepare(`
+    SELECT COUNT(*) AS value FROM (
+      SELECT item_json FROM owned_review_items WHERE user_id = ?
+      UNION ALL
+      SELECT item_json FROM user_review_items WHERE user_id = ?
+    )
+    WHERE json_extract(item_json, '$.wordbook_id') = ?
+  `).get(userId, userId, wordbookId).value);
+  if (itemCount > 0) throw new Error(`Wordbook still has ${itemCount} item(s); move them with organize_review_item before deleting`);
+  database.prepare('DELETE FROM wordbooks WHERE id = ? AND user_id = ?').run(wordbookId, userId);
+  return true;
 }
 
 function updateReviewItemWordbookTitles(wordbookId, title, updatedAt) {

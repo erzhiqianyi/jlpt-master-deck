@@ -8,7 +8,7 @@ const dir = mkdtempSync(join(tmpdir(), 'jlpt-wordbooks-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, createWordbook, listWordbooks, loadReviewData, organizeReviewItem, upsertReviewItem, createLearningCapture } = await import('./storage.mjs');
+const { createUser, createWordbook, deleteWordbook, listWordbooks, loadReviewData, organizeReviewItem, upsertReviewItem, createLearningCapture } = await import('./storage.mjs');
 
 const user = createUser('organizer', 'test-pass');
 const grammarItem = { id: 'g1', deck: 'grammar_expression', type: 'grammar', original: '〜にほかならない', meaning_zh: '正是', core_memory: '', wordbook_ids: ['grammar_expression', 'wordbook-old'], tags: ['断定', '断定', ' ', 'N1'] };
@@ -42,4 +42,15 @@ test('grammar captures can target a custom grammar wordbook but never a vocabula
   assert.equal(createLearningCapture(user.id, { body: 'x', category: 'grammar', targetWordbookId: grammarBook.id }).targetWordbookId, grammarBook.id);
   assert.equal(createLearningCapture(user.id, { body: 'y', category: 'grammar', targetWordbookId: 'n1_vocab' }).targetWordbookId, 'grammar_expression');
   assert.equal(createLearningCapture(user.id, { body: 'z', category: 'word', targetWordbookId: grammarBook.id }).targetWordbookId, 'n1_vocab');
+});
+
+test('deleteWordbook refuses built-ins and non-empty wordbooks, then succeeds once emptied', () => {
+  assert.equal(deleteWordbook(user.id, 'missing'), null);
+  assert.throws(() => deleteWordbook(user.id, 'n1_vocab'), /Built-in/);
+  const book = createWordbook(user.id, { title: '待删除', deck: 'grammar_expression' });
+  upsertReviewItem({ id: 'to-delete-test', deck: 'grammar_expression', type: 'grammar', original: '〜まみれ', meaning_zh: '满是', wordbook_id: book.id }, { userId: user.id });
+  assert.throws(() => deleteWordbook(user.id, book.id), /still has/);
+  organizeReviewItem(user.id, 'to-delete-test', { wordbookId: 'grammar_expression' });
+  assert.equal(deleteWordbook(user.id, book.id), true);
+  assert.ok(!listWordbooks(user.id).some((entry) => entry.id === book.id));
 });

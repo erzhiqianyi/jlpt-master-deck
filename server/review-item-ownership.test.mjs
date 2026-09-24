@@ -69,3 +69,14 @@ test('MCP save, read, query, aggregate, get, organize and export are account sco
   await call('upsert_review_item', { item: { ...privateItem, meaning_zh: 'Bob private' } }, bob);
   assert.equal(loadReviewData(alice.id).items.find(row => row.id === privateItem.id).meaning_zh, '正是');
 });
+
+test('MCP delete_review_item is account scoped and permanently removes the item', async () => {
+  const doomed = { ...item, id: 'alice-doomed', original: '〜を余儀なくされる' };
+  await call('upsert_review_item', { item: doomed }, alice);
+  await assert.rejects(call('delete_review_item', { id: doomed.id }, bob), /not found/i);
+  assert.ok(loadReviewData(alice.id).items.some(row => row.id === doomed.id));
+  const result = await call('delete_review_item', { id: doomed.id }, alice);
+  assert.equal(result.ok, true);
+  assert.ok(!loadReviewData(alice.id).items.some(row => row.id === doomed.id));
+  await assert.rejects(call('delete_review_item', { id: doomed.id }, alice), /not found/i);
+});

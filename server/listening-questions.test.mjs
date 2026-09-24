@@ -74,6 +74,16 @@ test('ownership: cannot read or update another user\'s listening question', asyn
   assert.equal(storage.listeningQuestionForUser(alice.id, saved.id).explanation, saved.explanation);
 });
 
+test('MCP delete_listening_question removes an owned question and is ownership-scoped', async () => {
+  const saved = await call('create_listening_question', makeInput('to-delete'));
+  await assert.rejects(call('delete_listening_question', { id: saved.id }, bob), /not found/i);
+  assert.ok(storage.listeningQuestionForUser(alice.id, saved.id));
+  const result = await call('delete_listening_question', { id: saved.id });
+  assert.equal(result.ok, true);
+  assert.equal(storage.listeningQuestionForUser(alice.id, saved.id), null);
+  await assert.rejects(call('delete_listening_question', { id: saved.id }), /not found/i);
+});
+
 test('invalid updates are rejected and leave the stored question unchanged', async () => {
   const saved = await call('create_listening_question', makeInput('invalid'));
   for (const patch of [{ answerIndex: 9 }, { choices: ['A', 'B'] }, { choices: ['A', 'B', '', 'D'] }]) {

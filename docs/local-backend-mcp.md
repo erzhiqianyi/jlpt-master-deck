@@ -81,6 +81,7 @@ Planned tool boundary:
 - `list_due_reviews`: find items that need review.
 - `list_listening_questions`: read personal listening prompts, choices, answers, explanations, and audio metadata without returning audio bytes.
 - `create_listening_question`: write a local listening question only when real local audio bytes are available.
+- `update_listening_question`: partially update an owned listening question's text fields (title, type, question, choices, answer, explanation) and/or move it to a new `libraryNumber` (题号) position, shifting intervening questions to keep numbers contiguous. Audio is unchanged.
 - `list_reading_questions`: list the authenticated learner's reading questions, including saved analysis.
 - `get_reading_question`: fetch a complete owned reading question by `id`.
 - `create_reading_question`: create a reading question; accepts the structured explanation fields below.

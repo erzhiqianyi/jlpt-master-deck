@@ -1017,6 +1017,79 @@ export function deleteListeningQuestion(userId, id) {
   return true;
 }
 
+/** Re-number one listening question within the owner's library, shifting the intervening rows to keep numbers contiguous and unique. */
+function reorderListeningQuestion(userId, id, rawNumber) {
+  const database = getDb();
+  const from = Number(database.prepare('SELECT library_number FROM listening_questions WHERE user_id = ? AND id = ?').get(userId, id)?.library_number);
+  if (!Number.isInteger(from)) return;
+  const count = Number(database.prepare('SELECT COUNT(*) AS value FROM listening_questions WHERE user_id = ?').get(userId).value);
+  const to = Math.min(Math.max(Math.trunc(Number(rawNumber)), 1), count);
+  if (!Number.isInteger(to) || to === from) return;
+  transaction(database, () => {
+    // Park the moved row off the unique (user_id, library_number) index while the range shifts.
+    database.prepare('UPDATE listening_questions SET library_number = -1 WHERE user_id = ? AND id = ?').run(userId, id);
+    const setNumber = database.prepare('UPDATE listening_questions SET library_number = ? WHERE user_id = ? AND id = ?');
+    // SQLite enforces the unique index per row as an UPDATE executes, so a single
+    // "SET library_number = library_number +/- 1 WHERE range" can collide between adjacent
+    // rows in the range before either is finalized. Walking the range one row at a time, in
+    // the direction that always lands on the slot the previous step just vacated, avoids that.
+    if (to < from) {
+      const rows = database.prepare('SELECT id, library_number FROM listening_questions WHERE user_id = ? AND library_number >= ? AND library_number < ? ORDER BY library_number DESC').all(userId, to, from);
+      for (const row of rows) setNumber.run(row.library_number + 1, userId, row.id);
+    } else {
+      const rows = database.prepare('SELECT id, library_number FROM listening_questions WHERE user_id = ? AND library_number > ? AND library_number <= ? ORDER BY library_number ASC').all(userId, from, to);
+      for (const row of rows) setNumber.run(row.library_number - 1, userId, row.id);
+    }
+    setNumber.run(to, userId, id);
+  });
+}
+
+/** Partial update of an owned listening question's text metadata and/or its 题号 (library_number) position. Audio is unchanged; re-upload via create_listening_question's existingQuestionId to replace it. */
+export function updateListeningQuestion(userId, id, payload) {
+  const current = listeningQuestionForUser(userId, id);
+  if (!current) return null;
+  const has = (key) => payload != null && Object.prototype.hasOwnProperty.call(payload, key);
+  const flexibleChoiceCountTypes = ['listening-basic-training'];
+
+  const questionTypeId = has('questionTypeId') ? normalizeListeningQuestionTypeId(payload.questionTypeId) : current.questionTypeId;
+  const question = has('question') ? String(payload.question ?? '').trim() : current.question;
+  let choices = has('choices')
+    ? (Array.isArray(payload.choices) ? payload.choices.map((choice) => String(choice ?? '').trim()) : [])
+    : current.choices;
+  if (has('choices') && flexibleChoiceCountTypes.includes(questionTypeId)) {
+    choices = [...choices];
+    while (choices.length > 0 && !choices[choices.length - 1]) choices.pop();
+  }
+  const answerIndex = has('answerIndex') ? Number(payload.answerIndex) : current.answerIndex;
+  const title = has('title') ? (String(payload.title ?? '').trim().slice(0, 120) || question.slice(0, 120)) : current.title;
+  const explanation = has('explanation') ? String(payload.explanation ?? '').trim().slice(0, 2000) : current.explanation;
+
+  const emptyChoices = choices.every((choice) => !choice);
+  const isFreeResponse = flexibleChoiceCountTypes.includes(questionTypeId) && choices.length === 0;
+  const choicesOptional = emptyChoices && ['listening-outline', 'listening-quick', 'listening-integrated', ...flexibleChoiceCountTypes].includes(questionTypeId);
+  const validChoiceCount = flexibleChoiceCountTypes.includes(questionTypeId)
+    ? choices.length === 0 || (choices.length >= 2 && choices.length <= 4)
+    : [3, 4].includes(choices.length);
+  if (!question || (!choicesOptional && !validChoiceCount) || (!choicesOptional && choices.some((choice) => !choice))) {
+    throw new Error('Question requires two to four non-empty choices, or empty choices for free response');
+  }
+  if (!Number.isInteger(answerIndex) || (isFreeResponse ? answerIndex !== -1 : answerIndex < 0 || answerIndex >= choices.length)) {
+    throw new Error('Choose a valid correct answer');
+  }
+
+  getDb().prepare(`
+    UPDATE listening_questions
+    SET title = ?, question_type_id = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?
+    WHERE user_id = ? AND id = ?
+  `).run(title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation, userId, id);
+
+  if (has('libraryNumber')) {
+    reorderListeningQuestion(userId, id, payload.libraryNumber);
+  }
+
+  return listeningQuestionForUser(userId, id);
+}
+
 export function createListeningRecording(userId, listeningQuestionId, payload) {
   const question = listeningQuestionForUser(userId, listeningQuestionId);
   if (!question) throw new Error('Listening question not found');

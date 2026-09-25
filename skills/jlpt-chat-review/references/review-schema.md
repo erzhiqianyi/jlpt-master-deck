@@ -279,3 +279,7 @@ Do not apply this marker to content extracted from the learner's own notes. AI-g
 ## Privacy Rule
 
 Do not copy raw chat transcripts into monthly archive files. Store only structured learning content and short explanations needed for review.
+
+### Conjugation readings
+
+`conjugations[]` uses `{ "kind": "polite", "form": "頷きます", "reading": "うなずきます" }`. Supply `reading` as the full kana reading of each form containing kanji, including irregular forms such as `来ない` / `こない`. Keep `form` as clean Japanese text. The field remains optional for compatibility with existing records; exact `ruby_terms` annotations are also supported. Memory cards display these readings above the form; study details respect the furigana switch.

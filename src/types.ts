@@ -441,6 +441,8 @@ export type PracticeQuestionSeed = {
 export type ConjugationForm = {
   kind: 'dictionary' | 'polite' | 'negative' | 'past' | 'te' | 'conditional' | 'potential' | 'passive' | 'causative' | 'adverbial' | string;
   form: string;
+  /** Full kana reading of this conjugated form. */
+  reading?: string;
 };
 
 export type InflectionClass = 'godan' | 'ichidan' | 'suru' | 'kuru' | 'i_adjective' | 'na_adjective';

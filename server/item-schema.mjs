@@ -220,6 +220,9 @@ export function canonicalizeItemFields(raw) {
     source: canonicalSource(item, exampleSentences),
     localizations: canonicalLocalizations(item.localizations),
     base_form: baseForm && baseForm !== original ? baseForm : '',
+    conjugations: list(item.conjugations).map((entry) => compact({
+      ...record(entry), kind: text(entry?.kind), form: text(entry?.form), reading: text(entry?.reading) || undefined,
+    })),
     images: normalizeItemImages(item.images),
     practice_questions: practiceQuestions(item),
     tags: lessonTopic && !tags.includes(lessonTopic) ? [...tags, lessonTopic] : tags,

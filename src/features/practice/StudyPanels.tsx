@@ -1,3 +1,4 @@
+import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
@@ -2056,6 +2057,10 @@ function RubyText({ text, items, enabled }: { text: string; items: VocabItem[]; 
 function rubyTermsForItems(items: VocabItem[]) {
   const fromItems = items.flatMap((item) => [
     ...(item.reading ? [{ text: item.original, reading: item.reading }] : []),
+    ...(item.conjugations ?? []).flatMap((entry) => {
+      const reading = conjugationReading(item, entry);
+      return reading ? [{ text: entry.form, reading }] : [];
+    }),
     ...(item.ruby_terms ?? []),
   ]);
   const seen = new Set<string>();

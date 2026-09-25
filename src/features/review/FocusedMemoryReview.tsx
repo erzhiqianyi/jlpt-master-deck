@@ -1,3 +1,4 @@
+import { conjugationReading } from '../../domain/conjugationReading';
 import { LookupText } from './WordLookup';
 import { RecordReference } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
@@ -246,13 +247,14 @@ function ConjugationPattern({ item }: { item: VocabItem }) {
           const form = entry.form.trim();
           const hasStem = Boolean(rule.stem) && form.startsWith(rule.stem);
           const ending = hasStem ? form.slice(rule.stem.length) : form;
+          const reading = conjugationReading(item, entry);
+          const surface = <>{hasStem ? <i>{rule.stem}</i> : null}<b>{ending}</b></>;
 
           return (
             <li key={`${entry.kind}-${entry.form}`}>
               <small>{conjugationKindLabel(entry.kind)}</small>
               <span lang="ja">
-                {hasStem ? <i>{rule.stem}</i> : null}
-                <b>{ending}</b>
+                {reading && reading !== form ? <ruby>{surface}<rp>(</rp><rt>{reading}</rt><rp>)</rp></ruby> : surface}
               </span>
             </li>
           );

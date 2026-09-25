@@ -110,3 +110,15 @@ test('deleteReviewItem removes the item, its progress/answers and any now-unused
   assert.equal(itemImageForUser(user.id, withImage.images[0].id), null);
   assert.equal(existsSync(asset.image_path), false);
 });
+
+test('conjugation readings survive canonicalization and legacy forms stay compatible', () => {
+  const result = canonicalizeItemFields({ original: '頷く', conjugations: [
+    { kind: 'polite', form: '頷きます', reading: ' うなずきます ' },
+    { kind: 'te', form: '頷いて' },
+  ] });
+  assert.deepEqual(result.conjugations, [
+    { kind: 'polite', form: '頷きます', reading: 'うなずきます' },
+    { kind: 'te', form: '頷いて' },
+  ]);
+  assert.deepEqual(canonicalizeItemFields(result), result);
+});

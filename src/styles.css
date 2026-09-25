@@ -6917,3 +6917,13 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .ledger-memory-tracking-id button { min-height: 44px; max-width: 100%; text-align: left; }
 .ledger-memory-tracking-id button > span { min-width: 0; overflow-wrap: anywhere; }
 .ledger-memory-tracking-id button > svg { flex-shrink: 0; }
+
+.ledger-conjugation-pattern ruby {
+  ruby-align: center;
+}
+
+.ledger-conjugation-pattern rt {
+  color: #777d78;
+  font-size: 0.65em;
+  font-weight: 400;
+}

@@ -428,6 +428,8 @@ export type LocalizedText = {
 
 export type PracticeQuestionSeed = {
   id?: string;
+  source_origin?: 'ai_generated' | 'textbook_original';
+  source_reference?: string;
   kind?: string;
   instruction?: string;
   prompt?: string;

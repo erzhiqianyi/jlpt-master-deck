@@ -1538,7 +1538,8 @@ export default function App() {
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
     : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
-  const showTopicQuestionSource = activeView === 'daily-practice' && Boolean(activeDailyPractice?.sourceDraftId);
+  const showTopicQuestionSource = activeView === 'grammar'
+    || (activeView === 'daily-practice' && Boolean(activeDailyPractice?.sourceDraftId));
   function withPracticeName(attempt: PracticeAttempt): PracticeAttempt {
     if (attempt.title?.trim()) return attempt;
     if (activeView === 'daily-practice' && activeDailyPractice) {

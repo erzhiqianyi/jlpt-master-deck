@@ -271,6 +271,7 @@ function buildSeededGrammarQuestion(
 
   return {
     id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`,
+    ...seedQuestionProvenance(seed),
     itemId: item.id,
     kind: 'grammar',
     title: labels.grammarTitle,
@@ -322,6 +323,14 @@ function seedQuestionId(item: VocabItem, seed: PracticeQuestionSeed, kind: Quest
   return seed.id ?? `${item.id}-${kind.replaceAll('_', '-')}-seed-${index + 1}`;
 }
 
+function seedQuestionProvenance(seed: PracticeQuestionSeed): Pick<Question, 'source_origin' | 'source_reference'> {
+  if (seed.source_origin === 'ai_generated') return { source_origin: 'ai_generated' };
+  if (seed.source_origin === 'textbook_original' && seed.source_reference?.trim()) {
+    return { source_origin: 'textbook_original', source_reference: seed.source_reference.trim() };
+  }
+  return {};
+}
+
 const SEED_TITLES: Record<QuestionKind, ['mojiGoi' | 'meaning' | 'kanjiToKana' | 'kanaToKanji' | 'wordFormation' | 'usage' | 'grammar', string]> = {
   moji_goi: ['mojiGoi', 'mojiGoiInstruction'],
   meaning: ['meaning', 'meaningInstruction'],
@@ -353,6 +362,7 @@ function buildSeededVocabQuestion(
 
   return {
     id: seedQuestionId(item, seed, kind, index),
+    ...seedQuestionProvenance(seed),
     itemId: item.id,
     kind,
     title: labels[`${titleKey}Title`] ?? labels[titleKey] ?? kind,

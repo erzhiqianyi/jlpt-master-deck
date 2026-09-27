@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { ItemImage, prepareImageUpload } from '../../components/ItemImage';
+import { memoryImagePrompt } from '../../domain/memoryImagePrompt';
 import { filterableTags, itemInWordbook, itemTagList, itemWordbookId, wordbookFamily, wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
 import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
 
@@ -1961,9 +1962,22 @@ const MAX_ENTRY_IMAGES = 6;
 function EntryImages({ item, token, editor }: { item: VocabItem; token?: string; editor?: ImageEditor }) {
   const images = item.images ?? [];
   const [caption, setCaption] = useState('');
+  const [promptCopied, setPromptCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setPromptCopied(false), [item.id]);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(memoryImagePrompt(item));
+      setPromptCopied(true);
+      setError('');
+    } catch {
+      setError('复制失败，请检查浏览器的剪贴板权限。');
+    }
+  }
 
   async function run(action: () => Promise<unknown>) {
     if (busy) return;
@@ -2000,6 +2014,15 @@ function EntryImages({ item, token, editor }: { item: VocabItem; token?: string;
           </div>
         ) : null}
       </div>
+      {editor ? (
+        <details className="mt-3 rounded-lg border border-[#f0d4dd] bg-[#fffaf5] px-3 py-2 text-xs leading-5 text-[#74646b]">
+          <summary className="cursor-pointer font-semibold text-[#8f365b]">用 AI 制作记忆图片</summary>
+          <p className="mt-2">可把这个词条的生成要求复制给任意 AI 助手。图片应写出词条、接续或用法、含义，以及一组日文例句和中文译文；上传前请放大核对文字。</p>
+          <button type="button" onClick={() => void copyPrompt()} className="mt-2 rounded-md border border-[#f0c9d4] bg-white px-3 py-1.5 font-semibold text-[#8f365b] hover:bg-[#fff0f5]">
+            {promptCopied ? '已复制生成要求' : '复制这个词条的生成要求'}
+          </button>
+        </details>
+      ) : null}
       {images.length ? (
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {images.map((image) => (

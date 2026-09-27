@@ -250,7 +250,7 @@ export const tools = [
   tool('organize_review_item', 'File a review item into one wordbook (an item belongs to exactly one wordbook of its own kind) and/or replace its tags. Omit a field to leave it unchanged.',
     { itemId: z.string(), wordbookId: z.string().optional().describe('Destination wordbook id from list_wordbooks; must match the item deck family.'), tags: z.array(z.string()).optional().describe('Full replacement tag list.') }, rw,
     async ({ itemId, wordbookId, tags }, ctx) => text(found(organizeReviewItem(uid(ctx), itemId, { wordbookId, tags }), 'Review item not found'))),
-  tool('attach_review_item_image', 'Attach a memory image to a vocabulary or grammar item; it appears on the item page and, when enabled, on review cards. Pass either image_url (https) or image_base64 with mime (PNG, JPEG, WebP or GIF, at most 5 MB). An item holds at most 6 images.',
+  tool('attach_review_item_image', 'Attach a memory image to a vocabulary or grammar item; it appears on the item page and, when enabled, on review cards. Before generating the image, read the saved item. A grammar image should visibly include its exact expression, connection form, short meaning, and one saved Japanese example with its Chinese translation; add an essential form note when relevant. A vocabulary image should include the word, meaning or usage cue, and one saved example with translation. Check every rendered character at full size before uploading; the server cannot verify text inside pixels. Pass either image_url (https) or image_base64 with mime (PNG, JPEG, WebP or GIF, at most 5 MB). An item holds at most 6 images. Attach a replacement before removing the old image.',
     {
       itemId: z.string(),
       image_url: z.string().url().optional(),

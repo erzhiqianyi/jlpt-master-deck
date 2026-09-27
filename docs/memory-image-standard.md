@@ -1,6 +1,6 @@
 # Review-item memory image standard
 
-This is the project rule for agents that generate or replace a review item's memory image. Read the saved item first; use its `original`, `patterns`, `meaning_zh`, and `examples` as the source. A generated image should help recall the item **and** teach the usage shown in the item.
+This standard is surfaced to connected agents in the MCP `attach_review_item_image` tool description and to learners through the copyable prompt on an item page. A repository file alone cannot reach agents that only use MCP or users who only visit the website. Read the saved item first; use its `original`, `patterns`, `meaning_zh`, and `examples` as the source. A generated image should help recall the item **and** teach the usage shown in the item.
 
 ## Required content
 
@@ -27,6 +27,8 @@ Do not invent a connection, example, translation, or grammar restriction when th
 ## Upload and replacement
 
 Upload through `attach_review_item_image` with `itemId`, `image_base64` (raw Base64, without a `data:` prefix), the matching MIME type, and a short caption. PNG, JPEG, WebP, and GIF are supported; the image must be at most 5 MB. Attach the new image first. Read the item back to confirm its new `images[].id`, and check the learner-facing image if available. Then remove the old image with `remove_review_item_image` and read back again to confirm only the intended image remains. Report image generation, MCP attachment, and website display as separate verification steps.
+
+The server cannot verify words baked into pixels. The MCP description and website prompt guide the creator; a person or a vision review must still inspect the rendered image before upload.
 
 ## Prompt template
 

@@ -5,9 +5,10 @@ import { PracticeReviewPanel } from '../practice/StudyPanels';
 
 export type DataTab = 'captures' | 'practice' | 'drafts' | 'settings';
 
-export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby }: {
+export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby, summaryToken }: {
   items: VocabItem[];
   showRuby: boolean;
+  summaryToken: string;
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
@@ -46,7 +47,7 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
       </header> : null}
       <>
       {activeTab === 'captures' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} embedded mode="captures" selectedCaptureId={activeCaptureId} onSelectedCaptureChange={onActiveCaptureChange} /> : null}
-      {visibleTab === 'practice' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} embedded mode="practice" recordSection={recordSection} selectedAttemptId={activeAttemptId} onSelectedAttemptChange={onActiveAttemptChange} attemptQuestionDetailOpen={attemptQuestionDetailOpen} onAttemptQuestionDetailChange={onAttemptQuestionDetailChange} /> : null}
+      {visibleTab === 'practice' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} summaryToken={summaryToken} embedded mode="practice" recordSection={recordSection} selectedAttemptId={activeAttemptId} onSelectedAttemptChange={onActiveAttemptChange} attemptQuestionDetailOpen={attemptQuestionDetailOpen} onAttemptQuestionDetailChange={onAttemptQuestionDetailChange} /> : null}
       {activeTab === 'drafts' ? <div className="pt-5">{draftsContent}</div> : null}
       {activeTab === 'settings' ? <div className="pt-5">{settingsContent}</div> : null}
       </>

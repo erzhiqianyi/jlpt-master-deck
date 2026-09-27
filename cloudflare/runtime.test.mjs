@@ -24,6 +24,9 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
     await request('/__seed');
     assert.ok((await json('/api/study-plan')).plan.profile);
+    assert.deepEqual((await json('/api/daily-summaries/2026-09-27')).summary, null);
+    assert.deepEqual((await json('/api/daily-summaries')).summaries, []);
+    assert.equal((await request('/api/daily-summaries/invalid')).status, 400);
     const empty=await json('/api/review-data');
     assert.equal(JSON.stringify(empty).includes('面目躍如'),false);
     const book=(await json('/api/wordbooks','POST',{title:'Cloud isolation',deck:'n1_vocab'})).wordbook;
@@ -72,6 +75,17 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     };
     const catalogue = (await rpc('tools/list')).tools;
     assert.ok(catalogue.some(x=>x.name==='get_review_data'));
+    for (const name of ['get_daily_summary', 'generate_daily_summary_context', 'upsert_daily_summary']) assert.ok(catalogue.some(x=>x.name===name), name);
+    const emptySummary = await rpc('tools/call', { name: 'get_daily_summary', arguments: { date: '2026-09-27' } });
+    assert.equal(JSON.parse(emptySummary.content[0].text).status, 'not_found');
+    const summaryInput = { date:'2026-09-27', total_questions:1, correct_count:1, incorrect_count:0, accuracy:1,
+      stats:{byKind:[{kind:'grammar',total:1,correct:1,incorrect:0,accuracy:1}],uniqueItems:1},
+      strengths:[{label:'基础意义',detail:'一次正确'}], weaknesses:[], confusion_groups:[],
+      recommendations:[{type:'review',title:'复习',detail:'保持练习'}], wrong_questions:[], summary_zh:'基础意义稳定。' };
+    const savedSummary = await rpc('tools/call', { name:'upsert_daily_summary', arguments:summaryInput });
+    assert.ok(!savedSummary.isError, JSON.stringify(savedSummary));
+    assert.equal((await json('/api/daily-summaries/2026-09-27')).summary.summaryZh, summaryInput.summary_zh);
+    assert.equal((await json('/api/daily-summaries')).summaries.length, 1);
     const readingCreateSchema = catalogue.find(x=>x.name==='create_reading_question').inputSchema;
     for (const field of ['explanation', 'passageTranslation', 'choiceExplanations', 'readingAnalysis', 'explanationNodes']) {
       assert.ok(readingCreateSchema.required.includes(field), field);

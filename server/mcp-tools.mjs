@@ -3,6 +3,7 @@ import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest,
 import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
 import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
 import { completeReadingFields, completeReadingSchema, validateCompleteReadingUpdate } from './reading-schema.mjs';
+import { dailySummaryInput, generateDailySummaryContext, getDailySummary, upsertDailySummary, validSummaryDate } from './daily-summary.mjs';
 // Tool catalogue shared by the OAuth-protected HTTP MCP server (server/mcp-app.mjs) and the
 // legacy stdio server (server/mcp-server.mjs). Handlers receive `uid(ctx)`; nothing about the
 // caller comes from tool input.
@@ -274,6 +275,15 @@ export const tools = [
     {}, ro, async (_args, ctx) => text(getStudyPlan(uid(ctx)))),
   tool('get_plan_generation_context', 'Read the learner profile, recent practice, weak points, daily summaries, and instructions needed to generate or revise a daily JLPT plan.',
     {}, ro, async (_args, ctx) => text(getPlanGenerationContext(uid(ctx)))),
+  tool('get_daily_summary', 'Read a saved daily learning summary. Does not generate one; returns not_found when absent.',
+    { date: z.iso.date().optional().describe('YYYY-MM-DD in Asia/Tokyo; defaults to today.') }, ro,
+    async ({ date }, ctx) => { const day = validSummaryDate(date); const summary = getDailySummary(getDb(), uid(ctx), day); return text(summary ? { status: 'found', ...summary } : { status: 'not_found', date: day, summary: null }); }),
+  tool('generate_daily_summary_context', 'Read deterministic statistics, wrong-answer evidence, related items, and recent weak points for an Agent to analyze. Does not call AI or save a summary.',
+    { date: z.iso.date().optional().describe('YYYY-MM-DD in Asia/Tokyo; defaults to today.') }, ro,
+    async ({ date }, ctx) => text(generateDailySummaryContext(getDb(), uid(ctx), date, analyzeWeakPoints(uid(ctx))))),
+  tool('upsert_daily_summary', 'Save an Agent-written daily summary after reading generate_daily_summary_context. One current summary per account and date.',
+    dailySummaryInput.shape, rw,
+    async (args, ctx) => text(upsertDailySummary(getDb(), uid(ctx), args))),
   tool('save_generated_study_plan', 'Save a complete agent-generated daily plan for calendar tracking. Replaces generated tasks while preserving matching completed task IDs. Send phases together with tasks so the plan outline stays in sync; omitting phases keeps the stored ones.', {
     phases: z.array(planPhase).max(12).optional().describe('2 to 5 non-overlapping phases covering the study period, ordered by date.'),
     tasks: z.array(planTask).max(730),

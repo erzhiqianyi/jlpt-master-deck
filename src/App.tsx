@@ -1704,6 +1704,7 @@ export default function App() {
             {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('captures')} /> : null}
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
+                summaryToken={authToken}
                 key={activeView}
                 labels={labels}
                 locale={locale}

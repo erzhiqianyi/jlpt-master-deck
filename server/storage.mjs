@@ -14,6 +14,7 @@ import { ensureReferenceSchema, decorateReferences } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 import { withSqlVariableLimit } from './sql-limits.mjs';
 import { ensureTtsSchema } from './tts/schema.mjs';
+import { ensureDailySummarySchema, listDailySummaries } from './daily-summary.mjs';
 import { providerIds as ttsProviderIds } from './tts/registry.mjs';
 import { canonicalizeItemFields, ensureItemSchema, normalizeItemImages, patternTexts, MAX_ITEM_IMAGES } from './item-schema.mjs';
 
@@ -288,6 +289,7 @@ export function getDb() {
     ensureQuerySchema(db);
     ensureReferenceSchema(db);
     ensureTtsSchema(db);
+    ensureDailySummarySchema(db);
   }
   return db;
 }
@@ -1404,8 +1406,10 @@ export function getPlanGenerationContext(userId) {
   const plan = getStudyPlan(userId);
   const practice = getPracticeState(userId);
   return {
-    plan,
+    plan: { ...plan, dailySummaries: plan.dailySummaries.slice(0, 7) },
     weakPoints: analyzeWeakPoints(userId),
+    dailySummaries: listDailySummaries(getDb(), userId, 7).map(({ date, accuracy, strengths, weaknesses, confusionGroups, recommendations, summaryZh }) =>
+      ({ date, accuracy, strengths, weaknesses, confusionGroups, recommendations, summaryZh })),
     recentAttempts: practice.attemptHistory.slice(0, 20),
     instructions: [
       'Create concrete daily JLPT tasks between profile.startDate and profile.examDate.',
@@ -2586,6 +2590,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       answer,
       answerIndex,
       context: String(question.prompt ?? '').trim(),
+      translationZh: String(question.translation_zh ?? '').trim() || undefined,
       correctReason: explanation || `正确答案是「${answer}」。`,
       memoryPoint: String(question.tested ?? question.target ?? answer),
       choiceAnalysis: question.choiceAnalysis ?? question.choice_analysis ?? [],

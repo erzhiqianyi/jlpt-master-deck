@@ -1,4 +1,5 @@
 import { StudyText } from '../../components/StudyText';
+import { DailySummaryPanel } from './DailySummaryPanel';
 import './RecordHome.css';
 import { NavigationCard } from '../../components/NavigationCard';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
@@ -14,13 +15,14 @@ type AttemptFilter = {
   range: 'all' | 'today' | 'week' | 'month';
 };
 
-export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
+export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, summaryToken, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
   attempts: PracticeAttempt[];
   questions?: Question[];
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
+  summaryToken?: string;
   embedded?: boolean;
   mode?: 'both' | 'captures' | 'practice';
   recordSection?: 'home' | 'today' | 'history';
@@ -114,6 +116,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <PracticeAttemptDetail labels={labels} locale={locale} attempt={selectedAttempt} questions={questions} onBack={() => setSelectedAttemptId(null)} showBack={!embedded} questionDetailOpen={attemptQuestionDetailOpen} onQuestionDetailChange={onAttemptQuestionDetailChange} />
       ) : (
         <>
+          {summaryToken ? <DailySummaryPanel token={summaryToken} locale={locale} /> : null}
           {recordSection === 'home' ? (
             <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
           ) : null}

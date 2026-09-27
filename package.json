@@ -24,7 +24,8 @@
     "test:cloudflare": "npm run build:mcp-app && node --test cloudflare/*.test.mjs",
     "deploy:cloudflare": "npm run deploy:cloud-api && npm run build:cloudflare && wrangler pages deploy dist --project-name jlpt-master-deck --branch main",
     "build:cloud-api": "npm run build:mcp-app && node scripts/build-cloud-api.mjs",
-    "deploy:cloud-api": "npm run build:cloud-api && wrangler deploy --config cloudflare/wrangler.api.json"
+    "deploy:cloud-api": "npm run build:cloud-api && wrangler deploy --config cloudflare/wrangler.api.json",
+    "build:extension": "node scripts/build-extension.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.1",
+    "@types/chrome": "^0.0.287",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",

@@ -28,6 +28,51 @@ export const readingFields = {
 };
 export const readingInputSchema = z.object(readingFields).strict();
 export const readingPatchSchema = readingInputSchema.partial().refine((value) => Object.keys(value).length > 0, 'Provide at least one field to update.');
+
+// Manual authoring and legacy reads remain compatible with incomplete drafts.
+// Agent writes must deliver a complete explanation, including on partial updates.
+export const completeReadingFields = {
+  ...readingFields,
+  explanation: text(12000).min(1).describe('Required overall explanation in Chinese; explain why the answer follows from the passage.'),
+  passageTranslation: text(24000).min(1).describe('Required full Chinese translation of every supplied passage paragraph, not a summary. Preserve omissions and flag source transcription uncertainty.'),
+  choiceExplanations: z.array(z.object({
+    text: text(2000).min(1),
+    translation: text(4000).min(1),
+    analysis: text(8000).min(1),
+    evidence: text(8000).min(1),
+    errorType: text(200),
+  })).length(4).describe('Required for all four choices in order: Chinese translation, reasoning, passage evidence and distractor type. text must match the choice. Correct answer errorType must be empty; every wrong answer needs a nonempty errorType.'),
+  readingAnalysis: z.object({
+    summary: text(8000).min(1),
+    structure: text(8000).min(1),
+    keySentences: z.array(text(8000).min(1)).min(1).max(30),
+  }).describe('Required Chinese summary and paragraph structure, with keySentences quoted verbatim from the passage.'),
+  explanationNodes: z.array(z.object({ title: text(200).min(1), body: text(12000).min(1) })).min(1).max(12)
+    .describe('Required worked solution: step-by-step reasoning and concrete elimination techniques tied to this passage. Use clearly titled sections; generic advice is not sufficient.'),
+};
+
+export const completeReadingSchema = z.object(completeReadingFields).strict().superRefine((value, ctx) => {
+  const issue = (path, message) => ctx.addIssue({ code: 'custom', path, message });
+  value.choiceExplanations.forEach((choice, index) => {
+    if (choice.text !== value.choices[index]) issue(['choiceExplanations', index, 'text'], 'Must match the choice at the same index.');
+    if (index === value.answerIndex ? choice.errorType !== '' : choice.errorType === '') {
+      issue(['choiceExplanations', index, 'errorType'], 'Use an empty errorType only for the correct answer; every distractor needs its error type.');
+    }
+  });
+  const compact = (text) => text.replace(/\s+/gu, '');
+  const passage = compact(value.passage);
+  value.readingAnalysis.keySentences.forEach((sentence, index) => {
+    if (!passage.includes(compact(sentence))) issue(['readingAnalysis', 'keySentences', index], 'Must quote text present in the passage; do not invent evidence.');
+  });
+});
+
+export function validateCompleteReadingUpdate(current, patch) {
+  const changes = readingPatchSchema.parse(patch);
+  const merged = { ...current, ...changes };
+  // The stored record also has identity/timestamp/reference fields, which are not input.
+  return completeReadingSchema.parse(Object.fromEntries(Object.keys(readingFields).map((key) => [key, merged[key]])));
+}
+
 export function normalizeReadingQuestion(payload) {
   const value = readingInputSchema.parse(payload);
   if (value.choiceExplanations?.some((entry, index) => entry.text !== value.choices[index])) {

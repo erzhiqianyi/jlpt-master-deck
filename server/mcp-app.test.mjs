@@ -11,7 +11,7 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
-const { createUser, loginUser, createLearningCapture, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft } = await import('./storage.mjs');
+const { createUser, loginUser, createLearningCapture, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
 const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
@@ -132,6 +132,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const names = list.result.tools.map((tool) => tool.name);
   assert.ok(names.includes('list_learning_captures'));
   assert.ok(names.includes('get_review_data'));
+  assert.ok(names.includes('update_review_pack_draft'));
   assert.ok(!names.includes('upsert_review_item'), 'library:write was not granted');
   const protectedTools = tools.filter((tool) => tool.name.startsWith('delete_') || /^(create|update|edit|patch|upsert)_listening_question$/.test(tool.name));
   for (const tool of protectedTools) {
@@ -231,6 +232,27 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const otherBook = createWordbook(other.id, { title: 'keep-other', deck: 'grammar_expression' });
   const draft = createReviewPackDraft(user.id, { title: 'delete-owned', content: {} });
   const otherDraft = createReviewPackDraft(other.id, { title: 'keep-other', content: {} });
+  addDraftAnnotation(user.id, draft.id, { body: 'keep this note' });
+  const updateDraft = async (token, args) => rpcResult(await rpc(token, 'tools/call', {
+    name: 'update_review_pack_draft', arguments: args,
+  }));
+  const titleEdit = await updateDraft(issued.access_token, { draft_id: draft.id, title: 'edited title' });
+  assert.equal(JSON.parse(titleEdit.result.content[0].text).title, 'edited title');
+  const contentEdit = await updateDraft(issued.access_token, { draft_id: draft.id, content: { quiz: [{ id: 'q1', explanation: '逐项解析' }] } });
+  assert.deepEqual(JSON.parse(contentEdit.result.content[0].text).content.quiz, [{ id: 'q1', explanation: '逐项解析' }]);
+  assert.equal(getReviewPackDraft(user.id, draft.id).title, 'edited title');
+  assert.equal(getReviewPackDraft(user.id, draft.id).status, 'draft');
+  assert.equal(getReviewPackDraft(user.id, draft.id).annotations.length, 1);
+  for (const args of [
+    { draft_id: draft.id },
+    { draft_id: draft.id, title: '   ' },
+    { draft_id: otherDraft.id, title: 'stolen' },
+  ]) {
+    const rejected = await updateDraft(issued.access_token, args);
+    assert.equal(rejected.result.isError, true);
+  }
+  assert.equal(getReviewPackDraft(other.id, otherDraft.id).title, 'keep-other');
+  assert.equal(getReviewPackDraft(user.id, draft.id).title, 'edited title');
   for (const [name, ownArgs, otherArgs] of [
     ['delete_wordbook', { wordbookId: book.id }, { wordbookId: otherBook.id }],
     ['delete_review_pack_draft', { draft_id: draft.id }, { draft_id: otherDraft.id }],

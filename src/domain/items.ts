@@ -1,6 +1,7 @@
 import type { Locale, LocalizedText, VocabItem } from '../types';
+import { coreMemoryText, normalizeCoreMemory } from './coreMemory.mjs';
 
-export function localized(item: VocabItem, locale: Locale, key: keyof LocalizedText) {
+export function localized<K extends keyof LocalizedText>(item: VocabItem, locale: Locale, key: K): LocalizedText[K] | undefined {
   return item.localizations?.[locale]?.[key];
 }
 
@@ -9,7 +10,11 @@ export function itemMeaning(item: VocabItem, locale: Locale) {
 }
 
 export function itemMemory(item: VocabItem, locale: Locale) {
-  return localized(item, locale, 'core_memory') ?? item.core_memory;
+  return coreMemoryText(localized(item, locale, 'core_memory') ?? item.core_memory);
+}
+
+export function itemMemoryPoints(item: VocabItem, locale: Locale) {
+  return normalizeCoreMemory(localized(item, locale, 'core_memory') ?? item.core_memory);
 }
 
 export function itemExplanation(item: VocabItem, locale: Locale) {

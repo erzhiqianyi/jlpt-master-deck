@@ -2,6 +2,7 @@ import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest,
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
 import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
+import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
 import { createReadStream, existsSync, readFileSync, statSync } from './files.mjs';
 import { homedir } from 'node:os';
@@ -65,6 +66,7 @@ import {
   userForToken,
 } from './storage.mjs';
 import { MCP_PATHS } from './mcp-app.mjs';
+import { listProviderDescriptors, ttsCredentialStatus, saveTtsCredential, deleteTtsCredential, synthesizeSpeech } from './tts/index.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localOfficialRoot = join(rootDir, '.local', 'official-jlpt');
@@ -226,6 +228,12 @@ return async (req, res) => {
       return json(res, 200, userReviewData(user.id));
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/vocab/lookup') {
+      const query = url.searchParams.get('q') || '';
+      const { items } = userReviewData(user.id);
+      return json(res, 200, { matches: findLookupItems(items, query) });
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/wordbooks') {
       return json(res, 200, { wordbooks: listWordbooks(user.id) });
     }
@@ -274,6 +282,30 @@ return async (req, res) => {
 
     if (req.method === 'PUT' && url.pathname === '/api/study-state/settings') {
       return json(res, 200, { settings: saveSettings(user.id, await readJson(req)) });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/tts/providers') {
+      return json(res, 200, { providers: listProviderDescriptors() });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/tts/credentials') {
+      return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
+    }
+
+    const ttsCredentialMatch = /^\/api\/tts\/credentials\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'PUT' && ttsCredentialMatch) {
+      return json(res, 200, { credentials: saveTtsCredential(user.id, decodeURIComponent(ttsCredentialMatch[1]), await readJson(req)) });
+    }
+    if (req.method === 'DELETE' && ttsCredentialMatch) {
+      deleteTtsCredential(user.id, decodeURIComponent(ttsCredentialMatch[1]));
+      return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/tts/speak') {
+      const { text, provider, voice } = await readJson(req);
+      const { audio, mimeType } = await synthesizeSpeech(user.id, { text, provider, voice });
+      res.writeHead(200, { 'content-type': mimeType, 'content-length': audio.length, 'cache-control': 'private, no-store' });
+      return res.end(audio);
     }
 
     if (req.method === 'GET' && url.pathname === '/api/study-plan') {

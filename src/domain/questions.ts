@@ -609,7 +609,7 @@ function grammarDistractorExplanation(
     .find((entry) => normalizeGrammarExpression(entry.target ?? '') === normalizedChoice);
   const candidate = allItems.find((item) => normalizeGrammarExpression(item.original) === normalizedChoice);
   const form = candidate?.patterns?.[0]?.pattern;
-  const usage = candidate?.meaning_zh || candidate?.core_memory;
+  const usage = candidate?.meaning_zh || candidate?.core_memory?.join(' ');
 
   if (locale === 'ja') {
     const normalUse = candidate

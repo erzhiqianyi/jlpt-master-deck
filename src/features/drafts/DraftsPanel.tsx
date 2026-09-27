@@ -2,6 +2,7 @@ import { RecordReference } from '../../components/RecordReference';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningListRow } from '../../components/LearningList';
 import { isTopicDraft } from '../../domain/practicePurpose';
+import { practiceQuestionSourceLabel } from '../../domain/practiceProvenance';
 import { normalizePracticeExplanations } from '../../domain/practiceExplanations.mjs';
 import { useConfirmation } from '../../components/confirmation';
 import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
@@ -205,6 +206,7 @@ export function DraftsPanel({
                   
                   <h3 title={detailDraft.title} className="mt-1 text-2xl font-semibold">{detailDraft.title}</h3>
                   <RecordReference reference={detailDraft.reference} />
+                  {isTopicDraft(detailDraft) ? <p className="mt-1 text-xs font-semibold text-[#52645b]">{drafts.find((draft) => draft.id === detailDraft.id)?.sourceSummary ?? '来源待确认'}</p> : null}
                 </div>
                 <PreviewDisclosure title="更多操作" icon={MoreHorizontal}><div className="mobile-action-row flex flex-wrap gap-2">
                   <button type="button" onClick={onCopyRevisionContext} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f]">
@@ -318,7 +320,7 @@ export function DraftsPanel({
               if (currentDetailDraftId === id) setCurrentDetailDraftId(null);
             } }] : []),
           ] }}
-          searchText={(draft) => `${draft.reference ?? ''} ${draft.title} ${draftStatusText(draft.status)}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} references={[draft.reference]} description={formatDate(draft.updated_at)} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
+          searchText={(draft) => `${draft.reference ?? ''} ${draft.title} ${draftStatusText(draft.status)} ${draft.sourceSummary ?? ''}`} renderRow={(draft) => <LearningListRow key={draft.id} title={draft.title} references={[draft.reference]} description={`${formatDate(draft.updated_at)} · ${draft.sourceSummary ?? '来源待确认'}`} statusKind={draft.status === "needs_revision" ? "needs_revision" : draft.status === "approved" ? "approved" : draft.status === "archived" ? "archived" : "draft"} status={draftStatusText(draft.status)} onOpen={() => openDraft(draft.id)}/>}/>
       )}
     </section>
   );
@@ -343,6 +345,8 @@ type GrammarItem = {
 
 type DraftQuestion = {
   id?: string;
+  source_origin?: 'ai_generated' | 'textbook_original';
+  source_reference?: string;
   type?: string;
   kind?: string;
   prompt?: string;
@@ -835,6 +839,7 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
         });
         return (
           <article key={questionId} className="py-4 first:pt-0 last:pb-0">
+            <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(question)}{question.source_origin === 'textbook_original' && question.source_reference?.trim() ? ` · ${question.source_reference.trim()}` : ''}</p>
             <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
               <span className="pt-0.5 text-base font-semibold text-[#31564c]">{startNumber + index}.</span>
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

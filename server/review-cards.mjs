@@ -1,4 +1,5 @@
 import { getStudyState, loadReviewData } from './storage.mjs';
+import { normalizeCoreMemory } from '../src/domain/coreMemory.mjs';
 
 // Only configured text fields enter the widget. Media needs separate authenticated delivery.
 function cardField(item, field, locale) {
@@ -8,7 +9,7 @@ function cardField(item, field, locale) {
     case 'images': return [];
     case 'reading': return item.reading === item.original ? [] : [item.reading];
     case 'meaning': return [localized.meaning ?? item.meaning_zh];
-    case 'core_memory': return [localized.core_memory ?? item.core_memory];
+    case 'core_memory': return normalizeCoreMemory(localized.core_memory ?? item.core_memory);
     case 'explanation': return [localized.explanation ?? item.explanation_zh];
     case 'patterns': return (item.patterns ?? []).map((p) => join([p.pattern, p.connection_zh, p.meaning_zh]));
     case 'points': return (item.points ?? []).map((p) => join([p.label, p.detail_zh]));

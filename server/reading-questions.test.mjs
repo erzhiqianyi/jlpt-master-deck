@@ -21,6 +21,7 @@ const { createApiHandler } = await import('./api-handler.mjs');
 const alice = storage.createUser('reader', 'password-one');
 const bob = storage.createUser('other-reader', 'password-two');
 const input = { title: '読解', passage: '昔と今では素材が違う。', question: '筆者の主張は何か。', choices: ['A', 'B', 'C', 'D'], answerIndex: 1, explanation: '総解説', passageTranslation: '过去与现在的食材不同。', choiceExplanations: ['A', 'B', 'C', 'D'].map((text, index) => ({ text, translation: `翻译${index}`, analysis: `分析${index}`, evidence: '昔と今では素材が違う。', errorType: index === 1 ? '' : '无中生有' })), readingAnalysis: { summary: '素材变化', structure: '过去与现在的对比', keySentences: ['昔と今では素材が違う。'] } };
+input.explanationNodes = [{ title: '解题思路与排除技巧', body: '先定位昔と今的对比，再排除认为食材没变的选项。' }];
 const call = async (name, args, owner = alice) => {
   const tool = tools.find((tool) => tool.name === name);
   return JSON.parse((await tool.handler(z.object(tool.inputSchema).parse(args), { ownerId: String(owner.id) })).content[0].text);
@@ -75,6 +76,64 @@ test('MCP delete_reading_question removes an owned question and is ownership-sco
   assert.equal(result.ok, true);
   assert.equal(storage.readingQuestionForUser(alice.id, saved.id), null);
   await assert.rejects(call('delete_reading_question', { id: saved.id }), /not found/i);
+});
+
+test('MCP create advertises and enforces every required explanation field before writing', async () => {
+  const before = storage.listReadingQuestions(alice.id);
+  for (const field of ['explanation', 'passageTranslation', 'choiceExplanations', 'readingAnalysis', 'explanationNodes']) {
+    const incomplete = { ...input };
+    delete incomplete[field];
+    await assert.rejects(call('create_reading_question', incomplete), new RegExp(field));
+  }
+  const invalid = [
+    { explanation: '   ' }, { passageTranslation: ' \n ' }, { choiceExplanations: [] },
+    { explanationNodes: [] }, { explanationNodes: [{ title: '方法', body: ' ' }] },
+    ...['translation', 'analysis', 'evidence'].map((field) => ({ choiceExplanations: input.choiceExplanations.map((choice, i) => i === 2 ? { ...choice, [field]: ' ' } : choice) })),
+    ...['summary', 'structure'].map((field) => ({ readingAnalysis: { ...input.readingAnalysis, [field]: ' ' } })),
+    { readingAnalysis: { ...input.readingAnalysis, keySentences: [] } },
+    { readingAnalysis: { ...input.readingAnalysis, keySentences: ['原文にはない根拠。'] } },
+    { choiceExplanations: [...input.choiceExplanations].reverse() },
+    { choiceExplanations: input.choiceExplanations.map((choice) => ({ ...choice, errorType: '' })) },
+    { choiceExplanations: input.choiceExplanations.map((choice) => ({ ...choice, errorType: '错误' })) },
+  ];
+  for (const patch of invalid) await assert.rejects(call('create_reading_question', { ...input, ...patch }));
+  assert.deepEqual(storage.listReadingQuestions(alice.id), before);
+});
+
+test('MCP updates validate the merged record atomically and cannot bypass checks by omitting fields', async () => {
+  const saved = await call('create_reading_question', input);
+  const before = storage.readingQuestionForUser(alice.id, saved.id);
+  for (const patch of [
+    {}, { passageTranslation: ' ' }, { explanationNodes: [] }, { choiceExplanations: [] },
+    { answerIndex: 0 }, { choices: ['B', 'A', 'C', 'D'] }, { passage: '全く違う本文。' },
+    { readingAnalysis: { ...input.readingAnalysis, keySentences: ['捏造された引用。'] } },
+  ]) {
+    await assert.rejects(call('update_reading_question', { id: saved.id, ...patch }));
+    assert.deepEqual(storage.readingQuestionForUser(alice.id, saved.id), before);
+  }
+  const reordered = await call('update_reading_question', { id: saved.id, choices: ['B', 'A', 'C', 'D'], answerIndex: 0,
+    choiceExplanations: [input.choiceExplanations[1], input.choiceExplanations[0], ...input.choiceExplanations.slice(2)] });
+  assert.equal(reordered.answerIndex, 0);
+  assert.equal(reordered.choiceExplanations[0].text, 'B');
+  assert.equal(reordered.passageTranslation, input.passageTranslation);
+
+  const old = storage.createReadingQuestion(alice.id, { passage: input.passage, question: input.question, choices: input.choices, answerIndex: input.answerIndex });
+  await assert.rejects(call('update_reading_question', { id: old.id, title: '只改标题' }), /explanation|passageTranslation/);
+  assert.deepEqual(storage.readingQuestionForUser(alice.id, old.id), old);
+  const repaired = await call('update_reading_question', { id: old.id, ...input });
+  assert.equal(repaired.createdAt, old.createdAt);
+  assert.equal(repaired.explanationNodes.length, 1);
+});
+
+test('MCP handler checks completeness even when called without tool-schema parsing', async () => {
+  const create = tools.find((tool) => tool.name === 'create_reading_question');
+  const update = tools.find((tool) => tool.name === 'update_reading_question');
+  const ctx = { ownerId: String(alice.id) };
+  await assert.rejects(create.handler({ ...input, passageTranslation: '' }, ctx));
+  const saved = await call('create_reading_question', input);
+  const before = storage.readingQuestionForUser(alice.id, saved.id);
+  await assert.rejects(update.handler({ id: saved.id, explanationNodes: [] }, ctx));
+  assert.deepEqual(storage.readingQuestionForUser(alice.id, saved.id), before);
 });
 
 test('HTTP get/patch honor ownership and return validation errors', async () => {

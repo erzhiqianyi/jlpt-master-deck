@@ -27,6 +27,11 @@ This is intended for localhost. The HTTP MCP surface uses OAuth 2.1 authorizatio
 - `GET /api/review-data`
 - `GET /api/study-state`
 - `PUT /api/study-state/settings`
+- `GET /api/tts/providers` — list supported pronunciation providers and the credential fields each needs
+- `GET /api/tts/credentials` — whether the user has configured a key per provider (never the key itself)
+- `PUT /api/tts/credentials/:provider` — save/rotate that provider's key, encrypted at rest (`server/tts/`)
+- `DELETE /api/tts/credentials/:provider`
+- `POST /api/tts/speak` — `{ text, provider, voice? }`, returns synthesized audio bytes using the caller's own key
 - `GET /api/study-plan`
 - `PUT /api/study-plan/profile`
 - `POST /api/study-plan/generated` — accepts `tasks` plus an optional structured `phases` array; omitting `phases` keeps the stored ones
@@ -93,12 +98,14 @@ Planned tool boundary:
 - `delete_reading_question`: permanently delete one owned reading question.
 - `delete_wordbook`: delete a custom wordbook. Refuses built-in wordbooks and any wordbook that still has items; move its items with `organize_review_item` first.
 
-Reading analysis fields (optional; older questions continue to use `explanation`):
+Reading analysis is required for MCP writes. Create rejects missing/blank analysis; update validates the merged saved record, so a legacy question must be fully backfilled when updated. Existing incomplete records remain readable, and manual HTTP authoring still supports incomplete drafts.
 
-- `passageTranslation`: full passage translation, string.
-- `choiceExplanations`: either `[]` or four entries in the same order as `choices`. Each entry contains string fields `text`, `translation`, `analysis`, `evidence`, `errorType`. `text` must match its choice; use an empty `errorType` for the correct choice. When changing choice text/order, also update or clear these explanations.
-- `readingAnalysis`: `{ summary: string, structure: string, keySentences: string[] }`. Key sentences must quote the passage; explain the reasoning in `analysis`/`evidence`.
-- `explanation`: the overall explanation, retained even when structured explanations are present.
+- `passageTranslation`: nonblank full Chinese passage translation, not a summary. Translate all supplied paragraphs; preserve source omissions and flag uncertain transcription.
+- `choiceExplanations`: exactly four entries in `choices` order, each with nonblank `text`, `translation`, `analysis`, `evidence`. `text` must match its choice. `errorType` must be empty for the correct answer and nonblank for all distractors. Translate and analyze every choice in Chinese. Explain both supporting evidence and where distractors depart from it. When changing choices or the answer, update these entries together; clearing them is rejected.
+- `readingAnalysis`: nonblank Chinese `summary` and `structure`, plus at least one `keySentences` entry. Each key sentence must occur in the passage (whitespace differences are ignored); fabricated quotes are rejected.
+- `explanation`: nonblank overall explanation in Chinese, retained even when structured explanations are present.
+- `explanationNodes`: at least one section with nonblank `title` and `body`, containing worked solving steps and concrete elimination techniques for this passage. Clearly title the reasoning/technique sections.
+- Validation enforces presence, nonblank text, choice alignment, correct/distractor error types, and literal key-sentence provenance. It cannot automatically certify translation completeness, Chinese fluency, factual entailment, or pedagogical quality; the authoring agent must review these before saving. Failed writes leave the record unchanged.
 - Existing `explanationNodes`, `translationLines` and `tags` remain supported.
 
 Use `""`, `[]`, or `{ "summary": "", "structure": "", "keySentences": [] }` to clear the corresponding analysis field. Reading REST endpoints expose `GET /api/reading-questions`, `POST /api/reading-questions`, and owner-scoped `GET` / `PATCH /api/reading-questions/:id`. Local and Cloudflare SQLite schemas add these columns automatically without rewriting old questions.
@@ -107,6 +114,7 @@ Use `""`, `[]`, or `{ "summary": "", "structure": "", "keySentences": [] }` to c
 - `create_review_pack_draft`: save generated review-pack content as a draft for in-app preview.
 - `list_review_pack_drafts`: list saved drafts.
 - `get_review_pack_draft`: read a draft with user annotations.
+- `update_review_pack_draft({ draft_id, title?, content? })`: update an owned draft in place. Supply at least one field. `content` is a complete replacement, so read the draft first and include all questions and fields to retain; omitted `title` or `content` is preserved. The draft ID, status, and annotations remain unchanged.
 - `add_draft_annotation`: attach user feedback to a draft.
 - `get_draft_revision_context`: read the draft, annotations, study record, and optimization prompt for the next agent revision.
 - `get_draft_processing_context`: read an approved draft, unknown-word marks, pending captures, study record, and routing rules for agent-driven library updates.

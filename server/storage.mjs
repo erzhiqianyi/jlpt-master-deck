@@ -13,6 +13,8 @@ import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
 import { ensureReferenceSchema, decorateReferences } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 import { withSqlVariableLimit } from './sql-limits.mjs';
+import { ensureTtsSchema } from './tts/schema.mjs';
+import { providerIds as ttsProviderIds } from './tts/registry.mjs';
 import { canonicalizeItemFields, ensureItemSchema, normalizeItemImages, patternTexts, MAX_ITEM_IMAGES } from './item-schema.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,6 +54,7 @@ const defaultSettings = {
   feedbackMode: 'immediate',
   questionTypeTips: {},
   customQuestionTypeTips: [],
+  ttsProvider: 'browser',
 };
 
 const listeningQuestionTypeIds = new Set([
@@ -284,6 +287,7 @@ export function getDb() {
     ensureItemSchema(db, { beforeMigrate: backupDatabase, inTransaction: (run) => transaction(db, run) });
     ensureQuerySchema(db);
     ensureReferenceSchema(db);
+    ensureTtsSchema(db);
   }
   return db;
 }
@@ -737,7 +741,7 @@ function normalizeReviewItem(item) {
     meaning_zh: String(item.meaning_zh ?? item.meaning ?? '').trim(),
     meaning_ja: meaningJa || undefined,
     paraphrase_ja: paraphraseJa || undefined,
-    core_memory: String(item.core_memory ?? '').trim(),
+    core_memory: canonicalItem.core_memory ?? [],
   };
 }
 
@@ -2177,7 +2181,7 @@ function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
       prompt: isGrammar
         ? `「${item.original}」的接续、意思、使用限制是什么？`
         : `「${item.original}」怎么读？中文意思和一个常见搭配是什么？`,
-      answer: [item.reading && item.reading !== item.original ? item.reading : null, item.core_memory, item.meaning_zh, item.explanation_zh].filter(Boolean).join('\n'),
+      answer: [item.reading && item.reading !== item.original ? item.reading : null, (item.core_memory ?? []).join('\n'), item.meaning_zh, item.explanation_zh].filter(Boolean).join('\n'),
     };
   });
 
@@ -2497,6 +2501,20 @@ function formatDailyPracticeTitle(practiceDate) {
   return `${practiceDate} 练习`;
 }
 
+function practiceSourceSummary(questions) {
+  const counts = { textbook_original: 0, ai_generated: 0, unknown: 0 };
+  for (const question of questions) {
+    if (question?.source_origin === 'ai_generated') counts.ai_generated += 1;
+    else if (question?.source_origin === 'textbook_original' && String(question.source_reference ?? '').trim()) counts.textbook_original += 1;
+    else counts.unknown += 1;
+  }
+  return [
+    counts.textbook_original ? `教材原题 ${counts.textbook_original}` : '',
+    counts.ai_generated ? `AI 生成 ${counts.ai_generated}` : '',
+    counts.unknown ? `来源待确认 ${counts.unknown}` : '',
+  ].filter(Boolean).join(' · ') || '来源待确认';
+}
+
 export function createDailyPracticeFromDraft(userId, draftId, { date, title } = {}) {
   const draft = getReviewPackDraft(userId, draftId);
   if (!draft) {
@@ -2549,10 +2567,15 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       )),
     );
     const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
+    const sourceReference = String(question.source_reference ?? '').trim().slice(0, 200);
+    const sourceOrigin = question.source_origin === 'ai_generated' ? 'ai_generated'
+      : question.source_origin === 'textbook_original' && sourceReference ? 'textbook_original' : undefined;
     return normalizePracticeExplanations({
       id: `${id}-q${String(index + 1).padStart(2, '0')}`,
       sourceQuestionId: String(question.id ?? `draft-q${index + 1}`),
       sourceDraftId: draft.id,
+      ...(sourceOrigin ? { source_origin: sourceOrigin } : {}),
+      ...(sourceOrigin === 'textbook_original' ? { source_reference: sourceReference } : {}),
       itemId: item?.id ?? String(question.id ?? `draft-q${index + 1}`),
       kind: draftQuestionKind(question.kind),
       title: String(section.title ?? `問題${section.id ?? ''}`).trim(),
@@ -2569,6 +2592,8 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     });
   });
   assertPracticeExplanations(questions);
+  const sourceSummary = practiceSourceSummary(questions);
+  const knownOrigins = new Set(questions.map((question) => question.source_origin ?? 'unknown'));
   const practice = {
     id,
     date: practiceDate,
@@ -2580,10 +2605,11 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     strategy: 'approved_draft_full_set',
     sourceDraftId: draft.id,
     description: String(content.description ?? '').trim().slice(0, 600),
-    content_origin: 'ai_generated',
+    content_origin: knownOrigins.size === 1 ? [...knownOrigins][0] : 'mixed',
+    sourceSummary,
     verification_status: content.verification_status ?? 'needs_review',
     generated_at: now,
-    disclaimer: '本套练习由 AI 根据学习内容生成，不是 JLPT 官方真题或历年真题。',
+    disclaimer: '请按每题的来源标记区分教材原题、AI 生成题和来源待确认的题目。',
     sections: sourceSections.map((section) => ({
       id: String(section.id ?? ''),
       title: String(section.title ?? ''),
@@ -2942,12 +2968,12 @@ function dailyPracticeChoiceExplanation({ choice, correct, kind, prompt, correct
   const comparison = (sourceItem.comparisons ?? [])
     .find((entry) => normalizeDailyGrammarExpression(entry.target ?? '') === normalizedChoice);
   const form = candidate?.patterns?.[0]?.pattern;
-  const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.core_memory ?? candidate?.explanation_zh ?? '');
+  const usage = firstExplanationSentence(candidate?.meaning_zh ?? candidate?.core_memory?.join(' ') ?? candidate?.explanation_zh ?? '');
   const normalUse = candidate
     ? `「${choice}」的使用范围：${form ? `接「${form}」，` : ''}${usage ? `表示“${usage}”` : '用于另一种接续和语义场景'}。`
     : `「${choice}」有自己的接续形式和语义范围。`;
   const contrast = comparison?.difference_zh ? `${comparison.difference_zh.replace(/[。！？!?]+$/u, '')}。` : '';
-  const required = firstExplanationSentence(sourceItem.meaning_zh ?? sourceItem.core_memory ?? correctReason);
+  const required = firstExplanationSentence(sourceItem.meaning_zh ?? sourceItem.core_memory?.join(' ') ?? correctReason);
   return `${normalUse}${contrast}本句「${prompt}」需要表达“${required}”，所以「${choice}」在接续或语义上不能成立。`;
 }
 
@@ -3025,12 +3051,19 @@ export function createReviewPackDraft(userId, { title, content, status = 'draft'
 export function listReviewPackDrafts(userId) {
   return getDb()
     .prepare(`
-      SELECT id, title, status, created_at, updated_at
+      SELECT id, title, status, content_json, created_at, updated_at
       FROM review_pack_drafts
       WHERE user_id = ?
       ORDER BY updated_at DESC
     `)
-    .all(userId);
+    .all(userId)
+    .map(({ content_json, ...row }) => {
+      const content = parseJson(content_json, {});
+      const questions = Array.isArray(content.sections)
+        ? content.sections.flatMap((section) => Array.isArray(section?.questions) ? section.questions : [])
+        : [];
+      return { ...row, sourceSummary: practiceSourceSummary(questions) };
+    });
 }
 
 export function getReviewPackDraft(userId, id) {
@@ -3259,6 +3292,7 @@ function normalizeSettings(value) {
   const fontSize = value?.fontSize === 'small' || value?.fontSize === 'large' ? value.fontSize : defaultSettings.fontSize;
   const rawQuestionTypeTips = normalizeQuestionTypeTips(value?.questionTypeTips);
   const questionTypeTips = Object.fromEntries(Object.entries(rawQuestionTypeTips).filter(([key]) => key !== memoryCardFrontCompatKey && key !== memoryCardBackCompatKey));
+  const ttsProvider = value?.ttsProvider === 'browser' || ttsProviderIds.includes(value?.ttsProvider) ? value.ttsProvider : defaultSettings.ttsProvider;
   return {
     showReviewRuby: typeof value?.showReviewRuby === 'boolean' ? value.showReviewRuby : defaultSettings.showReviewRuby,
     showExplanationRuby: typeof value?.showExplanationRuby === 'boolean' ? value.showExplanationRuby : defaultSettings.showExplanationRuby,
@@ -3270,6 +3304,7 @@ function normalizeSettings(value) {
     feedbackMode,
     questionTypeTips,
     customQuestionTypeTips: normalizeCustomQuestionTypeTips(value?.customQuestionTypeTips),
+    ttsProvider,
   };
 }
 

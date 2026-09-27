@@ -21,6 +21,7 @@ export class JlptDatabase extends DurableObject {
     this.db = sqliteAdapter(ctx.storage);
     this.firebase = JSON.parse(env.FIREBASE_CONFIG);
     if (!['apiKey','authDomain','projectId','appId'].every(key => this.firebase[key])) throw new Error('Incomplete Firebase configuration');
+    this.ttsSecretKey = env.TTS_SECRETS_KEY ?? null;
     ctx.blockConcurrencyWhile(async () => {
       ctx.storage.transactionSync(() => {
         this.db.exec('CREATE TABLE IF NOT EXISTS cloud_schema_version (version INTEGER PRIMARY KEY)');
@@ -30,6 +31,7 @@ export class JlptDatabase extends DurableObject {
         }
         migrateCloudSchemaV2(this.db);
         migrateCloudSchemaV3(this.db);
+        migrateCloudSchemaV4(this.db);
         migrateReviewItemOwnership(this.db);
         ensureItemSchema(this.db);
         ensureQuerySchema(this.db);
@@ -42,7 +44,7 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { db: this.db, files: files.files, firebase: this.firebase, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite' };
+      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite' };
       try {
         const response = await this.ctx.storage.transaction(async () => withPlatform(platform, async () => {
           const mcp = createJlptMcp({ onEvent() {}, origins: () => ({ publicOrigin: this.env.PUBLIC_ORIGIN, webOrigin: this.env.PUBLIC_ORIGIN }) });
@@ -126,6 +128,17 @@ export class JlptDatabase extends DurableObject {
     await createApiHandler({mcp,mcpListener(){throw new Error('MCP request was not routed');}})(req,res);
     return response ?? new Response('Not found',{status:404});
   }
+}
+
+function migrateCloudSchemaV4(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS user_tts_credentials (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    credential_encrypted TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, provider)
+  );
+  INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(4);`);
 }
 
 function migrateCloudSchemaV3(db) {

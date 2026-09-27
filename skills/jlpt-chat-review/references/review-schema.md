@@ -40,16 +40,16 @@ Each item:
     }
   ],
   "meaning_zh": "测定、测量，用一定方法或器具测出数值。",
-  "core_memory": "按标准、用仪器把客观数据测出来。",
+  "core_memory": ["按标准、用仪器把客观数据测出来。"],
   "localizations": {
     "en": {
       "meaning": "Measurement; determining a numeric value with a method or instrument.",
-      "core_memory": "Measure objective data by a standard method.",
+      "core_memory": ["Measure objective data by a standard method."],
       "explanation": "Use it for measurable quantities such as temperature, blood pressure, concentration, or speed."
     },
     "ja": {
       "meaning": "一定の方法や器具で数値を調べること。",
-      "core_memory": "基準や器具を使って客観的な数値を出す。",
+      "core_memory": ["基準や器具を使って客観的な数値を出す。"],
       "explanation": "温度・血圧・濃度・速度など、数値化できる対象で使いやすい。"
     }
   },
@@ -104,7 +104,7 @@ Recommended values:
 - `type`
 - `original`
 - `meaning_zh`
-- `core_memory`
+- `core_memory`: array of exam points, one point per string
 
 ## Optional But Useful Fields
 
@@ -234,7 +234,7 @@ Use `localizations` for multilingual learner-facing output. Keys should be BCP 4
   "localizations": {
     "en": {
       "meaning": "Measurement; determining a numeric value with a method or instrument.",
-      "core_memory": "Measure objective data by a standard method.",
+      "core_memory": ["Measure objective data by a standard method."],
       "explanation": "Use it for measurable quantities such as temperature or speed."
     }
   }

@@ -38,7 +38,7 @@ For each item:
 - Classify `part_of_speech` grammatically. Do not use generic content labels such as `語句`, `词语`, `word`, or `expression` as a part of speech. Use precise values such as `名詞`, `名詞句`, `動詞`, `動詞句`, `イ形容詞`, `イ形容詞句`, `ナ形容詞`, or `名詞・サ変動詞`, based on the head or predicate of the complete entry.
 - Add `meaning_ja` as a concise Japanese dictionary-style definition for every vocabulary item. Keep it distinct from the learner-language meaning and from `core_memory`.
 - For `言い換え類義`, write `paraphrase_ja` as a shorter, context-compatible rewording. Never copy `meaning_ja` into it unchanged; if no distinct natural paraphrase exists, do not enable the `meaning` question kind.
-- Write `core_memory` as a short exam-room recall note: the minimum cue needed to recognize the word, usage, or contrast quickly. Do not duplicate the full explanation.
+- Write `core_memory` as an array of short exam-room recall points, one point per string. Keep only the cues needed to recognize the word, usage, or contrast quickly. Do not duplicate the full explanation.
 - Add kana readings for every Japanese field that contains kanji. Prefer structured `ruby_terms` arrays in data so the app can show or hide furigana without changing the base text.
 - Do not add furigana or ruby markup inside quiz prompts, choices, selected answers, or correct answers. Furigana is only for review cards and explanations.
 - Put exam-style shortcut reasoning into `explanation_zh`, not into a separate quiz type.

@@ -15,3 +15,10 @@ test('segmentation preserves the sentence and keeps particles queryable', () => 
   assert.ok(result.some((part) => part.word && part.text === 'の'));
   assert.ok(result.some((part) => !part.word && part.text === '。'));
 });
+test('reading lookup separates the question particle from おふくろ', () => {
+  const text = 'いつの頃からかおふくろの味、という言葉';
+  const result = segmentJapanese(text);
+  assert.equal(result.map((part) => part.text).join(''), text);
+  assert.ok(result.some((part) => part.text === 'おふくろ' && part.word));
+  assert.ok(!result.some((part) => part.text === 'かおふくろ'));
+});

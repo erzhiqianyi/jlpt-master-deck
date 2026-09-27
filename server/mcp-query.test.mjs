@@ -369,7 +369,7 @@ test('item card exposes grammar formation, usage notes, and core memory', async 
   const got = await call('jlpt_get', { entity: 'item', id: 'item-sae', sections: ['card'] });
   assert.match(got.data.parts.find((part) => part.section === 'card').text, /patterns: .*N／Vて＋さえいれば/);
   assert.match(got.data.parts.find((part) => part.section === 'card').text, /explanation_zh: 表示最低条件。/);
-  assert.match(got.data.parts.find((part) => part.section === 'card').text, /core_memory: 抓最低条件。/);
+  assert.match(got.data.parts.find((part) => part.section === 'card').text, /core_memory: \["抓最低条件。"\]/);
 });
 
 test('previews are cut on character boundaries and flagged', async () => {

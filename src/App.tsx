@@ -9,12 +9,13 @@ import { AuthoringNavigation, type AuthoringLocation } from './components/Author
 import { configureFirebase, googleIdToken, firebaseLogout } from './lib/firebase';
 
 import { isTopicDraft, topicDraftForPractice } from './domain/practicePurpose';
+import { practiceSourceSummary } from './domain/practiceProvenance';
 import { GlobalSearch } from './features/search/GlobalSearch';
 import { ArrowLeft, BookOpenText, Search } from 'lucide-react';
 import { lazy, Suspense, startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuestionBatch } from './hooks/useQuestionBatch';
 import { useBrowserHash } from './hooks/useBrowserHash';
-import { itemExplanation, itemMeaning, itemMemory, itemPatternTexts } from './domain/items';
+import { itemExplanation, itemMeaning, itemMemory, itemMemoryPoints, itemPatternTexts } from './domain/items';
 import { defaultMemoryCardBackFields, defaultMemoryCardFrontFields, normalizeMemoryCardFields } from './domain/memoryCards';
 import { buildQuestionIndex, type QuestionReference, buildQuestions, deckLabelsFor } from './domain/questions';
 import { createDefaultStudyPlanProfile, localDateString } from './domain/studyPlan';
@@ -114,6 +115,7 @@ const defaultSettings: DisplaySettings = {
   feedbackMode: 'immediate',
   questionTypeTips: {},
   customQuestionTypeTips: [],
+  ttsProvider: 'browser',
 };
 
 type AppRouteNavItem = {
@@ -584,6 +586,7 @@ export default function App() {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
       return {
         key: draft.id, title: draft.title, reference: practice?.reference ?? draft.reference,
+        sourceSummary: practice ? practiceSourceSummary(practice.questions) : draft.sourceSummary,
         share: practice ? (description: string) => shareLearningContent('practice', practice.id, description) : undefined,
         description: practice?.description ?? '',
         status: practice || ['approved', 'archived'].includes(draft.status) ? 'ready' as const : 'pending' as const,
@@ -1473,7 +1476,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
+  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);
@@ -1535,6 +1538,7 @@ export default function App() {
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
     : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
+  const showTopicQuestionSource = activeView === 'daily-practice' && Boolean(activeDailyPractice?.sourceDraftId);
   function withPracticeName(attempt: PracticeAttempt): PracticeAttempt {
     if (attempt.title?.trim()) return attempt;
     if (activeView === 'daily-practice' && activeDailyPractice) {
@@ -1883,7 +1887,7 @@ export default function App() {
               />
             ) : null}
             {activeView === 'reading' && studyPage === 'questions' ? (
-              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}>
+              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}>
               <ReadingPanel
                 mode="practice"
                 labels={labels}
@@ -1901,7 +1905,7 @@ export default function App() {
               </WordLookupProvider>
             ) : null}
             {activeView === 'reading' && studyPage === 'words' ? (
-              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture}>
+              <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}>
               <ReadingPanel
                 mode="library"
                 labels={labels}
@@ -1933,6 +1937,8 @@ export default function App() {
                   items={data.items}
                   labels={labels}
                   questionTypeLabel={activePracticeTitle}
+                  practiceReference={activeView === 'daily-practice' ? activeDailyPractice?.reference : undefined}
+                  showQuestionSource={showTopicQuestionSource}
                   settings={settings}
                   onAnswer={answerQuestion}
                   onPrev={() => setActiveIndex((index) => Math.max(index - 1, 0))}
@@ -2017,6 +2023,8 @@ export default function App() {
                   items={data.items}
                   labels={labels}
                   practiceTitle={activePracticeTitle}
+                  practiceReference={activeView === 'daily-practice' ? activeDailyPractice?.reference : undefined}
+                  showQuestionSource={showTopicQuestionSource}
                   locale={locale}
                   showRuby={settings.showExplanationRuby}
                   onRestart={restartPractice}
@@ -2783,7 +2791,7 @@ function searchItems(items: VocabItem[], query: string, locale: Locale, labels: 
       const primaryFields = [item.original, item.reading, item.meaning_ja, item.paraphrase_ja, itemMeaning(item, locale)];
       const secondaryFields = [
         item.meaning_zh,
-        item.core_memory,
+        ...itemMemoryPoints(item, locale),
         item.explanation_zh,
         item.source?.sentence,
         ...itemPatternTexts(item),

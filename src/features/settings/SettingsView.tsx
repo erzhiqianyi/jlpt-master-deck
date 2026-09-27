@@ -1,7 +1,8 @@
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot, Bug } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot, Bug, Volume2 } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
+import { fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
 import type { DisplaySettings, Locale } from '../../types';
 
 type SettingsViewProps = {
@@ -15,7 +16,7 @@ type SettingsViewProps = {
   onUpdateSettings: (settings: DisplaySettings) => void;
 };
 
-type SettingsSectionId = 'display' | 'practice' | 'memory' | 'account';
+type SettingsSectionId = 'display' | 'practice' | 'memory' | 'pronunciation' | 'account';
 
 type SettingsCopy = {
   displayAndReading: string;
@@ -29,6 +30,15 @@ type SettingsCopy = {
   nativeLanguage: string;
   mcpInspector: string;
   mcpInspectorHint: string;
+  pronunciation: string;
+  pronunciationHint: string;
+  pronunciationProvider: string;
+  pronunciationBrowser: string;
+  pronunciationConfigured: string;
+  pronunciationNotConfigured: string;
+  pronunciationSave: string;
+  pronunciationSaving: string;
+  pronunciationClear: string;
 };
 
 const settingsPageCopy: Record<Locale, SettingsCopy> = {
@@ -44,6 +54,15 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     nativeLanguage: '母语 中文',
     mcpInspector: 'MCP 调试工具',
     mcpInspectorHint: '本地开发 · 查看 Schema、授权与调试工具调用',
+    pronunciation: '发音朗读',
+    pronunciationHint: '朗读服务商 · 自备 API Key',
+    pronunciationProvider: '朗读服务商',
+    pronunciationBrowser: '浏览器内置朗读（免费，无需配置）',
+    pronunciationConfigured: '已配置 ✓',
+    pronunciationNotConfigured: '未配置',
+    pronunciationSave: '保存',
+    pronunciationSaving: '保存中…',
+    pronunciationClear: '清除',
   },
   ja: {
     displayAndReading: '表示と読みやすさ',
@@ -57,6 +76,15 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     nativeLanguage: '母語 中国語',
     mcpInspector: 'MCP デバッグツール',
     mcpInspectorHint: 'ローカル開発 · スキーマ・認可・ツール呼び出しを確認',
+    pronunciation: '発音読み上げ',
+    pronunciationHint: '読み上げサービス · 自分の API Key',
+    pronunciationProvider: '読み上げサービス',
+    pronunciationBrowser: 'ブラウザ内蔵読み上げ（無料・設定不要）',
+    pronunciationConfigured: '設定済み ✓',
+    pronunciationNotConfigured: '未設定',
+    pronunciationSave: '保存',
+    pronunciationSaving: '保存中…',
+    pronunciationClear: '削除',
   },
   en: {
     displayAndReading: 'Display and Reading',
@@ -70,6 +98,15 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     nativeLanguage: 'Native Chinese',
     mcpInspector: 'MCP Inspector',
     mcpInspectorHint: 'Local development · Inspect schemas, authorization and tool calls',
+    pronunciation: 'Pronunciation',
+    pronunciationHint: 'Speech provider · your own API key',
+    pronunciationProvider: 'Speech provider',
+    pronunciationBrowser: "Browser's built-in speech (free, no setup)",
+    pronunciationConfigured: 'Configured ✓',
+    pronunciationNotConfigured: 'Not configured',
+    pronunciationSave: 'Save',
+    pronunciationSaving: 'Saving…',
+    pronunciationClear: 'Clear',
   },
 };
 
@@ -116,7 +153,7 @@ export function SettingsView({ labels, settings, username, authToken, activeSect
   );
 }
 
-const settingsSections: SettingsSectionId[] = ['display', 'practice', 'memory', 'account'];
+const settingsSections: SettingsSectionId[] = ['display', 'practice', 'memory', 'pronunciation', 'account'];
 
 const memoryCardSettingsCopy: Record<Locale, {
   title: string;
@@ -149,13 +186,14 @@ const memoryCardSettingsCopy: Record<Locale, {
 };
 
 function isSettingsSection(value: string | undefined): value is SettingsSectionId {
-  return value === 'display' || value === 'practice' || value === 'memory' || value === 'account';
+  return value === 'display' || value === 'practice' || value === 'memory' || value === 'pronunciation' || value === 'account';
 }
 
 function sectionTitle(section: SettingsSectionId, labels: Record<string, string>, copy: SettingsCopy, settings: DisplaySettings) {
   if (section === 'display') return copy.displayAndReading;
   if (section === 'practice') return copy.practiceExperience;
   if (section === 'memory') return memoryCardSettingsCopy[settings.locale].title;
+  if (section === 'pronunciation') return copy.pronunciation;
   return labels.account;
 }
 
@@ -163,6 +201,7 @@ function sectionIcon(section: SettingsSectionId, size = 22) {
   if (section === 'display') return <Settings2 size={size} />;
   if (section === 'practice') return <Sparkles size={size} />;
   if (section === 'memory') return <PanelTop size={size} />;
+  if (section === 'pronunciation') return <Volume2 size={size} />;
   return <MessageSquareText size={size} />;
 }
 
@@ -192,6 +231,7 @@ function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: Setting
       <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
       <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
       <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
+      <SettingsNavItem icon={<Volume2 size={22} />} title={copy.pronunciation} subtitle={copy.pronunciationHint} onClick={() => onOpenSection('pronunciation')} />
       <SettingsNavItem icon={<MessageSquareText size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
       <McpInspectorLink copy={copy} />
       <NavigationCard icon={<Bot size={22} />} title={labels.aboutTitle} description={labels.settingsAboutBody} href="#/about" />
@@ -251,6 +291,9 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   }
   if (section === 'memory') {
     return <MemoryCardFieldSettings settings={settings} onUpdateSettings={onUpdateSettings} />;
+  }
+  if (section === 'pronunciation') {
+    return <PronunciationSettings copy={copy} settings={settings} authToken={authToken} onUpdateSettings={onUpdateSettings} />;
   }
   return (
     <>
@@ -322,6 +365,97 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
       })}
       <p className="m-0 text-xs leading-5 text-[#7d837e]">{copy.exampleNote}</p>
     </div>
+  );
+}
+
+function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: {
+  copy: SettingsCopy; settings: DisplaySettings; authToken: string; onUpdateSettings: (settings: DisplaySettings) => void;
+}) {
+  const [providers, setProviders] = useState<TtsProviderDescriptor[]>([]);
+  const [credentials, setCredentials] = useState<TtsCredentialStatus[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [busyProvider, setBusyProvider] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchTtsProviders(authToken), fetchTtsCredentials(authToken)]).then(([providerResult, credentialResult]) => {
+      if (cancelled) return;
+      setProviders(providerResult.providers);
+      setCredentials(credentialResult.credentials);
+    }).catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : String(err)); });
+    return () => { cancelled = true; };
+  }, [authToken]);
+
+  const statusFor = (providerId: string) => credentials.find((entry) => entry.provider === providerId);
+
+  async function handleSave(provider: TtsProviderDescriptor) {
+    setBusyProvider(provider.id); setError('');
+    try {
+      const result = await saveTtsCredential(authToken, provider.id, drafts[provider.id] ?? {});
+      setCredentials(result.credentials);
+      setDrafts((current) => ({ ...current, [provider.id]: {} }));
+    } catch (err) { setError(err instanceof Error ? err.message : '保存失败，请重试。'); }
+    finally { setBusyProvider(null); }
+  }
+
+  async function handleClear(provider: TtsProviderDescriptor) {
+    setBusyProvider(provider.id); setError('');
+    try {
+      const result = await deleteTtsCredential(authToken, provider.id);
+      setCredentials(result.credentials);
+    } catch (err) { setError(err instanceof Error ? err.message : '清除失败，请重试。'); }
+    finally { setBusyProvider(null); }
+  }
+
+  return (
+    <>
+      <SettingsRow title={copy.pronunciationProvider}>
+        <select
+          value={settings.ttsProvider}
+          onChange={(event) => onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] })}
+          className="h-11 rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]"
+        >
+          <option value="browser">{copy.pronunciationBrowser}</option>
+          {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
+        </select>
+      </SettingsRow>
+      {providers.map((provider) => {
+        const status = statusFor(provider.id);
+        const draft = drafts[provider.id] ?? {};
+        return (
+          <SettingsRow key={provider.id} title={provider.name}>
+            <div className="grid gap-2">
+              <span className={`w-fit rounded-md px-2 py-1 text-xs font-semibold ${status?.configured ? 'bg-[#eef3ed] text-[#24473f]' : 'bg-[#f3efe6] text-[#8a7f6f]'}`}>
+                {status?.configured ? copy.pronunciationConfigured : copy.pronunciationNotConfigured}
+              </span>
+              {provider.credentialFields.map((field) => (
+                <input
+                  key={field.key}
+                  type={field.secret ? 'password' : 'text'}
+                  placeholder={field.label}
+                  aria-label={`${provider.name} ${field.label}`}
+                  value={draft[field.key] ?? ''}
+                  onChange={(event) => setDrafts((current) => ({ ...current, [provider.id]: { ...current[provider.id], [field.key]: event.target.value } }))}
+                  className="h-10 rounded-md border border-[#c8bcae] bg-white px-3 text-sm"
+                />
+              ))}
+              <div className="flex gap-2">
+                <button type="button" disabled={busyProvider === provider.id} onClick={() => handleSave(provider)} className="min-h-10 rounded-md border border-[#24473f] bg-[#24473f] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  {busyProvider === provider.id ? copy.pronunciationSaving : copy.pronunciationSave}
+                </button>
+                {status?.configured && (
+                  <button type="button" disabled={busyProvider === provider.id} onClick={() => handleClear(provider)} className="min-h-10 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#4f5651] disabled:opacity-60">
+                    {copy.pronunciationClear}
+                  </button>
+                )}
+              </div>
+            </div>
+          </SettingsRow>
+        );
+      })}
+      {error && <p role="alert" className="text-sm text-[#a43727]">{error}</p>}
+    </>
   );
 }
 

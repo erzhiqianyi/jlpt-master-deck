@@ -81,7 +81,7 @@ export function validatePackage(input) {
   const records = input.kind === "practice" ? input.questions : input.items;
   if (!Array.isArray(records) || !records.length || records.length > 1000)
     throw new Error("分享内容需包含 1–1000 项");
-  const stringListFields = new Set(["tags", "question_kinds"]);
+  const stringListFields = new Set(["tags", "question_kinds", "core_memory"]);
   const objectLists = {
     examples: [
       "ja",
@@ -335,7 +335,7 @@ export function importPackage(userId, input) {
           date: new Date().toISOString().slice(0, 10),
           wordbook_id: book.id,
           meaning_zh: source.meaning_zh || "",
-          core_memory: source.core_memory || "",
+          core_memory: source.core_memory || [],
           type: source.type || "vocabulary",
         };
         db.prepare("INSERT INTO user_review_items VALUES (?,?,?)").run(

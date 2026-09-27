@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>JLPT 查词助手 · 队列管理</title>
+  <link rel="stylesheet" href="manage.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>待解析队列</h1>
+    <div id="account"></div>
+  </header>
+
+  <section class="settings">
+    <label>服务地址 <input id="api-base-url" type="text" placeholder="http://127.0.0.1:4221" /></label>
+    <button id="save-settings" type="button">保存</button>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" data-status="inbox" class="active">待处理</button>
+    <button type="button" data-status="processed">已完成</button>
+    <button type="button" data-status="archived">已归档</button>
+  </nav>
+
+  <section id="list" class="capture-list"><p class="muted">加载中…</p></section>
+
+  <section class="manual-add">
+    <h2>手动加入队列</h2>
+    <form id="manual-form">
+      <label>内容 <input id="manual-body" type="text" required maxlength="200" /></label>
+      <label>分类
+        <select id="manual-category">
+          <option value="word">单词</option>
+          <option value="grammar">语法</option>
+          <option value="sentence">句子</option>
+          <option value="listening">听力</option>
+          <option value="reading">阅读</option>
+          <option value="unsure">不确定</option>
+        </select>
+      </label>
+      <label id="manual-wordbook-label">单词本 <select id="manual-wordbook"></select></label>
+      <label>备注 <input id="manual-context" type="text" maxlength="500" /></label>
+      <button type="submit">加入队列</button>
+    </form>
+    <p id="manual-feedback"></p>
+  </section>
+
+  <script src="manage.js"></script>
+</body>
+</html>

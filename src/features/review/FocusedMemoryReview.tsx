@@ -5,7 +5,7 @@ import { StudyText } from '../../components/StudyText';
 import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { ItemImage } from '../../components/ItemImage';
-import { distinctReading, itemExplanation, itemMeaning, itemMemory } from '../../domain/items';
+import { distinctReading, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import type { Locale, VocabItem } from '../../types';
 
@@ -214,7 +214,10 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'images': return null;
     case 'meaning': return scalar(itemMeaning(item, locale), locale === 'ja' ? 'ja' : undefined);
     case 'meaning_ja': return scalar(item.meaning_ja, 'ja');
-    case 'core_memory': return itemMemory(item, locale) ? <StudyText text={itemMemory(item, locale) ?? ''} /> : null;
+    case 'core_memory': {
+      const points = itemMemoryPoints(item, locale);
+      return points.length ? <ul className="list-disc space-y-2 pl-5">{points.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul> : null;
+    }
     case 'explanation': return itemExplanation(item, locale) ? <StudyText text={itemExplanation(item, locale) ?? ''} /> : null;
     case 'patterns': return lines((item.patterns ?? []).map((entry) => joined([entry.pattern, entry.connection_zh, entry.meaning_zh])));
     case 'points': return lines((item.points ?? []).map((entry) => joined([entry.label, entry.detail_zh])));

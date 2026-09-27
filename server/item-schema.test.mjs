@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { canonicalizeItemFields } from './item-schema.mjs';
+import { DatabaseSync } from 'node:sqlite';
+import { canonicalizeItemFields, ensureItemSchema } from './item-schema.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'jlpt-item-schema-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
@@ -37,11 +38,45 @@ test('legacy grammar fields fold into the shared shape without losing content', 
   assert.deepEqual(item.comparisons, [{ target: 'や否や', difference_zh: '更书面' }, { target: 'Vたらすぐ', difference_zh: '口语', kind: 'everyday' }]);
   assert.deepEqual(item.register, { level: 'both', note_zh: '书面口语都可', exam_tip_zh: '看た形' });
   assert.equal(item.explanation_zh, '后项是意外。\n\n不接意志。');
+  assert.deepEqual(item.core_memory, ['た形 + とたん']);
   assert.deepEqual(item.localizations, { en: { meaning: 'as soon as', explanation: 'No volition.' } });
   assert.deepEqual(item.source, { chat_summary: 'N1 时间关系语法' });
   assert.equal(item.input_at, '2026-08-31T10:00:00+09:00');
   assert.ok(item.tags.includes('时间关系'));
   assert.deepEqual(canonicalizeItemFields(item), item);
+});
+
+test('exam quick notes migrate from a single escaped paragraph to ordered points', () => {
+  const item = canonicalizeItemFields({
+    id: 'g-hayai-ka', input_at: '2026-09-27T00:00:00+09:00', original: '～が早いか',
+    core_memory: '【核心结构】A＋が早いか、B。\\n【后件限制】B是已发生的事实。\\n【做题方法】先找A，再找B。',
+  });
+  assert.deepEqual(item.core_memory, [
+    '【核心结构】A＋が早いか、B。',
+    '【后件限制】B是已发生的事实。',
+    '【做题方法】先找A，再找B。',
+  ]);
+  assert.deepEqual(canonicalizeItemFields(item), item);
+  assert.deepEqual(canonicalizeItemFields({ ...item, core_memory: ['第一点', '第二点'] }).core_memory, ['第一点', '第二点']);
+  assert.deepEqual(canonicalizeItemFields({ ...item, core_memory: ['【核心】A中引用【例】B'] }).core_memory, ['【核心】A中引用【例】B']);
+});
+
+test('the new migration rewrites databases that already ran the unified-field migration', () => {
+  const database = new DatabaseSync(':memory:');
+  database.exec('CREATE TABLE review_items (id TEXT PRIMARY KEY, item_json TEXT); CREATE TABLE review_item_migrations (name TEXT PRIMARY KEY)');
+  database.prepare('INSERT INTO review_item_migrations VALUES (?)').run('unified-fields-v1');
+  database.prepare('INSERT INTO review_items VALUES (?, ?)').run('legacy', JSON.stringify({
+    id: 'legacy', input_at: '2026-09-27T00:00:00+09:00', original: '～が早いか',
+    core_memory: '【核心】A。\\n【限制】B。',
+    localizations: { en: { core_memory: 'First point\\nSecond point' } },
+  }));
+  ensureItemSchema(database);
+  const saved = JSON.parse(database.prepare('SELECT item_json FROM review_items WHERE id = ?').get('legacy').item_json);
+  assert.deepEqual(saved.core_memory, ['【核心】A。', '【限制】B。']);
+  assert.deepEqual(saved.localizations.en.core_memory, ['First point', 'Second point']);
+  assert.ok(database.prepare('SELECT name FROM review_item_migrations WHERE name = ?').get('core-memory-list-v1'));
+  ensureItemSchema(database);
+  database.close();
 });
 
 test('vocabulary collocations and extra notes use the same fields as grammar', () => {

@@ -90,7 +90,10 @@ export type DisplaySettings = {
   feedbackMode: FeedbackMode;
   questionTypeTips: Record<string, string>;
   customQuestionTypeTips: CustomQuestionTypeTip[];
+  ttsProvider: TtsProviderId;
 };
+
+export type TtsProviderId = 'browser' | 'openai' | 'google-cloud' | 'azure';
 
 export type AuthUser = { id: number; username: string };
 
@@ -102,7 +105,7 @@ export type StudyState = {
   activeAttempt: PracticeAttempt | null;
 };
 
-export type DraftSummary = { reference?: string; id: string; title: string; status: string; created_at: string; updated_at: string };
+export type DraftSummary = { reference?: string; sourceSummary?: string; id: string; title: string; status: string; created_at: string; updated_at: string };
 export type DraftAnnotation = { id: string; body: string; created_at: string };
 export type ReviewPackDraft = DraftSummary & { content: unknown; annotations: DraftAnnotation[] };
 export type DailyPracticeSummary = {
@@ -419,7 +422,7 @@ export type RubyTerm = { text: string; reading: string };
 
 export type LocalizedText = {
   meaning?: string;
-  core_memory?: string;
+  core_memory?: string[];
   explanation?: string;
 };
 
@@ -478,7 +481,7 @@ export type VocabItem = {
   meaning_ja?: string;
   /** Answer of the 言い換え question; never shown on cards. */
   paraphrase_ja?: string;
-  core_memory: string;
+  core_memory: string[];
   explanation_zh?: string;
   patterns?: ItemPattern[];
   points?: ItemPoint[];
@@ -510,6 +513,8 @@ export type ReviewData = {
 export type Question = {
   reference?: string;
   practiceReference?: string;
+  source_origin?: 'ai_generated' | 'textbook_original';
+  source_reference?: string;
   id: string;
   itemId: string;
   kind: QuestionKind;

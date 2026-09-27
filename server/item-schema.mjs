@@ -17,6 +17,8 @@
 //
 // The function is pure and idempotent: canonical input comes back unchanged.
 
+import { normalizeCoreMemory } from '../src/domain/coreMemory.mjs';
+
 const usageRegisterLevels = new Set(['written', 'spoken', 'both', 'formal']);
 export const MAX_ITEM_IMAGES = 6;
 
@@ -161,7 +163,10 @@ function canonicalLocalizations(value) {
   const entries = Object.entries(localizations).map(([locale, localizedValue]) => {
     const localized = record(localizedValue);
     const { analysis, ...rest } = localized;
-    return [locale, compact({ ...rest, explanation: joinDistinct([localized.explanation, analysis], '\n\n') })];
+    return [locale, compact({ ...rest,
+      core_memory: normalizeCoreMemory(localized.core_memory),
+      explanation: joinDistinct([localized.explanation, analysis], '\n\n'),
+    })];
   }).filter(([, localized]) => Object.keys(localized).length);
   return entries.length ? Object.fromEntries(entries) : undefined;
 }
@@ -212,6 +217,7 @@ export function canonicalizeItemFields(raw) {
   for (const key of legacyKeys) delete canonical[key];
   Object.assign(canonical, {
     input_at: inputAt(item),
+    core_memory: normalizeCoreMemory(item.core_memory),
     explanation_zh: joinDistinct([item.explanation_zh, item.analysis, item.usage_notes], '\n\n'),
     patterns: canonicalPatterns(item, exampleSentences),
     points: canonicalPoints(item),
@@ -254,7 +260,7 @@ export function ensureItemSchema(db, { beforeMigrate, inTransaction = (run) => r
     );
     CREATE TABLE IF NOT EXISTS review_item_migrations (name TEXT PRIMARY KEY);
   `);
-  if (db.prepare('SELECT name FROM review_item_migrations WHERE name = ?').get('unified-fields-v1')) return;
+  if (db.prepare('SELECT name FROM review_item_migrations WHERE name = ?').get('core-memory-list-v1')) return;
   beforeMigrate?.();
   inTransaction(() => rewriteStoredItems(db));
 }
@@ -272,7 +278,8 @@ function rewriteStoredItems(db) {
       else update.run(next, row.user_id, row.id);
     }
   }
-  db.prepare('INSERT INTO review_item_migrations (name) VALUES (?)').run('unified-fields-v1');
+  db.prepare('INSERT OR IGNORE INTO review_item_migrations (name) VALUES (?)').run('unified-fields-v1');
+  db.prepare('INSERT OR IGNORE INTO review_item_migrations (name) VALUES (?)').run('core-memory-list-v1');
 }
 
 /** Plain text of every pattern, for search and question contexts. */

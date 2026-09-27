@@ -1,5 +1,6 @@
 import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
+import { practiceQuestionSourceLabel } from '../../domain/practiceProvenance';
 import { StudyText } from '../../components/StudyText';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import type { QuestionReference } from '../../domain/questions';
@@ -12,7 +13,7 @@ import { useMobileList } from '../../hooks/useMobileList';
 import { Pencil, ChevronLeft, ChevronRight, House, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
-import { distinctReading, localized, itemExplanation, itemMeaning } from '../../domain/items';
+import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { ItemImage, prepareImageUpload } from '../../components/ItemImage';
 import { filterableTags, itemInWordbook, itemTagList, itemWordbookId, wordbookFamily, wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
 import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
@@ -131,6 +132,8 @@ export function PracticeReviewPanel({
   items,
   labels,
   practiceTitle,
+  practiceReference,
+  showQuestionSource = false,
   locale,
   showRuby,
   onRestart,
@@ -143,6 +146,8 @@ export function PracticeReviewPanel({
   items: VocabItem[];
   labels: Record<string, string>;
   practiceTitle?: string;
+  practiceReference?: string;
+  showQuestionSource?: boolean;
   locale: Locale;
   showRuby: boolean;
   onRestart: () => void;
@@ -215,7 +220,7 @@ export function PracticeReviewPanel({
       {activeQuestion && activeAnswer ? <>
         <div className="practice-question-section">
           <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-            <p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p>
+            <div><p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p><RecordReference reference={practiceReference} locale={locale} /></div>
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
               {orderedAnswers.length > 1 ? <ArrowButton label={copy.previous} direction="left" onClick={() => setReviewIndex(safeIndex(activeIndex - 1, orderedAnswers.length))} /> : null}
               <button
@@ -235,7 +240,8 @@ export function PracticeReviewPanel({
             </div>
           </div>
           <article key={activeQuestion.id} className="attempt-review-question">
-            <div><RecordReference reference={activeQuestion?.practiceReference} locale={locale} /><QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
+            <div>{!practiceReference ? <RecordReference reference={activeQuestion?.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
+            {showQuestionSource ? <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(activeQuestion)}{activeQuestion.source_origin === 'textbook_original' && activeQuestion.source_reference?.trim() ? ` · ${activeQuestion.source_reference.trim()}` : ''}</p> : null}
             {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion.title}</h2> : null}
             {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
             <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
@@ -293,6 +299,8 @@ export function PracticePanel({
   items,
   labels,
   questionTypeLabel,
+  practiceReference,
+  showQuestionSource = false,
   settings,
   onAnswer,
   onPrev,
@@ -317,6 +325,8 @@ export function PracticePanel({
   items: VocabItem[];
   labels: Record<string, string>;
   questionTypeLabel: string;
+  practiceReference?: string;
+  showQuestionSource?: boolean;
   settings: DisplaySettings;
   onAnswer: (question: Question, selected: string) => void;
   onPrev: () => void;
@@ -504,7 +514,7 @@ export function PracticePanel({
       {loading ? <p role="status" className="py-6 text-center">正在加载题目…</p> : null}
       <div className="practice-question-section">
         <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-          <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
+          <div><p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p><RecordReference reference={practiceReference} locale={settings.locale} /></div>
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
 
 
@@ -529,7 +539,8 @@ export function PracticePanel({
         </div>
 
         <div className="mt-4">
-          <div><RecordReference reference={activeQuestion?.practiceReference} locale={settings.locale} /><QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} /></div>
+          <div>{!practiceReference ? <RecordReference reference={activeQuestion?.practiceReference} locale={settings.locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} /></div>
+          {showQuestionSource && activeQuestion ? <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(activeQuestion)}{activeQuestion.source_origin === 'textbook_original' && activeQuestion.source_reference?.trim() ? ` · ${activeQuestion.source_reference.trim()}` : ''}</p> : null}
           {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion?.title ?? labels.noQuestion}</h2> : null}
           {activeQuestion?.instruction ? (
             <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
@@ -1728,7 +1739,7 @@ function VocabCard({
   imageEditor?: ImageEditor;
 }) {
   const meaning = localized(item, locale, 'meaning') ?? item.meaning_zh;
-  const coreMemory = localized(item, locale, 'core_memory') ?? item.core_memory;
+  const coreMemory = itemMemoryPoints(item, locale);
   const explanation = itemExplanation(item, locale);
   const isGrammarEntry = item.deck === 'grammar_expression';
   const reading = distinctReading(item);
@@ -1769,7 +1780,14 @@ function VocabCard({
       </div>
       <section className={sectionClass}>
         <h4 className={headingClass}>{labels.examQuickNote}</h4>
-        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#3d3036]">{coreMemory}</p>
+        <ul className="mt-3 space-y-3">
+          {coreMemory.map((point, index) => (
+            <li key={`${index}-${point}`} className="flex gap-3 text-sm leading-7 text-[#3d3036]">
+              <span aria-hidden="true" className="mt-[0.7rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#a84269]" />
+              <span className="min-w-0 whitespace-pre-wrap break-words">{point}</span>
+            </li>
+          ))}
+        </ul>
       </section>
       {patterns.length ? (
         <section className={sectionClass}>

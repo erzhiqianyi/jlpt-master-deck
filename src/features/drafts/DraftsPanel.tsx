@@ -73,6 +73,7 @@ export function DraftsPanel({
   const detailDraft = activeDraft?.id === currentDetailDraftId ? activeDraft : null;
   const contentRecord = detailDraft && isRecord(detailDraft.content) ? detailDraft.content as GrammarReviewPack : null;
   const reviewQuestions = [contentRecord?.generated_practice, contentRecord?.quiz, contentRecord?.practice_questions, contentRecord?.review_questions].find((list) => Array.isArray(list) && list.length) ?? [];
+  const reviewGrammarItems = [...(contentRecord?.grammar_items ?? []), ...(contentRecord?.grammar_points ?? [])];
   const hasQuestionReview = Array.isArray(reviewQuestions) && reviewQuestions.length > 0 && onSaveQuestionReview && onFinalizeReviewedDraft;
 
   function setCurrentDetailDraftId(id: string | null) {
@@ -242,7 +243,7 @@ export function DraftsPanel({
                     />
                   ) : (
                     hasQuestionReview ? <QuestionReviewWorkspace key={detailDraft.id} draft={detailDraft} questions={reviewQuestions}
-                      renderQuestion={(index) => <QuestionList key={JSON.stringify([index, reviewQuestions[index]])} questions={[reviewQuestions[index]]} labels={labels} startNumber={index + 1} hidePagination />}
+                      renderQuestion={(index) => <QuestionList key={JSON.stringify([index, reviewQuestions[index]])} questions={[reviewQuestions[index]]} grammarItems={reviewGrammarItems} labels={labels} startNumber={index + 1} hidePagination />}
                       onSave={onSaveQuestionReview!} onFinalize={onFinalizeReviewedDraft!} />
                       : <DraftContentPreview key={detailDraft.id} content={detailDraft.content} labels={labels} />
                   )}
@@ -529,6 +530,8 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
   const strategySummary = Array.isArray(draft.strategy_summary) ? draft.strategy_summary : [];
   const sections = Array.isArray(draft.sections) ? draft.sections : [];
   const sectionQuestionCount = sections.reduce((total, section) => total + (Array.isArray(section.questions) ? section.questions.length : 0), 0);
+  const hasQuestions = Boolean(sectionQuestionCount || sourceQuestions.length || practiceQuestions.length || reviewQuestions.length || dailyQuiz.length);
+  const questionGrammarItems = [...grammarItems, ...grammarPoints];
   const visualized = Boolean(
     grammarItems.length
     || grammarPoints.length
@@ -623,6 +626,7 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
             {sectionQuestionCount ? <QuestionList
               questions={sections.flatMap((section) => Array.isArray(section.questions) ? section.questions : [])}
               sections={sections.flatMap((section) => (Array.isArray(section.questions) ? section.questions : []).map(() => section))}
+              grammarItems={questionGrammarItems}
               labels={labels}
             /> : null}
             {sections.filter((section) => !Array.isArray(section.questions) || !section.questions.length).map((section, index) => (
@@ -637,13 +641,13 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
         </PreviewSection>
       ) : null}
 
-      {grammarItems.length ? (
+      {!hasQuestions && grammarItems.length ? (
         <PreviewSection icon={BookOpenText} title={labels.draftGrammarPoints}>
           <GrammarItemList items={grammarItems} labels={labels} />
         </PreviewSection>
       ) : null}
 
-      {grammarPoints.length ? (
+      {!hasQuestions && grammarPoints.length ? (
         <PreviewSection icon={BookOpenText} title={labels.draftGrammarPoints}>
           <GrammarItemList items={grammarPoints} labels={labels} />
         </PreviewSection>
@@ -651,25 +655,25 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
 
       {sourceQuestions.length ? (
         <PreviewSection icon={ClipboardList} title={labels.draftSourceQuestions}>
-          <QuestionList questions={sourceQuestions} labels={labels} />
+          <QuestionList questions={sourceQuestions} grammarItems={questionGrammarItems} labels={labels} />
         </PreviewSection>
       ) : null}
 
       {practiceQuestions.length ? (
         <PreviewSection icon={ListChecks} title={labels.draftPracticeQuestions}>
-          <QuestionList questions={practiceQuestions} labels={labels} />
+          <QuestionList questions={practiceQuestions} grammarItems={questionGrammarItems} labels={labels} />
         </PreviewSection>
       ) : null}
 
       {reviewQuestions.length ? (
         <PreviewSection icon={ListChecks} title={labels.draftPracticeQuestions}>
-          <QuestionList questions={reviewQuestions} labels={labels} />
+          <QuestionList questions={reviewQuestions} grammarItems={questionGrammarItems} labels={labels} />
         </PreviewSection>
       ) : null}
 
       {dailyQuiz.length ? (
         <PreviewSection icon={ListChecks} title={labels.draftPracticeQuestions}>
-          <QuestionList questions={dailyQuiz} labels={labels} />
+          <QuestionList questions={dailyQuiz} grammarItems={questionGrammarItems} labels={labels} />
         </PreviewSection>
       ) : null}
 
@@ -801,7 +805,37 @@ function GrammarItemList({ items, labels }: { items: GrammarItem[]; labels: Reco
   );
 }
 
-function QuestionList({ questions, sections, labels, startNumber = 1, hidePagination = false }: { questions: DraftQuestion[]; sections?: DraftSection[]; labels: Record<string, string>; startNumber?: number; hidePagination?: boolean }) {
+export function grammarPointsForQuestion(question: DraftQuestion, items: GrammarItem[]): GrammarItem[] {
+  const result: GrammarItem[] = [];
+  const seen = new Set<string>();
+  const entries = items.map((item) => {
+    const title = item.expression ?? item.point ?? item.grammar_point ?? '';
+    const forms = title.replace(/[～〜]/gu, '').replace(/[（(]は[）)]/gu, '')
+      .split(/[・／/]/u).map((form) => form.trim()).filter(Boolean)
+      .flatMap((form) => form.startsWith('てから') ? [form, form.slice(1)] : [form]);
+    return { item, title, forms };
+  });
+  function add(entry: typeof entries[number]) {
+    if (!entry.title || seen.has(entry.title)) return;
+    seen.add(entry.title);
+    result.push(entry.item);
+  }
+  for (const choice of question.choices ?? []) {
+    const text = choice.replace(/\s/gu, '');
+    for (const entry of entries) {
+      if (entry.forms.some((form) => form === 'や'
+        ? text === 'や' || /[るうくぐすつぬぶむ]や$/u.test(text)
+        : text.includes(form))) add(entry);
+    }
+  }
+  const tested = (question.tested_expression ?? question.tested ?? '').replace(/[～〜]/gu, '');
+  for (const entry of entries) {
+    if (tested === entry.title.replace(/[～〜]/gu, '') || entry.forms.some((form) => tested === form || (form.length > 1 && tested.includes(form)))) add(entry);
+  }
+  return result;
+}
+
+function QuestionList({ questions, sections, grammarItems = [], labels, startNumber = 1, hidePagination = false }: { questions: DraftQuestion[]; sections?: DraftSection[]; grammarItems?: GrammarItem[]; labels: Record<string, string>; startNumber?: number; hidePagination?: boolean }) {
   const [page, setPage] = useState(0);
   const currentPage = Math.min(page, Math.max(0, questions.length - 1));
   const section = sections?.[currentPage];
@@ -842,6 +876,7 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
           ...question,
           answer: answerChoiceNumber !== null ? question.choices?.[answerChoiceNumber - 1] ?? question.answer : question.answer,
         });
+        const relevantGrammarItems = grammarPointsForQuestion(question, grammarItems);
         return (
           <article key={questionId} className="py-4 first:pt-0 last:pb-0">
             <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(question)}{question.source_origin === 'textbook_original' && question.source_reference?.trim() ? ` · ${question.source_reference.trim()}` : ''}</p>
@@ -849,7 +884,6 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
               <span className="pt-0.5 text-base font-semibold text-[#31564c]">{startNumber + index}.</span>
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <p className="text-base font-semibold leading-7 text-[#27312c]">{question.prompt}</p>
-                {question.tested_expression || question.tested ? <span className="w-fit shrink-0 rounded bg-[#edf4ef] px-2 py-1 text-xs font-semibold text-[#31564c]">{question.tested_expression ?? question.tested}</span> : null}
               </div>
             </div>
             {isRevealed && hasStarResult ? (
@@ -877,6 +911,7 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
             </button>
             {isRevealed ? (
               <div className="mt-4 grid gap-4 text-sm leading-6 text-[#4f5b55]">
+                {question.tested_expression || question.tested ? <p className="text-xs font-semibold text-[#31564c]">考查语法：{question.tested_expression ?? question.tested}</p> : null}
                 {question.translationZh ? <ResultField label={labels.fullChineseTranslation ?? '完整中文翻译'} value={question.translationZh} /> : null}
                 {explanationDetails.correctReason ? <ResultField label={labels.correctReasonLabel ?? '正确理由'} value={explanationDetails.correctReason} /> : null}
                 {explanationDetails.choiceAnalysis.some((choice) => choice.explanation) ? (
@@ -893,6 +928,9 @@ function QuestionList({ questions, sections, labels, startNumber = 1, hidePagina
                   </section>
                 ) : null}
                 {question.memoryPoint ? <ResultField label={labels.memoryPointLabel ?? '记忆要点'} value={question.memoryPoint} /> : null}
+                {relevantGrammarItems.length ? <PreviewSection icon={BookOpenText} title={labels.draftGrammarPoints}>
+                  <GrammarItemList items={relevantGrammarItems} labels={labels} />
+                </PreviewSection> : null}
               </div>
             ) : null}
           </article>

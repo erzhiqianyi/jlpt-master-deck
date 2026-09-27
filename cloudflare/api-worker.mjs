@@ -8,6 +8,7 @@ import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser, it
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
 import { ensureReferenceSchema } from '../server/references.mjs';
 import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
+import { ensureDailySummarySchema } from '../server/daily-summary.mjs';
 import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
@@ -32,6 +33,8 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV2(this.db);
         migrateCloudSchemaV3(this.db);
         migrateCloudSchemaV4(this.db);
+        ensureDailySummarySchema(this.db);
+        this.db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(5)');
         migrateReviewItemOwnership(this.db);
         ensureItemSchema(this.db);
         ensureQuerySchema(this.db);

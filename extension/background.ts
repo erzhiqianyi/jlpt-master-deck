@@ -1,11 +1,21 @@
-import { apiRequest, getStoredState } from './lib/api';
-import { login, logout } from './lib/auth';
+import { getValidAccessToken, login, logout } from './lib/auth';
+import { callMcpTool } from './lib/mcp';
+import { getStoredAuth, setStoredAuth, clearSession, normalizeApiBaseUrl } from './lib/storage';
 import type { ExtensionMessage, ExtensionResponse } from './lib/messages';
+
+async function withMcp<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+  const { apiBaseUrl, accessToken } = await getValidAccessToken();
+  return callMcpTool<T>(`${apiBaseUrl}/api/jlpt/mcp`, accessToken, name, args);
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(input: T): Partial<T> {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as Partial<T>;
+}
 
 async function handle(message: ExtensionMessage): Promise<unknown> {
   switch (message.type) {
     case 'GET_STATE': {
-      const { user, apiBaseUrl } = await getStoredState();
+      const { user, apiBaseUrl } = await getStoredAuth();
       return { user, apiBaseUrl };
     }
     case 'LOGIN':
@@ -13,19 +23,22 @@ async function handle(message: ExtensionMessage): Promise<unknown> {
     case 'LOGOUT':
       await logout();
       return { ok: true };
-    case 'SET_API_BASE_URL':
-      await chrome.storage.local.set({ apiBaseUrl: message.apiBaseUrl });
-      return { ok: true };
+    case 'SET_API_BASE_URL': {
+      const apiBaseUrl = normalizeApiBaseUrl(message.apiBaseUrl);
+      if ((await getStoredAuth()).apiBaseUrl !== apiBaseUrl) await clearSession();
+      await setStoredAuth({ apiBaseUrl });
+      return { apiBaseUrl };
+    }
     case 'LOOKUP_WORD':
-      return apiRequest<{ matches: unknown[] }>(`/api/vocab/lookup?q=${encodeURIComponent(message.query)}`);
+      return { matches: await withMcp('lookup_word', { query: message.query }) };
     case 'CREATE_CAPTURE':
-      return apiRequest('/api/captures', { method: 'POST', body: message.input });
+      return { capture: await withMcp('create_learning_capture', withoutUndefined(message.input)) };
     case 'LIST_CAPTURES':
-      return apiRequest(`/api/captures${message.status ? `?status=${message.status}` : ''}`);
-    case 'LIST_WORDBOOKS':
-      return apiRequest('/api/wordbooks');
+      return { captures: await withMcp('list_learning_captures', withoutUndefined({ status: message.status })) };
     case 'UPDATE_CAPTURE_STATUS':
-      return apiRequest(`/api/captures/${encodeURIComponent(message.id)}`, { method: 'PATCH', body: { status: message.status } });
+      return { capture: await withMcp('update_learning_capture_status', { id: message.id, status: message.status }) };
+    case 'LIST_WORDBOOKS':
+      return { wordbooks: await withMcp('list_wordbooks') };
     default:
       throw new Error(`未知消息类型：${(message as { type?: string }).type}`);
   }

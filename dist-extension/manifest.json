@@ -5,13 +5,12 @@
   "description": "在任意网页选中日文词句查词，查不到就加入 JLPT Master Deck 的待解析队列。",
   "permissions": ["identity", "storage"],
   "host_permissions": [
-    "http://127.0.0.1:4221/*",
-    "https://identitytoolkit.googleapis.com/*"
+    "http://127.0.0.1:4221/*"
   ],
-  "oauth2": {
-    "client_id": "REPLACE_WITH_CHROME_APP_OAUTH_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
-  },
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

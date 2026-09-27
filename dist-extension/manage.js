@@ -10,6 +10,27 @@
     return wordbooks.filter((book) => category === "grammar" === (book.deck === "grammar_expression"));
   }
 
+  // extension/lib/storage.ts
+  function normalizeApiBaseUrl(input) {
+    const url = new URL(input.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("\u670D\u52A1\u5730\u5740\u5FC5\u987B\u4EE5 http:// \u6216 https:// \u5F00\u5934");
+    return url.origin;
+  }
+
+  // extension/lib/identity.ts
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+  }
+  function formatIdentity(user) {
+    const parts = [
+      user.accountId ? `\u8D26\u53F7 #${user.accountId}` : null,
+      user.environment ? user.environment === "cloudflare" ? "\u4E91\u7AEF" : "\u672C\u5730" : null,
+      user.scopes?.length ? `\u6743\u9650\uFF1A${user.scopes.join("\u3001")}` : null
+    ].filter((part) => Boolean(part));
+    const detail = parts.length ? ` <span class="muted">\uFF08${parts.map(escapeHtml).join(" \xB7 ")}\uFF09</span>` : "";
+    return `${escapeHtml(user.username)}${detail}`;
+  }
+
   // extension/manage.ts
   var accountEl = document.getElementById("account");
   var apiBaseUrlInput = document.getElementById("api-base-url");
@@ -25,21 +46,21 @@
   var manualFeedback = document.getElementById("manual-feedback");
   var activeStatus = "inbox";
   var wordbooksCache = null;
-  function escapeHtml(text) {
+  function escapeHtml2(text) {
     return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
   }
   async function refreshAccount() {
     const state = await sendMessage({ type: "GET_STATE" });
     if (!state.ok) {
-      accountEl.innerHTML = `<span class="error">${escapeHtml(state.error)}</span>`;
+      accountEl.innerHTML = `<span class="error">${escapeHtml2(state.error)}</span>`;
       return null;
     }
     apiBaseUrlInput.value = state.data.apiBaseUrl;
-    accountEl.innerHTML = state.data.user ? `<span>\u5DF2\u767B\u5F55\uFF1A${escapeHtml(state.data.user.username)}</span> <button id="logout" type="button">\u9000\u51FA\u767B\u5F55</button>` : '<button id="login" type="button">\u4F7F\u7528 Google \u767B\u5F55</button>';
+    accountEl.innerHTML = state.data.user ? `<span>\u5DF2\u767B\u5F55\uFF1A${formatIdentity(state.data.user)}</span> <button id="logout" type="button">\u9000\u51FA\u767B\u5F55</button>` : '<button id="login" type="button">\u767B\u5F55</button>';
     document.getElementById("login")?.addEventListener("click", async () => {
       const response = await sendMessage({ type: "LOGIN" });
       if (!response.ok) {
-        accountEl.innerHTML = `<span class="error">${escapeHtml(response.error)}</span>`;
+        accountEl.innerHTML = `<span class="error">${escapeHtml2(response.error)}</span>`;
         return;
       }
       await refreshAccount();
@@ -64,15 +85,15 @@
     manualWordbookLabel.style.display = supportsWordbook ? "" : "none";
     if (!supportsWordbook) return;
     const options = wordbooksForCategory(await getWordbooks(), category);
-    manualWordbook.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
+    manualWordbook.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml2(book.id)}">${escapeHtml2(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
   }
   function renderCapture(capture) {
     const created = capture.createdAt ? new Date(capture.createdAt).toLocaleString() : "";
     return `
-    <article class="capture-card" data-id="${escapeHtml(capture.id)}">
-      <p class="body">${escapeHtml(capture.body)}</p>
-      ${capture.context ? `<p class="context">${escapeHtml(capture.context)}</p>` : ""}
-      <p class="meta">${escapeHtml(capture.category)} \xB7 ${escapeHtml(created)}</p>
+    <article class="capture-card" data-id="${escapeHtml2(capture.id)}">
+      <p class="body">${escapeHtml2(capture.body)}</p>
+      ${capture.context ? `<p class="context">${escapeHtml2(capture.context)}</p>` : ""}
+      <p class="meta">${escapeHtml2(capture.category)} \xB7 ${escapeHtml2(created)}</p>
       <div class="actions">
         ${capture.status === "inbox" ? '<button data-action="processed">\u6807\u8BB0\u5B8C\u6210</button><button data-action="archived">\u5F52\u6863</button>' : ""}
         ${capture.status === "processed" ? '<button data-action="inbox">\u91CD\u65B0\u52A0\u5165\u5F85\u5904\u7406</button><button data-action="archived">\u5F52\u6863</button>' : ""}
@@ -85,7 +106,7 @@
     listEl.innerHTML = '<p class="muted">\u52A0\u8F7D\u4E2D\u2026</p>';
     const response = await sendMessage({ type: "LIST_CAPTURES", status: activeStatus });
     if (!response.ok) {
-      listEl.innerHTML = `<p class="error">${escapeHtml(response.error)}</p>`;
+      listEl.innerHTML = `<p class="error">${escapeHtml2(response.error)}</p>`;
       return;
     }
     const captures = response.data.captures;
@@ -115,9 +136,24 @@
     });
   });
   saveSettingsButton.addEventListener("click", async () => {
-    const apiBaseUrl = apiBaseUrlInput.value.trim().replace(/\/+$/, "");
-    if (!apiBaseUrl) return;
-    await sendMessage({ type: "SET_API_BASE_URL", apiBaseUrl });
+    let apiBaseUrl;
+    try {
+      apiBaseUrl = normalizeApiBaseUrl(apiBaseUrlInput.value);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "\u670D\u52A1\u5730\u5740\u683C\u5F0F\u4E0D\u5BF9\uFF0C\u4F8B\u5982 http://127.0.0.1:4221 \u6216 https://jlpt.erzhiqian.cc\uFF08\u4E0D\u8981\u5E26 /api/jlpt/mcp\uFF09\u3002");
+      return;
+    }
+    const granted = await chrome.permissions.request({ origins: [`${apiBaseUrl}/*`] });
+    if (!granted) {
+      alert("\u9700\u8981\u6388\u6743\u63D2\u4EF6\u8BBF\u95EE\u8BE5\u5730\u5740\u624D\u80FD\u7EE7\u7EED\uFF0C\u8BF7\u91CD\u8BD5\u5E76\u5728\u5F39\u51FA\u7684\u786E\u8BA4\u6846\u91CC\u70B9\u5141\u8BB8\u3002");
+      return;
+    }
+    const response = await sendMessage({ type: "SET_API_BASE_URL", apiBaseUrl });
+    if (!response.ok) {
+      alert(response.error);
+      return;
+    }
+    apiBaseUrlInput.value = apiBaseUrl;
     await refreshAccount();
     await refreshList();
   });

@@ -1,4 +1,5 @@
 import { StudyText } from '../../components/StudyText';
+import { DailySummaryPanel } from './DailySummaryPanel';
 import './RecordHome.css';
 import { NavigationCard } from '../../components/NavigationCard';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
@@ -14,13 +15,14 @@ type AttemptFilter = {
   range: 'all' | 'today' | 'week' | 'month';
 };
 
-export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
+export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, summaryToken, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
   attempts: PracticeAttempt[];
   questions?: Question[];
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
+  summaryToken?: string;
   embedded?: boolean;
   mode?: 'both' | 'captures' | 'practice';
   recordSection?: 'home' | 'today' | 'history';
@@ -114,6 +116,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <PracticeAttemptDetail labels={labels} locale={locale} attempt={selectedAttempt} questions={questions} onBack={() => setSelectedAttemptId(null)} showBack={!embedded} questionDetailOpen={attemptQuestionDetailOpen} onQuestionDetailChange={onAttemptQuestionDetailChange} />
       ) : (
         <>
+          {summaryToken ? <DailySummaryPanel token={summaryToken} locale={locale} /> : null}
           {recordSection === 'home' ? (
             <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
           ) : null}
@@ -126,7 +129,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
                 <LearningListHeader title={locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} count={`${filteredAttempts.length} / ${sortedAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`}>
                   <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
                 </LearningListHeader>
-                <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedAttemptId} />
+                <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} startIndex={mobileList.mobile ? 0 : start} onSelect={setSelectedAttemptId} />
                 {listFooter}
               </LearningListFrame>
             </>
@@ -380,16 +383,17 @@ function PracticeAttemptFilters({ labels, value, attempts, onChange }: {
   );
 }
 
-function PracticeAttemptTable({ labels, locale, attempts, onSelect }: {
+function PracticeAttemptTable({ labels, locale, attempts, startIndex, onSelect }: {
   labels: Record<string, string>;
   locale: Locale;
   attempts: PracticeAttempt[];
+  startIndex: number;
   onSelect: (id: string) => void;
 }) {
   // One flat list; the date moves into each row instead of splitting the list into day sections.
   const attemptDate = (attempt: PracticeAttempt) => new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
   return <div className="learning-history-list">
-    <LearningList locale={locale} columnLabels={[locale === "ja" ? "練習" : locale === "en" ? "Practice" : "练习", locale === "ja" ? "日時・問題数・時間" : locale === "en" ? "Date / questions / duration" : "日期、题数与用时", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{attempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
+    <LearningList locale={locale} columnLabels={[locale === "ja" ? "練習" : locale === "en" ? "Practice" : "练习", locale === "ja" ? "日時・問題数・時間" : locale === "en" ? "Date / questions / duration" : "日期、题数与用时", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{attempts.map((attempt, index) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} references={[String(startIndex + index + 1)]} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
   </div>;
 }
 
@@ -528,6 +532,7 @@ export function AttemptQuestionDetail({ labels, locale, entry, position, total, 
         </div>
 
         {question?.prompt ? <p className="mt-4 whitespace-pre-wrap break-words rounded-md bg-[#f6f8f5] p-4 text-base leading-8 text-[#34413b]">{question.prompt}</p> : null}
+        {question?.translationZh ? <QuestionExplanation title={labels.fullChineseTranslation ?? '完整中文翻译'} body={question.translationZh} /> : null}
 
         <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <QuestionDetailValue label={labels.yourAnswer} value={answer.selected || '-'} tone={answer.correct ? 'correct' : 'wrong'} />

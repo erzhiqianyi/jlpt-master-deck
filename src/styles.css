@@ -847,6 +847,32 @@ rt {
   box-shadow: 0 18px 42px rgba(132, 91, 105, 0.10);
 }
 
+.practice-question-reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.practice-question-reference .my-1 { margin: 0; }
+
+@media (min-width: 768px) {
+  .cute-practice-card.practice-swipe-surface:not(:has(> .practice-answer-panel)) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cute-practice-card.practice-swipe-surface:not(:has(> .practice-answer-panel)) > .practice-question-section {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 767px) {
   .practice-swipe-surface {
     scroll-margin-top: 0.75rem;

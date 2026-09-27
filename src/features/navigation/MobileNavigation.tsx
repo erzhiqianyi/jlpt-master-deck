@@ -166,6 +166,7 @@ export function MobileStudyControls({
   allowWordbookFilter,
   wordbookFamily = 'vocabulary',
   allowWords,
+  allowQuestionBank = false,
   wordsLabel,
   panel,
   onPanelChange,
@@ -183,6 +184,7 @@ export function MobileStudyControls({
   allowWordbookFilter: boolean;
   wordbookFamily?: WordbookFamily;
   allowWords: boolean;
+  allowQuestionBank?: boolean;
   wordsLabel?: string;
   panel: MobileStudyPanel;
   onPanelChange: (panel: MobileStudyPanel) => void;
@@ -194,6 +196,7 @@ export function MobileStudyControls({
     { value: 'tips', label: labels.navQuestionTypes },
     { value: 'questions', label: labels.questionPage },
     ...(allowWords ? [{ value: 'words' as const, label: wordsLabel ?? labels.wordPage }] : []),
+    ...(allowQuestionBank ? [{ value: 'bank' as const, label: labels.questionBankPage }] : []),
     { value: 'review', label: labels.reviewPage },
   ];
   const familyWordbooks = wordbooksForFamily(wordbooks, wordbookFamily);

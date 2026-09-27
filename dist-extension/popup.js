@@ -5,6 +5,20 @@
     return chrome.runtime.sendMessage(message);
   }
 
+  // extension/lib/identity.ts
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+  }
+  function formatIdentity(user) {
+    const parts = [
+      user.accountId ? `\u8D26\u53F7 #${user.accountId}` : null,
+      user.environment ? user.environment === "cloudflare" ? "\u4E91\u7AEF" : "\u672C\u5730" : null,
+      user.scopes?.length ? `\u6743\u9650\uFF1A${user.scopes.join("\u3001")}` : null
+    ].filter((part) => Boolean(part));
+    const detail = parts.length ? ` <span class="muted">\uFF08${parts.map(escapeHtml).join(" \xB7 ")}\uFF09</span>` : "";
+    return `${escapeHtml(user.username)}${detail}`;
+  }
+
   // extension/popup.ts
   var stateEl = document.getElementById("state");
   var loginButton = document.getElementById("login");
@@ -23,14 +37,11 @@
       stateEl.innerHTML = '<p class="muted">\u672A\u767B\u5F55</p>';
       return;
     }
-    stateEl.innerHTML = `<p>\u5DF2\u767B\u5F55\uFF1A${escapeHtml(user.username)}</p>`;
+    stateEl.innerHTML = `<p>\u5DF2\u767B\u5F55\uFF1A${formatIdentity(user)}</p>`;
     const captures = await sendMessage({ type: "LIST_CAPTURES", status: "inbox" });
     if (captures.ok) {
       stateEl.innerHTML += `<p class="muted">\u5F85\u89E3\u6790\u961F\u5217\uFF1A${captures.data.captures.length} \u6761</p>`;
     }
-  }
-  function escapeHtml(text) {
-    return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
   }
   loginButton.addEventListener("click", async () => {
     loginButton.disabled = true;

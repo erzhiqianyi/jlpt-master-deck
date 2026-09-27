@@ -1,5 +1,7 @@
 import { sendMessage, type AppUser, type CaptureCategory, type CaptureStatus, type LearningCapture, type Wordbook } from './lib/messages';
 import { wordbooksForCategory } from './lib/wordbooks';
+import { normalizeApiBaseUrl } from './lib/storage';
+import { formatIdentity } from './lib/identity';
 
 const accountEl = document.getElementById('account') as HTMLDivElement;
 const apiBaseUrlInput = document.getElementById('api-base-url') as HTMLInputElement;
@@ -29,8 +31,8 @@ async function refreshAccount() {
   }
   apiBaseUrlInput.value = state.data.apiBaseUrl;
   accountEl.innerHTML = state.data.user
-    ? `<span>已登录：${escapeHtml(state.data.user.username)}</span> <button id="logout" type="button">退出登录</button>`
-    : '<button id="login" type="button">使用 Google 登录</button>';
+    ? `<span>已登录：${formatIdentity(state.data.user)}</span> <button id="logout" type="button">退出登录</button>`
+    : '<button id="login" type="button">登录</button>';
   document.getElementById('login')?.addEventListener('click', async () => {
     const response = await sendMessage({ type: 'LOGIN' });
     if (!response.ok) { accountEl.innerHTML = `<span class="error">${escapeHtml(response.error)}</span>`; return; }
@@ -112,9 +114,21 @@ tabsEl.querySelectorAll<HTMLButtonElement>('button[data-status]').forEach((butto
 });
 
 saveSettingsButton.addEventListener('click', async () => {
-  const apiBaseUrl = apiBaseUrlInput.value.trim().replace(/\/+$/, '');
-  if (!apiBaseUrl) return;
-  await sendMessage({ type: 'SET_API_BASE_URL', apiBaseUrl });
+  let apiBaseUrl: string;
+  try {
+    apiBaseUrl = normalizeApiBaseUrl(apiBaseUrlInput.value);
+  } catch (error) {
+    alert(error instanceof Error ? error.message : '服务地址格式不对，例如 http://127.0.0.1:4221 或 https://jlpt.erzhiqian.cc（不要带 /api/jlpt/mcp）。');
+    return;
+  }
+  const granted = await chrome.permissions.request({ origins: [`${apiBaseUrl}/*`] });
+  if (!granted) {
+    alert('需要授权插件访问该地址才能继续，请重试并在弹出的确认框里点允许。');
+    return;
+  }
+  const response = await sendMessage<{ apiBaseUrl: string }>({ type: 'SET_API_BASE_URL', apiBaseUrl });
+  if (!response.ok) { alert(response.error); return; }
+  apiBaseUrlInput.value = apiBaseUrl;
   await refreshAccount();
   await refreshList();
 });

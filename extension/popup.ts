@@ -1,4 +1,5 @@
 import { sendMessage, type AppUser, type LearningCapture } from './lib/messages';
+import { formatIdentity } from './lib/identity';
 
 const stateEl = document.getElementById('state') as HTMLDivElement;
 const loginButton = document.getElementById('login') as HTMLButtonElement;
@@ -18,15 +19,11 @@ async function refresh() {
     stateEl.innerHTML = '<p class="muted">未登录</p>';
     return;
   }
-  stateEl.innerHTML = `<p>已登录：${escapeHtml(user.username)}</p>`;
+  stateEl.innerHTML = `<p>已登录：${formatIdentity(user)}</p>`;
   const captures = await sendMessage<{ captures: LearningCapture[] }>({ type: 'LIST_CAPTURES', status: 'inbox' });
   if (captures.ok) {
     stateEl.innerHTML += `<p class="muted">待解析队列：${captures.data.captures.length} 条</p>`;
   }
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char);
 }
 
 loginButton.addEventListener('click', async () => {

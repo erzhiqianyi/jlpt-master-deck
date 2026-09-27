@@ -1,6 +1,7 @@
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
+import { getDailySummary, listDailySummaries, validSummaryDate } from './daily-summary.mjs';
 import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
@@ -312,6 +313,15 @@ return async (req, res) => {
       return json(res, 200, { plan: getStudyPlan(user.id) });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/daily-summaries') {
+      return json(res, 200, { summaries: listDailySummaries(getDb(), user.id, 60).map(({ date, accuracy, totalQuestions }) => ({ date, accuracy, totalQuestions })) });
+    }
+    const dailySummaryMatch = /^\/api\/daily-summaries\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'GET' && dailySummaryMatch) {
+      const date = validSummaryDate(decodeURIComponent(dailySummaryMatch[1]));
+      return json(res, 200, { summary: getDailySummary(getDb(), user.id, date) });
+    }
+
     if (req.method === 'PUT' && (url.pathname === '/api/study-plan' || url.pathname === '/api/study-plan/profile')) {
       return json(res, 200, { plan: saveStudyPlanProfile(user.id, await readJson(req)) });
     }
@@ -478,7 +488,11 @@ return async (req, res) => {
 
     const dailyPracticeMatch = /^\/api\/daily-practices\/([^/]+)$/.exec(url.pathname);
     if (req.method === 'GET' && dailyPracticeMatch) {
-      const practice = getDailyPractice(user.id, dailyPracticeMatch[1]);
+      const requestedId = decodeURIComponent(dailyPracticeMatch[1]);
+      const isReference = /^PR-\d{6,}$/i.test(requestedId);
+      const resolved = isReference ? resolveReference(getDb(), user.id, requestedId) : null;
+      const practiceId = isReference ? (resolved?.entity === 'practice_session' ? resolved.id : null) : requestedId;
+      const practice = practiceId ? getDailyPractice(user.id, practiceId) : null;
       if (!practice) {
         return json(res, 404, { error: 'Daily practice not found' });
       }

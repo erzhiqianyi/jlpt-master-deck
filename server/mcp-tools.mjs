@@ -3,6 +3,8 @@ import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest,
 import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
 import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
 import { completeReadingFields, completeReadingSchema, validateCompleteReadingUpdate } from './reading-schema.mjs';
+import { findLookupItems } from './word-lookup.mjs';
+import { dailySummaryInput, generateDailySummaryContext, getDailySummary, upsertDailySummary, validSummaryDate } from './daily-summary.mjs';
 // Tool catalogue shared by the OAuth-protected HTTP MCP server (server/mcp-app.mjs) and the
 // legacy stdio server (server/mcp-server.mjs). Handlers receive `uid(ctx)`; nothing about the
 // caller comes from tool input.
@@ -204,6 +206,9 @@ export const tools = [
   // Every library operation is bound to the authenticated owner.
   tool('get_review_data', 'Read JLPT review items from your personal SQLite item library. JSON files are treated as export/import backups.',
     {}, ro, async (_args, ctx) => text(loadReviewData(uid(ctx)))),
+  tool('lookup_word', 'Exact-match lookup of a word or phrase against the personal item library (original, reading, base form and stored conjugations). Returns matching items with their meanings, or an empty list when nothing matches — queue a miss with create_learning_capture.',
+    { query: z.string().describe('The exact word or phrase to look up, as typed or selected by the learner.') }, ro,
+    async ({ query }, ctx) => text(findLookupItems(loadReviewData(uid(ctx)).items, query))),
   tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
     item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. core_memory is an array of exam note strings, one point per entry. Vocabulary and grammar share one field set: patterns[] { pattern, connection_zh?, meaning_zh?, example?, example_zh? } for connection forms, usage patterns and collocations; points[] { label, detail_zh } for usage features and traps; comparisons[] { target, difference_zh, kind?: "everyday" } for near-synonyms and everyday alternatives; register { level: written|spoken|both|formal, note_zh, exam_tip_zh }; explanation_zh for the detailed explanation; source { sentence, chat_summary } for provenance; input_at as the capture timestamp. Legacy names (grammar_forms, grammar_features, collocations, comparison_notes, everyday_alternatives, usage_register*, exam_register_zh, analysis, date, source_*) are still accepted and converted. Attach images with attach_review_item_image. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form, reading? }. Supply reading as the full kana reading for each form containing kanji (for example { kind: "polite", form: "頷きます", reading: "うなずきます" }); irregular readings such as 来ない/こない must be explicit. Keep form free of inline reading annotations. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
   }, rw, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
@@ -274,6 +279,15 @@ export const tools = [
     {}, ro, async (_args, ctx) => text(getStudyPlan(uid(ctx)))),
   tool('get_plan_generation_context', 'Read the learner profile, recent practice, weak points, daily summaries, and instructions needed to generate or revise a daily JLPT plan.',
     {}, ro, async (_args, ctx) => text(getPlanGenerationContext(uid(ctx)))),
+  tool('get_daily_summary', 'Read a saved daily learning summary. Does not generate one; returns not_found when absent.',
+    { date: z.iso.date().optional().describe('YYYY-MM-DD in Asia/Tokyo; defaults to today.') }, ro,
+    async ({ date }, ctx) => { const day = validSummaryDate(date); const summary = getDailySummary(getDb(), uid(ctx), day); return text(summary ? { status: 'found', ...summary } : { status: 'not_found', date: day, summary: null }); }),
+  tool('generate_daily_summary_context', 'Read deterministic statistics, wrong-answer evidence, related items, and recent weak points for an Agent to analyze. Does not call AI or save a summary.',
+    { date: z.iso.date().optional().describe('YYYY-MM-DD in Asia/Tokyo; defaults to today.') }, ro,
+    async ({ date }, ctx) => text(generateDailySummaryContext(getDb(), uid(ctx), date, analyzeWeakPoints(uid(ctx))))),
+  tool('upsert_daily_summary', 'Save an Agent-written daily summary after reading generate_daily_summary_context. One current summary per account and date.',
+    dailySummaryInput.shape, rw,
+    async (args, ctx) => text(upsertDailySummary(getDb(), uid(ctx), args))),
   tool('save_generated_study_plan', 'Save a complete agent-generated daily plan for calendar tracking. Replaces generated tasks while preserving matching completed task IDs. Send phases together with tasks so the plan outline stays in sync; omitting phases keeps the stored ones.', {
     phases: z.array(planPhase).max(12).optional().describe('2 to 5 non-overlapping phases covering the study period, ordered by date.'),
     tasks: z.array(planTask).max(730),

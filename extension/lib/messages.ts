@@ -32,8 +32,10 @@ export interface VocabMatch {
 }
 
 export interface AppUser {
-  id: number;
   username: string;
+  accountId?: string;
+  environment?: string;
+  scopes?: string[];
 }
 
 export type ExtensionMessage =

@@ -1,0 +1,18 @@
+.daily-summary-panel { margin: 1.25rem 0; padding: 1.25rem; border: 1px solid #d7dfd6; border-radius: 1.25rem; background: #fffdf8; color: #27312c; }
+.daily-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.daily-summary-header span { color: #68716b; font-size: .85rem; }
+.daily-summary-header h2 { margin: .2rem 0 0; font-size: 1.3rem; font-weight: 650; }
+.daily-summary-header select { max-width: 11rem; padding: .5rem .7rem; border: 1px solid #cbd6cb; border-radius: .65rem; background: white; }
+.daily-summary-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin: 1rem 0; }
+.daily-summary-stats div { padding: .8rem; border-radius: .7rem; background: #f1f5ed; }
+.daily-summary-stats dt { color: #68716b; font-size: .8rem; }
+.daily-summary-stats dd { margin: .1rem 0 0; font-size: 1.3rem; font-weight: 650; }
+.daily-summary-lead { line-height: 1.7; white-space: pre-line; }
+.daily-summary-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+.daily-summary-sections section { min-width: 0; padding: 1rem; border: 1px solid #e3e8df; border-radius: .8rem; }
+.daily-summary-sections h3 { font-weight: 650; }
+.daily-summary-sections ul { margin: .6rem 0 0; padding-left: 1.1rem; }
+.daily-summary-sections li + li { margin-top: .7rem; }
+.daily-summary-sections p { margin: .2rem 0 0; color: #58635d; line-height: 1.6; overflow-wrap: anywhere; }
+.daily-summary-empty { margin: 1rem 0 0; color: #68716b; }
+@media (max-width: 640px) { .daily-summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .daily-summary-sections { grid-template-columns: 1fr; } .daily-summary-header { align-items: flex-start; } }

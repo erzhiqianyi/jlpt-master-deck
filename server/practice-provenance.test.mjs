@@ -15,6 +15,7 @@ after(() => { getDb().close(); rmSync(dir, { recursive: true, force: true }); })
 const question = (id, source_origin, source_reference) => ({
   id, kind: '文法', prompt: `问题 ${id}`, choices: ['正解', '誤答'], answer: '正解',
   explanation_zh: '上下文要求选择符合接续的表达。',
+  translation_zh: `问题 ${id} 的完整中文译文。`,
   choiceAnalysis: [
     { choice: '正解', explanation: '符合题干给出的接续形式。' },
     { choice: '誤答', explanation: '这个选项的接续形式与题干不符。' },
@@ -42,5 +43,7 @@ test('draft and published practice preserve only explicit, evidenced question or
   assert.deepEqual(saved.questions.map((entry) => entry.source_origin),
     ['textbook_original', 'ai_generated', undefined, undefined]);
   assert.equal(saved.questions[0].source_reference, '教材 A 第 2 课 3 题');
+  assert.equal(saved.questions[0].translationZh, '问题 textbook 的完整中文译文。');
+  assert.equal(saved.questions[0].correctReason, '上下文要求选择符合接续的表达。');
   assert.equal(saved.questions[3].source_reference, undefined);
 });

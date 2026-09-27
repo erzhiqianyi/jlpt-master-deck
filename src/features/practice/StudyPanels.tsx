@@ -1,6 +1,5 @@
 import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
-import { practiceQuestionSourceLabel } from '../../domain/practiceProvenance';
 import { StudyText } from '../../components/StudyText';
 import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import type { QuestionReference } from '../../domain/questions';
@@ -10,7 +9,7 @@ import { normalizePracticeExplanations } from '../../domain/practiceExplanations
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { useMobileList } from '../../hooks/useMobileList';
-import { Pencil, ChevronLeft, ChevronRight, House, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
+import { BookOpenText, Pencil, ChevronLeft, ChevronRight, House, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
@@ -134,7 +133,6 @@ export function PracticeReviewPanel({
   labels,
   practiceTitle,
   practiceReference,
-  showQuestionSource = false,
   locale,
   showRuby,
   onRestart,
@@ -148,7 +146,6 @@ export function PracticeReviewPanel({
   labels: Record<string, string>;
   practiceTitle?: string;
   practiceReference?: string;
-  showQuestionSource?: boolean;
   locale: Locale;
   showRuby: boolean;
   onRestart: () => void;
@@ -192,13 +189,7 @@ export function PracticeReviewPanel({
   const activeAnswer = orderedAnswers[activeIndex];
   const activeQuestion = activeAnswer ? questionMap.get(activeAnswer.questionId) : undefined;
   const activeAnswerCorrect = activeQuestion && activeAnswer ? activeAnswer.selected === activeQuestion.answer : false;
-  const genericPracticeTitle = !attempt?.title && practiceTitle
-    ? /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)\s*(?:练习|練習|practice)?$/iu.test(practiceTitle.trim())
-    : false;
-  const reviewTitle = genericPracticeTitle
-    ? activeQuestion?.title ?? practiceTitle ?? labels.reviewSummaryTitle
-    : attempt?.title ?? practiceTitle ?? activeQuestion?.title ?? labels.reviewSummaryTitle;
-  const showQuestionTitle = Boolean(activeQuestion?.title && activeQuestion.title !== reviewTitle);
+  const reviewTitle = attempt?.title ?? practiceTitle ?? labels.reviewSummaryTitle;
   const answeredCount = orderedAnswers.length;
   const copy = locale === 'zh-CN'
     ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习' }
@@ -241,9 +232,6 @@ export function PracticeReviewPanel({
             </div>
           </div>
           <article key={activeQuestion.id} className="attempt-review-question">
-            <div>{!practiceReference ? <RecordReference reference={activeQuestion?.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
-            {showQuestionSource ? <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(activeQuestion)}{activeQuestion.source_origin === 'textbook_original' && activeQuestion.source_reference?.trim() ? ` · ${activeQuestion.source_reference.trim()}` : ''}</p> : null}
-            {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion.title}</h2> : null}
             {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
             <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -261,6 +249,10 @@ export function PracticeReviewPanel({
               })}
             </div>
           </article>
+          <div className="practice-question-reference">
+            {!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}
+            <QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} />
+          </div>
         </div>
         <AnswerPanel
           question={activeQuestion}
@@ -301,7 +293,6 @@ export function PracticePanel({
   labels,
   questionTypeLabel,
   practiceReference,
-  showQuestionSource = false,
   settings,
   onAnswer,
   onPrev,
@@ -327,7 +318,6 @@ export function PracticePanel({
   labels: Record<string, string>;
   questionTypeLabel: string;
   practiceReference?: string;
-  showQuestionSource?: boolean;
   settings: DisplaySettings;
   onAnswer: (question: Question, selected: string) => void;
   onPrev: () => void;
@@ -434,11 +424,7 @@ export function PracticePanel({
     }
   }
 
-  const genericPracticeTitle = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)\s*(?:练习|練習|practice)?$/iu.test(questionTypeLabel.trim());
-  const displayPracticeTitle = genericPracticeTitle
-    ? activeQuestion?.title ?? questionTypeLabel
-    : questionTypeLabel;
-  const showQuestionTitle = Boolean(activeQuestion?.title && activeQuestion.title !== displayPracticeTitle);
+  const displayPracticeTitle = questionTypeLabel;
   const answerSheetShowsResults = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
   const answerSheetFilterOptions = [
     { key: 'all' as const, label: labels.all ?? '全部' },
@@ -540,9 +526,6 @@ export function PracticePanel({
         </div>
 
         <div className="mt-4">
-          <div>{!practiceReference ? <RecordReference reference={activeQuestion?.practiceReference} locale={settings.locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} /></div>
-          {showQuestionSource && activeQuestion ? <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(activeQuestion)}{activeQuestion.source_origin === 'textbook_original' && activeQuestion.source_reference?.trim() ? ` · ${activeQuestion.source_reference.trim()}` : ''}</p> : null}
-          {showQuestionTitle ? <h2 className="text-2xl font-black text-[#3d3036]">{activeQuestion?.title ?? labels.noQuestion}</h2> : null}
           {activeQuestion?.instruction ? (
             <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
           ) : null}
@@ -610,6 +593,10 @@ export function PracticePanel({
             ) : null}
           </>
         ) : null}
+        {activeQuestion ? <div className="practice-question-reference">
+          {!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={settings.locale} /> : null}
+          <QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} />
+        </div> : null}
       </div>
 
       {activeQuestion && answers[activeQuestion.id] && (feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed')) ? (
@@ -869,7 +856,7 @@ function EntryLink({ item, label, compact = false }: { item: VocabItem; label: s
   );
 }
 
-export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange, onOrganize }: {
+export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenQuestionBank, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange, onOrganize }: {
   items: VocabItem[];
   questions: QuestionReference[];
   answers: AnswerState;
@@ -887,6 +874,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   onTips?: () => void;
   onReview?: () => void;
   onManageWordbooks?: () => void;
+  onOpenQuestionBank?: () => void;
   onOpenPendingCaptures?: () => void;
   onSaveCapture?: (input: { body: string; category: LearningCaptureCategory; context?: string; targetDeck?: Deck; targetWordbookId?: string }) => Promise<void>;
   onCreateWordbook?: (title: string, deck?: Deck) => Promise<Wordbook | null>;
@@ -1086,6 +1074,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
             { key: 'focused', label: '按题型练习', icon: <Target size={16} aria-hidden="true" />, active: showFocusedPractice, onClick: () => { setShowFocusedPractice((value) => !value); setShowCaptureForm(false); } },
             ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
             ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
+            ...(onOpenQuestionBank ? [{ key: 'bank', label: locale === 'zh-CN' ? '题库管理' : locale === 'ja' ? '問題集管理' : 'Question bank', icon: <BookOpenText size={16} aria-hidden="true" />, onClick: onOpenQuestionBank }] : []),
             ...(captureCategory && onSaveCapture ? [{ key: 'capture', label: isGrammarLibrary ? '记一个句型' : '记一个单词', icon: <Plus size={16} aria-hidden="true" />, active: showCaptureForm, onClick: () => { setShowCaptureForm((value) => !value); setShowFocusedPractice(false); setCaptureSaved(false); } }] : []),
           ]}
         >
@@ -1106,7 +1095,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
                 <p>按内容练习</p>
                 <div className="ledger-focused-practice-options">
                   {libraryWordbooks.length > 1 && onWordbookChange ? libraryWordbooks.slice(0, 8).map((wordbook) => (
-                    <button key={wordbook.id} type="button" onClick={() => { onWordbookChange(wordbook.id); setShowFocusedPractice(false); }}>
+                    <button key={wordbook.id} type="button" onClick={() => { onWordbookChange(wordbook.id); onPractice?.({ kind: 'random' }); setShowFocusedPractice(false); }}>
                       <span>{wordbook.title}</span>
                       <strong>{items.filter((item) => itemInWordbook(item, wordbook.id)).length} 项</strong>
                     </button>
@@ -1115,11 +1104,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
                     <button
                       key={`tag:${option.tag}`}
                       type="button"
-                      onClick={() => {
-                        if (isGrammarLibrary) { onPractice?.({ kind: 'tag', tag: option.tag }); return; }
-                        setSelectedTag(option.tag);
-                        setShowFocusedPractice(false);
-                      }}
+                      onClick={() => { onPractice?.({ kind: 'tag', tag: option.tag }); setShowFocusedPractice(false); }}
                     >
                       <span>#{option.tag}</span>
                       <strong>{option.count} 项</strong>

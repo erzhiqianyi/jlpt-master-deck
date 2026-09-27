@@ -212,7 +212,7 @@ export function PracticeReviewPanel({
       {activeQuestion && activeAnswer ? <>
         <div className="practice-question-section">
           <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-            <div><p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p><RecordReference reference={practiceReference} locale={locale} /></div>
+            <p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p>
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
               {orderedAnswers.length > 1 ? <ArrowButton label={copy.previous} direction="left" onClick={() => setReviewIndex(safeIndex(activeIndex - 1, orderedAnswers.length))} /> : null}
               <button
@@ -501,7 +501,7 @@ export function PracticePanel({
       {loading ? <p role="status" className="py-6 text-center">正在加载题目…</p> : null}
       <div className="practice-question-section">
         <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-          <div><p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p><RecordReference reference={practiceReference} locale={settings.locale} /></div>
+          <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
 
 

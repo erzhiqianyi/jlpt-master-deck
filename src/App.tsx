@@ -185,6 +185,7 @@ export default function App() {
     return saved > 0 && saved < 1 ? saved : 0.314159;
   });
   const [questionShuffleSeed, setQuestionShuffleSeed] = useState(() => Math.random());
+  const [topicShuffleEpoch, setTopicShuffleEpoch] = useState(0);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [progress, setProgress] = useState<ProgressState>({});
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
@@ -481,10 +482,20 @@ export default function App() {
       })),
     ]);
   }, [dailyPracticeDetails, data.items, locale, needsHistoryQuestions, activeView, attemptHistory, mistakeQuestions]);
+  const activeTopicPractice = activeView === 'daily-practice' && activeDailyPractice && topicDraftForPractice(activeDailyPractice, drafts) ? activeDailyPractice : null;
+  const topicQuestionSeed = useMemo(() => {
+    if (!activeTopicPractice) return 0;
+    const saved = Number(sessionStorage.getItem(`jlpt-topic-question-seed:${activeTopicPractice.id}`));
+    return saved > 0 && saved < 1 ? saved : Math.random();
+  }, [activeTopicPractice?.id, topicShuffleEpoch]);
+  useEffect(() => {
+    if (activeTopicPractice) sessionStorage.setItem(`jlpt-topic-question-seed:${activeTopicPractice.id}`, String(topicQuestionSeed));
+  }, [activeTopicPractice?.id, topicQuestionSeed]);
   const materializedQuestions = useMemo(
     () => {
       if (activeView === 'daily-practice') {
-        return activeDailyPractice?.questions ?? [];
+        const practiceQuestions = activeDailyPractice?.questions ?? [];
+        return activeTopicPractice ? shuffledBySeed(practiceQuestions, topicQuestionSeed) : practiceQuestions;
       }
       const focusedItemIds = new Set(practiceFocus?.kind === 'items' ? practiceFocus.itemIds : []);
       const focusedQuestions = (activeView === 'grammar' || activeView === 'vocabulary') && practiceFocus && practiceFocus.kind !== 'random'
@@ -497,7 +508,7 @@ export default function App() {
         : allQuestions;
       return activeView === 'vocabulary' ? shuffledBySeed(focusedQuestions, questionShuffleSeed) : focusedQuestions;
     },
-    [activeDailyPractice, activeView, allQuestions, data.items, practiceFocus, questionShuffleSeed],
+    [activeDailyPractice, activeTopicPractice, activeView, allQuestions, data.items, practiceFocus, questionShuffleSeed, topicQuestionSeed],
   );
   const vocabularyIndex = useMemo(() => {
     if (!pagedVocabulary) return [];
@@ -617,7 +628,7 @@ export default function App() {
       };
     });
   }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken]);
-  const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${JSON.stringify(practiceFocus)}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : ''}`;
+  const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${JSON.stringify(practiceFocus)}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : activeView === 'daily-practice' ? topicQuestionSeed : ''}`;
 
   useEffect(() => {
     setWordIndex(0);
@@ -841,9 +852,10 @@ export default function App() {
 
   function restartPractice() {
     const nextMixedSeed = Math.random();
+    const nextTopicSeed = activeTopicPractice ? Math.random() : 0;
     const nextQuestions = activeView === 'mixed'
       ? shuffledBySeed(buildQuestions(shuffledBySeed(questionItems, nextMixedSeed), locale, 20), nextMixedSeed)
-      : questions;
+      : activeTopicPractice ? shuffledBySeed(activeTopicPractice.questions, nextTopicSeed) : questions;
     const questionIds = new Set([...questions, ...nextQuestions].map((question) => question.id));
     const nextAnswers = Object.fromEntries(
       Object.entries(answers).filter(([questionId]) => !questionIds.has(questionId)),
@@ -864,6 +876,10 @@ export default function App() {
     if (activeView === 'mixed') {
       sessionStorage.setItem('jlpt-mixed-question-seed', String(nextMixedSeed));
       setMixedQuestionSeed(nextMixedSeed);
+    }
+    if (activeTopicPractice) {
+      sessionStorage.setItem(`jlpt-topic-question-seed:${activeTopicPractice.id}`, String(nextTopicSeed));
+      setTopicShuffleEpoch((epoch) => epoch + 1);
     }
     setActiveIndex(0);
     if (activeView === 'vocabulary') {
@@ -1095,6 +1111,11 @@ export default function App() {
     }
     setPracticeLoadError(null);
     const practice = dailyPractices.find((entry) => entry.id === practiceId) ?? dailyPracticeDetails.find((entry) => entry.id === practiceId);
+    const topicPractice = dailyPracticeDetails.find((entry) => entry.id === practiceId && topicDraftForPractice(entry, drafts));
+    if (topicPractice && !(activeAttempt?.practiceId === practiceId && !activeAttempt.completedAt)) {
+      sessionStorage.setItem(`jlpt-topic-question-seed:${practiceId}`, String(Math.random()));
+      setTopicShuffleEpoch((epoch) => epoch + 1);
+    }
     window.location.hash = routeHash('daily-practice', 'questions', practiceRouteId(practice) ?? practiceId);
   }
 
@@ -1151,6 +1172,10 @@ export default function App() {
         token: authToken,
         body: { date: todayDateKey(), title: drafts.find((draft) => draft.id === id && isTopicDraft(draft))?.title },
       });
+      if (drafts.some((draft) => draft.id === id && isTopicDraft(draft))) {
+        sessionStorage.setItem(`jlpt-topic-question-seed:${response.practice.id}`, String(Math.random()));
+        setTopicShuffleEpoch((epoch) => epoch + 1);
+      }
       setActiveDailyPractice(response.practice);
       await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
       window.location.hash = routeHash('daily-practice', 'questions', practiceRouteId(response.practice));
@@ -1278,6 +1303,10 @@ export default function App() {
     } });
     await apiRequest(`/api/drafts/${id}/confirm`, { method: 'POST', token: authToken, body: { unknownWords: '' } });
     const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, { method: 'POST', token: authToken, body: { date: todayDateKey() } });
+    if (drafts.some((draft) => draft.id === id && isTopicDraft(draft))) {
+      sessionStorage.setItem(`jlpt-topic-question-seed:${response.practice.id}`, String(Math.random()));
+      setTopicShuffleEpoch((epoch) => epoch + 1);
+    }
     setActiveDailyPractice(response.practice);
     await Promise.all([refreshDailyPractices(response.practice.id), refreshDrafts(id)]);
     window.location.hash = routeHash('daily-practice', 'questions', practiceRouteId(response.practice));
@@ -1512,7 +1541,8 @@ export default function App() {
   const listeningDetailReference = route.view === 'listening' && route.page === 'words' && route.itemId
     ? listeningQuestions.find((item) => item.id === route.itemId)?.reference
     : undefined;
-  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference);
+  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference,
+    matchesPracticeRoute(route.itemId, activeDailyPractice) ? activeDailyPractice?.reference : undefined);
   if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
   const parentCrumbRoute = pageCrumbs.at(-2)?.route;
   const defaultDataTab = dataTabForRoute(activeView);
@@ -2748,7 +2778,7 @@ function defaultDesktopStudyPage(view: AppView): StudyPage {
   return view === 'vocabulary' || view === 'grammar' || view === 'listening' || view === 'reading' ? 'words' : 'tips';
 }
 
-function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN', listeningDetailReference?: string): Array<{ label: string; route?: AppRoute }> {
+function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN', listeningDetailReference?: string, practiceReference?: string): Array<{ label: string; route?: AppRoute }> {
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
@@ -2766,7 +2796,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: 'words' } });
     if (supportsStudyPage(route.view)) {
       if (route.page !== 'words') crumbs.push({ label: studyPageLabelFor(route.view, route.page, labels), route: { view: route.view, page: route.page } });
-      if (route.itemId) crumbs.push({ label: route.view === 'listening' ? listeningDetailReference || '详情' : detailTitle || '详情', route });
+      if (route.itemId) crumbs.push({ label: route.view === 'daily-practice' ? practiceReference || route.itemId : route.view === 'listening' ? listeningDetailReference || '详情' : detailTitle || '详情', route });
     }
     return crumbs;
   }

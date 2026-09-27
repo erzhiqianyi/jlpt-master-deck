@@ -1694,7 +1694,7 @@ function CompactToggle({ checked, label, onChange }: { checked: boolean; label: 
   return (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3 text-sm font-bold transition-colors ${checked ? 'border-[#d95f8a] bg-[#fff0f5] text-[#a84269]' : 'border-[#d7dfd6] bg-white text-[#68716b]'}`}>
       <span className={`relative h-5 w-9 rounded-full transition-colors ${checked ? 'bg-[#d95f8a]' : 'bg-[#cbd2cc]'}`} aria-hidden="true">
-        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-[1.125rem]' : 'translate-x-0.5'}`} />
+        <span className={`absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-[1.125rem]' : 'translate-x-0.5'}`} />
       </span>
       <span>{label}</span>
     </button>
@@ -1761,9 +1761,6 @@ function VocabCard({
         <RubyText text={item.original} items={[item]} enabled={showRuby} />
       </h3>
       {reading ? <p lang="ja" className="mt-1 text-sm font-semibold text-[#8f365b]">{reading}</p> : null}
-      {item.images?.length || imageEditor ? (
-        <EntryImages item={item} token={token} editor={imageEditor} />
-      ) : null}
       <div className="mt-5 space-y-5 border-t border-[#f0d4dd] pt-5">
         <section>
           <h4 className={headingClass}>{labels.japaneseMeaning}</h4>
@@ -1950,6 +1947,9 @@ function VocabCard({
         <p className="mt-3 rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-xs leading-5 text-[#775516]">
           {labels.unverifiedContentNotice}
         </p>
+      ) : null}
+      {item.images?.length || imageEditor ? (
+        <EntryImages item={item} token={token} editor={imageEditor} />
       ) : null}
     </article>
   );

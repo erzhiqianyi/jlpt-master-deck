@@ -1064,6 +1064,40 @@ rt {
   background: repeating-linear-gradient(135deg, rgba(72, 78, 190, .04) 0 10px, rgba(72, 78, 190, .08) 10px 20px);
 }
 
+.item-image-trigger {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.item-image-trigger:focus-visible {
+  outline: 3px solid #a84269;
+  outline-offset: -3px;
+}
+
+.item-image-dialog {
+  width: min(96vw, 1500px);
+  max-width: 96vw;
+  max-height: 96dvh;
+  margin: auto;
+  padding: 16px;
+  overflow: auto;
+  border: 0;
+  border-radius: 16px;
+  color: #2e3431;
+  background: #fffdf9;
+  box-shadow: 0 24px 80px #10231d66;
+}
+
+.item-image-dialog::backdrop { background: #10231dcc; }
+.item-image-dialog img { display: block; max-width: 100%; max-height: calc(96dvh - 90px); margin: auto; object-fit: contain; }
+.item-image-dialog p { margin: 10px 48px 0 0; font-size: 14px; line-height: 1.5; }
+.item-image-dialog-close { position: sticky; top: 0; z-index: 1; display: block; width: 36px; height: 36px; margin: 0 0 -36px auto; border-radius: 50%; color: #263f32; background: #fff; box-shadow: 0 2px 10px #10231d33; font-size: 28px; line-height: 1; }
+.item-image-dialog-close:focus-visible { outline: 3px solid #a84269; }
+
 .ledger-memory-flip:not(.is-flipped):focus-visible {
   outline: 3px solid rgba(72, 78, 190, .28);
   outline-offset: 4px;

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ItemImage as ItemImageRecord } from '../types';
 
 /**
@@ -8,6 +9,7 @@ import type { ItemImage as ItemImageRecord } from '../types';
 export function ItemImage({ image, token, alt, className }: { image: ItemImageRecord; token?: string; alt: string; className?: string }) {
   const [src, setSrc] = useState(image.url ?? '');
   const [failed, setFailed] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     setFailed(false);
@@ -37,9 +39,36 @@ export function ItemImage({ image, token, alt, className }: { image: ItemImageRe
   }, [image.id, image.url, token]);
 
   if (failed) return <span className={`item-image item-image--missing ${className ?? ''}`} role="img" aria-label={alt} />;
-  return src
-    ? <img className={`item-image ${className ?? ''}`} src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
-    : <span className={`item-image item-image--loading ${className ?? ''}`} aria-hidden="true" />;
+  if (!src) return <span className={`item-image item-image--loading ${className ?? ''}`} aria-hidden="true" />;
+
+  return <>
+    <button
+      type="button"
+      className="item-image-trigger"
+      aria-label={`查看大图：${alt}`}
+      onClick={(event) => { event.stopPropagation(); dialogRef.current?.showModal(); }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <img className={`item-image ${className ?? ''}`} src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+    </button>
+    {createPortal(
+      <dialog
+        ref={dialogRef}
+        className="item-image-dialog"
+        aria-label={`大图：${alt}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (event.target === event.currentTarget) dialogRef.current?.close();
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="item-image-dialog-close" onClick={() => dialogRef.current?.close()} aria-label="关闭大图">×</button>
+        <img src={src} alt={alt} referrerPolicy="no-referrer" />
+        <p>{alt}</p>
+      </dialog>,
+      document.body,
+    )}
+  </>;
 }
 
 const MAX_IMAGE_EDGE = 1600;

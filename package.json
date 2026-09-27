@@ -19,7 +19,7 @@
     "dev:tunnel": "bash scripts/dev-with-tunnel.sh",
     "data:blank": "node scripts/create-blank-data.mjs",
     "plan:migrate-prototype": "node scripts/migrate-prototype-study-plan.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern dist-extension --ignore-pattern .next",
     "build:cloudflare": "npm run build && node scripts/prepare-cloudflare-build.mjs",
     "test:cloudflare": "npm run build:mcp-app && node --test cloudflare/*.test.mjs",
     "deploy:cloudflare": "npm run deploy:cloud-api && npm run build:cloudflare && wrangler pages deploy dist --project-name jlpt-master-deck --branch main",

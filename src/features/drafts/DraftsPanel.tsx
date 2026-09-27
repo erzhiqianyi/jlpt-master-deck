@@ -334,12 +334,13 @@ type GrammarItem = {
   id?: string;
   expression?: string;
   point?: string;
+  grammar_point?: string;
   meaning_zh?: string;
   connection?: string;
   usage?: string;
   example_ja?: string;
   example_zh?: string;
-  core_memory?: string;
+  core_memory?: string | string[];
   exam_tip?: string;
 };
 
@@ -616,6 +617,26 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
         </PreviewSection>
       ) : null}
 
+      {!sourceQuestions.length && !practiceQuestions.length && !reviewQuestions.length && !dailyQuiz.length && sections.length ? (
+        <PreviewSection icon={ClipboardList} title={labels.draftPracticeQuestions}>
+          <div className="divide-y divide-[#e1e6df]">
+            {sectionQuestionCount ? <QuestionList
+              questions={sections.flatMap((section) => Array.isArray(section.questions) ? section.questions : [])}
+              sections={sections.flatMap((section) => (Array.isArray(section.questions) ? section.questions : []).map(() => section))}
+              labels={labels}
+            /> : null}
+            {sections.filter((section) => !Array.isArray(section.questions) || !section.questions.length).map((section, index) => (
+              <section key={section.id ?? index} className="py-5">
+                {section.title ? <h4 className="text-base font-semibold text-[#27312c]">{section.title}</h4> : null}
+                {section.instruction ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.instruction}</p> : null}
+                {section.body ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.body}</p> : null}
+                {Array.isArray(section.items) ? <ul className="mt-3 grid gap-2 text-sm leading-6 text-[#68716b]">{section.items.map((item, itemIndex) => <li key={itemIndex}>{summarizeValue(item, labels)}</li>)}</ul> : null}
+              </section>
+            ))}
+          </div>
+        </PreviewSection>
+      ) : null}
+
       {grammarItems.length ? (
         <PreviewSection icon={BookOpenText} title={labels.draftGrammarPoints}>
           <GrammarItemList items={grammarItems} labels={labels} />
@@ -662,26 +683,6 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
               </li>
             ))}
           </ol>
-        </PreviewSection>
-      ) : null}
-
-      {!grammarItems.length && !grammarPoints.length && !answerAnalysis.length && !sourceQuestions.length && !practiceQuestions.length && !reviewQuestions.length && !dailyQuiz.length && sections.length ? (
-        <PreviewSection icon={ClipboardList} title={labels.draftPreview}>
-          <div className="divide-y divide-[#e1e6df]">
-            <QuestionList
-              questions={sections.flatMap((section) => Array.isArray(section.questions) ? section.questions : [])}
-              sections={sections.flatMap((section) => (Array.isArray(section.questions) ? section.questions : []).map(() => section))}
-              labels={labels}
-            />
-            {sections.filter((section) => !Array.isArray(section.questions) || !section.questions.length).map((section, index) => (
-              <section key={section.id ?? index} className="py-5">
-                {section.title ? <h4 className="text-base font-semibold text-[#27312c]">{section.title}</h4> : null}
-                {section.instruction ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.instruction}</p> : null}
-                {section.body ? <p className="mt-2 text-sm leading-6 text-[#4f5b55]">{section.body}</p> : null}
-                {Array.isArray(section.items) ? <ul className="mt-3 grid gap-2 text-sm leading-6 text-[#68716b]">{section.items.map((item, itemIndex) => <li key={itemIndex}>{summarizeValue(item, labels)}</li>)}</ul> : null}
-              </section>
-            ))}
-          </div>
         </PreviewSection>
       ) : null}
 
@@ -776,7 +777,7 @@ function GrammarItemList({ items, labels }: { items: GrammarItem[]; labels: Reco
   return (
     <div className="divide-y divide-[#e1e6df]">
       {items.map((item, index) => {
-        const title = item.expression ?? item.point ?? labels.draftUntitledItem;
+        const title = item.expression ?? item.point ?? item.grammar_point ?? labels.draftUntitledItem;
         return (
           <article key={item.id ?? `${title}-${index}`} className="py-4 first:pt-0 last:pb-0">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
@@ -788,7 +789,11 @@ function GrammarItemList({ items, labels }: { items: GrammarItem[]; labels: Reco
             {item.example_ja ? <p className="mt-3 rounded-md bg-[#f8faf7] p-3 text-base leading-7 text-[#27312c]">{item.example_ja}</p> : null}
             {item.example_zh ? <p className="mt-2 text-sm leading-6 text-[#68716b]">{item.example_zh}</p> : null}
             {item.exam_tip ? <p className="mt-2 text-sm font-semibold leading-6 text-[#856033]">{item.exam_tip}</p> : null}
-            {item.core_memory ? <p className="mt-2 text-sm font-semibold leading-6 text-[#31564c]">{item.core_memory}</p> : null}
+            {Array.isArray(item.core_memory) ? (
+              <ul className="mt-2 grid gap-2 text-sm font-semibold leading-6 text-[#31564c]">
+                {item.core_memory.map((line, lineIndex) => <li key={`${line}-${lineIndex}`}>{line}</li>)}
+              </ul>
+            ) : item.core_memory ? <p className="mt-2 text-sm font-semibold leading-6 text-[#31564c]">{item.core_memory}</p> : null}
           </article>
         );
       })}

@@ -12,7 +12,7 @@ mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
 const { createUser, loginUser, createLearningCapture, createListeningQuestion, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
-const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
+const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, AI_HOME_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
 
@@ -69,7 +69,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   createLearningCapture(user.id, { body: '面目躍如', category: 'word' });
   const other = createUser('someone-else', 'test-password');
   createLearningCapture(other.id, { body: 'should not leak', category: 'word' });
-  const listening = createListeningQuestion(user.id, { question: '何をしますか。', choices: ['読む', '書く', '聞く', '話す'], answerIndex: 2, audioFileName: 'mcp-test.wav', audioMime: 'audio/wav', audioBase64: Buffer.from('mcp-audio-bytes').toString('base64') });
+  const listening = createListeningQuestion(user.id, { question: '何をしますか。', choices: ['読む', '書く', '聞く', '話す'], choiceDetails: ['読む', '書く', '聞く', '話す'].map((choice) => ({ explanation: `${choice} の理由` })), answerIndex: 2, audioFileName: 'mcp-test.wav', audioMime: 'audio/wav', audioBase64: Buffer.from('mcp-audio-bytes').toString('base64') });
 
   const resource = await mcp.fetch(new Request(origin + '/.well-known/oauth-protected-resource'));
   assert.equal(resource.status, 200);
@@ -162,7 +162,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   // All six JLPT vocabulary types (plus grammar) are selectable through the published MCP schema.
   assert.deepEqual(startTool.inputSchema.properties.kinds.items.enum, ['meaning', 'grammar', 'kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'usage']);
   const resourcesList = await rpcResult(await rpc(issued.access_token, 'resources/list', {}, 10));
-  assert.deepEqual(resourcesList.result.resources.map((entry) => [entry.uri, entry.mimeType]), [[PRACTICE_UI_URI, MCP_APP_MIME], [REVIEW_CARDS_UI_URI, MCP_APP_MIME]]);
+  assert.deepEqual(resourcesList.result.resources.map((entry) => [entry.uri, entry.mimeType]), [[PRACTICE_UI_URI, MCP_APP_MIME], [REVIEW_CARDS_UI_URI, MCP_APP_MIME], [AI_HOME_UI_URI, MCP_APP_MIME]]);
   if (practiceViewAvailable()) {
     const read = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: PRACTICE_UI_URI }, 11));
     assert.equal(read.result.contents[0].mimeType, MCP_APP_MIME);
@@ -173,6 +173,9 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
     const cards = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_review_cards', arguments: {} }));
     assert.ok(Array.isArray(cards.result.structuredContent.cards));
     assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_review_cards')._meta, { ui: { resourceUri: REVIEW_CARDS_UI_URI } });
+    const homeResource = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: AI_HOME_UI_URI }));
+    assert.match(homeResource.result.contents[0].text, /get_ai_learning_home/);
+    assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_ai_learning_home')._meta, { ui: { resourceUri: AI_HOME_UI_URI } });
 
   }
 
@@ -201,6 +204,14 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const reopened = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_practice_session', arguments: { practice_id: practice.id } }, 14));
   assert.equal(reopened.result.structuredContent.completed, true);
   assert.equal((await rpcResult(await rpc(other.id ? issued.access_token : '', 'tools/call', { name: 'get_practice_session', arguments: { practice_id: 'nope' } }, 15))).result.isError, true);
+  const home = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_ai_learning_home', arguments: {} }));
+  assert.equal(typeof home.result.structuredContent.due.total, 'number');
+  const cardsBeforeRating = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_review_cards', arguments: { only_due: false } }));
+  const cardId = cardsBeforeRating.result.structuredContent.cards[0].id;
+  const rated = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'rate_review_card', arguments: { item_id: cardId, rating: 'easy' } }));
+  assert.equal(rated.result.structuredContent.item_id, cardId);
+  assert.equal(rated.result.structuredContent.progress.intervalDays, 7);
+  assert.equal(getStudyState(user.id).progress[cardId].intervalDays, 7);
 
   // get_connection_info reports the grant's user and environment, not the browser session's.
   assert.ok(names.includes('get_connection_info'));

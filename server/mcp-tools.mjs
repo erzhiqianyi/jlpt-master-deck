@@ -69,8 +69,9 @@ import {
   updateWordbook,
   PRACTICE_KINDS,
 } from './storage.mjs';
-import { getReviewCards } from './review-cards.mjs';
-import { reviewCardsResource, reviewCardsToolMeta, practiceResource, practiceToolMeta } from './mcp-ui.mjs';
+import { getReviewCards, rateReviewCard } from './review-cards.mjs';
+import { getAiLearningHome } from './ai-learning-home.mjs';
+import { aiHomeResource, aiHomeToolMeta, reviewCardsResource, reviewCardsToolMeta, practiceResource, practiceToolMeta } from './mcp-ui.mjs';
 import { createQueryTools } from './mcp-query.mjs';
 import { getDb } from './storage.mjs';
 
@@ -81,8 +82,9 @@ export const scopes = {
   'library:write': { description: '新增/更新听力题和复习条目、导出备份；删除你自己的复习条目、听力题、阅读题、词书、草稿、录音和每日练习', default: false },
 };
 
-const ro = { readOnlyHint: true, openWorldHint: false };
+const ro = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const rw = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+const replacing = { readOnlyHint: false, destructiveHint: true, openWorldHint: false };
 const destructive = { readOnlyHint: false, destructiveHint: true, openWorldHint: false };
 
 // users.id is INTEGER in SQLite; the OAuth layer only knows string owner ids.
@@ -219,11 +221,11 @@ export const tools = [
     async ({ query }, ctx) => text(findLookupItems(loadReviewData(uid(ctx)).items, query))),
   tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
     item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. core_memory is an array of exam note strings, one point per entry. Vocabulary and grammar share one field set: patterns[] { pattern, connection_zh?, meaning_zh?, example?, example_zh? } for connection forms, usage patterns and collocations; points[] { label, detail_zh } for usage features and traps; comparisons[] { target, difference_zh, kind?: "everyday" } for near-synonyms and everyday alternatives; register { level: written|spoken|both|formal, note_zh, exam_tip_zh }; explanation_zh for the detailed explanation; source { sentence, chat_summary } for provenance; input_at as the capture timestamp. Legacy names (grammar_forms, grammar_features, collocations, comparison_notes, everyday_alternatives, usage_register*, exam_register_zh, analysis, date, source_*) are still accepted and converted. Attach images with attach_review_item_image. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form, reading? }. Supply reading as the full kana reading for each form containing kanji (for example { kind: "polite", form: "頷きます", reading: "うなずきます" }); irregular readings such as 来ない/こない must be explicit. Keep form free of inline reading annotations. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
-  }, rw, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
+  }, replacing, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
   tool('delete_review_item', 'Permanently delete one review item (vocabulary, grammar, kanji-reading, or other seed) from your personal SQLite item library, along with its progress, answer history and now-unused images. This cannot be undone.',
     { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteReviewItem(uid(ctx), id), 'Review item not found') }), { scope: 'library:write' }),
   tool('export_review_data_backup', 'Export your personal SQLite review item library into monthly JSON backup files. Use only when a JSON backup is requested.',
-    {}, rw, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
+    {}, replacing, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
 
   // Everything below is filtered by uid(ctx) inside storage.mjs.
   tool('get_study_state', 'Read the same learning state as the web page: settings, answers, item progress, complete attempt history and active attempt.',
@@ -246,7 +248,7 @@ export const tools = [
     async ({ status, category }, ctx) => text(listLearningCaptures(uid(ctx), status).filter((capture) => !category || capture.category === category))),
   tool('update_learning_capture_status', 'Synchronize an owned queue entry after processing. Mark processed only after the parsed result has been successfully saved using the appropriate library tool. Leave failed or ambiguous inputs in inbox. Use inbox to retry or archived to dismiss.', {
     id: z.string(), status: z.enum(['inbox', 'processed', 'archived']),
-  }, rw, async ({ id, status }, ctx) => text(found(updateLearningCaptureStatus(uid(ctx), id, status), 'Capture not found'))),
+  }, replacing, async ({ id, status }, ctx) => text(found(updateLearningCaptureStatus(uid(ctx), id, status), 'Capture not found'))),
   tool('create_learning_capture', 'Save a word, sentence, grammar point, listening issue, or other learner question into the local inbox.', {
     body: z.string(),
     category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional(),
@@ -261,7 +263,7 @@ export const tools = [
     deck: z.enum(['n1_vocab', 'name_reading', 'grammar_expression']).optional().describe('Base deck used for generated review questions; grammar_expression creates a grammar wordbook.'),
   }, rw, async (args, ctx) => text(createWordbook(uid(ctx), args))),
   tool('organize_review_item', 'File a review item into one wordbook (an item belongs to exactly one wordbook of its own kind) and/or replace its tags. Omit a field to leave it unchanged.',
-    { itemId: z.string(), wordbookId: z.string().optional().describe('Destination wordbook id from list_wordbooks; must match the item deck family.'), tags: z.array(z.string()).optional().describe('Full replacement tag list.') }, rw,
+    { itemId: z.string(), wordbookId: z.string().optional().describe('Destination wordbook id from list_wordbooks; must match the item deck family.'), tags: z.array(z.string()).optional().describe('Full replacement tag list.') }, replacing,
     async ({ itemId, wordbookId, tags }, ctx) => text(found(organizeReviewItem(uid(ctx), itemId, { wordbookId, tags }), 'Review item not found'))),
   tool('attach_review_item_image', 'Attach a memory image to a vocabulary or grammar item; it appears on the item page and, when enabled, on review cards. Before generating the image, read the saved item. A grammar image should visibly include its exact expression, connection form, short meaning, and one saved Japanese example with its Chinese translation; add an essential form note when relevant. A vocabulary image should include the word, meaning or usage cue, and one saved example with translation. Check every rendered character at full size before uploading; the server cannot verify text inside pixels. Pass either image_url (https) or image_base64 with mime (PNG, JPEG, WebP or GIF, at most 5 MB). An item holds at most 6 images. Attach a replacement before removing the old image.',
     {
@@ -274,11 +276,11 @@ export const tools = [
     async ({ itemId, image_url, image_base64, mime, caption }, ctx) => text(found(addReviewItemImage(uid(ctx), itemId, image_url ? { url: image_url, caption } : { imageBase64: image_base64, mime, caption }), 'Review item not found')),
     { scope: 'library:write' }),
   tool('remove_review_item_image', 'Remove one image from a review item, identified by its images[].id or images[].url.',
-    { itemId: z.string(), image: z.string() }, rw,
+    { itemId: z.string(), image: z.string() }, destructive,
     async ({ itemId, image }, ctx) => text(found(removeReviewItemImage(uid(ctx), itemId, image), 'Review item not found')),
     { scope: 'library:write' }),
   tool('rename_wordbook', 'Rename a wordbook while keeping its id and assigned entries unchanged.',
-    { wordbookId: z.string(), title: z.string() }, rw,
+    { wordbookId: z.string(), title: z.string() }, replacing,
     async ({ wordbookId, title }, ctx) => text(found(updateWordbook(uid(ctx), wordbookId, { title }), 'Wordbook not found'))),
   tool('delete_wordbook', 'Delete a custom wordbook. Refuses built-in wordbooks and any wordbook that still has items; move its items to another wordbook with organize_review_item first.',
     { wordbookId: z.string() }, destructive,
@@ -294,13 +296,15 @@ export const tools = [
     { date: z.iso.date().optional().describe('YYYY-MM-DD in Asia/Tokyo; defaults to today.') }, ro,
     async ({ date }, ctx) => text(generateDailySummaryContext(getDb(), uid(ctx), date, analyzeWeakPoints(uid(ctx))))),
   tool('upsert_daily_summary', 'Save an Agent-written daily summary after reading generate_daily_summary_context. One current summary per account and date.',
-    dailySummaryInput.shape, rw,
+    dailySummaryInput.shape, replacing,
     async (args, ctx) => text(upsertDailySummary(getDb(), uid(ctx), args))),
   tool('save_generated_study_plan', 'Save a complete agent-generated daily plan for calendar tracking. Replaces generated tasks while preserving matching completed task IDs. Send phases together with tasks so the plan outline stays in sync; omitting phases keeps the stored ones.', {
     phases: z.array(planPhase).max(12).optional().describe('2 to 5 non-overlapping phases covering the study period, ordered by date.'),
     tasks: z.array(planTask).max(730),
-  }, rw, async ({ tasks, phases }, ctx) => text(saveGeneratedStudyPlan(uid(ctx), { tasks, phases }))),
-  tool('get_review_cards', 'Use this to browse the learner’s vocabulary and grammar as read-only flip cards. Defaults to due and never-reviewed items. Respects saved front/back text fields; images are not included. Supports deck/wordbook filters and offset pagination. Flipping does not grade answers or update mastery.', {
+  }, replacing, async ({ tasks, phases }, ctx) => text(saveGeneratedStudyPlan(uid(ctx), { tasks, phases }))),
+  tool('get_ai_learning_home', 'Open the learner’s AI study home with due-card counts, today’s review progress, recent formal practices, and suggested next actions. This is a read-only overview; actions require the learner to select one.',
+    {}, ro, async (_args, ctx) => structured(getAiLearningHome(uid(ctx))), { title: 'AI 学习首页', _meta: aiHomeToolMeta }),
+  tool('get_review_cards', 'Start or continue the learner’s vocabulary and grammar review cards. Defaults to due and never-reviewed items. Show the front first; after the learner reveals the back, ask for their own rating and call rate_review_card to persist progress. Respects saved front/back text settings; images are not included.', {
     deck: z.enum(['n1_vocab', 'name_reading', 'grammar_expression']).optional(),
     wordbook_id: z.string().optional(),
     only_due: z.boolean().optional(),
@@ -308,6 +312,9 @@ export const tools = [
     offset: z.number().int().min(0).optional(),
   }, ro, async (args, ctx) => structured(getReviewCards(uid(ctx), args)),
   { title: '复习卡片', _meta: reviewCardsToolMeta }),
+  tool('rate_review_card', 'Save the learner’s own memory rating for one owned review card. Call only after the learner has seen the answer and explicitly chosen forgot, hard, remembered, or easy. Updates mastery, review count, and next review time; never rate on the learner’s behalf.',
+    { item_id: z.string().min(1), rating: z.enum(['forgot', 'hard', 'remembered', 'easy']) }, rw,
+    async ({ item_id, rating }, ctx) => structured(rateReviewCard(uid(ctx), item_id, rating))),
   tool('list_due_reviews', 'List items whose nextReviewAt is due or overdue.',
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
   tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata without audio bytes.",
@@ -330,17 +337,17 @@ export const tools = [
   tool('list_listening_recordings', 'Read all your recordings for a listening question, including completed analyses; this does not claim or change a recording.',
     { question_id: z.string() }, ro,
     async ({ question_id }, ctx) => text(listListeningRecordings(uid(ctx), question_id))),
-  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Empty choices with answerIndex -1 are supported for listening-basic-training.',
+  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Provide the shared Japanese transcript and its Chinese translation when available. For every choice, provide choiceDetails in the same order with its translation and a specific explanation of why it is right or wrong. Empty choices with answerIndex -1 are supported for listening-basic-training.',
     listeningCreateFields, rw, async (args, ctx) => text(createListeningQuestion(uid(ctx), args)), { scope: 'library:write' }),
   ...['update_listening_question', 'edit_listening_question', 'patch_listening_question'].map((name) =>
-    tool(name, listeningUpdateDescription, listeningUpdateFields, rw,
+    tool(name, listeningUpdateDescription, listeningUpdateFields, replacing,
       async ({ id, ...patch }, ctx) => text(found(updateListeningQuestion(uid(ctx), id, patch), 'Listening question not found')),
       { scope: 'library:write' })),
   tool('upsert_listening_question', 'With id: partially update an owned question, preserving audio; unknown or unowned ids fail and never create a record. Without id: create a question, requiring question, choices, answerIndex, audioFileName, audioMime and real audioBase64. Audio fields are forbidden when updating; libraryNumber is only supported when updating.', {
     ...Object.fromEntries(Object.entries(listeningCreateFields).map(([key, schema]) => [key, schema.optional()])),
     ...listeningUpdateFields,
     id: z.string().min(1).optional(),
-  }, rw, async (args, ctx) => {
+  }, replacing, async (args, ctx) => {
     if (args.id !== undefined) {
       for (const key of ['audioFileName', 'audioMime', 'audioBase64']) {
         if (args[key] !== undefined) throw new Error(`${key} cannot be supplied when updating; audio is unchanged`);
@@ -363,7 +370,7 @@ export const tools = [
     { recording_id: z.string() }, rw,
     async ({ recording_id }, ctx) => text(found(buildListeningRecordingAnalysisContext(uid(ctx), recording_id), 'Listening recording or local audio file not found'))),
   tool('save_listening_recording_analysis', 'Write the completed local audio comparison back to the learner recording so the detail page can display it.',
-    { recording_id: z.string(), status: z.enum(['completed', 'failed']), analysis: recordingAnalysis.optional() }, rw,
+    { recording_id: z.string(), status: z.enum(['completed', 'failed']), analysis: recordingAnalysis.optional() }, replacing,
     async ({ recording_id, status, analysis }, ctx) => text(found(saveListeningRecordingAnalysis(uid(ctx), recording_id, { status, analysis }), 'Listening recording not found'))),
   tool('list_reading_questions', 'List all reading questions owned by the authenticated learner, including their explanations.',
     {}, ro, async (_args, ctx) => text(listReadingQuestions(uid(ctx)))),
@@ -372,7 +379,7 @@ export const tools = [
   tool('create_reading_question', 'Create a fully explained reading question. Required: full Chinese passage translation, four translated choices with reasoning/evidence/error types, overall explanation, summary/structure/verbatim key sentences, and worked solving steps and elimination techniques in explanationNodes. Incomplete analysis is rejected.',
     completeReadingFields, rw, async (args, ctx) => text(createReadingQuestion(uid(ctx), completeReadingSchema.parse(args)))),
   tool('update_reading_question', 'Partially update an owned reading question. The merged result must satisfy the same complete-analysis requirements as create; backfill missing legacy analysis in this update. Omitted fields are preserved; arrays and readingAnalysis are replaced as a whole. Never clear required analysis. When changing choices or the correct answer, keep explanations and error types aligned.',
-    { id: z.string(), ...Object.fromEntries(Object.entries(completeReadingFields).map(([key, schema]) => [key, schema.optional()])) }, rw,
+    { id: z.string(), ...Object.fromEntries(Object.entries(completeReadingFields).map(([key, schema]) => [key, schema.optional()])) }, replacing,
     async ({ id, ...patch }, ctx) => {
       const current = found(readingQuestionForUser(uid(ctx), id), 'Reading question not found');
       validateCompleteReadingUpdate(current, patch);
@@ -386,7 +393,7 @@ export const tools = [
     { title: z.string().optional(), minutes: z.number().optional() }, rw,
     async ({ title, minutes }, ctx) => text(createDailyReviewPackDraft(uid(ctx), { title, minutes }))),
   tool('generate_daily_practice', "Create a new version of today's personalized formal daily practice. Analyze the previous Asia/Tokyo day's answer history first, target weak question types with new same-type questions, and determine the appropriate amount of practice from the available evidence. If the previous day has no answers, fall back to broader answer history.",
-    { title: z.string().optional(), minutes: z.number().optional(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.') }, rw,
+    { title: z.string().optional(), minutes: z.number().optional(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.') }, replacing,
     async ({ title, minutes, date }, ctx) => text(createDailyPractice(uid(ctx), { title, minutes, date }))),
   tool('publish_draft_as_daily_practice', 'Publish one approved draft as a complete formal practice set in the Today workspace, preserving its question order and answer choices.',
     { draft_id: z.string(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.'), title: z.string().optional() }, rw,
@@ -419,7 +426,7 @@ export const tools = [
     { draft_id: z.string() }, ro,
     async ({ draft_id }, ctx) => text(found(getReviewPackDraft(uid(ctx), draft_id), 'Draft not found'))),
   tool('update_review_pack_draft', 'Update an owned review-pack draft in place. Supply title and/or the complete content object; omitted fields are preserved. Content replaces the entire previous content, so read the draft first and retain any fields or questions you do not intend to change. The draft id, status, and annotations are preserved.',
-    { draft_id: z.string().min(1), title: z.string().optional(), content: z.record(z.string(), z.unknown()).optional() }, rw,
+    { draft_id: z.string().min(1), title: z.string().optional(), content: z.record(z.string(), z.unknown()).optional() }, replacing,
     async ({ draft_id, title, content }, ctx) => {
       if (title === undefined && content === undefined) throw new Error('Provide title or content to update');
       const current = found(getReviewPackDraft(uid(ctx), draft_id), 'Draft not found');
@@ -447,7 +454,7 @@ export const tools = [
 ];
 
 /** Static resources served next to the tools: the MCP App view for practice sessions. */
-export const resources = [practiceResource, reviewCardsResource];
+export const resources = [practiceResource, reviewCardsResource, aiHomeResource];
 
 /** JSON Schema view of a tool's input, for surfaces that do not speak zod (the stdio server). */
 export function toolJsonSchema(entry) {

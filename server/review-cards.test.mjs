@@ -10,6 +10,8 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 const s = await import('./storage.mjs');
 const { tools } = await import('./mcp-tools.mjs');
+const { rateReviewCard } = await import('./review-cards.mjs');
+const { getAiLearningHome } = await import('./ai-learning-home.mjs');
 const tool = tools.find((entry) => entry.name === 'get_review_cards');
 const alice = s.createUser('cards-alice', 'test-password');
 const bob = s.createUser('cards-bob', 'test-password');
@@ -48,4 +50,22 @@ test('saved front/back fields are honored without returning private paths or cha
   assert.deepEqual(s.getStudyState(alice.id), before);
   assert.equal(tool.annotations.readOnlyHint, true);
   assert.throws(() => z.object(tool.inputSchema).parse({ limit: 100 }));
+});
+
+test('rating saves the review interval, removes a card from due, and keeps owner isolation', async () => {
+  const now = new Date('2026-09-30T06:00:00.000Z');
+  const before = getAiLearningHome(alice.id, now);
+  assert.equal(before.due.total, 2);
+  assert.equal(before.reviewed_today, 0);
+  const saved = rateReviewCard(alice.id, 'a1', 'remembered', now);
+  assert.equal(saved.progress.nextReviewAt, '2026-10-03T06:00:00.000Z');
+  assert.equal(saved.progress.reviewCount, 1);
+  assert.equal(saved.progress.correct, 1);
+  assert.equal(getAiLearningHome(alice.id, now).due.total, 1);
+  assert.equal(getAiLearningHome(alice.id, now).reviewed_today, 1);
+  assert.throws(() => rateReviewCard(bob.id, 'a2', 'easy', now), /not found/);
+  assert.throws(() => rateReviewCard(alice.id, 'a2', 'unrated', now), /Invalid card rating/);
+  const forgot = rateReviewCard(alice.id, 'a2', 'forgot', now);
+  assert.equal(forgot.progress.nextReviewAt, '2026-09-30T06:10:00.000Z');
+  assert.equal(forgot.progress.wrong, 1);
 });

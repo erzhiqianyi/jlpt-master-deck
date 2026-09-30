@@ -9,12 +9,14 @@ export type ReviewCards = {
   cards: { id: string; reference?: string; deck: string; front: Face; back: Face }[];
 };
 
-export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>) {
+export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>, rate: (itemId: string, rating: string) => Promise<void>) {
   let data: ReviewCards | null = null;
   let index = 0;
   let flipped = false;
   let busy = false;
   let error = '';
+  let saved = '';
+  let reviewed = 0;
   const node = (tag: string, text = '', className = '') => {
     const element = document.createElement(tag);
     element.textContent = text;
@@ -37,15 +39,39 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
     catch (cause) { error = cause instanceof Error ? cause.message : String(cause); }
     finally { busy = false; render(); }
   }
+  async function submitRating(rating: string) {
+    const card = data?.cards[index];
+    if (!card || !flipped || busy) return;
+    busy = true; error = ''; render();
+    try {
+      await rate(card.id, rating);
+      reviewed++;
+      saved = `已保存「${card.front[0]?.lines[0] ?? '卡片'}」的复习结果`;
+      data!.cards.splice(index, 1);
+      data!.total = Math.max(0, data!.total - 1);
+      flipped = false;
+      if (index >= data!.cards.length) index = 0;
+      if (!data!.cards.length && data!.filters.only_due !== false) {
+        try {
+          const next = await load({ ...data!.filters, offset: 0 });
+          setData(next);
+        } catch {
+          error = '评价已保存，但读取下一组失败。请重新加载。';
+        }
+      }
+    } catch (cause) { error = cause instanceof Error ? cause.message : String(cause); }
+    finally { busy = false; render(); }
+  }
   function render() {
     const section = node('section', '', 'review-cards');
     const header = node('header');
-    header.append(node('span', 'JLPT · 复习卡片', 'eyebrow'), node('p', '翻面回想，按自己的节奏复习。不会修改掌握度。', 'muted'));
+    header.append(node('span', 'JLPT · 复习卡片', 'eyebrow'), node('p', '先回想，再翻面评价。评价会保存到你的学习进度。', 'muted'));
     section.append(header);
+    if (saved) { const status = node('p', saved, 'saved'); status.setAttribute('role', 'status'); section.append(status); }
     if (error) { const alert = node('p', error, 'error'); alert.setAttribute('role', 'alert'); section.append(alert); }
     const card = data?.cards[index];
     if (card && data) {
-      const position = node('p', `${data.offset + index + 1} / ${data.total}`, 'position');
+      const position = node('p', `本次已复习 ${reviewed} 张 · 当前还有 ${data.total} 张到期`, 'position');
       position.setAttribute('aria-live', 'polite'); section.append(position);
       const face = node('article', '', 'card');
       face.setAttribute('aria-label', flipped ? '卡片背面' : '卡片正面');
@@ -63,18 +89,18 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
       }
       if (!entries.length) face.append(node('p', '这张卡片没有配置可显示的背面文字。'));
       section.append(face);
-      const controls = node('nav'); controls.setAttribute('aria-label', '卡片导航');
-      controls.append(button('上一张', () => { index--; flipped = false; render(); }, busy || index === 0),
-        button(flipped ? '查看正面' : '翻面查看', () => { flipped = !flipped; render(); }, busy),
-        button('下一张', () => { index++; flipped = false; render(); }, busy || index >= data.cards.length - 1));
+      const controls = node('nav'); controls.setAttribute('aria-label', '卡片复习');
+      if (!flipped) controls.append(button('翻面查看答案', () => { flipped = true; render(); }, busy));
+      else {
+        for (const [rating, label, interval] of [['forgot', '忘记', '10 分钟'], ['hard', '困难', '1 天'], ['remembered', '记得', '3 天'], ['easy', '简单', '7 天']]) {
+          const action = button(`${label} · ${interval}`, () => void submitRating(rating), busy);
+          action.dataset.rating = rating;
+          controls.append(action);
+        }
+      }
       section.append(controls);
-      const pages = node('footer');
-      const limit = Number(data.filters.limit ?? 20);
-      pages.append(button('上一组', () => void fetchPage(Math.max(0, data!.offset - limit)), busy || data.offset === 0),
-        button(busy ? '加载中…' : '下一组', () => void fetchPage(data!.next_offset!), busy || data.next_offset === null));
-      section.append(pages);
     } else {
-      section.append(node('p', busy ? '正在读取复习卡片…' : data ? '没有符合条件的卡片。' : '连接后读取你的到期复习卡片。', 'empty'));
+      section.append(node('p', busy ? '正在读取复习卡片…' : data ? reviewed ? `本次完成 ${reviewed} 张卡片；下次复习时间已保存。` : '今天没有到期的卡片。' : '连接后读取你的到期复习卡片。', 'empty'));
       section.append(button('重新加载', () => void fetchPage(0), busy));
     }
     root.replaceChildren(section);

@@ -1,0 +1,24 @@
+{
+  "name": "jlpt-master-deck",
+  "version": "0.1.0",
+  "description": "Practice and review Japanese vocabulary and grammar with your saved JLPT Master Deck data.",
+  "author": { "name": "Publisher name pending", "url": "https://jlpt.erzhiqian.cc" },
+  "interface": {
+    "displayName": "JLPT Master Deck",
+    "shortDescription": "Review your Japanese deck",
+    "longDescription": "Start from an AI learning home, review saved Japanese vocabulary and grammar cards, take personalized practice, and inspect your learning history through your connected JLPT Master Deck account.",
+    "developerName": "Publisher name pending",
+    "category": "Education & Research",
+    "capabilities": ["AI learning home", "Review cards", "Practice questions", "Study history"],
+    "websiteURL": "https://jlpt.erzhiqian.cc",
+    "privacyPolicyURL": "https://jlpt.erzhiqian.cc/privacy/",
+    "termsOfServiceURL": "https://jlpt.erzhiqian.cc/terms/",
+    "defaultPrompt": [
+      "Open my AI Japanese learning home.",
+      "Start five N1 vocabulary questions from my saved deck.",
+      "Summarize the mistakes in my recent practice."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

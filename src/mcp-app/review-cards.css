@@ -9,9 +9,13 @@ body { margin: 0; }
 h1 { font-size: clamp(26px,6vw,42px); font-weight: 600; line-height: 1.6; margin: 28px 0; }
 h2 { font-size: 12px; font-weight: 500; color: light-dark(#617968,#acc4b5); }
 .field p { white-space: pre-wrap; line-height: 1.8; margin: 8px 0; }
-nav { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 10px; margin-top: 20px; }
+nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 20px; }
+nav:has(button:only-child) { grid-template-columns: 1fr; }
 button { min-height: 44px; padding: 10px 14px; border-radius: 10px; border: 1px solid light-dark(#c8d9ce,#4e6958); background: light-dark(#fff,#26392e); color: inherit; cursor: pointer; font: inherit; font-size: 14px; }
-nav button:nth-child(2) { background: light-dark(#315d47,#a7d4b9); color: light-dark(#fff,#132b1d); border-color: transparent; }
+nav button:only-child { background: light-dark(#315d47,#a7d4b9); color: light-dark(#fff,#132b1d); border-color: transparent; }
+nav button[data-rating="forgot"] { border-color: light-dark(#ca9a95,#a9716b); }
+nav button[data-rating="remembered"], nav button[data-rating="easy"] { background: light-dark(#315d47,#a7d4b9); color: light-dark(#fff,#132b1d); }
+.saved { padding: 10px 14px; border-radius: 10px; background: light-dark(#eaf4ed,#294535); font-size: 13px; }
 button:disabled { opacity: .4; cursor: default; }
 button:focus-visible { outline: 3px solid #72a38c; outline-offset: 3px; }
 footer { display: flex; justify-content: space-between; margin-top: 16px; }

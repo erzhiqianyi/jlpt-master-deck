@@ -31,6 +31,6 @@ export function LoginLanding({ error, loading, onGoogle }: { error: string; load
     </section>
     <section className="welcome-features" aria-label="学习方式">{[{ icon: CalendarDays, title: '知道今天练什么', body: '从每日练习和专项主题开始，把学习拆成可以完成的一小步。' }, { icon: BookOpenText, title: '把知识连起来', body: '整理单词、语法和例句，在阅读与听力中理解它们的用法。' }, { icon: RotateCcw, title: '让复习有方向', body: '回看练习记录与错题，找到需要巩固的地方，再练一次。' }].map(({ icon: Icon, title, body }, index) => <article key={title}><div><Icon size={20}/><small>0{index + 1}</small></div><h2>{title}</h2><p>{body}</p></article>)}</section>
     <section className="welcome-faq" aria-label="使用前了解"><details><summary>登录后，从哪里开始？</summary><p>先打开“今天”查看练习，或到“练习”选择单词、语法、阅读、听力和表达主题。</p></details><details><summary>示例会影响我的学习记录吗？</summary><p>不会。这些是用于展示学习方式的固定示例，切换和浏览都不会保存答题记录。</p></details></section>
-    <footer className="welcome-footer"><span>JLPT MASTER DECK</span><span>一日一歩。按自己的节奏学习。</span></footer>
+    <footer className="welcome-footer"><span>JLPT MASTER DECK</span><span>一日一歩。按自己的节奏学习。</span><span><a href="/support/">支持与反馈</a> · <a href="/privacy/">隐私政策草案</a> · <a href="/terms/">使用条款草案</a></span></footer>
   </main>;
 }

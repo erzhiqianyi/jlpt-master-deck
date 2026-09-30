@@ -13,6 +13,7 @@ import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceHtml from 'jlpt:practice-html';
 import reviewCardsHtml from 'jlpt:review-cards-html';
+import aiHomeHtml from 'jlpt:ai-home-html';
 
 class RouteFailure extends Error { constructor(response) { super('Request rejected'); this.response = response; } }
 
@@ -48,7 +49,7 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite',
+      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, aiHomeHtml, dataSource: 'cloudflare-sqlite',
         readMedia: async (path, limit) => {
           const object = await this.env.MEDIA.get(objectKey(path));
           if (!object) return null;

@@ -16,6 +16,26 @@ export const CONSENT_PATH = '/oauth/authorize';
 /** Paths api.mjs hands to the MCP server before its own routing. */
 export const MCP_PATHS = /^\/(\.well-known\/oauth-|api\/jlpt\/(mcp|oauth)(\/|$|\?))/;
 
+// These tools depend on workstation files or local audio paths. Keep them in the local
+// MCP catalogue, but never advertise them from the hosted Cloudflare endpoint.
+export const HOSTED_EXCLUDED_TOOLS = new Set([
+  'list_local_official_samples',
+  'list_local_mock_exams',
+  'get_local_mock_exam',
+  'list_local_news_cycles',
+  'get_local_news_cycle',
+  'export_review_data_backup',
+  'list_pending_listening_recordings',
+  'get_listening_recording_analysis_context',
+  'save_listening_recording_analysis',
+]);
+
+export function availableTools() {
+  return currentPlatform()?.dataSource
+    ? tools.filter((tool) => !HOSTED_EXCLUDED_TOOLS.has(tool.name))
+    : tools;
+}
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const statusPath = join(rootDir, '.local', 'mcp-status.json');
 
@@ -76,7 +96,7 @@ export function createJlptMcp({ storage, onEvent = recordEvent, origins = origin
     scopes,
     identity,
     storage: storage ?? sqlStore(nodeSqlite(getDb())),
-    tools,
+    tools: availableTools(),
     resources,
     connectionInfo: { resolve: resolveConnection },
     origins,

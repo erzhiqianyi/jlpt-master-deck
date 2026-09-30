@@ -1,4 +1,4 @@
-import { getStudyState, loadReviewData } from './storage.mjs';
+import { getStudyState, loadReviewData, saveProgressEntry } from './storage.mjs';
 import { normalizeCoreMemory } from '../src/domain/coreMemory.mjs';
 
 // Only configured text fields enter the widget. Media needs separate authenticated delivery.
@@ -44,4 +44,33 @@ export function getReviewCards(userId, { deck, wordbook_id, only_due = true, lim
       };
     }),
   };
+}
+
+export const MEMORY_RATINGS = ['forgot', 'hard', 'remembered', 'easy'];
+
+/** Apply the same intervals and ease adjustments as the website's focused review. */
+export function rateReviewCard(userId, itemId, rating, now = new Date()) {
+  if (!MEMORY_RATINGS.includes(rating)) throw new Error('Invalid card rating');
+  const item = loadReviewData(userId).items.find((candidate) => candidate.id === itemId);
+  if (!item) throw new Error('Review card not found');
+  const current = getStudyState(userId).progress[itemId] ?? { correct: 0, wrong: 0, status: 'new' };
+  const intervals = { forgot: 0, hard: 1, remembered: 3, easy: 7 };
+  const easeDelta = { forgot: -0.2, hard: -0.05, remembered: 0.05, easy: 0.15 };
+  const nextDate = new Date(now);
+  if (rating === 'forgot') nextDate.setMinutes(nextDate.getMinutes() + 10);
+  else nextDate.setDate(nextDate.getDate() + intervals[rating]);
+  const progress = {
+    ...current,
+    correct: current.correct + (rating === 'forgot' ? 0 : 1),
+    wrong: current.wrong + (rating === 'forgot' ? 1 : 0),
+    status: rating === 'forgot' ? 'learning' : (current.reviewCount ?? 0) >= 4 ? 'mastered' : 'review',
+    firstSeenAt: current.firstSeenAt ?? now.toISOString(),
+    lastReviewedAt: now.toISOString(),
+    reviewCount: (current.reviewCount ?? 0) + 1,
+    ease: Math.max(1.3, Math.min(3, (current.ease ?? 2.5) + easeDelta[rating])),
+    intervalDays: intervals[rating],
+    nextReviewAt: nextDate.toISOString(),
+  };
+  saveProgressEntry(userId, itemId, progress);
+  return { item_id: itemId, rating, progress };
 }

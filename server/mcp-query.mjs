@@ -940,7 +940,7 @@ export function get(db, userId, args, now = new Date()) {
 // Tool entries (same shape as server/mcp-tools.mjs expects)
 // ---------------------------------------------------------------------------------------------
 
-const ro = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
+const ro = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 const guarded = (fn) => async (args, ctx, getDb) => {
   const request_id = requestId();

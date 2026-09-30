@@ -74,8 +74,20 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
       const body=JSON.parse(line?line.slice(5):raw); assert.ok(!body.error,JSON.stringify(body));return body.result;
     };
     const catalogue = (await rpc('tools/list')).tools;
+    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'list_local_news_cycles', 'get_local_news_cycle', 'export_review_data_backup', 'list_pending_listening_recordings', 'get_listening_recording_analysis_context', 'save_listening_recording_analysis']) {
+      assert.ok(!catalogue.some((tool) => tool.name === name), `${name} must not be published from Cloudflare`);
+    }
+    for (const tool of catalogue) {
+      for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof tool.annotations?.[hint], 'boolean', `${tool.name}.${hint}`);
+    }
     assert.ok(catalogue.some(x=>x.name==='get_review_data'));
+    assert.ok(catalogue.some(x=>x.name==='get_ai_learning_home'));
+    assert.ok(catalogue.some(x=>x.name==='rate_review_card'));
     assert.ok(catalogue.some(x=>x.name==='get_listening_audio'));
+    const home = await rpc('tools/call', { name: 'get_ai_learning_home', arguments: {} });
+    assert.equal(typeof home.structuredContent.due.total, 'number');
+    const homeView = await rpc('resources/read', { uri: 'ui://jlpt/ai-learning-home.html' });
+    assert.match(homeView.contents[0].text, /get_ai_learning_home/);
     const mcpAudio = await rpc('tools/call', { name:'get_listening_audio', arguments:{question_id:question.id} });
     assert.equal(mcpAudio.content[0].type, 'audio');
     assert.equal(mcpAudio.content[0].mimeType, 'audio/wav');

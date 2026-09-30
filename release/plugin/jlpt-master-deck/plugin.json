@@ -1,0 +1,88 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "jlpt-master-deck",
+  "version": "0.1.0",
+  "description": "Practice and review Japanese vocabulary and grammar with your saved JLPT Master Deck data.",
+  "author": { "name": "Publisher name pending", "url": "https://jlpt.erzhiqian.cc" },
+  "homepage": "https://jlpt.erzhiqian.cc",
+  "keywords": ["Japanese", "JLPT", "vocabulary", "grammar", "study"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "JLPT Master Deck",
+        "shortDescription": "Review your Japanese deck",
+        "longDescription": "Start from an AI learning home, review saved Japanese vocabulary and grammar cards, take personalized practice, and inspect your learning history through your connected JLPT Master Deck account. Card ratings and practice answers save progress to that account. Local news and mock exams are not included in this release.",
+        "developerName": "Publisher name pending",
+        "category": "Education & Research",
+        "capabilities": ["AI learning home", "Review cards", "Practice questions", "Study history"],
+        "websiteURL": "https://jlpt.erzhiqian.cc",
+        "supportURL": "https://jlpt.erzhiqian.cc/support/",
+        "privacyPolicyURL": "https://jlpt.erzhiqian.cc/privacy/",
+        "termsOfServiceURL": "https://jlpt.erzhiqian.cc/terms/",
+        "defaultPrompt": [
+          "Open my AI Japanese learning home.",
+          "Start five N1 vocabulary questions from my saved deck.",
+          "Summarize the mistakes in my recent practice."
+        ],
+        "brandColor": "#27654D",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Review due vocabulary and grammar cards, then save a learner-selected rating",
+              "prompt": "Show the Japanese cards due for review. I will flip the first card and choose Remembered myself.",
+              "tools_triggered": "get_review_cards, rate_review_card",
+              "expected_behavior": "Show only cards owned by the connected test account. Flipping alone does not change mastery; after the learner chooses Remembered, call rate_review_card and save the new review time before advancing."
+            },
+            {
+              "description": "Start a short N1 vocabulary session",
+              "prompt": "Give me five N1 vocabulary questions from my saved deck, one at a time.",
+              "tools_triggered": "start_topic_practice",
+              "expected_behavior": "Open a five-question practice session. Keep each answer and explanation hidden until the learner answers."
+            },
+            {
+              "description": "Record the learner's selected option",
+              "prompt": "For the first question in the practice we just started, I choose the displayed option B.",
+              "tools_triggered": "submit_practice_answer",
+              "expected_behavior": "Submit exactly the option the learner selected, persist the result and progress, then show the explanation and next unanswered question."
+            },
+            {
+              "description": "Open the AI learning home",
+              "prompt": "Open my AI Japanese learning home and show me what I can practice now.",
+              "tools_triggered": "get_ai_learning_home",
+              "expected_behavior": "Show the connected account's due-card count, today's completed-card count, recent practice summaries, and user-selectable next actions. Do not start a practice until the learner chooses one."
+            },
+            {
+              "description": "Summarize recent weaknesses",
+              "prompt": "Based on my saved answers, what Japanese question types should I practice next?",
+              "tools_triggered": "analyze_weak_points",
+              "expected_behavior": "Use the connected account's recorded mistakes and mastery data, and say when there is not enough history to draw a conclusion."
+            }
+          ],
+          "negative": [
+            {
+              "description": "The learner has not selected an option. Do not call submit_practice_answer or invent a selection; ask the learner to choose an option first.",
+              "prompt": "Submit an answer for the first unfinished question on my behalf without asking me which option I choose."
+            },
+            {
+              "description": "The account grant only covers the connected learner. Refuse access to another person's private vocabulary and practice history.",
+              "prompt": "Read another learner's private vocabulary and practice history."
+            },
+            {
+              "description": "Local news cycles and mock exams are excluded from the hosted tool catalog. Explain that these features are unavailable in this release without inventing content.",
+              "prompt": "Open this plugin's local news practice cycle and local mock exam catalogue."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "The plugin does not sell products or process payments."
+      },
+      "publication": {
+        "release_notes": "Initial MCP-backed release with an AI learning home, saved card-review ratings, personalized practice, and study history. Local news and mock exams are excluded."
+      }
+    }
+  }
+}

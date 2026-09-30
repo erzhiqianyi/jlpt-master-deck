@@ -7,8 +7,12 @@ const view = createReviewCardsView(document.getElementById('app')!, async (filte
   const result = await app.callServerTool({ name: 'get_review_cards', arguments: filters });
   if (result.isError || !Array.isArray(result.structuredContent?.cards)) throw new Error('无法读取复习卡片，请检查授权后重试。');
   return result.structuredContent as ReviewCards;
+}, async (itemId, rating) => {
+  const result = await app.callServerTool({ name: 'rate_review_card', arguments: { item_id: itemId, rating } });
+  if (result.isError || result.structuredContent?.item_id !== itemId) throw new Error('复习结果未保存，请重试。');
 });
 app.ontoolresult = (result) => {
+  if (result.structuredContent?.item_id) return;
   if (result.isError || !Array.isArray(result.structuredContent?.cards)) {
     view.showError('无法读取复习卡片，请检查授权后重试。'); return;
   }

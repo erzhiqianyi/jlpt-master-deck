@@ -8,10 +8,12 @@ export type MobileStudyPanel = 'task' | 'filter' | null;
 type NavItem = { view: AppView; label: string };
 type RouteNavItem = NavItem & { page?: StudyPage; itemId?: string; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
 
-export function MobileAppHeader({ onSearch, searchLabel, filterLabel, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+export function MobileAppHeader({ onSearch, searchLabel, filterLabel, filterName, filterIconOnly, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
   onSearch?: () => void;
   searchLabel?: string;
   filterLabel?: string;
+  filterName?: string;
+  filterIconOnly?: boolean;
   onHeaderFilter?: () => void;
   title: string;
   backLabel: string;
@@ -48,7 +50,7 @@ export function MobileAppHeader({ onSearch, searchLabel, filterLabel, onHeaderFi
           {title}
         </h1>
         <div className="flex min-w-0 items-center justify-end gap-1">
-          {onHeaderFilter ? <button type="button" onClick={onHeaderFilter} aria-label={`单词本筛选：${filterLabel}`} className="cute-focus flex h-10 min-w-0 max-w-full items-center gap-1 rounded-full px-2 text-[#a84269]"><Filter size={18} className="shrink-0" /><span className="truncate text-sm">{filterLabel}</span></button> : null}
+          {onHeaderFilter ? <button type="button" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`} title={`${filterName}：${filterLabel}`} className={`cute-focus flex h-10 min-w-0 max-w-full items-center justify-center gap-1 rounded-full text-[#a84269] ${filterIconOnly ? 'w-10' : 'px-2'}`}><Filter size={filterIconOnly ? 21 : 18} className="shrink-0" />{filterIconOnly ? null : <span className="truncate text-sm">{filterLabel}</span>}</button> : null}
           {onSearch ? <button type="button" onClick={onSearch} aria-label={searchLabel} className="cute-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#a84269]"><Search size={21} /></button> : null}
           {onAction && actionLabel ? (
             <button type="button" onClick={onAction} aria-label={actionLabel} title={actionLabel} className="flex h-10 w-10 items-center justify-center rounded-full text-[#a84269] hover:bg-[#fff0f5]">
@@ -229,8 +231,8 @@ export function MobileStudyControls({
                   ) : null}
                   {allowWordbookFilter ? (
                     <section className="py-3">
-                      <p className="px-1 pb-2 text-xs font-bold text-[#8f6f7b]">{labels.wordbookFilter}</p>
-                      <SheetChoice active={selectedWordbookId === 'all'} label={labels.wordbookAll} onClick={() => onWordbookChange('all')} />
+                      <p className="px-1 pb-2 text-xs font-bold text-[#8f6f7b]">{wordbookFamily === 'grammar' ? labels.grammarbookFilter : labels.wordbookFilter}</p>
+                      <SheetChoice active={selectedWordbookId === 'all'} label={wordbookFamily === 'grammar' ? labels.grammarbookAll : labels.wordbookAll} onClick={() => onWordbookChange('all')} />
                       {familyWordbooks.map((wordbook) => (
                         <SheetChoice
                           key={wordbook.id}
@@ -251,13 +253,14 @@ export function MobileStudyControls({
   );
 }
 
-export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch, showBack, filterLabel, onHeaderFilter }: {
+export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch, showBack, filterLabel, filterName, onHeaderFilter }: {
   breadcrumbs?: Array<{ label: string; onClick: () => void }>;
   title: string;
   labels: Record<string, string>;
   onBack: () => void;
   onSearch?: () => void;
   filterLabel?: string;
+  filterName?: string;
   onHeaderFilter?: () => void;
   showBack: boolean;
 }) {
@@ -270,7 +273,7 @@ export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch
           <button type="button" className="cute-focus rounded px-1 py-1 hover:bg-[#eaf4ed]" onClick={crumb.onClick} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</button>
         </span>)}
       </nav> : <h1 className="workspace-page-title">{title}</h1>}
-      {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`单词本筛选：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button>}
+      {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button>}
     </header>
   );
 }

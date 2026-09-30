@@ -38,7 +38,7 @@ import { MockExamPanel } from './features/practice/MockExamPanel';
 import { NewsCyclePanel } from './features/news/NewsCyclePanel';
 import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel, type WordIndexPracticeFocus } from './features/practice/StudyPanels';
 import { QuestionBankPanel } from './features/practice/QuestionBankPanel';
-import { filterableTags, itemInWordbook, wordbookFamily, wordbooksForFamily } from './domain/wordbooks';
+import { itemInWordbook, wordbookFamily } from './domain/wordbooks';
 import { QuestionTypeGuide } from './features/question-types/QuestionTypeGuide';
 import { QuestionTypeDetail } from './features/question-types/QuestionTypeDetail';
 import { ReadingPanel } from './features/reading/ReadingPanel';
@@ -1569,13 +1569,12 @@ export default function App() {
       : studyPage === 'review'
         ? labels.reviewPage
         : labels.questionPage;
-  const selectedMobileWordbook = wordbooks.find((wordbook) => wordbook.id === selectedWordbookId);
   const isLibraryEntryPage = ['vocabulary', 'grammar'].includes(activeView) && studyPage === 'words' && !route.itemId;
   const studyItemDetailOpen = studyPage === 'words' && Boolean(route.itemId);
-  const mobileFilterLabel = selectedWordbookId !== 'all' && selectedMobileWordbook
-    ? selectedMobileWordbook.title
-    : deckLabels[selectedDeck];
-  const showMobileStudyFilter = hasStudyControls && (activeView === 'vocabulary' || activeView === 'grammar') && studyPage !== 'words' && !studyItemDetailOpen;
+  const showQuestionBookFilter = (activeView === 'vocabulary' || activeView === 'grammar') && studyPage === 'questions';
+  const questionBookFilterName = activeView === 'grammar' ? labels.grammarbookFilter : labels.wordbookFilter;
+  const questionBookFilterLabel = wordbooks.find((book) => book.id === selectedWordbookId)?.title
+    ?? (activeView === 'grammar' ? labels.grammarbookAll : labels.wordbookAll);
   const mobileHeaderBackLabel = questionDetailOpen
     ? labels.historyBackToAttemptQuestions
     : studyItemDetailOpen
@@ -1588,10 +1587,6 @@ export default function App() {
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
     : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
-  const practiceTags = activeView === 'grammar' || activeView === 'vocabulary'
-    ? [...new Set(questionItems.flatMap(filterableTags))].sort((left, right) => left.localeCompare(right, locale))
-    : [];
-  const practiceBooks = wordbooksForFamily(wordbooks, activeView === 'grammar' ? 'grammar' : 'vocabulary');
   function withPracticeName(attempt: PracticeAttempt): PracticeAttempt {
     if (attempt.title?.trim()) return attempt;
     if (activeView === 'daily-practice' && activeDailyPractice) {
@@ -1626,9 +1621,11 @@ export default function App() {
     <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-hidden text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
-        onSearch={pagedVocabulary ? undefined : () => setSearchOpen(true)}
-        filterLabel={pagedVocabulary ? wordbooks.find((book) => book.id === selectedWordbookId)?.title ?? labels.deckAll : undefined}
-        onHeaderFilter={pagedVocabulary ? () => setMobileStudyPanel('filter') : undefined}
+        onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
+        filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
+        filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
+        filterIconOnly={showQuestionBookFilter}
+        onHeaderFilter={showQuestionBookFilter ? () => setMobileStudyPanel('filter') : undefined}
         searchLabel={labels.searchOpen}
         title={mobileHeaderTitle}
         backLabel={mobileHeaderBackLabel}
@@ -1687,9 +1684,10 @@ export default function App() {
           if (parentCrumbRoute) { navigateTo(parentCrumbRoute.view, parentCrumbRoute.page, parentCrumbRoute.itemId); return; }
           window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
         }}
-        onSearch={pagedVocabulary ? undefined : () => setSearchOpen(true)}
-        filterLabel={pagedVocabulary ? wordbooks.find((book) => book.id === selectedWordbookId)?.title ?? labels.deckAll : undefined}
-        onHeaderFilter={pagedVocabulary ? () => setMobileStudyPanel('filter') : undefined}
+        onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
+        filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
+        filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
+        onHeaderFilter={showQuestionBookFilter ? () => setMobileStudyPanel('filter') : undefined}
       />
 
           <div className="hidden border-b border-[#f0d4dd] bg-white/70 px-4 py-3 md:block">
@@ -1985,32 +1983,6 @@ export default function App() {
 	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <>
-                {(activeView === 'grammar' || activeView === 'vocabulary') ? <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-[#d8cdbc] bg-white p-3 text-sm">
-                  <label className="flex items-center gap-2 font-semibold text-[#46564e]">
-                    <span>{activeView === 'grammar' ? labels.grammarbookFilter : labels.wordbookFilter}</span>
-                    <select aria-label={activeView === 'grammar' ? labels.grammarbookFilter : labels.wordbookFilter} value={selectedWordbookId} onChange={(event) => {
-                      const id = event.target.value;
-                      setSelectedDeck(id === 'all' ? 'all' : wordbooks.find((book) => book.id === id)?.deck ?? 'all');
-                      setSelectedWordbookId(id);
-                      setPracticeFocus(null);
-                      setActiveIndex(0);
-                    }} className="h-10 max-w-56 rounded-md border border-[#d9d0c3] bg-white px-2">
-                      <option value="all">{activeView === 'grammar' ? labels.grammarbookAll : labels.wordbookAll}</option>
-                      {practiceBooks.map((book) => <option key={book.id} value={book.id}>{book.title}</option>)}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-2 font-semibold text-[#46564e]">
-                    <span>{labels.entryTagFilter}</span>
-                    <select aria-label={labels.entryTagFilter} value={practiceFocus?.kind === 'tag' && practiceTags.includes(practiceFocus.tag) ? practiceFocus.tag : ''} onChange={(event) => {
-                      setPracticeFocus(event.target.value ? { kind: 'tag', tag: event.target.value } : null);
-                      setActiveIndex(0);
-                    }} className="h-10 max-w-56 rounded-md border border-[#d9d0c3] bg-white px-2">
-                      <option value="">{labels.entryTagAll}</option>
-                      {practiceTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
-                    </select>
-                  </label>
-                  <span className="text-[#68736d]">{questions.length} {locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'}</span>
-                </div> : null}
                 <PracticePanel
                   token={authToken}
                   loading={batch.loading}

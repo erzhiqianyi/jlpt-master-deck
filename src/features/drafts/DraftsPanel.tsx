@@ -197,11 +197,11 @@ export function DraftsPanel({
         <article className="gentle-draft min-w-0 rounded-lg border border-[#d7dfd6] bg-white shadow-sm">
           {detailDraft ? (
             <>
-              <div className="gentle-draft-back border-b border-[#e1e6df] p-4 md:p-5">
+              {!embedded ? <div className="gentle-draft-back border-b border-[#e1e6df] p-4 md:p-5">
                 <button type="button" onClick={backToList} className="inline-flex items-center gap-2 text-sm font-semibold text-[#31564c] hover:underline">
                   <ArrowLeft size={16} /> {labels.draftBackToList}
                 </button>
-              </div>
+              </div> : null}
               <div className="gentle-draft-heading flex flex-col gap-4 p-4 md:flex-row md:items-start md:justify-between md:p-5">
                 <div>
                   

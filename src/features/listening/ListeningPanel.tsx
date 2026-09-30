@@ -54,7 +54,7 @@ type ListeningPanelProps = {
   onBackToLibrary?: () => void;
 };
 
-type ListeningDraft = { existingQuestionId?: string; title: string; questionTypeId: string; question: string; choices: string[]; answerIndex: number; explanation: string };
+type ListeningDraft = { existingQuestionId?: string; title: string; questionTypeId: string; question: string; choices: string[]; choiceDetails: { translation: string; explanation: string }[]; answerIndex: number; explanation: string };
 type ListeningAudioGroup = { key: string; representative: ListeningQuestion; questions: ListeningQuestion[] };
 const sameListeningHeading = (a: ListeningQuestion | undefined, b: ListeningQuestion | undefined) =>
   Boolean(a && b && a.questionTypeId === b.questionTypeId && a.title.trim() === b.title.trim());
@@ -66,8 +66,11 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   const [questionTypeId, setQuestionTypeId] = useState(defaultListeningQuestionTypeId);
   const [question, setQuestion] = useState(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
   const [choices, setChoices] = useState(['', '', '', '']);
+  const [choiceDetails, setChoiceDetails] = useState(() => emptyListeningChoiceDetails(4));
   const [answerIndex, setAnswerIndex] = useState(0);
   const [explanation, setExplanation] = useState('');
+  const [transcript, setTranscript] = useState('');
+  const [transcriptTranslation, setTranscriptTranslation] = useState('');
   const [queuedDrafts, setQueuedDrafts] = useState<ListeningDraft[]>([]);
   const [activeDraftIndex, setActiveDraftIndex] = useState<number | null>(null);
   const [matchingAudio, setMatchingAudio] = useState(false);
@@ -160,19 +163,22 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
     setSubmitting(true);
     try {
       const audioBase64 = await fileToBase64(audioFile);
-      const currentDraft = { title, questionTypeId, question, choices, answerIndex, explanation };
+      const currentDraft = { title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation };
       const drafts = activeDraftIndex === null ? [...queuedDrafts, currentDraft] : queuedDrafts.map((draft, index) => index === activeDraftIndex ? { ...draft, ...currentDraft } : draft);
       for (const draft of drafts) {
         const isBlankBasicTraining = draft.questionTypeId === 'listening-basic-training' && draft.choices.every((choice) => !choice.trim());
         const normalizedAnswerIndex = isBlankBasicTraining ? -1 : draft.questionTypeId === 'listening-outline' && draft.answerIndex < 0 ? 0 : draft.answerIndex;
-        await onCreate({ ...draft, answerIndex: normalizedAnswerIndex, audioFileName: audioFile.name, audioMime: audioFile.type || audioMimeFromName(audioFile.name), audioBase64 });
+        await onCreate({ ...draft, answerIndex: normalizedAnswerIndex, transcript, transcriptTranslation, audioFileName: audioFile.name, audioMime: audioFile.type || audioMimeFromName(audioFile.name), audioBase64 });
       }
       setTitle('');
       setQuestionTypeId(defaultListeningQuestionTypeId);
       setQuestion(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
       setChoices(['', '', '', '']);
+      setChoiceDetails(emptyListeningChoiceDetails(4));
       setAnswerIndex(0);
       setExplanation('');
+      setTranscript('');
+      setTranscriptTranslation('');
       setQueuedDrafts([]);
       setActiveDraftIndex(null);
       setShowForm(false);
@@ -187,13 +193,14 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   }
 
   function addDraft() {
-    const draft = { ...(activeDraftIndex === null ? {} : queuedDrafts[activeDraftIndex]), title, questionTypeId, question, choices, answerIndex, explanation };
+    const draft = { ...(activeDraftIndex === null ? {} : queuedDrafts[activeDraftIndex]), title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation };
     setQueuedDrafts((current) => activeDraftIndex === null ? [...current, draft] : current.map((item, index) => index === activeDraftIndex ? draft : item));
     setActiveDraftIndex(null);
     setTitle('');
     setQuestionTypeId(defaultListeningQuestionTypeId);
     setQuestion(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
     setChoices(['', '', '', '']);
+    setChoiceDetails(emptyListeningChoiceDetails(4));
     setAnswerIndex(0);
     setExplanation('');
   }
@@ -205,10 +212,11 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
     setChoices(draft.choices);
     setAnswerIndex(draft.answerIndex);
     setExplanation(draft.explanation);
+    setChoiceDetails(resizeListeningChoiceDetails(draft.choiceDetails ?? [], draft.choices.length));
   }
 
   function openDraft(index: number) {
-    const current = { title, questionTypeId, question, choices, answerIndex, explanation };
+    const current = { title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation };
     if (activeDraftIndex === null) tailDraft.current = current;
     else setQueuedDrafts((items) => items.map((item, i) => i === activeDraftIndex ? { ...item, ...current } : item));
     const draft = queuedDrafts[index] ?? tailDraft.current;
@@ -233,9 +241,15 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
         setQueuedDrafts(drafts);
         setActiveDraftIndex(0);
         loadDraft(drafts[0]);
+        setTranscript(drafts[0].transcript ?? '');
+        setTranscriptTranslation(drafts[0].transcriptTranslation ?? '');
         tailDraft.current = null;
         setMessage(`已加载同一音频的 ${drafts.length} 道题，保存时更新原题。`);
-      } else setMessage('这是新音频，可以添加题目。');
+      } else {
+        setTranscript('');
+        setTranscriptTranslation('');
+        setMessage('这是新音频，可以添加题目。');
+      }
     } catch (error) {
       if (selection === audioSelection.current) setMessage(error instanceof Error ? error.message : '音频检查失败');
     } finally {
@@ -253,7 +267,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       '请使用 JLPT Review 本地 MCP / 本地后台，为当前账号生成听力题库。',
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
-      '要求：读取或转写音频内容，生成 JLPT N1 风格听力题。每题包含标题、题目、4 个选项、正确答案、解析，并尽量标注听力线索。',
+      '要求：读取或转写音频内容，生成 JLPT N1 风格听力题。提供共享音频的完整日文原文和中文翻译；每道题的每个选项都填写中文翻译和具体解析（正确项说明依据，错误项说明错因），并保留整体解析作为补充。',
       '保存：生成后写入本应用的听力题库，完成后告诉我生成了哪些题。',
     ].join('\n');
     await navigator.clipboard.writeText(prompt);
@@ -311,7 +325,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-semibold text-[#46514c]">
               {labels.questionType}
-              <select value={questionTypeId} onChange={(event) => { const next = event.target.value; const nextGuidance = listeningTypeGuidance[next] ?? listeningTypeGuidance['listening-task']; setQuestionTypeId(next); setQuestion(nextGuidance.prompt); setChoices(nextGuidance.freeResponse ? ['', '', '', ''] : Array.from({ length: nextGuidance.choiceCount }, (_, index) => choices[index] ?? '')); setAnswerIndex(nextGuidance.freeResponse ? -1 : 0); }} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
+              <select value={questionTypeId} onChange={(event) => { const next = event.target.value; const nextGuidance = listeningTypeGuidance[next] ?? listeningTypeGuidance['listening-task']; const nextChoices = nextGuidance.freeResponse ? ['', '', '', ''] : Array.from({ length: nextGuidance.choiceCount }, (_, index) => choices[index] ?? ''); setQuestionTypeId(next); setQuestion(nextGuidance.prompt); setChoices(nextChoices); setChoiceDetails((current) => resizeListeningChoiceDetails(current, nextChoices.length)); setAnswerIndex(nextGuidance.freeResponse ? -1 : 0); }} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
                 {listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}
               </select>
             </label>
@@ -339,26 +353,27 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <textarea value={question} readOnly maxLength={1000} className="mt-2 min-h-24 w-full cursor-not-allowed rounded-md border border-[#c8d1c8] bg-[#f4f7f3] p-3 text-base leading-6 text-[#46514c]" required />
           </label>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3">
             {choices.slice(0, typeGuidance.freeResponse ? 4 : typeGuidance.choiceCount).map((choice, index) => (
-              <label key={index} className="block text-sm font-semibold text-[#46514c]">
-                {labels.listeningChoice.replace('{number}', String(index + 1))}
-                <input
-                  value={choice}
-                  onChange={(event) => setChoices((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))}
-                  maxLength={300}
-                  className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base"
-                  required={!typeGuidance.freeResponse && !typeGuidance.choicesOptional}
-                />
-              </label>
+              <fieldset key={index} className="grid gap-2 rounded-lg border border-[#dce9df] bg-[#fbfdfb] p-3 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-[#46514c] sm:col-span-2">
+                  {labels.listeningChoice.replace('{number}', String(index + 1))}{index === answerIndex ? ' · 正确答案' : ''}
+                  <input value={choice} onChange={(event) => setChoices((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} maxLength={300} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" required={!typeGuidance.freeResponse && !typeGuidance.choicesOptional} />
+                </label>
+                <label className="block text-sm font-medium text-[#68716b]">{labels.listeningChoiceTranslation}
+                  <input value={choiceDetails[index]?.translation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'translation', event.target.value))} maxLength={2000} className="mt-1 h-10 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-sm" />
+                </label>
+                <label className="block text-sm font-medium text-[#68716b]">{labels.listeningChoiceExplanation}
+                  <textarea value={choiceDetails[index]?.explanation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'explanation', event.target.value))} maxLength={4000} required={Boolean(choice.trim())} className="mt-1 min-h-16 w-full rounded-md border border-[#c8d1c8] bg-white p-2 text-sm leading-5" />
+                </label>
+              </fieldset>
             ))}
           </div>
           {typeGuidance.freeResponse ? <p className="text-xs font-normal text-[#68716b]">自由作答题不需要填写四个选项；解析中请写明参考回应、语气和判断要点。</p> : null}
           {!typeGuidance.freeResponse && typeGuidance.choicesOptional && questionTypeId === 'listening-basic-training' && !isBlankBasicTraining ? <p className="text-xs font-normal text-[#68716b]">基础训练题可以只填 2～3 个选项，从最后一个开始留空即可；若是纯填空题，可将全部选项留空。</p> : null}
 
-          <label className="block text-sm font-semibold text-[#46514c]">
-            {labels.listeningExplanation}
-            <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder={labels.listeningExplanationPlaceholder} maxLength={2000} className="mt-2 min-h-24 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-base leading-6" />
+          <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningExplanation}
+            <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder={labels.listeningOverallExplanationPlaceholder} maxLength={2000} className="mt-2 min-h-20 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-base leading-6" />
           </label>
 
 
@@ -367,6 +382,12 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <div className="mb-3 flex items-center justify-between"><h3 className="font-black text-[#31564c]">音频</h3><span className="text-xs text-[#68716b]">最多 25 MB</span></div>
             <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[#dce9df] pb-4"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1}</button>)}</div>
             <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningAudio}<input key={fileInputKey} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" onChange={(event) => void selectAudio(event.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-md border border-[#cbd6cf] bg-white p-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e9f0e9] file:px-3 file:py-2 file:font-semibold file:text-[#31564c]" required />{audioFile ? <span className="mt-2 block text-xs font-normal text-[#68716b]">{audioFile.name} · {formatFileSize(audioFile.size, locale)}</span> : null}</label>
+            <label className="mt-4 block text-sm font-semibold text-[#31564c]">{labels.listeningTranscript}
+              <textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptPlaceholder} className="mt-2 min-h-40 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
+            </label>
+            <label className="mt-3 block text-sm font-semibold text-[#68716b]">{labels.listeningTranscriptTranslation}
+              <textarea value={transcriptTranslation} onChange={(event) => setTranscriptTranslation(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptTranslationPlaceholder} className="mt-2 min-h-28 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
+            </label>
             {audioFile ? <UploadedAudioPreview file={audioFile} labels={labels} /> : <p className="mt-3 text-xs leading-5 text-[#68716b]">选择音频后可在这里试听。</p>}
           </aside>
           </div>
@@ -529,6 +550,8 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
             <button key={index} type="button" onClick={() => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} className={`cute-choice flex min-h-14 items-center gap-3 border px-4 py-3 text-left text-base font-bold ${resultClass}`}>
               <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
               <span className="min-w-0 break-words">{choice}</span>
+              {revealed && item.choiceDetails?.[index]?.translation ? <span className="mt-1 block text-sm font-normal text-[#68716b]">{item.choiceDetails[index].translation}</span> : null}
+              {revealed && item.choiceDetails?.[index]?.explanation ? <span className="mt-2 block border-t border-current/10 pt-2 text-sm font-normal leading-5 text-[#4f5b55]">{item.choiceDetails[index].explanation}</span> : null}
             </button>
           );
         })}
@@ -541,6 +564,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-bold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed && item.explanation ? <p className="cute-answer-note mt-4 whitespace-pre-wrap border border-[#f0d4dd] bg-[#fff7fb] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
+      {revealed && item.transcript ? <details className="mt-4 rounded-md border border-[#dce9df] bg-[#f7fbf7] p-3"><summary className="cursor-pointer font-bold text-[#31564c]">{labels.listeningTranscript}</summary><p lang="ja" className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.transcript}</p>{item.transcriptTranslation ? <details className="mt-3 border-t border-[#dce9df] pt-2"><summary className="cursor-pointer text-sm font-semibold text-[#68716b]">{labels.listeningShowTranslation}</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#4f5b55]">{item.transcriptTranslation}</p></details> : null}</details> : null}
       {revealed ? <ListeningAnswerBreakdown item={item} /> : null}
     </div>
   );
@@ -634,7 +658,10 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
           return (
             <label key={index} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm ${resultClass}`}>
               <input type="radio" name={`listening-${item.id}`} checked={selected === index} onChange={() => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
-              <span>{index + 1}. {choice}</span>
+              <span className="min-w-0">{index + 1}. {choice}
+                {revealed && item.choiceDetails?.[index]?.translation ? <span className="mt-1 block font-normal text-[#68716b]">{item.choiceDetails[index].translation}</span> : null}
+                {revealed && item.choiceDetails?.[index]?.explanation ? <span className="mt-2 block border-t border-current/10 pt-2 font-normal leading-5 text-[#4f5b55]">{item.choiceDetails[index].explanation}</span> : null}
+              </span>
             </label>
           );
         })}
@@ -645,6 +672,7 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed && item.explanation ? <p className="mt-4 whitespace-pre-wrap rounded-md bg-[#f5f7f3] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
+      {revealed && item.transcript ? <details className="mt-4 rounded-md border border-[#dce9df] bg-[#f7fbf7] p-3"><summary className="cursor-pointer font-bold text-[#31564c]">{labels.listeningTranscript}</summary><p lang="ja" className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.transcript}</p>{item.transcriptTranslation ? <details className="mt-3 border-t border-[#dce9df] pt-2"><summary className="cursor-pointer text-sm font-semibold text-[#68716b]">{labels.listeningShowTranslation}</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#4f5b55]">{item.transcriptTranslation}</p></details> : null}</details> : null}
       {revealed ? <ListeningAnswerBreakdown item={item} /> : null}
     </article>
   );
@@ -899,6 +927,18 @@ function audioMimeFromName(name: string) {
 
 function listeningQuestionTypeName(id: string | undefined) {
   return listeningQuestionTypes.find((type) => type.id === id)?.label ?? listeningQuestionTypes[0]?.label ?? '';
+}
+
+function emptyListeningChoiceDetails(count: number) {
+  return Array.from({ length: count }, () => ({ translation: '', explanation: '' }));
+}
+
+function resizeListeningChoiceDetails(details: { translation: string; explanation: string }[], count: number) {
+  return Array.from({ length: count }, (_, index) => details[index] ?? { translation: '', explanation: '' });
+}
+
+function updateListeningChoiceDetail(details: { translation: string; explanation: string }[], index: number, key: 'translation' | 'explanation', value: string) {
+  return details.map((detail, detailIndex) => detailIndex === index ? { ...detail, [key]: value } : detail);
 }
 
 function hasDistinctListeningQuestion(item: ListeningQuestion) {

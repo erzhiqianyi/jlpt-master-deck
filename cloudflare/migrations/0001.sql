@@ -77,6 +77,7 @@ CREATE TABLE listening_questions (
         choices_json TEXT NOT NULL,
         answer_index INTEGER NOT NULL,
         explanation TEXT NOT NULL,
+        choice_details_json TEXT NOT NULL DEFAULT '[]',
         audio_file_name TEXT NOT NULL,
         audio_mime TEXT NOT NULL,
         audio_size INTEGER NOT NULL,
@@ -91,6 +92,8 @@ CREATE TABLE listening_audio_assets (
         mime TEXT NOT NULL,
         size INTEGER NOT NULL,
         sha256 TEXT NOT NULL,
+        transcript TEXT NOT NULL DEFAULT '',
+        transcript_translation TEXT NOT NULL DEFAULT '',
         audio_path TEXT NOT NULL,
         created_at TEXT NOT NULL,
         UNIQUE(user_id, sha256)

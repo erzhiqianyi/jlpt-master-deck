@@ -33,6 +33,7 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV2(this.db);
         migrateCloudSchemaV3(this.db);
         migrateCloudSchemaV4(this.db);
+        migrateCloudSchemaV6(this.db);
         ensureDailySummarySchema(this.db);
         this.db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(5)');
         migrateReviewItemOwnership(this.db);
@@ -149,6 +150,18 @@ function migrateCloudSchemaV4(db) {
     PRIMARY KEY (user_id, provider)
   );
   INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(4);`);
+}
+
+function migrateCloudSchemaV6(db) {
+  const columns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
+  for (const [table, column, definition] of [
+    ['listening_questions', 'choice_details_json', "TEXT NOT NULL DEFAULT '[]'"],
+    ['listening_audio_assets', 'transcript', "TEXT NOT NULL DEFAULT ''"],
+    ['listening_audio_assets', 'transcript_translation', "TEXT NOT NULL DEFAULT ''"],
+  ]) {
+    if (!columns(table).has(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+  db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(6)');
 }
 
 function migrateCloudSchemaV3(db) {

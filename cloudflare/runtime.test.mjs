@@ -45,7 +45,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(revisedReading.explanation, '更新总解析');
     assert.equal((await request('/api/reading-questions/' + reading.id, 'PATCH', { explanation: 'stolen' }, 'test-2')).status, 404);
     assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
-    const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],answerIndex:2,audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
+    const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],choiceDetails:['読む','書く','聞く','話す'].map((choice)=>({translation:choice,explanation:`${choice} の理由`})),answerIndex:2,transcript:'男：音声の原文。',transcriptTranslation:'男：音频原文。',audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
     // Model an existing v2 database: 0001 already ran, but the later audio table is absent.
     assert.equal((await request('/__legacy-audio-schema')).status, 200);
     await mf.dispose(); mf=new Miniflare(options);

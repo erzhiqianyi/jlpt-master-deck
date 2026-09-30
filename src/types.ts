@@ -166,8 +166,11 @@ export type ListeningQuestion = {
   questionTypeId: string;
   question: string;
   choices: string[];
+  choiceDetails?: { translation: string; explanation: string }[];
   answerIndex: number;
   explanation: string;
+  transcript?: string;
+  transcriptTranslation?: string;
   audioFileName: string;
   audioMime: string;
   audioSize: number;

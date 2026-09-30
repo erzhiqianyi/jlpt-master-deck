@@ -19,6 +19,7 @@ const makeInput = (n) => ({
   title: `第${n}問`,
   question: `質問${n}`,
   choices: ['A', 'B', 'C', 'D'],
+  choiceDetails: ['A', 'B', 'C', 'D'].map((choice) => ({ translation: choice, explanation: `${choice} の理由` })),
   answerIndex: 0,
   explanation: `解説${n}`,
   audioFileName: `audio-${n}.mp3`,
@@ -72,6 +73,49 @@ test('MCP audio returns the owned file as audio content and rejects other users'
   assert.equal(result.content[0].mimeType, 'audio/mpeg');
   assert.deepEqual(Buffer.from(result.content[0].data, 'base64'), Buffer.from('fake-audio-bytes-mcp-audio'));
   await assert.rejects(tool.handler({ question_id: saved.id }, { ownerId: String(bob.id) }), /not found/i);
+});
+
+test('transcript and its translation are shared by questions on one audio and have separate scopes', async () => {
+  const audio = makeInput('transcript-shared');
+  const first = await call('create_listening_question', {
+    ...audio,
+    transcript: '男：大学の願書をコピーします。',
+    transcriptTranslation: '男：我会复印大学的申请表。',
+    choiceDetails: [
+      { translation: '复印申请表', explanation: '正确：对话最后明确要求先复印一张。' },
+      { translation: '填写申请表', explanation: '错误：填写要在复印之后。' },
+      { translation: '寄出申请表', explanation: '错误：对话没有提到邮寄。' },
+      { translation: '检查申请表', explanation: '错误：这是之后才做的事情。' },
+    ],
+  });
+  const second = await call('create_listening_question', { ...audio, title: '第2题', question: '次に何をしますか。' });
+  assert.equal(second.transcript, first.transcript);
+  assert.equal(second.transcriptTranslation, first.transcriptTranslation);
+  assert.equal(second.choiceDetails[0].translation, 'A');
+  assert.equal(first.choiceDetails[0].explanation, '正确：对话最后明确要求先复印一张。');
+
+  const getTool = tools.find((entry) => entry.name === 'get_listening_transcript');
+  const updateTool = tools.find((entry) => entry.name === 'update_listening_transcript');
+  assert.equal(getTool.scope, 'audio:read');
+  assert.equal(updateTool.scope, 'library:write');
+  assert.equal((await call('get_listening_transcript', { question_id: second.id })).transcript, first.transcript);
+  assert.equal(Object.hasOwn((await call('list_listening_questions', {})).find((item) => item.id === first.id), 'transcript'), false);
+  const updated = await call('update_listening_transcript', { question_id: second.id, transcript: '女：先复印一张。' });
+  assert.equal(updated.transcript, '女：先复印一张。');
+  assert.equal(storage.listeningQuestionForUser(alice.id, first.id).transcript, '女：先复印一张。');
+  await assert.rejects(call('update_listening_transcript', { question_id: second.id, transcript: '越权' }, bob), /not found/i);
+});
+
+test('question updates keep each choice translation and explanation aligned by index', async () => {
+  const saved = await call('create_listening_question', {
+    ...makeInput('choice-details'),
+  });
+  const changed = await call('update_listening_question', {
+    id: saved.id,
+    choiceDetails: [{ translation: '一', explanation: '依据一' }, { translation: '二', explanation: '理由二' }, { translation: '三', explanation: '错因三' }, { translation: '四', explanation: '错因四' }],
+  });
+  assert.deepEqual(changed.choiceDetails.map((entry) => entry.translation), ['一', '二', '三', '四']);
+  assert.deepEqual(changed.choiceDetails.map((entry) => entry.explanation), ['依据一', '理由二', '错因三', '错因四']);
 });
 
 test('libraryNumber reorder (题号) shifts intervening questions and stays unique', async () => {

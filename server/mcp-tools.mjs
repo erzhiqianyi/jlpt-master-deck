@@ -23,10 +23,12 @@ import {
   createDailyPracticeFromDraft,
   createLearningCapture,
   createListeningQuestion,
+  listeningTranscriptForUser,
   createReadingQuestion,
   listReadingQuestions,
   readingQuestionForUser,
   updateListeningQuestion,
+  updateListeningTranscript,
   updateReadingQuestion,
   createReviewPackDraft,
   createTopicPractice,
@@ -170,8 +172,11 @@ const listeningCreateFields = {
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string(),
   choices: z.array(z.string()).max(4),
+  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().min(1) })).max(4).describe('Required for every non-empty choice: one entry per choice, in choice order, with a reason it is right or wrong and an optional Chinese translation.'),
   answerIndex: z.number().int(),
   explanation: z.string().optional(),
+  transcript: z.string().max(30000).optional().describe('Japanese transcript shared by every question linked to this audio.'),
+  transcriptTranslation: z.string().max(30000).optional().describe('Optional full Chinese translation of the shared audio transcript.'),
   audioFileName: z.string(),
   audioMime: z.string(),
   audioBase64: z.string(),
@@ -182,11 +187,12 @@ const listeningUpdateFields = {
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string().optional(),
   choices: z.array(z.string()).max(4).optional(),
+  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().min(1) })).max(4).optional().describe('One entry per choice, in choice order; replace the full list together with choices. Each entry requires the reason that choice is right or wrong.'),
   answerIndex: z.number().int().optional(),
   explanation: z.string().optional(),
   libraryNumber: z.number().int().min(1).optional().describe('New 1-based 题号 position in the owner\'s listening library, e.g. move question #11 to #1.'),
 };
-const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, answer or explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
+const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, per-choice translations and explanations, answer or overall explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
 
 export const tools = [
   tool('get_reference_metadata', 'Read owned listening, audio asset, recording, capture or wordbook metadata by public reference. Does not expose audio bytes or filesystem paths.',
@@ -305,7 +311,15 @@ export const tools = [
   tool('list_due_reviews', 'List items whose nextReviewAt is due or overdue.',
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
   tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata without audio bytes.",
-    {}, ro, async (_args, ctx) => text(listListeningQuestions(uid(ctx)))),
+    {}, ro, async (_args, ctx) => text(listListeningQuestions(uid(ctx)).map(({ transcript, transcriptTranslation, ...question }) => question))),
+  tool('get_listening_transcript', 'Read the transcript and its optional translation for one owned listening question. The transcript is shared by every question linked to the same audio. Requires audio:read permission.',
+    { question_id: z.string().min(1) }, ro, async ({ question_id }, ctx) => text(found(listeningTranscriptForUser(uid(ctx), question_id), 'Listening transcript not found')), { scope: 'audio:read' }),
+  tool('update_listening_transcript', 'Update or clear the Japanese transcript and/or Chinese translation shared by every question linked to the selected audio. Requires library:write permission.',
+    { question_id: z.string().min(1), transcript: z.string().max(30000).optional(), transcriptTranslation: z.string().max(30000).optional() }, replacing,
+    async ({ question_id, ...patch }, ctx) => {
+      if (patch.transcript === undefined && patch.transcriptTranslation === undefined) throw new Error('Provide transcript or transcriptTranslation');
+      return text(found(updateListeningTranscript(uid(ctx), question_id, patch), 'Listening transcript not found'));
+    }, { scope: 'library:write' }),
   tool('get_listening_audio', 'Read the uploaded audio for one owned listening question as MCP audio content. Requires audio:read permission; use an id from list_listening_questions or resolve_reference. Audio is limited to 25 MB.',
     { question_id: z.string().min(1) }, ro,
     async ({ question_id }, ctx) => ({ content: [{ type: 'audio', ...found(await readListeningAudioForUser(uid(ctx), question_id), 'Listening audio not found') }] }),

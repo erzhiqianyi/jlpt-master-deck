@@ -164,6 +164,7 @@ export function getDb() {
         choices_json TEXT NOT NULL,
         answer_index INTEGER NOT NULL,
         explanation TEXT NOT NULL,
+        choice_details_json TEXT NOT NULL DEFAULT '[]',
         audio_file_name TEXT NOT NULL,
         audio_mime TEXT NOT NULL,
         audio_size INTEGER NOT NULL,
@@ -178,6 +179,8 @@ export function getDb() {
         mime TEXT NOT NULL,
         size INTEGER NOT NULL,
         sha256 TEXT NOT NULL,
+        transcript TEXT NOT NULL DEFAULT '',
+        transcript_translation TEXT NOT NULL DEFAULT '',
         audio_path TEXT NOT NULL,
         created_at TEXT NOT NULL,
         UNIQUE(user_id, sha256)
@@ -270,6 +273,9 @@ export function getDb() {
     ensureColumn('listening_questions', 'question_type_id', "TEXT NOT NULL DEFAULT 'listening-task'");
     ensureColumn('listening_questions', 'library_number', 'INTEGER');
     ensureColumn('listening_questions', 'audio_asset_id', 'TEXT');
+    ensureColumn('listening_questions', 'choice_details_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('listening_audio_assets', 'transcript', "TEXT NOT NULL DEFAULT ''");
+    ensureColumn('listening_audio_assets', 'transcript_translation', "TEXT NOT NULL DEFAULT ''");
     migrateListeningAudioAssets();
     ensureListeningLibraryNumbers();
     ensureColumn('learning_captures', 'target_deck', 'TEXT');
@@ -921,9 +927,15 @@ export function createListeningQuestion(userId, payload) {
         return trimmed;
       })()
     : rawChoices;
+  const choiceDetails = normalizeListeningChoiceDetails(payload?.choiceDetails, choices.length);
+  if (choices.some(Boolean) && choices.some((choice, index) => choice && !choiceDetails[index].explanation)) {
+    throw new Error('Add an explanation for every non-empty listening choice');
+  }
   const answerIndex = Number(payload?.answerIndex);
   const audioMime = String(payload?.audioMime ?? '').toLowerCase();
   const audioFileName = String(payload?.audioFileName ?? 'listening-audio').trim().slice(0, 180);
+  const transcript = String(payload?.transcript ?? '').trim().slice(0, 30000);
+  const transcriptTranslation = String(payload?.transcriptTranslation ?? '').trim().slice(0, 30000);
   const audioBase64 = String(payload?.audioBase64 ?? '').replace(/\s/g, '');
   const emptyChoices = choices.every((choice) => !choice);
   const freeResponse = false;
@@ -954,8 +966,14 @@ export function createListeningQuestion(userId, payload) {
   if (payload.existingQuestionId) {
     const existing = findListeningAudioQuestions(userId, audioHash).find((item) => item.id === payload.existingQuestionId);
     if (!existing) throw new Error('Question does not belong to this audio');
-    getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, answer_index=?, explanation=? WHERE user_id=? AND id=?')
-      .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), answerIndex, String(payload.explanation ?? '').slice(0,2000), userId, existing.id);
+    getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, choice_details_json=?, answer_index=?, explanation=? WHERE user_id=? AND id=?')
+      .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, String(payload.explanation ?? '').slice(0,2000), userId, existing.id);
+    if (payload.transcript !== undefined || payload.transcriptTranslation !== undefined) {
+      updateListeningTranscript(userId, existing.id, {
+        ...(payload.transcript !== undefined ? { transcript } : {}),
+        ...(payload.transcriptTranslation !== undefined ? { transcriptTranslation } : {}),
+      });
+    }
     return listeningQuestionForUser(userId, existing.id);
   }
   const existingAsset = getDb().prepare('SELECT id, audio_path, file_name, mime, size FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(userId, audioHash);
@@ -984,16 +1002,20 @@ export function createListeningQuestion(userId, payload) {
       `).get(userId).value);
       database.prepare(`
         INSERT INTO listening_questions (
-          id, user_id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
+          id, user_id, library_number, title, question_type_id, question, choices_json, choice_details_json, answer_index, explanation,
           audio_file_name, audio_mime, audio_size, audio_path, audio_asset_id, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation,
+        id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, explanation,
         storedAudioFileName, storedAudioMime, storedAudioSize, storedAudioPath, assetId, now,
       );
       if (!existingAsset) {
-        database.prepare(`INSERT INTO listening_audio_assets (id, user_id, file_name, mime, size, sha256, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(assetId, userId, storedAudioFileName, storedAudioMime, storedAudioSize, audioHash, storedAudioPath, now);
+        database.prepare(`INSERT INTO listening_audio_assets (id, user_id, file_name, mime, size, sha256, transcript, transcript_translation, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(assetId, userId, storedAudioFileName, storedAudioMime, storedAudioSize, audioHash, transcript, transcriptTranslation, storedAudioPath, now);
+      } else if (payload.transcript !== undefined || payload.transcriptTranslation !== undefined) {
+        const prior = database.prepare('SELECT transcript, transcript_translation FROM listening_audio_assets WHERE user_id = ? AND id = ?').get(userId, assetId);
+        database.prepare('UPDATE listening_audio_assets SET transcript = ?, transcript_translation = ? WHERE user_id = ? AND id = ?')
+          .run(payload.transcript === undefined ? prior.transcript : transcript, payload.transcriptTranslation === undefined ? prior.transcript_translation : transcriptTranslation, userId, assetId);
       }
     });
   } catch (error) {
@@ -1005,24 +1027,43 @@ export function createListeningQuestion(userId, payload) {
 
 export function listListeningQuestions(userId) {
   return getDb().prepare(`
-    SELECT id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
-      audio_asset_id,
-      audio_file_name, audio_mime, audio_size, created_at
-    FROM listening_questions
-    WHERE user_id = ?
-    ORDER BY library_number ASC, created_at ASC, id ASC
+    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation,
+      q.audio_asset_id, a.transcript, a.transcript_translation,
+      q.audio_file_name, q.audio_mime, q.audio_size, q.created_at
+    FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
+    WHERE q.user_id = ?
+    ORDER BY q.library_number ASC, q.created_at ASC, q.id ASC
   `).all(userId).map(mapListeningQuestion);
 }
 
 export function listeningQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT id, library_number, title, question_type_id, question, choices_json, answer_index, explanation,
-      audio_asset_id,
-      audio_file_name, audio_mime, audio_size, created_at
-    FROM listening_questions
-    WHERE user_id = ? AND id = ?
+    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation,
+      q.audio_asset_id, a.transcript, a.transcript_translation,
+      q.audio_file_name, q.audio_mime, q.audio_size, q.created_at
+    FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
+    WHERE q.user_id = ? AND q.id = ?
   `).get(userId, id);
   return row ? mapListeningQuestion(row) : null;
+}
+
+export function listeningTranscriptForUser(userId, questionId) {
+  const row = getDb().prepare(`
+    SELECT a.id AS audio_asset_id, a.transcript, a.transcript_translation
+    FROM listening_questions q JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
+    WHERE q.user_id = ? AND q.id = ?
+  `).get(userId, questionId);
+  return row ? { audioAssetId: row.audio_asset_id, transcript: row.transcript, transcriptTranslation: row.transcript_translation } : null;
+}
+
+export function updateListeningTranscript(userId, questionId, patch) {
+  const current = listeningTranscriptForUser(userId, questionId);
+  if (!current) return null;
+  const transcript = Object.hasOwn(patch, 'transcript') ? String(patch.transcript ?? '').trim().slice(0, 30000) : current.transcript;
+  const transcriptTranslation = Object.hasOwn(patch, 'transcriptTranslation') ? String(patch.transcriptTranslation ?? '').trim().slice(0, 30000) : current.transcriptTranslation;
+  getDb().prepare(`UPDATE listening_audio_assets SET transcript = ?, transcript_translation = ? WHERE user_id = ? AND id = ?`)
+    .run(transcript, transcriptTranslation, userId, current.audioAssetId);
+  return listeningTranscriptForUser(userId, questionId);
 }
 
 export function listeningAudioForUser(userId, id) {
@@ -1110,6 +1151,10 @@ export function updateListeningQuestion(userId, id, payload) {
     while (choices.length > 0 && !choices[choices.length - 1]) choices.pop();
   }
   const answerIndex = has('answerIndex') ? Number(payload.answerIndex) : current.answerIndex;
+  const choiceDetails = normalizeListeningChoiceDetails(has('choiceDetails') ? payload.choiceDetails : current.choiceDetails, choices.length);
+  if ((has('choices') || has('choiceDetails')) && choices.some(Boolean) && choices.some((choice, index) => choice && !choiceDetails[index].explanation)) {
+    throw new Error('Add an explanation for every non-empty listening choice');
+  }
   const title = has('title') ? (String(payload.title ?? '').trim().slice(0, 120) || question.slice(0, 120)) : current.title;
   const explanation = has('explanation') ? String(payload.explanation ?? '').trim().slice(0, 2000) : current.explanation;
 
@@ -1128,9 +1173,9 @@ export function updateListeningQuestion(userId, id, payload) {
 
   getDb().prepare(`
     UPDATE listening_questions
-    SET title = ?, question_type_id = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?
+    SET title = ?, question_type_id = ?, question = ?, choices_json = ?, choice_details_json = ?, answer_index = ?, explanation = ?
     WHERE user_id = ? AND id = ?
-  `).run(title, questionTypeId, question, JSON.stringify(choices), answerIndex, explanation, userId, id);
+  `).run(title, questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, explanation, userId, id);
 
   if (has('libraryNumber')) {
     reorderListeningQuestion(userId, id, payload.libraryNumber);
@@ -3673,13 +3718,26 @@ function mapListeningQuestion(row) {
     questionTypeId: normalizeListeningQuestionTypeId(row.question_type_id),
     question: row.question,
     choices: parseJson(row.choices_json, []),
+    choiceDetails: normalizeListeningChoiceDetails(parseJson(row.choice_details_json, []), parseJson(row.choices_json, []).length),
     answerIndex: Number(row.answer_index),
     explanation: row.explanation,
+    transcript: row.transcript ?? '',
+    transcriptTranslation: row.transcript_translation ?? '',
     audioFileName: row.audio_file_name,
     audioMime: row.audio_mime,
     audioSize: Number(row.audio_size),
     createdAt: row.created_at,
   };
+}
+
+function normalizeListeningChoiceDetails(value, count) {
+  return Array.from({ length: count }, (_, index) => {
+    const detail = Array.isArray(value) ? value[index] : null;
+    return {
+      translation: String(detail?.translation ?? '').trim().slice(0, 2000),
+      explanation: String(detail?.explanation ?? '').trim().slice(0, 4000),
+    };
+  });
 }
 
 function mapListeningRecording(row) {

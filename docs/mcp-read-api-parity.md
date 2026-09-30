@@ -45,6 +45,7 @@
 | `/listening-questions/:id/audio` | `get_listening_audio({ question_id })`，需单独授权 `audio:read`；返回 MCP 音频内容，不是公开 URL |
 | `/listening-audio-match?sha256=` | **新增** `find_listening_audio_questions` |
 | `/listening-questions/:id/recordings` | **新增** `list_listening_recordings`（含已完成解析，读取不领取分析任务） |
+| `/listening-recordings/:id/audio` | `get_listening_recording_audio({ recording_id })`，需单独授权 `audio:read`；返回用户跟读音频内容，不自动转写 |
 | `/reading-questions` | `list_reading_questions` |
 | `/reading-questions/:id` | `get_reading_question` |
 | `/drafts` | `list_review_pack_drafts` |
@@ -67,7 +68,7 @@
 ## 环境与非学习接口边界
 
 - 官方样题／模拟题仍需 localhost HTTP MCP 或本地 stdio；不能通过公开隧道读取工作站素材。新闻查询与原 API 一样可经已认证的本地服务读取。Cloudflare 没有本地素材，MCP 返回明确不可用错误，不假装数据为空。
-- 听力题音频可通过单独授权的 `get_listening_audio` 返回 MCP `audio` 内容，大小上限 25 MB；网页仍使用 `/listening-questions/:id/audio`。跟读录音、新闻音频及本地样题文件仍走原文件接口，未加入这个 MCP 工具。
+- 听力题音频和跟读录音分别可通过单独授权的 `get_listening_audio`、`get_listening_recording_audio` 返回 MCP `audio` 内容，大小上限均为 25 MB；网页仍使用各自的 `/audio` 接口。新闻音频及本地样题文件仍走原文件接口。
 - `/me` 对应 HTTP MCP 内置 `get_connection_info` 的授权账号信息。`/auth/config`、`/auth/firebase/status`、`/agents`、`/health` 是登录／连接管理和诊断接口，不是学习数据；本次未新增其 MCP 镜像。stdio 没有 HTTP 服务内置的 `get_connection_info`。
 - 所有个人数据操作从授权上下文获取 userId；市场公开分享沿用网页可见性规则。本次不扩展写入／删除权限。
 

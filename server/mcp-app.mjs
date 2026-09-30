@@ -25,9 +25,7 @@ export const HOSTED_EXCLUDED_TOOLS = new Set([
   'list_local_news_cycles',
   'get_local_news_cycle',
   'export_review_data_backup',
-  'list_pending_listening_recordings',
   'get_listening_recording_analysis_context',
-  'save_listening_recording_analysis',
 ]);
 
 export function availableTools() {

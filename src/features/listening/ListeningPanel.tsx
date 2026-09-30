@@ -6,7 +6,7 @@ import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { LearningList, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, LoaderCircle, Mic, Pause, Pencil, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Lightbulb, LoaderCircle, Mic, Pause, Pencil, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
@@ -138,14 +138,24 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <h2 className="truncate text-lg font-black text-[#3d3036]">{activeLibraryQuestion.reference ? `${activeLibraryQuestion.reference} · ` : ''}{listeningQuestionTypeName(activeLibraryQuestion.questionTypeId)}</h2>
           </div>
         </div>
-        <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => {
+        <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_minmax(440px,42%)]">
+        <div className="min-w-0 divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => {
           const sameAsPrevious = sameListeningHeading(activeGroup[index - 1], item);
           const sharedTitle = sameAsPrevious || sameListeningHeading(item, activeGroup[index + 1]);
           return <Fragment key={item.id}>
             {sharedTitle && !sameAsPrevious ? <h3 className="break-words bg-[#f4faf5] px-4 py-4 text-lg font-semibold leading-7 text-[#27312c] md:px-6">{item.title}</h3> : null}
-            <ListeningQuestionItem onRecordPractice={recordPractice} item={item} labels={labels} locale={locale} token={token} onUpdate={onUpdate} onDelete={onDelete} detail hideTitle={sharedTitle} showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />
+            <div id={`listening-question-${item.id}`} className="scroll-mt-6">
+              <ListeningQuestionItem onRecordPractice={recordPractice} item={item} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} detail hideTitle={sharedTitle} showTranscript={index === 0} questionNumber={index + 1} />
+            </div>
           </Fragment>;
         })}</div>
+        <aside className="order-first min-w-0 border-b border-[#f0d4dd] bg-[#fffafd] p-4 md:p-5 xl:order-last xl:border-b-0 xl:border-l" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
+          <div className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto">
+            <ListeningQuestionNavigation questions={activeGroup} locale={locale} />
+            <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} />
+          </div>
+        </aside>
+        </div>
       </section>
     );
   }
@@ -570,10 +580,72 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
   );
 }
 
-function ListeningQuestionItem({ item, labels, locale, token, onUpdate, onDelete, detail = false, hideTitle = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; detail?: boolean; hideTitle?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
-  const [editing, setEditing] = useState(false);
+function ListeningAudioTools({ item, labels, locale, token }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
+
+  useEffect(() => {
+    let disposed = false;
+    let objectUrl = '';
+    setAudioUrl('');
+    setAudioError('');
+    fetch(`/api/listening-questions/${item.id}/audio`, { headers: { authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (!response.ok) throw new Error(labels.listeningPlayError);
+        return response.blob();
+      })
+      .then((blob) => {
+        if (disposed) return;
+        objectUrl = URL.createObjectURL(blob);
+        setAudioUrl(objectUrl);
+      })
+      .catch(() => { if (!disposed) setAudioError(labels.listeningPlayError); });
+    return () => {
+      disposed = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [item.id, labels.listeningPlayError, token]);
+
+  return <div className="mt-4 min-w-0">
+    <h3 className="text-sm font-bold text-[#31564c]">{locale === 'ja' ? '音声を聞く' : locale === 'en' ? 'Listen to audio' : '听力播放'}</h3>
+    <p className="mt-1 break-all text-xs leading-5 text-[#778079]">{item.audioFileName}</p>
+    <div className="mt-3">{audioUrl ? <AudioPlayer src={audioUrl} labels={labels} /> : <p className="text-sm text-[#68716b]">{audioError || labels.listeningAudioLoading}</p>}</div>
+    <ListeningRecordingAnalysisPanel item={item} labels={labels} locale={locale} token={token} />
+  </div>;
+}
+
+function ListeningQuestionNavigation({ questions, locale }: { questions: ListeningQuestion[]; locale: Locale }) {
+  const [activeId, setActiveId] = useState(questions[0]?.id);
+
+  useEffect(() => {
+    setActiveId(questions[0]?.id);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) setActiveId(visible.target.id.replace('listening-question-', ''));
+    }, { rootMargin: '-15% 0px -65% 0px' });
+    for (const question of questions) {
+      const element = document.getElementById(`listening-question-${question.id}`);
+      if (element) observer.observe(element);
+    }
+    return () => observer.disconnect();
+  }, [questions]);
+
+  return <nav className="border-b border-[#ead1dc] pb-4" aria-label={locale === 'ja' ? '問題ナビゲーション' : locale === 'en' ? 'Question navigation' : '题目导航'}>
+    <h3 className="text-sm font-bold text-[#31564c]">{locale === 'ja' ? '問題ナビゲーション' : locale === 'en' ? 'Questions' : '题目导航'} <span className="font-normal text-[#778079]">({questions.length})</span></h3>
+    <div className="mt-3 flex flex-wrap gap-2">
+      {questions.map((question, index) => <button key={question.id} type="button"
+        onClick={() => { setActiveId(question.id); document.getElementById(`listening-question-${question.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+        aria-label={locale === 'ja' ? `問題 ${index + 1}` : locale === 'en' ? `Question ${index + 1}` : `第 ${index + 1} 题`}
+        aria-current={activeId === question.id ? 'location' : undefined}
+        className={`inline-flex h-11 w-11 items-center justify-center rounded-lg border text-sm font-semibold transition-colors ${activeId === question.id ? 'border-[#7aa88b] bg-[#edf5ee] text-[#31564c]' : 'border-[#d8e0d7] bg-white text-[#46514c] hover:bg-[#f4faf5]'}`}>
+        {index + 1}
+      </button>)}
+    </div>
+  </nav>;
+}
+
+function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detail = false, hideTitle = false, showTranscript = false, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; detail?: boolean; hideTitle?: boolean; showTranscript?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
+  const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
@@ -600,27 +672,6 @@ function ListeningQuestionItem({ item, labels, locale, token, onUpdate, onDelete
   const confirm = useConfirmation();
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!showAudio) return;
-    let disposed = false;
-    let objectUrl = '';
-    fetch(`/api/listening-questions/${item.id}/audio`, { headers: { authorization: `Bearer ${token}` } })
-      .then((response) => {
-        if (!response.ok) throw new Error(labels.listeningPlayError);
-        return response.blob();
-      })
-      .then((blob) => {
-        if (disposed) return;
-        objectUrl = URL.createObjectURL(blob);
-        setAudioUrl(objectUrl);
-      })
-      .catch(() => { if (!disposed) setAudioError(labels.listeningPlayError); });
-    return () => {
-      disposed = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [item.id, labels.listeningPlayError, showAudio, token]);
-
   async function remove() {
     if (!(await confirm({ title: labels.listeningDelete, description: labels.listeningDeleteConfirm, confirmLabel: labels.listeningDelete, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeleting(true);
@@ -639,18 +690,14 @@ function ListeningQuestionItem({ item, labels, locale, token, onUpdate, onDelete
             <RecordReference reference={item.reference} locale={locale} />
             <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber}${hideTitle ? '' : ` · ${item.title}`}` : item.title}</h3>
           </div>
-          {showAudio ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
+          {showTranscript ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
         </div>
         <div className="flex shrink-0 justify-end gap-1">
           {detail ? <QuestionAction label={`编辑: ${item.title}`} title="编辑" onClick={() => setEditing((value) => !value)}><Pencil size={16} /></QuestionAction> : null}
           <QuestionAction label={`${labels.listeningDelete}: ${item.title}`} title={labels.listeningDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction>
         </div>
       </div>
-      {editing ? <ListeningQuestionEditor key={item.id} item={item} labels={labels} showTranscript={showAudio} onUpdate={onUpdate} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} /> : null}
-      {showAudio ? <div className="mt-4">
-        {audioUrl ? <AudioPlayer src={audioUrl} labels={labels} /> : <p className="text-sm text-[#68716b]">{audioError || 'Loading audio...'}</p>}
-      </div> : null}
-      {detail && showRecording ? <ListeningRecordingAnalysisPanel item={item} labels={labels} locale={locale} token={token} /> : null}
+      {editing ? <ListeningQuestionEditor key={item.id} item={item} labels={labels} showTranscript={showTranscript} onUpdate={onUpdate} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} /> : null}
       {!detail && hasDistinctListeningQuestion(item) ? <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p> : null}
       {isFreeResponse(item) ? <textarea value={freeResponse} onChange={(event) => { setFreeResponse(event.target.value); setRevealed(false); setAnswerNotice(''); }} placeholder="写下你的回答" className="mt-3 min-h-24 w-full rounded-md border border-[#d8e0d7] bg-white p-3 text-sm leading-6" /> : null}
       {!isFreeResponse(item) ? <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -754,7 +801,6 @@ function ListeningRecordingAnalysisPanel({ item, labels, locale, token }: { item
   const [seconds, setSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
-  const latest = recordings[0];
 
   useEffect(() => {
     let disposed = false;
@@ -805,9 +851,12 @@ function ListeningRecordingAnalysisPanel({ item, labels, locale, token }: { item
       recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || preferredMime || 'audio/webm' });
-        if (blob.size) setRecordingBlob(blob);
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        if (blob.size) {
+          setRecordingBlob(blob);
+          void saveRecording(blob);
+        }
       };
       recorder.start(250);
       setRecording(true);
@@ -825,33 +874,23 @@ function ListeningRecordingAnalysisPanel({ item, labels, locale, token }: { item
     setRecording(false);
   }
 
-  async function submitRecording() {
-    if (!recordingBlob || submitting) return;
+  async function saveRecording(blob: Blob) {
     setSubmitting(true);
     setNotice('');
     try {
       const response = await apiRequest<{ recording: ListeningRecording; agentMessage: string }>(`/api/listening-questions/${item.id}/recordings`, {
         method: 'POST',
         token,
-        body: { audioMime: recordingBlob.type || 'audio/webm', audioBase64: await blobToBase64(recordingBlob) },
+        body: { audioMime: blob.type || 'audio/webm', audioBase64: await blobToBase64(blob) },
       });
       setRecordings((current) => [response.recording, ...current.filter((entry) => entry.id !== response.recording.id)]);
       setRecordingBlob(null);
-      setNotice(labels.listeningRecordingQueued);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : labels.listeningRecordingSubmitError);
     } finally {
       setSubmitting(false);
     }
   }
-
-  const statusLabel = latest?.status === 'completed'
-    ? labels.listeningRecordingStatusCompleted
-    : latest?.status === 'analyzing'
-      ? labels.listeningRecordingStatusAnalyzing
-      : latest?.status === 'failed'
-        ? labels.listeningRecordingStatusFailed
-        : labels.listeningRecordingStatusPending;
 
   return (
     <section className="mt-5 rounded-xl border border-[#ead1dc] bg-[#fffafd] p-4" aria-labelledby={`recording-title-${item.id}`}>
@@ -860,42 +899,111 @@ function ListeningRecordingAnalysisPanel({ item, labels, locale, token }: { item
           <h4 id={`recording-title-${item.id}`} className="flex items-center gap-2 text-base font-black text-[#3d3036]"><Mic size={18} />{labels.listeningRecordingTitle}</h4>
           <p className="mt-1 text-sm leading-6 text-[#74646b]">{labels.listeningRecordingBody}</p>
         </div>
-        {latest ? <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#8f365b]"><Clock3 size={14} />{statusLabel}</span> : null}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {recording ? (
           <button type="button" onClick={stopRecording} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#a84269] px-4 text-sm font-bold text-white"><Square size={15} fill="currentColor" />{labels.listeningRecordingStop}</button>
         ) : (
-          <button type="button" onClick={startRecording} disabled={submitting} className="cute-button-primary inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-white disabled:opacity-50"><Mic size={16} />{labels.listeningRecordingStart}</button>
+          <button type="button" onClick={startRecording} disabled={submitting || Boolean(recordingBlob)} className="cute-button-primary inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-white disabled:opacity-50"><Mic size={16} />{labels.listeningRecordingStart}</button>
         )}
         {recording ? <span className="font-mono text-sm font-bold tabular-nums text-[#a84269]">{formatDuration(seconds)}</span> : null}
+        {submitting ? <span className="inline-flex items-center gap-1 text-sm text-[#8f365b]"><LoaderCircle className="animate-spin" size={15} />{labels.listeningRecordingSubmitting}</span> : null}
       </div>
 
-      {previewUrl ? (
+      {previewUrl && !submitting ? (
         <div className="mt-4 grid gap-3 rounded-lg border border-[#f0d4dd] bg-white p-3">
           <audio controls preload="metadata" src={previewUrl} className="cute-audio-player w-full" />
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => { setRecordingBlob(null); setNotice(''); }} disabled={submitting} className="cute-button-secondary inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-bold"><RotateCcw size={15} />{labels.listeningRecordingAgain}</button>
-            <button type="button" onClick={submitRecording} disabled={submitting} className="cute-button-primary inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">{submitting ? <LoaderCircle className="animate-spin" size={15} /> : <Sparkles size={15} />}{submitting ? labels.listeningRecordingSubmitting : labels.listeningRecordingSubmit}</button>
-          </div>
+          <button type="button" onClick={() => { if (recordingBlob) void saveRecording(recordingBlob); }} className="cute-button-primary inline-flex h-9 w-fit items-center gap-2 rounded-full px-3 text-sm font-bold text-white"><RotateCcw size={15} />{labels.listeningRecordingRetrySave}</button>
         </div>
       ) : null}
 
       {notice ? <p role="status" className="mt-3 text-sm font-bold text-[#8f365b]">{notice}</p> : null}
-
-      {latest?.status === 'completed' && latest.analysis ? (
-        <div className="mt-4 grid gap-3 border-t border-[#f0d4dd] pt-4">
-          <div className="flex items-center gap-2 text-sm font-black text-[#356146]"><CheckCircle2 size={17} />{labels.listeningRecordingAnalysisTitle}</div>
-          <p className="text-sm leading-6 text-[#46514c]">{latest.analysis.summary}</p>
-          {latest.analysis.strengths.length ? <FeedbackList title={labels.listeningRecordingStrengths} items={latest.analysis.strengths} tone="good" /> : null}
-          {latest.analysis.improvements.length ? <FeedbackList title={labels.listeningRecordingImprovements} items={latest.analysis.improvements} tone="improve" /> : null}
-          <div className="rounded-lg bg-[#f3f6f1] p-3"><p className="text-xs font-black text-[#356146]">{labels.listeningRecordingNextPractice}</p><p className="mt-1 text-sm leading-6 text-[#46514c]">{latest.analysis.nextPractice}</p></div>
-          <p className="text-xs text-[#8f6f7b]">{formatDateTime(latest.updatedAt, locale)}</p>
-        </div>
-      ) : latest ? <p className="mt-4 border-t border-[#f0d4dd] pt-3 text-sm leading-6 text-[#74646b]">{latest.status === 'failed' ? labels.listeningRecordingFailedBody : labels.listeningRecordingWaitingBody}</p> : null}
+      {recordings.length ? <div className="mt-5 border-t border-[#f0d4dd] pt-4">
+        <h5 className="text-sm font-bold text-[#3d3036]">{labels.listeningRecordingHistory} ({recordings.length})</h5>
+        <div className="mt-3 grid gap-2">{recordings.map((entry, index) => <ListeningRecordingHistoryItem key={entry.id} recording={entry} index={index} labels={labels} locale={locale} token={token} onDeleted={() => setRecordings((current) => current.filter((recording) => recording.id !== entry.id))} />)}</div>
+      </div> : null}
     </section>
   );
+}
+
+function ListeningRecordingHistoryItem({ recording, index, labels, locale, token, onDeleted }: { recording: ListeningRecording; index: number; labels: Record<string, string>; locale: Locale; token: string; onDeleted: () => void }) {
+  const [expanded, setExpanded] = useState(index === 0);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [audioError, setAudioError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const confirm = useConfirmation();
+
+  async function remove() {
+    if (!(await confirm({ title: labels.listeningRecordingDelete, description: labels.listeningRecordingDeleteConfirm, confirmLabel: labels.listeningRecordingDelete, cancelLabel: labels.cancelAction, danger: true }))) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await apiRequest(`/api/listening-recordings/${recording.id}`, { method: 'DELETE', token });
+      onDeleted();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : labels.listeningRecordingDeleteError);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!expanded) return;
+    let disposed = false;
+    let objectUrl = '';
+    setAudioUrl('');
+    setAudioError('');
+    fetch(`/api/listening-recordings/${recording.id}/audio`, { headers: { authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (!response.ok) throw new Error(labels.listeningRecordingPlayError);
+        return response.blob();
+      })
+      .then((blob) => {
+        if (disposed) return;
+        objectUrl = URL.createObjectURL(blob);
+        setAudioUrl(objectUrl);
+      })
+      .catch(() => { if (!disposed) setAudioError(labels.listeningRecordingPlayError); });
+    return () => {
+      disposed = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [expanded, labels.listeningRecordingPlayError, recording.id, token]);
+
+  const statusLabel = recording.status === 'completed'
+    ? labels.listeningRecordingStatusCompleted
+    : recording.status === 'analyzing'
+      ? labels.listeningRecordingStatusAnalyzing
+      : recording.status === 'failed'
+        ? labels.listeningRecordingStatusFailed
+        : labels.listeningRecordingStatusPending;
+
+  return <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)} className="relative min-w-0 rounded-lg border border-[#ead1dc] bg-white p-3">
+    <summary className="min-w-0 cursor-pointer pr-9 text-sm font-semibold text-[#3d3036]">
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 align-middle">
+        <span>{labels.listeningRecordingTake} {index + 1}</span>
+        <span className="text-xs font-normal text-[#778079]">{formatDateTime(recording.createdAt, locale)}</span>
+        <span className="text-xs text-[#8f365b]">{statusLabel}</span>
+      </span>
+    </summary>
+    <button type="button" onClick={() => void remove()} disabled={deleting} aria-label={`${labels.listeningRecordingDelete}: ${formatDateTime(recording.createdAt, locale)}`} title={labels.listeningRecordingDelete} className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#ead1dc] text-[#a84269] hover:bg-[#fff0f5] disabled:opacity-50"><Trash2 size={15} /></button>
+    {deleteError ? <p role="alert" className="mt-2 text-xs text-[#a84269]">{deleteError}</p> : null}
+    <div className="mt-3 grid min-w-0 gap-3 border-t border-[#f0d4dd] pt-3">
+      {audioUrl ? <audio controls preload="metadata" src={audioUrl} className="cute-audio-player w-full" /> : <p className="text-sm text-[#74646b]">{audioError || labels.listeningAudioLoading}</p>}
+      <p className="text-xs text-[#778079]">{formatFileSize(recording.audioSize, locale)}</p>
+      {recording.status === 'completed' && recording.analysis ? <div className="grid gap-3">
+        <div className="flex items-center gap-2 text-sm font-black text-[#356146]"><CheckCircle2 size={17} />{labels.listeningRecordingAnalysisTitle}</div>
+        {recording.analysis.transcript ? <div className="rounded-lg bg-[#f7fbf7] p-3"><p className="text-xs font-black text-[#356146]">{labels.listeningRecordingTranscript}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#46514c]">{recording.analysis.transcript}</p></div> : null}
+        {recording.analysis.referenceTranscript ? <details className="rounded-lg border border-[#dce9df] p-3"><summary className="cursor-pointer text-xs font-black text-[#356146]">{labels.listeningRecordingReferenceTranscript}</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#46514c]">{recording.analysis.referenceTranscript}</p></details> : null}
+        <p className="text-sm leading-6 text-[#46514c]">{recording.analysis.summary}</p>
+        {recording.analysis.strengths.length ? <FeedbackList title={labels.listeningRecordingStrengths} items={recording.analysis.strengths} tone="good" /> : null}
+        {recording.analysis.improvements.length ? <FeedbackList title={labels.listeningRecordingImprovements} items={recording.analysis.improvements} tone="improve" /> : null}
+        <div className="rounded-lg bg-[#f3f6f1] p-3"><p className="text-xs font-black text-[#356146]">{labels.listeningRecordingNextPractice}</p><p className="mt-1 text-sm leading-6 text-[#46514c]">{recording.analysis.nextPractice}</p></div>
+      </div> : recording.status === 'failed' ? <p className="text-sm leading-6 text-[#74646b]">{labels.listeningRecordingFailedBody}</p> : null}
+    </div>
+  </details>;
 }
 
 function FeedbackList({ title, items, tone }: { title: string; items: string[]; tone: 'good' | 'improve' }) {

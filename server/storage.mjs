@@ -1261,15 +1261,31 @@ export function listeningRecordingAudioForUser(userId, id) {
   return row && existsSync(row.audio_path) ? row : null;
 }
 
+/** Read one owned learner recording as MCP audio content. */
+export async function readListeningRecordingAudioForUser(userId, id) {
+  const audio = listeningRecordingAudioForUser(userId, id);
+  if (!audio) return null;
+  const limit = 25 * 1024 * 1024;
+  if (audio.audio_size > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
+  const bytes = currentPlatform()?.readMedia
+    ? await currentPlatform().readMedia(audio.audio_path, limit)
+    : readFileSync(audio.audio_path);
+  if (!bytes) return null;
+  if (bytes.byteLength > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
+  return { data: Buffer.from(bytes).toString('base64'), mimeType: audio.audio_mime };
+}
+
 export function buildListeningRecordingAnalysisContext(userId, id) {
   const row = getDb().prepare(`
     SELECT recordings.id, recordings.status, recordings.audio_path AS recording_path,
       recordings.audio_mime AS recording_mime, recordings.audio_size AS recording_size,
       questions.id AS question_id, questions.library_number, questions.title,
       questions.question_type_id, questions.question, questions.audio_path AS reference_path,
-      questions.audio_mime AS reference_mime, questions.audio_size AS reference_size
+      questions.audio_mime AS reference_mime, questions.audio_size AS reference_size,
+      assets.transcript AS reference_transcript
     FROM listening_recordings AS recordings
     JOIN listening_questions AS questions ON questions.id = recordings.listening_question_id
+    LEFT JOIN listening_audio_assets AS assets ON assets.id = questions.audio_asset_id AND assets.user_id = questions.user_id
     WHERE recordings.user_id = ? AND recordings.id = ?
   `).get(userId, id);
   if (!row || !existsSync(row.recording_path) || !existsSync(row.reference_path)) return null;
@@ -1288,8 +1304,10 @@ export function buildListeningRecordingAnalysisContext(userId, id) {
     },
     learner_recording: { local_path: row.recording_path, mime: row.recording_mime, size: Number(row.recording_size) },
     reference_audio: { local_path: row.reference_path, mime: row.reference_mime, size: Number(row.reference_size) },
+    reference_transcript: row.reference_transcript || null,
     analysis_requirements: [
       'Read both local audio files. Do not infer pronunciation quality from filenames or metadata alone.',
+      'Transcribe the learner recording from its actual audio when possible; the reference transcript is supporting text, not evidence of what the learner said.',
       'Compare the learner recording with the reference for intelligibility, missing or substituted content, pacing, pauses, rhythm, and intonation when the available local tools support those observations.',
       'Clearly separate directly observed audio evidence from transcript-based inference.',
       'Return concise, actionable feedback in the learner interface language.',

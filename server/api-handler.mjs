@@ -34,6 +34,7 @@ import {
   databasePath,
   deleteSession,
   deleteListeningQuestion,
+  deleteListeningRecording,
   deleteReadingQuestion,
   deleteReviewPackDraft,
   getReviewPackDraft,
@@ -416,6 +417,14 @@ return async (req, res) => {
         recording,
         agentMessage: `请通过 jlpt_review MCP 调用 get_listening_recording_analysis_context 分析录音 ${recording.id}，再用 save_listening_recording_analysis 写回结果。`,
       });
+    }
+
+    const listeningRecordingMatch = /^\/api\/listening-recordings\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'DELETE' && listeningRecordingMatch) {
+      if (!deleteListeningRecording(user.id, listeningRecordingMatch[1])) {
+        return json(res, 404, { error: 'Listening recording not found' });
+      }
+      return json(res, 200, { ok: true });
     }
 
     const listeningRecordingAudioMatch = /^\/api\/listening-recordings\/([^/]+)\/audio$/.exec(url.pathname);

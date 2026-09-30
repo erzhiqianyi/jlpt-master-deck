@@ -594,6 +594,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [isMemoryReview, user?.id, authToken]);
   const hasStudyControls = !['samples', 'wordbooks', 'bank'].includes(studyPage) && supportsStudyPage(activeView) && activeView !== 'mixed' && activeView !== 'daily-practice';
+  const isListeningDetail = activeView === 'listening' && studyPage === 'words' && Boolean(route.itemId);
   const hasLibraryPage = activeView === 'vocabulary' || activeView === 'grammar' || activeView === 'listening' || activeView === 'reading';
   const libraryPageLabel = activeView === 'listening' || activeView === 'reading' ? labels.questionBankPage : labels.wordPage;
   const searchResults = useMemo(() => searchItems(data.items, searchQuery, locale, labels, listeningQuestions, readingQuestions), [data.items, labels, locale, searchQuery, listeningQuestions, readingQuestions]);
@@ -1676,7 +1677,7 @@ export default function App() {
           onMobileClose={() => setMobileSidebarOpen(false)}
         />
 
-        <div className="app-content flex min-w-0 flex-1 flex-col" data-page-kind={pageKind}>
+        <div className={`app-content flex min-w-0 flex-1 flex-col ${isListeningDetail ? 'listening-detail-content' : ''}`} data-page-kind={pageKind}>
       <DesktopPageHeader
         breadcrumbs={pageCrumbs.map((crumb, index, crumbs) => ({
           label: crumb.label,

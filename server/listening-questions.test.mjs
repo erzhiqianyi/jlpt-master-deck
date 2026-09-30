@@ -98,6 +98,33 @@ test('MCP audio returns the owned file as audio content and rejects other users'
   await assert.rejects(tool.handler({ question_id: saved.id }, { ownerId: String(bob.id) }), /not found/i);
 });
 
+test('learner audio is readable through MCP and HTTP deletion removes only that recording', async () => {
+  const question = await call('create_listening_question', { ...makeInput('recording-audio'), transcript: '保存済みのお手本原文' });
+  const bytes = Buffer.from('learner-recording-bytes');
+  const recording = storage.createListeningRecording(alice.id, question.id, { audioMime: 'audio/mpeg', audioBase64: bytes.toString('base64') });
+  const audioTool = tools.find((entry) => entry.name === 'get_listening_recording_audio');
+  assert.equal(audioTool.scope, 'audio:read');
+  const audio = await audioTool.handler({ recording_id: recording.id }, { ownerId: String(alice.id) });
+  assert.equal(audio.content[0].type, 'audio');
+  assert.deepEqual(Buffer.from(audio.content[0].data, 'base64'), bytes);
+  await assert.rejects(audioTool.handler({ recording_id: recording.id }, { ownerId: String(bob.id) }), /not found/i);
+  const context = await call('get_listening_recording_analysis_context', { recording_id: recording.id });
+  assert.equal(context.reference_transcript, '保存済みのお手本原文');
+  assert.equal(context.status, 'analyzing');
+
+  const handler = createApiHandler({});
+  const request = async (token) => {
+    let status, result;
+    await handler({ method: 'DELETE', url: `/api/listening-recordings/${recording.id}`, headers: { host: 'localhost', authorization: `Bearer ${token}` } }, { writeHead(code) { status = code; }, end(value) { result = JSON.parse(value); } });
+    return { status, ...result };
+  };
+  assert.equal((await request(storage.loginUser('other-listener', 'password-two').token)).status, 404);
+  assert.ok(storage.listeningRecordingForUser(alice.id, recording.id));
+  assert.deepEqual(await request(storage.loginUser('listener', 'password-one').token), { status: 200, ok: true });
+  assert.equal(storage.listeningRecordingForUser(alice.id, recording.id), null);
+  assert.ok(storage.listeningAudioForUser(alice.id, question.id));
+});
+
 test('transcript and its translation are shared by questions on one audio and have separate scopes', async () => {
   const audio = makeInput('transcript-shared');
   const first = await call('create_listening_question', {

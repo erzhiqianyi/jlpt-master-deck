@@ -55,6 +55,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(failed.status,503);
     assert.equal((await json('/api/listening-questions')).questions.length,0,'failed R2 upload rolls back SQL');
     const question=(await json('/api/listening-questions','POST',audioBody)).question;
+    const recording=(await json('/api/listening-questions/'+question.id+'/recordings','POST',{audioMime:'audio/wav',audioBase64:Buffer.from('learner-audio-bytes').toString('base64')})).recording;
     const audioPath='/api/listening-questions/'+question.id+'/audio';
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
     assert.equal((await request(audioPath,'GET',undefined,'test-2')).status,404);
@@ -74,7 +75,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
       const body=JSON.parse(line?line.slice(5):raw); assert.ok(!body.error,JSON.stringify(body));return body.result;
     };
     const catalogue = (await rpc('tools/list')).tools;
-    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'list_local_news_cycles', 'get_local_news_cycle', 'export_review_data_backup', 'list_pending_listening_recordings', 'get_listening_recording_analysis_context', 'save_listening_recording_analysis']) {
+    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'list_local_news_cycles', 'get_local_news_cycle', 'export_review_data_backup', 'get_listening_recording_analysis_context']) {
       assert.ok(!catalogue.some((tool) => tool.name === name), `${name} must not be published from Cloudflare`);
     }
     for (const tool of catalogue) {
@@ -84,6 +85,9 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.ok(catalogue.some(x=>x.name==='get_ai_learning_home'));
     assert.ok(catalogue.some(x=>x.name==='rate_review_card'));
     assert.ok(catalogue.some(x=>x.name==='get_listening_audio'));
+    assert.ok(catalogue.some(x=>x.name==='get_listening_recording_audio'));
+    assert.ok(catalogue.some(x=>x.name==='list_pending_listening_recordings'));
+    assert.ok(catalogue.some(x=>x.name==='save_listening_recording_analysis'));
     const home = await rpc('tools/call', { name: 'get_ai_learning_home', arguments: {} });
     assert.equal(typeof home.structuredContent.due.total, 'number');
     const homeView = await rpc('resources/read', { uri: 'ui://jlpt/ai-learning-home.html' });
@@ -92,6 +96,15 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(mcpAudio.content[0].type, 'audio');
     assert.equal(mcpAudio.content[0].mimeType, 'audio/wav');
     assert.equal(Buffer.from(mcpAudio.content[0].data, 'base64').toString(), 'test-audio-bytes');
+    const learnerAudio = await rpc('tools/call', { name:'get_listening_recording_audio', arguments:{recording_id:recording.id} });
+    assert.equal(Buffer.from(learnerAudio.content[0].data, 'base64').toString(), 'learner-audio-bytes');
+    const pendingRecordings = await rpc('tools/call', { name:'list_pending_listening_recordings', arguments:{} });
+    assert.ok(JSON.parse(pendingRecordings.content[0].text).some(x=>x.id===recording.id));
+    await rpc('tools/call', { name:'save_listening_recording_analysis', arguments:{recording_id:recording.id,status:'completed',analysis:{summary:'発音を比較した。',transcript:'学習者の発話',referenceTranscript:'男：音声の原文。',nextPractice:'もう一度聞く。'}} });
+    assert.equal((await json('/api/listening-questions/'+question.id+'/recordings')).recordings[0].analysis.transcript, '学習者の発話');
+    assert.equal((await request('/api/listening-recordings/'+recording.id,'DELETE')).status, 200);
+    assert.equal((await request('/api/listening-recordings/'+recording.id+'/audio')).status, 404);
+    assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
     for (const name of ['get_daily_summary', 'generate_daily_summary_context', 'upsert_daily_summary']) assert.ok(catalogue.some(x=>x.name===name), name);
     const emptySummary = await rpc('tools/call', { name: 'get_daily_summary', arguments: { date: '2026-09-27' } });
     assert.equal(JSON.parse(emptySummary.content[0].text).status, 'not_found');

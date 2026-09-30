@@ -4,6 +4,7 @@
 .app-content[data-page-kind='detail'],
 .app-content[data-page-kind='practice'],
 .app-content[data-page-kind='function'] { --page-width: 920px; }
+.app-content.listening-detail-content { --page-width: 1536px; }
 .app-content > section.mx-auto,
 .app-content > .gentle-home {
   box-sizing: border-box;

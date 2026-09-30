@@ -2,7 +2,7 @@ import { WordLookupProvider } from './features/review/WordLookup';
 import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
 'use client';
 
-import { LoginLanding } from './features/auth/LoginLanding';
+import { LoginLanding, LoginLanguageSelect } from './features/auth/LoginLanding';
 import { AppNoticeDialog } from './components/AppNoticeDialog';
 import { AuthoringNavigation, type AuthoringLocation } from './components/AuthoringNavigation';
 
@@ -118,6 +118,12 @@ const defaultSettings: DisplaySettings = {
   customQuestionTypeTips: [],
   ttsProvider: 'browser',
 };
+const LOGIN_LOCALE_STORAGE_KEY = 'jlpt-login-locale';
+
+function storedLoginLocale(): Locale | null {
+  const value = localStorage.getItem(LOGIN_LOCALE_STORAGE_KEY);
+  return value === 'zh-CN' || value === 'ja' || value === 'en' ? value : null;
+}
 
 type AppRouteNavItem = {
   view: AppView;
@@ -190,7 +196,7 @@ export default function App() {
   const [progress, setProgress] = useState<ProgressState>({});
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
-  const [settings, setSettings] = useState<DisplaySettings>(defaultSettings);
+  const [settings, setSettings] = useState<DisplaySettings>(() => ({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale }));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const restoreLastPage = useRef(!window.location.hash || window.location.hash === '#/');
@@ -418,6 +424,9 @@ export default function App() {
   );
 
   const locale = normalizeLocale(settings.locale);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   const needsActiveQuestions = routeReady && supportsStudyPage(activeView) && activeView !== 'daily-practice'
     && (studyPage === 'questions' || studyPage === 'review' || (activeView === 'grammar' && studyPage === 'words'));
   const questionItems = useMemo(
@@ -939,6 +948,7 @@ export default function App() {
   function updateSettings(nextSettings: DisplaySettings) {
     const normalized = normalizeSettings(nextSettings);
     setSettings(normalized);
+    localStorage.setItem(LOGIN_LOCALE_STORAGE_KEY, normalized.locale);
     if (authToken) {
       const compatibleSettings = {
         ...normalized,
@@ -1026,7 +1036,19 @@ export default function App() {
     setProgress(studyState.progress ?? {});
     setAttemptHistory(studyState.attemptHistory ?? []);
     setActiveAttempt(studyState.activeAttempt ?? null);
-    setSettings(normalizeSettings(studyState.settings));
+    const accountSettings = normalizeSettings(studyState.settings);
+    const preferredLocale = storedLoginLocale();
+    if (preferredLocale && preferredLocale !== accountSettings.locale) {
+      updateSettings({ ...accountSettings, locale: preferredLocale });
+    } else {
+      localStorage.setItem(LOGIN_LOCALE_STORAGE_KEY, accountSettings.locale);
+      setSettings(accountSettings);
+    }
+  }
+
+  function changeLoginLocale(nextLocale: Locale) {
+    localStorage.setItem(LOGIN_LOCALE_STORAGE_KEY, nextLocale);
+    setSettings((current) => ({ ...current, locale: nextLocale }));
   }
 
   async function handleAuth(mode: 'login' | 'register', username: string, password: string) {
@@ -1055,7 +1077,7 @@ export default function App() {
     setProgress({});
     setAttemptHistory([]);
     setActiveAttempt(null);
-    setSettings(defaultSettings);
+    setSettings({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale });
     setDrafts([]);
     setDailyPractices([]);
     setDailyPracticeDetails([]);
@@ -1539,7 +1561,7 @@ export default function App() {
   if (!user) {
     const isPublicLanding = !consentPage && (!window.location.hash || window.location.hash === '#/' || activeView === 'about');
     if (isPublicLanding) return <PublicIntroPanel />;
-    return <LoginScreen error={authError} loading={authLoading || authMode === null} onSubmit={handleAuth} firebase={authMode === 'firebase'} onGoogle={() => void handleGoogleLogin()} />;
+    return <LoginScreen error={authError} loading={authLoading || authMode === null} onSubmit={handleAuth} firebase={authMode === 'firebase'} onGoogle={() => void handleGoogleLogin()} locale={locale} onLocaleChange={changeLoginLocale} />;
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
@@ -1605,7 +1627,7 @@ export default function App() {
         ? labels.backToEntryList
       : dataDetailOpen
         ? dataManagementBackLabel
-        : (labels.mobileBack ?? (locale === 'ja' ? '戻る' : locale === 'en' ? 'Back' : '返回上一页'));
+        : labels.navBack;
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
     : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
@@ -1772,7 +1794,7 @@ export default function App() {
             <section className={`mx-auto w-full min-w-0 flex-1 ${['mixed', 'history', 'insights', 'plan'].includes(activeView) && !route.itemId ? 'mobile-entry-shell' : ''} ${hasStudyControls ? 'max-w-6xl px-0 py-0 md:px-8 md:py-5 lg:px-10' : 'max-w-7xl px-4 py-4 md:px-8 md:py-5 lg:px-10'}`}>
           <div className={hasStudyControls || activeView === 'listening' ? 'min-w-0 space-y-5' : 'min-w-0'}>
             {activeView === 'settings' && authMode === 'firebase' && !firebaseLinked && (!route.itemId || route.itemId === 'account') ? <section className="mb-5 rounded-xl border p-4"><h2>Google 登录</h2><p className="my-2 text-sm">绑定当前账号，今后使用 Google 登录即可保留这里的学习记录。</p>{!firebaseLinked && <button type="button" className="cute-button-secondary px-4 py-2" disabled={authLoading} onClick={() => void handleGoogleLogin(true)}>绑定当前账号到 Google</button>}{authError && <p role="alert">{authError}</p>}{authNotice && <p role="status">{authNotice}</p>}</section> : null}
-            {activeView === 'market' ? <Suspense fallback={<p role="status">正在加载分享…</p>}><MarketPanel onAdded={refreshAddedShare} initialShareId={route.itemId} token={authToken} labels={labels} settings={settings} locale={locale} /></Suspense> : null}
+            {activeView === 'market' ? <Suspense fallback={<p role="status">{labels.navMarketLoading}</p>}><MarketPanel onAdded={refreshAddedShare} initialShareId={route.itemId} token={authToken} labels={labels} settings={settings} locale={locale} /></Suspense> : null}
             {activeView === 'capture' ? <CapturePanel labels={labels} deckLabels={deckLabels} wordbooks={wordbooks} onSave={createCapture} onCreateWordbook={createWordbook} onOpenHistory={() => navigateTo('captures')} /> : null}
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
@@ -1893,6 +1915,7 @@ export default function App() {
                 topicEntries={topicPracticeEntries}
                 groupKey={route.itemId}
                 labels={labels}
+                locale={locale}
                 questions={materializedQuestions}
                 items={data.items}
                 progress={progress}
@@ -2040,11 +2063,13 @@ export default function App() {
                 <WordbookManagerPanel
                   onShareWordbook={(id, description) => shareLearningContent('wordbook', id, description)}
                   labels={labels}
+                  locale={locale}
                   family={activeView === 'grammar' ? 'grammar' : 'vocabulary'}
                   wordbooks={wordbooks}
                   items={items}
                   onCreateWordbook={createWordbook}
                   onRenameWordbook={renameWordbook}
+                  onBack={() => navigateTo(activeView, 'words')}
                 />
               ) : studyPage === 'words' && route.itemId ? (
                 <WordDetailPanel
@@ -2140,7 +2165,7 @@ export default function App() {
         </div>
       </div>
       {!showMobileBackHeader ? (
-        <MobileBottomNavigation items={navItems(labels)} activeView={activeView} onNavigate={navigateTo} />
+        <MobileBottomNavigation items={bottomNavItems(labels)} activeView={activeView} onNavigate={navigateTo} navigationLabel={labels.mobileNavigation} />
       ) : null}
 
     </main>
@@ -2539,13 +2564,24 @@ function navItems(labels: Record<string, string>) {
   return routeNavItems(labels);
 }
 
+function bottomNavItems(labels: Record<string, string>): AppRouteNavItem[] {
+  const shortLabels: Partial<Record<AppView, string | undefined>> = {
+    home: labels.navBottomHome,
+    mixed: labels.navBottomPractice,
+    history: labels.navBottomHistory,
+    plan: labels.navBottomPlan,
+    market: labels.navBottomMarket,
+  };
+  return routeNavItems(labels).map((item) => ({ ...item, label: shortLabels[item.view] ?? item.label }));
+}
+
 function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
     { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, activeViews: ['daily-practice'] as AppView[] },
     { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'memory'] as AppView[] },
     { view: 'history' as const, label: labels.navStatsHome, activeViews: ['captures', 'mistakes'] as AppView[] },
     { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan },
-    { view: 'market' as const, label: '发现' },
+    { view: 'market' as const, label: labels.navMarket },
     { view: 'settings' as const, label: labels.settings, activeViews: ['data', 'mcp'] as AppView[] },
   ];
 }
@@ -2558,25 +2594,25 @@ function desktopSidebarNavItems(labels: Record<string, string>): AppRouteNavItem
       children: [
         { view: 'vocabulary' as const, label: labels.navVocabulary },
         { view: 'grammar' as const, label: labels.navGrammar },
-        { view: 'grammar' as const, page: 'bank' as const, label: '题库管理' },
+        { view: 'grammar' as const, page: 'bank' as const, label: labels.navBankManage },
         { view: 'listening' as const, label: labels.navListening },
         { view: 'reading' as const, label: labels.navReading },
-        { view: 'mixed' as const, page: 'tips' as const, itemId: 'topics', label: '专项练习' },
-        { view: 'news-cycle' as const, label: '新闻学习' },
+        { view: 'mixed' as const, page: 'tips' as const, itemId: 'topics', label: labels.navTopicsPractice },
+        { view: 'news-cycle' as const, label: labels.navNewsPractice },
       ],
     },
     { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan, group: 'review' },
     {
       view: 'history' as const, label: labels.navStatsHome, group: 'record', activeViews: ['captures', 'mistakes', 'drafts'] as AppView[],
       children: [
-        { view: 'history' as const, itemId: 'today', label: '今天统计' },
-        { view: 'history' as const, itemId: 'history', label: '历史练习记录' },
-        { view: 'mistakes' as const, label: '错题集' },
-        { view: 'captures' as const, label: '输入记录' },
-        { view: 'drafts' as const, label: '练习草稿' },
+        { view: 'history' as const, itemId: 'today', label: labels.navTodayStats },
+        { view: 'history' as const, itemId: 'history', label: labels.navHistoryRecords },
+        { view: 'mistakes' as const, label: labels.navMistakesList },
+        { view: 'captures' as const, label: labels.navCaptureRecords },
+        { view: 'drafts' as const, label: labels.navPracticeDrafts },
       ],
     },
-    { view: 'market' as const, label: '发现', group: 'manage' },
+    { view: 'market' as const, label: labels.navMarket, group: 'manage' },
     { view: 'about' as const, label: labels.aboutTitle, group: 'manage' },
     { view: 'settings' as const, label: labels.settings, group: 'manage', activeViews: ['data', 'mcp'] as AppView[] },
   ];
@@ -2594,7 +2630,7 @@ function studyModeNavItems(view: AppView, labels: Record<string, string>, allowL
 
 function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale: Locale, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
   const activeView = route.view;
-  if (activeView === 'market') return route.itemId ? '分享详情' : '发现';
+  if (activeView === 'market') return route.itemId ? labels.navMarketDetail : labels.navMarket;
   if (activeView === 'about') return isAboutSection(route.itemId) ? aboutSectionTitle(route.itemId, locale) : labels.aboutTitle;
   if (activeView === 'profile') return labels.account;
   if (activeView === 'mixed' && route.page === 'tips' && !route.itemId) return labels.navPracticeHome ?? labels.navMixed;
@@ -2618,9 +2654,9 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     return labels.navQuestionTypes;
   }
   if (activeView === 'mixed' && route.page === 'tips' && route.itemId) {
-    if (route.itemId === 'topics') return '专项练习';
-    if (route.itemId === 'dialogue') return '对话练习';
-    if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return '意见表达';
+    if (route.itemId === 'topics') return labels.navTopicsPractice;
+    if (route.itemId === 'dialogue') return labels.navDialoguePractice;
+    if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return labels.navOpinionPractice;
   }
   if (activeView === 'reading' || activeView === 'listening') {
     if (route.page === 'words') {
@@ -2639,7 +2675,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     return labels.navMockExams;
   }
   if (activeView === 'news-cycle') {
-    return '新闻练习';
+    return labels.navNewsPractice;
   }
   return navItems(labels).find((item) => item.view === activeView)?.label ?? labels.brand;
 }
@@ -2780,9 +2816,9 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   ];
 
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'question-types'].includes(route.view)) {
-    crumbs[0] = { label: '练习', route: { view: 'mixed', page: 'tips' } };
+    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
     if (route.view === 'mixed') {
-      if (route.page !== 'tips' || route.itemId) crumbs.push({ label: mobileAppTitle(route, labels, 'zh-CN'), route });
+      if (route.page !== 'tips' || route.itemId) crumbs.push({ label: mobileAppTitle(route, labels, locale), route });
       return crumbs;
     }
     if (route.view === 'question-types') {
@@ -2792,7 +2828,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: 'words' } });
     if (supportsStudyPage(route.view)) {
       if (route.page !== 'words') crumbs.push({ label: studyPageLabelFor(route.view, route.page, labels), route: { view: route.view, page: route.page } });
-      if (route.itemId) crumbs.push({ label: route.view === 'daily-practice' ? practiceReference || route.itemId : route.view === 'listening' ? listeningDetailReference || '详情' : detailTitle || '详情', route });
+      if (route.itemId) crumbs.push({ label: route.view === 'daily-practice' ? practiceReference || route.itemId : route.view === 'listening' ? listeningDetailReference || labels.navDetail : detailTitle || labels.navDetail, route });
     }
     return crumbs;
   }
@@ -2803,7 +2839,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'news-cycle') {
-    crumbs.push({ label: '新闻练习', route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
+    crumbs.push({ label: labels.navNewsPractice, route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
     if (route.itemId) crumbs.push({ label: route.itemId });
     return crumbs;
   }
@@ -2853,7 +2889,7 @@ function moduleLabelFor(view: AppView, labels: Record<string, string>) {
     case 'daily-practice':
       return labels.dailyPracticeTitle;
     case 'news-cycle':
-      return '新闻练习';
+      return labels.navNewsPractice;
     case 'plan':
       return labels.navPlan;
     case 'capture':
@@ -2999,18 +3035,28 @@ function LoginScreen({
   error,
   loading,
   onSubmit,
+  locale,
+  onLocaleChange,
 }: {
   error: string;
   loading: boolean;
   firebase: boolean;
   onGoogle: () => void;
   onSubmit: (mode: 'login' | 'register', username: string, password: string) => void;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  if (firebase) return <LoginLanding error={error} loading={loading} onGoogle={onGoogle}/>;
+  const copy = locale === 'ja'
+    ? { note: 'ローカル環境では、初回にユーザー名とパスワードを登録してください。', login: 'ログイン', register: '新規登録', username: 'ユーザー名', password: 'パスワード', processing: '処理中…', create: 'アカウントを作成', about: 'アプリの紹介を見る（ログイン不要）', failed: 'ログインできませんでした。入力内容を確認してください。' }
+    : locale === 'en'
+      ? { note: 'Local installation: create a username and password the first time you use it.', login: 'Log in', register: 'Register', username: 'Username', password: 'Password', processing: 'Processing…', create: 'Create account', about: 'About this app (no sign-in required)', failed: 'Could not sign in. Check your details and try again.' }
+      : { note: '本地部署：首次使用请创建自己的账号密码。', login: '登录', register: '注册', username: '用户名', password: '密码', processing: '处理中…', create: '创建账号', about: '查看应用介绍（不登录可读）', failed: '无法登录，请检查输入后重试。' };
+
+  if (firebase) return <LoginLanding error={error} loading={loading} onGoogle={onGoogle} locale={locale} onLocaleChange={onLocaleChange}/>;
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -3018,24 +3064,23 @@ function LoginScreen({
   }
 
   return (
-    <main className="cute-shell flex min-h-[100dvh] items-start justify-center px-5 py-10 text-[#28312d] sm:items-center sm:px-8 sm:py-12 lg:px-12">
+    <main lang={locale} className="cute-shell flex min-h-[100dvh] items-start justify-center px-5 py-10 text-[#28312d] sm:items-center sm:px-8 sm:py-12 lg:px-12">
       <section className="cute-card w-full max-w-md bg-transparent sm:max-w-[420px] sm:border sm:p-8 lg:max-w-sm">
-        <h1 className="cute-brand text-2xl">JLPT Review</h1>
+        <div className="flex items-center justify-between gap-3"><h1 className="cute-brand text-2xl">JLPT Review</h1><LoginLanguageSelect locale={locale} onChange={onLocaleChange} /></div>
 
-        {firebase ? <div className="mt-6 space-y-4"><p>使用 Google 账号登录</p><button type="button" className="cute-button-primary h-12 w-full rounded-2xl" disabled={loading} onClick={onGoogle}>{loading ? '正在登录…' : '使用 Google 登录'}</button>{error && <p role="alert">{error}</p>}</div> : <>
-        <p className="mt-3 text-sm">本地部署：首次使用请创建自己的账号密码。</p>
+        <p className="mt-3 text-sm">{copy.note}</p>
         <div className="mt-6 grid grid-cols-2 gap-2">
           <SegmentButton active={mode === 'login'} onClick={() => setMode('login')}>
-            Login
+            {copy.login}
           </SegmentButton>
           <SegmentButton active={mode === 'register'} onClick={() => setMode('register')}>
-            Register
+            {copy.register}
           </SegmentButton>
         </div>
 
         <form className="mt-6 space-y-5" onSubmit={submit}>
           <label className="block text-sm font-semibold text-[#654e58]">
-            Username
+            {copy.username}
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
@@ -3046,7 +3091,7 @@ function LoginScreen({
             />
           </label>
           <label className="block text-sm font-semibold text-[#654e58]">
-            Password
+            {copy.password}
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -3057,14 +3102,14 @@ function LoginScreen({
               required
             />
           </label>
-          {error ? <p className="rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm font-semibold text-[#775516]">{error}</p> : null}
+          {error ? <p role="alert" className="rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm font-semibold text-[#775516]">{copy.failed}</p> : null}
           <a href="#/about" className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-2xl border border-[#efd1db] bg-white px-4 py-2 text-sm font-semibold text-[#654e58] hover:bg-[#fff0f5]">
-            查看应用介绍（不登录可读）
+            {copy.about}
           </a>
           <button type="submit" disabled={loading} className="cute-button-primary h-12 w-full rounded-2xl px-4 text-sm font-semibold text-white disabled:opacity-60">
-            {loading ? 'Processing...' : mode === 'register' ? 'Create account' : 'Login'}
+            {loading ? copy.processing : mode === 'register' ? copy.create : copy.login}
           </button>
-        </form></>}
+        </form>
       </section>
     </main>
   );

@@ -1309,8 +1309,9 @@ function IconAction({ label, title, children, onClick }: { label: string; title:
   );
 }
 
-export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, items = [], onCreateWordbook, onRenameWordbook, onShareWordbook, onBack }: {
+export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordbooks, items = [], onCreateWordbook, onRenameWordbook, onShareWordbook, onBack }: {
   labels: Record<string, string>;
+  locale: Locale;
   family: WordbookFamily;
   wordbooks: Wordbook[];
   items?: VocabItem[];
@@ -1420,7 +1421,7 @@ export function WordbookManagerPanel({ labels: baseLabels, family, wordbooks, it
                   </button>
                 </div>
               </form>
-        ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} references={[wordbook.reference]} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
+        ) : <LearningListRow key={wordbook.id} compact inlineActions title={wordbook.title} references={[wordbook.reference]} reading={`${items.filter((item) => itemInWordbook(item, wordbook.id)).length} ${labels.items}${wordbook.builtIn ? ` · ${labels.wordbookBuiltIn}` : ''}`} secondary={<ShareButton iconOnly onShare={(description) => onShareWordbook(wordbook.id, description)} locale={locale} />} actionIcon={<Pencil size={20} aria-hidden="true" />} actionLabel={labels.wordbookRename} onOpen={() => startRenamingWordbook(wordbook)}/>)}</LearningList>
         {renameWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{renameWordbookError}</p> : null}
       </div>
     </section>

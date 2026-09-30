@@ -1,5 +1,8 @@
 .jlpt-welcome { min-height: 100dvh; background: #f8faf8; color: #29473d; padding: 0 max(24px, calc((100vw - 1120px)/2)); font-family: system-ui,sans-serif; }
 .welcome-header { display: flex; justify-content: space-between; align-items: center; min-height: 80px; border-bottom: 1px solid #dfe8e2; gap: 20px; }
+.welcome-header-tools { display: flex; align-items: center; gap: 20px; }
+.welcome-language { display: inline-flex; align-items: center; gap: 8px; color: #587066; font-size: 12px; white-space: nowrap; }
+.welcome-language select { min-height: 40px; border: 1px solid #c9d9ce; border-radius: 8px; padding: 0 9px; background: #fff; color: #29473d; font: inherit; font-size: 13px; }
 .welcome-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; color: #29473d; text-decoration: none; }
 .welcome-brand > span { display: grid; place-items: center; background: #326b55; color: white; width: 44px; height: 44px; border-radius: 12px; }
 .welcome-brand small { display: block; font-size: 10px; letter-spacing: 1.5px; font-weight: 500; margin-top: 5px; color: #728578; }
@@ -40,5 +43,5 @@
 .welcome-footer { display: flex; justify-content: space-between; gap: 20px; padding: 24px 0; color: #85958b; font-size: 11px; }
 .welcome-error { margin-top: 16px; padding: 12px; border-radius: 8px; background: #fff3e7; color: #795e3b; font-size: 13px; line-height: 1.7; }
 .jlpt-welcome :is(button,a,summary):focus-visible { outline: 3px solid #6c9d80; outline-offset: 3px; }
-@media(max-width:767px) { .welcome-header { min-height: 72px; } .welcome-header-note { display:none; } .welcome-hero { grid-template-columns: 1fr; gap: 32px; padding: 36px 0; } .welcome-intro h1 { font-size: 30px; } .welcome-description br { display: none; } .welcome-features { grid-template-columns: 1fr; gap: 26px; } .welcome-example { min-height: 300px; } .welcome-footer { flex-wrap: wrap; } }
+@media(max-width:767px) { .welcome-header { min-height: 72px; } .welcome-header-note { display:none; } .welcome-language { gap: 4px; } .welcome-language > span { display: none; } .welcome-hero { grid-template-columns: 1fr; gap: 32px; padding: 36px 0; } .welcome-intro h1 { font-size: 30px; } .welcome-description br { display: none; } .welcome-features { grid-template-columns: 1fr; gap: 26px; } .welcome-example { min-height: 300px; } .welcome-footer { flex-wrap: wrap; } }
 @media(prefers-reduced-motion:reduce) { .jlpt-welcome * { scroll-behavior: auto !important; } }

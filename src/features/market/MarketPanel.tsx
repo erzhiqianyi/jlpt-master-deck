@@ -67,6 +67,7 @@ export function MarketPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const copy = marketCopy(locale);
 
   const request = <T,>(path: string, method = "GET", body?: unknown) =>
     apiRequest<T>(path, { token, method, body });
@@ -83,7 +84,7 @@ export function MarketPanel({
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败，请重试");
+      setError(e instanceof Error && e.message === copy.addedRefreshFailed ? e.message : copy.failed);
     } finally {
       setBusy(false);
     }
@@ -107,9 +108,9 @@ export function MarketPanel({
   async function addShare(id: string, shareKind: SharedContent['kind']) {
     await run(async () => {
       const result = await request<{ alreadyImported?: boolean }>("/api/market/import", "POST", { shareId: id });
-      setNotice(result.alreadyImported ? '这份内容已在你的内容中' : `已添加到我的${shareKind === 'wordbook' ? '单词本' : shareKind === 'listening' ? '听力题库' : '专项练习'}`);
+      setNotice(result.alreadyImported ? copy.alreadyAdded : `${copy.addedTo}${shareKind === 'wordbook' ? copy.wordbooks : shareKind === 'listening' ? copy.listeningBank : copy.topicPractice}`);
       try { await onAdded(); }
-      catch { throw new Error('内容已添加，但列表刷新失败，请刷新页面查看'); }
+      catch { throw new Error(copy.addedRefreshFailed); }
     });
   }
   const filtered = shares.filter((s) => (kind === "all" || s.kind === kind) && (tab !== "mine" || s.mine) &&
@@ -120,53 +121,53 @@ export function MarketPanel({
   const batch = useListBatch(filtered.map((s) => s.id));
   const mineIds = new Set(shares.filter((s) => s.mine).map((s) => s.id));
   const batchActions: BatchAction[] = [
-    { key: "import", icon: <Plus size={16} aria-hidden="true" />, label: "添加到我的内容", appliesTo: (id) => !mineIds.has(id),
+    { key: "import", icon: <Plus size={16} aria-hidden="true" />, label: copy.addToMine, appliesTo: (id) => !mineIds.has(id),
       run: (id) => request("/api/market/import", "POST", { shareId: id }), after: onAdded },
-    { key: "withdraw", danger: true, icon: <Undo2 size={16} aria-hidden="true" />, label: "撤回分享", appliesTo: (id) => mineIds.has(id),
-      confirm: (count) => `将撤回你的 ${count} 份分享，其他人将无法再看到。`,
+    { key: "withdraw", danger: true, icon: <Undo2 size={16} aria-hidden="true" />, label: copy.withdraw, appliesTo: (id) => mineIds.has(id),
+      confirm: (count) => copy.withdrawConfirm(count),
       run: (id) => request(`/api/market/${id}`, "DELETE"), after: refresh },
   ];
   const visibleShares = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * 8, currentPage * 8 + 8);
   return (
     <section className="discovery-panel">
-      <header className="discovery-heading"><h1>发现</h1></header>
+      <header className="discovery-heading"><h1>{copy.discover}</h1></header>
       {error && <p role="alert" className="market-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
-      {!preview && <LearningListFrame className="learning-catalog topic-library" label="分享列表">
-        <LearningListHeader title="分享" count={`${filtered.length} ${kind === "all" ? "项" : kind === "practice" ? "套" : kind === "listening" ? "段" : "本"}`} search={<LearningListSearch value={query} onChange={(value) => { setQuery(value); setPage(0); }} label="搜索分享" placeholder="搜索分享"/>}>
-          <LearningListSelect label="分享范围" hideLabel value={tab} onChange={(value) => { setTab(value as "market" | "mine"); setPage(0); }}>
-            <option value="market">全部分享</option><option value="mine">我的分享</option>
+      {!preview && <LearningListFrame className="learning-catalog topic-library" label={copy.shareList}>
+        <LearningListHeader title={copy.shares} count={`${filtered.length} ${kind === "all" ? copy.items : kind === "practice" ? copy.sets : kind === "listening" ? copy.clips : copy.books}`} search={<LearningListSearch value={query} onChange={(value) => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale}/> }>
+          <LearningListSelect label={copy.shareScope} hideLabel value={tab} onChange={(value) => { setTab(value as "market" | "mine"); setPage(0); }}>
+            <option value="market">{copy.allShares}</option><option value="mine">{copy.myShares}</option>
           </LearningListSelect>
-          <div className="list-tools" aria-label="内容分类">
-            {([["all", "全部"], ["wordbook", "单词"], ["practice", "专项练习"], ["listening", "听力"]] as const).map(([value, label]) =>
+          <div className="list-tools" aria-label={copy.categories}>
+            {([["all", copy.all], ["wordbook", copy.words], ["practice", copy.topicPractice], ["listening", copy.listening]] as const).map(([value, label]) =>
               <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>
             )}
           </div>
-          <div className="list-tools"><BatchManageButton batch={batch} /></div>
+          <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div>
         </LearningListHeader>
-        <BatchActionBar batch={batch} actions={batchActions} />
-        {busy ? <p role="status" className="list-empty">加载中…</p> :
-          !error && <LearningList hasActions selection={batch.selection} columnLabels={["分享内容", "内容简介", "类型"]}>{visibleShares.map((s) =>
-            <LearningListRow key={s.id} selectId={s.id} title={s.title} status={s.kind === "practice" ? "练习" : s.kind === "listening" ? "听力" : "单词本"}
-              description={`${s.count} ${s.kind === "wordbook" ? "词" : "题"}${s.description ? " · " + s.description : ""}`}
+        <BatchActionBar batch={batch} actions={batchActions} locale={locale} />
+        {busy ? <p role="status" className="list-empty">{copy.loading}</p> :
+          !error && <LearningList hasActions selection={batch.selection} locale={locale} columnLabels={[copy.content, copy.description, copy.type]}>{visibleShares.map((s) =>
+            <LearningListRow key={s.id} selectId={s.id} title={s.title} status={s.kind === "practice" ? copy.practice : s.kind === "listening" ? copy.listening : copy.wordbooks} locale={locale}
+              description={`${s.count} ${s.kind === "wordbook" ? copy.wordUnit : copy.questionUnit}${s.description ? " · " + s.description : ""}`}
               onOpen={() => { window.location.hash = `#/market/${encodeURIComponent(s.id)}`; }}
               inlineActions secondary={<div className="market-row-actions">
-                <button type="button" aria-label={`添加${s.title}到我的内容`} title="添加到我的内容" className="market-row-add" disabled={busy} onClick={() => void addShare(s.id, s.kind)}><Plus size={18} aria-hidden="true"/><span>加入</span></button>
-                {s.mine && <button type="button" aria-label="撤回分享" title="撤回分享" className="market-row-withdraw" disabled={busy} onClick={() => void run(async () => {
+                <button type="button" aria-label={`${copy.addToMine}: ${s.title}`} title={copy.addToMine} className="market-row-add" disabled={busy} onClick={() => void addShare(s.id, s.kind)}><Plus size={18} aria-hidden="true"/><span>{copy.add}</span></button>
+                {s.mine && <button type="button" aria-label={copy.withdraw} title={copy.withdraw} className="market-row-withdraw" disabled={busy} onClick={() => void run(async () => {
                 await request(`/api/market/${s.id}`, "DELETE");
-                await refresh(); setNotice("已撤回");
+                await refresh(); setNotice(copy.withdrawn);
               })}><Undo2 size={18} aria-hidden="true" /></button>}
               </div>} />
           )}</LearningList>}
-        {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? "已经到底了" : null}</div> : null}
-        {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`}/> : null}
+        {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? copy.endOfList : null}</div> : null}
+        {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`} previous={copy.previous} next={copy.next}/> : null}
       </LearningListFrame>}
       {preview && (
-        <section className="market-preview" aria-label="分享内容预览">
+        <section className="market-preview" aria-label={copy.preview}>
           <h2>{preview.title}</h2>
           {preview.description && <p>{preview.description}</p>}
-          <button type="button" className="cute-button px-4 py-2" disabled={busy} onClick={() => void addShare(previewId!, preview.kind)}>{busy ? "添加中…" : "添加到我的内容"}</button>
-          {preview.kind === 'listening' && previewId ? <SharedListening content={preview} shareId={previewId} token={token} /> : null}
+          <button type="button" className="cute-button px-4 py-2" disabled={busy} onClick={() => void addShare(previewId!, preview.kind)}>{busy ? copy.adding : copy.addToMine}</button>
+          {preview.kind === 'listening' && previewId ? <SharedListening content={preview} shareId={previewId} token={token} locale={locale} /> : null}
           {preview.kind === 'practice' && preview.questions && <SharedPractice content={preview} labels={labels} settings={settings} locale={locale} onBack={clearPreview} />}
           <ol>
             {preview.items?.map((item, i) => (
@@ -205,31 +206,56 @@ function SharedPractice({ content, labels, settings, locale, onBack }: {
     analysisStatus="idle" />;
 }
 
-function SharedListening({ content, shareId, token }: { content: SharedContent; shareId: string; token: string }) {
+function SharedListening({ content, shareId, token, locale }: { content: SharedContent; shareId: string; token: string; locale: Locale }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [error, setError] = useState('');
+  const copy = marketCopy(locale);
   useEffect(() => {
     let active = true;
     let objectUrl = '';
     setAudioUrl(''); setError('');
     void fetch(`/api/market/${encodeURIComponent(shareId)}/audio`, { headers: { authorization: `Bearer ${token}` } })
       .then(async (response) => {
-        if (!response.ok) throw new Error('分享音频暂时无法播放');
+        if (!response.ok) throw new Error(copy.audioUnavailable);
         return response.blob();
       })
       .then((blob) => { objectUrl = URL.createObjectURL(blob); if (active) setAudioUrl(objectUrl); else URL.revokeObjectURL(objectUrl); })
-      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : '音频加载失败'); });
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : copy.audioFailed); });
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [shareId, token]);
+  }, [shareId, token, locale]);
   return <div className="mt-5 space-y-4">
-    <p className="text-sm text-[#31564c]">{content.audioFileName} · {content.questions?.length ?? 0} 题</p>
-    {audioUrl ? <audio controls src={audioUrl} className="w-full" aria-label="分享听力音频" /> : <p role={error ? 'alert' : 'status'}>{error || '正在加载音频…'}</p>}
+    <p className="text-sm text-[#31564c]">{content.audioFileName} · {content.questions?.length ?? 0} {copy.questionUnit}</p>
+    {audioUrl ? <audio controls src={audioUrl} className="w-full" aria-label={copy.sharedAudio} /> : <p role={error ? 'alert' : 'status'}>{error || copy.audioLoading}</p>}
     <ol className="space-y-3">{content.questions?.map((question, index) => <li key={index} className="rounded-lg border p-3">
       <strong>{index + 1}. {question.title || question.question}</strong>
       {question.title && question.question && question.title !== question.question ? <p>{question.question}</p> : null}
       {question.choices.length ? <ol className="ml-5 list-decimal">{question.choices.map((choice, i) => <li key={i}>{choice}</li>)}</ol> : null}
     </li>)}</ol>
-    {content.transcript ? <details><summary>听力原文</summary><p className="whitespace-pre-wrap">{content.transcript}</p></details> : null}
-    {content.transcriptTranslation ? <details><summary>原文翻译</summary><p className="whitespace-pre-wrap">{content.transcriptTranslation}</p></details> : null}
+    {content.transcript ? <details><summary>{copy.transcript}</summary><p className="whitespace-pre-wrap">{content.transcript}</p></details> : null}
+    {content.transcriptTranslation ? <details><summary>{copy.transcriptTranslation}</summary><p className="whitespace-pre-wrap">{content.transcriptTranslation}</p></details> : null}
   </div>;
+}
+
+function marketCopy(locale: Locale) {
+  if (locale === 'ja') return {
+    failed: '操作に失敗しました。もう一度お試しください', alreadyAdded: 'このコンテンツはすでに追加されています', addedTo: '追加先：', wordbooks: '単語帳', listeningBank: '聴解ライブラリ', topicPractice: '分野別練習', addedRefreshFailed: '追加しましたが、一覧を更新できませんでした。ページを再読み込みしてください',
+    addToMine: '自分のコンテンツに追加', withdraw: '共有を取り消す', withdrawConfirm: (count: number) => `${count} 件の共有を取り消します。他のユーザーには表示されなくなります。`, withdrawn: '共有を取り消しました',
+    discover: '発見', shareList: '共有コンテンツの一覧', shares: '共有コンテンツ', items: '件', sets: 'セット', clips: '件', books: '冊', search: '共有コンテンツを検索', shareScope: '共有範囲', allShares: 'すべての共有', myShares: '自分の共有', categories: 'コンテンツの種類', all: 'すべて', words: '単語', listening: '聴解',
+    content: '共有コンテンツ', description: '概要', type: '種類', practice: '練習', wordUnit: '語', questionUnit: '問', add: '追加', loading: '読み込み中…', endOfList: '最後まで表示しました', previous: '前のページ', next: '次のページ', preview: '共有コンテンツのプレビュー', adding: '追加中…',
+    audioUnavailable: '共有された音声を再生できません', audioFailed: '音声を読み込めませんでした', sharedAudio: '共有された聴解音声', audioLoading: '音声を読み込み中…', transcript: '聴解の全文', transcriptTranslation: '全文の翻訳',
+  };
+  if (locale === 'en') return {
+    failed: 'Action failed. Please try again', alreadyAdded: 'This content is already in your library', addedTo: 'Added to ', wordbooks: 'wordbooks', listeningBank: 'listening library', topicPractice: 'topic practice', addedRefreshFailed: 'Added, but the list could not refresh. Reload the page to view it',
+    addToMine: 'Add to my content', withdraw: 'Withdraw share', withdrawConfirm: (count: number) => `Withdraw ${count} shares? Others will no longer see them.`, withdrawn: 'Share withdrawn',
+    discover: 'Discover', shareList: 'Shared content list', shares: 'Shared content', items: 'items', sets: 'sets', clips: 'clips', books: 'books', search: 'Search shared content', shareScope: 'Share scope', allShares: 'All shares', myShares: 'My shares', categories: 'Content types', all: 'All', words: 'Words', listening: 'Listening',
+    content: 'Shared content', description: 'Description', type: 'Type', practice: 'Practice', wordUnit: 'words', questionUnit: 'questions', add: 'Add', loading: 'Loading…', endOfList: 'End of list', previous: 'Previous page', next: 'Next page', preview: 'Shared content preview', adding: 'Adding…',
+    audioUnavailable: 'Shared audio is unavailable', audioFailed: 'Could not load audio', sharedAudio: 'Shared listening audio', audioLoading: 'Loading audio…', transcript: 'Full transcript', transcriptTranslation: 'Transcript translation',
+  };
+  return {
+    failed: '操作失败，请重试', alreadyAdded: '这份内容已在你的内容中', addedTo: '已添加到我的', wordbooks: '单词本', listeningBank: '听力题库', topicPractice: '专项练习', addedRefreshFailed: '内容已添加，但列表刷新失败，请刷新页面查看',
+    addToMine: '添加到我的内容', withdraw: '撤回分享', withdrawConfirm: (count: number) => `将撤回你的 ${count} 份分享，其他人将无法再看到。`, withdrawn: '已撤回',
+    discover: '发现', shareList: '分享列表', shares: '分享', items: '项', sets: '套', clips: '段', books: '本', search: '搜索分享', shareScope: '分享范围', allShares: '全部分享', myShares: '我的分享', categories: '内容分类', all: '全部', words: '单词', listening: '听力',
+    content: '分享内容', description: '内容简介', type: '类型', practice: '练习', wordUnit: '词', questionUnit: '题', add: '加入', loading: '加载中…', endOfList: '已经到底了', previous: '上一页', next: '下一页', preview: '分享内容预览', adding: '添加中…',
+    audioUnavailable: '分享音频暂时无法播放', audioFailed: '音频加载失败', sharedAudio: '分享听力音频', audioLoading: '正在加载音频…', transcript: '听力原文', transcriptTranslation: '原文翻译',
+  };
 }

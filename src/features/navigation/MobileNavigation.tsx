@@ -266,8 +266,8 @@ export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch
 }) {
   return (
     <header className="workspace-topbar">
-      {showBack ? <button type="button" className="workspace-back cute-focus" onClick={onBack} aria-label={labels.mobileBack ?? '返回上一页'} title="返回上一页"><ArrowLeft size={20} /></button> : null}
-      {breadcrumbs ? <nav className="workspace-page-title flex flex-wrap items-center gap-2" aria-label="页面路径">
+      {showBack ? <button type="button" className="workspace-back cute-focus" onClick={onBack} aria-label={labels.navBack} title={labels.navBack}><ArrowLeft size={20} /></button> : null}
+      {breadcrumbs ? <nav className="workspace-page-title flex flex-wrap items-center gap-2" aria-label={labels.navPath}>
         {breadcrumbs.map((crumb, index) => <span key={index} className="inline-flex items-center gap-2">
           {index > 0 ? <span aria-hidden="true" className="text-gray-400">/</span> : null}
           <button type="button" className="cute-focus rounded px-1 py-1 hover:bg-[#eaf4ed]" onClick={crumb.onClick} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</button>
@@ -322,7 +322,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
             <img src="/jlpt-logo.svg" width="40" height="40" alt="" />
             <span className="workspace-brand-name"><strong>JLPT</strong><span>Master Deck</span></span>
           </button>
-          <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? '展开导航' : '收起导航'} aria-expanded={!collapsed} title={collapsed ? '展开导航' : '收起导航'}>
+          <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? labels.navExpandAll : labels.navCollapseAll} aria-expanded={!collapsed} title={collapsed ? labels.navExpandAll : labels.navCollapseAll}>
             {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
@@ -340,7 +340,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
               <div key={`${item.view}-${item.page ?? 'index'}-${item.label}`} className={`desktop-sidebar-group ${item.group ? `desktop-sidebar-group-${item.group}` : ''}`}>
                 {showGroupLabel ? (
                   <p className="desktop-sidebar-section-label">
-                    <span className="desktop-sidebar-text">{item.group === 'today' ? '今天' : item.group === 'study' ? '学习' : item.group === 'review' ? '练习' : item.group === 'record' ? '记录' : '工具'}</span>
+                    <span className="desktop-sidebar-text">{item.group === 'today' ? labels.navGroupToday : item.group === 'study' ? labels.navGroupStudy : item.group === 'review' ? labels.navGroupReview : item.group === 'record' ? labels.navGroupRecord : labels.navGroupManage}</span>
                   </p>
                 ) : null}
                 {hasChildren ? (
@@ -360,7 +360,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                       type="button"
                       onClick={() => setExpandedItems((current) => ({ ...current, [itemKey]: !(current[itemKey] ?? active) }))}
                       aria-expanded={expanded}
-                      aria-label={`${expanded ? '收起' : '展开'}${item.label}`}
+                      aria-label={`${expanded ? labels.navCollapse : labels.navExpand} ${item.label}`}
                       className="desktop-sidebar-disclosure cute-focus"
                     >
                       <ChevronRight size={16} aria-hidden="true" />
@@ -381,7 +381,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                 )}
                 {hasChildren && expanded ? (
                   <div className="desktop-sidebar-subnav is-root-subnav" aria-label={item.label}>
-                    {item.children.map((child) => {
+                    {item.children?.map((child) => {
                       const childActive = isRouteItemActive(child, route);
                       return (
                         <div key={`${child.view}-${child.page ?? 'index'}`} className="desktop-sidebar-subgroup">
@@ -452,18 +452,19 @@ function isRouteItemActive(item: RouteNavItem, route: AppRoute) {
   return !item.page || route.page === item.page;
 }
 
-export function RouteNavigation({ items, activeView, onNavigate, variant }: {
+export function RouteNavigation({ items, activeView, onNavigate, variant, navigationLabel }: {
   items: RouteNavItem[];
   activeView: AppView;
   onNavigate: (view: AppView) => void;
   variant: 'desktop' | 'mobile';
+  navigationLabel: string;
 }) {
   const activeIndex = Math.max(0, items.findIndex((item) => activeView === item.view || item.activeViews?.includes(activeView)));
   const progressWidth = items.length > 1 ? `${(activeIndex / (items.length - 1)) * 100}%` : '0%';
 
   if (variant === 'desktop') {
     return (
-      <nav className="route-nav-desktop min-w-0 flex-1" aria-label="Main navigation">
+      <nav className="route-nav-desktop min-w-0 flex-1" aria-label={navigationLabel}>
         <div className="route-rail" aria-hidden="true">
           <span style={{ width: progressWidth }} />
         </div>
@@ -491,7 +492,7 @@ export function RouteNavigation({ items, activeView, onNavigate, variant }: {
   }
 
   return (
-    <nav className="route-nav-mobile fixed inset-x-0 bottom-0 z-40 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(79,48,63,0.08)] backdrop-blur md:hidden" aria-label="Mobile navigation">
+    <nav className="route-nav-mobile fixed inset-x-0 bottom-0 z-40 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(79,48,63,0.08)] backdrop-blur md:hidden" aria-label={navigationLabel}>
       <div className="route-mobile-rail" aria-hidden="true">
         <span style={{ width: progressWidth }} />
       </div>
@@ -517,12 +518,13 @@ export function RouteNavigation({ items, activeView, onNavigate, variant }: {
   );
 }
 
-export function MobileBottomNavigation({ items, activeView, onNavigate }: {
+export function MobileBottomNavigation({ items, activeView, onNavigate, navigationLabel }: {
   items: RouteNavItem[];
   activeView: AppView;
   onNavigate: (view: AppView) => void;
+  navigationLabel: string;
 }) {
-  return <RouteNavigation items={items} activeView={activeView} onNavigate={onNavigate} variant="mobile" />;
+  return <RouteNavigation items={items} activeView={activeView} onNavigate={onNavigate} variant="mobile" navigationLabel={navigationLabel} />;
 }
 
 function MobileNavGroup({ title, items, activeView, onNavigate }: {

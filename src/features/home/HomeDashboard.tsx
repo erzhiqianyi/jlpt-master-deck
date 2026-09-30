@@ -29,7 +29,23 @@ export function HomeDashboard({ token, username, locale, hasMemoryReview, plan, 
   const examCountdown = daysUntil(plan.profile.examDate);
   const examDateLabel = formatShortDate(plan.profile.examDate, locale);
   const practice = todayPractices[0];
-  const practiceTitle = latestDraft?.title || practice?.title || '给今天准备一组练习';
+  const copy = locale === 'ja' ? {
+    planProgress: '今日の計画の進捗', plan: '今日の計画', completed: '完了', items: '件', progress: '今日の達成状況', noTasks: '今日のタスクはありません', skipped: 'スキップ済み',
+    countdown: 'JLPT までの日数', untilExam: 'JLPT', remaining: 'あと', days: '日', examToday: '試験当日', examEnded: '試験は終了しました',
+    startLearning: '学習を始める', dailyPractice: '今日の練習', prepareTitle: '今日の練習問題を用意する', draftReady: '新しい問題ができました。内容を確認してから始めましょう。', practiceMeta: (count: number, minutes: number) => `${count} 問 · 約 ${minutes} 分`, prepareHint: '問題を用意して、今日の学習を始めましょう。', viewDraft: '新しい問題を見る', startPractice: '練習を始める', preparePractice: '今日の練習を準備',
+    reviewCards: '復習カード', reviewAvailable: '学んだ内容をカードで振り返る', reviewDone: '今日の復習は完了しました。もう一度確認できます', textbookPlan: '今日の教材計画', textbookProgress: '教材の進捗', noTextbookTasks: '今日の教材タスクはありません', viewTextbook: '教材のタスクを見る',
+  } : locale === 'en' ? {
+    planProgress: "Today's plan progress", plan: "Today's plan", completed: 'Completed', items: 'items', progress: "Today's progress", noTasks: 'No tasks planned today', skipped: 'Skipped',
+    countdown: 'JLPT countdown', untilExam: 'Until JLPT', remaining: '', days: 'days left', examToday: 'Exam day', examEnded: 'Exam finished',
+    startLearning: 'Start studying', dailyPractice: "Today's practice", prepareTitle: 'Prepare a practice set for today', draftReady: 'New questions are ready. Review them before starting.', practiceMeta: (count: number, minutes: number) => `${count} questions · about ${minutes} minutes`, prepareHint: 'Prepare questions and start studying.', viewDraft: 'View new questions', startPractice: 'Start practice', preparePractice: 'Prepare practice',
+    reviewCards: 'Review cards', reviewAvailable: 'Review what you have learned', reviewDone: 'All caught up. You can review again', textbookPlan: "Today's textbook plan", textbookProgress: 'Textbook progress', noTextbookTasks: 'No textbook tasks today', viewTextbook: 'View textbook tasks',
+  } : {
+    planProgress: '今日计划进度', plan: '今日计划', completed: '已完成', items: '项', progress: '今日完成进度', noTasks: '今天还没有安排任务', skipped: '已跳过',
+    countdown: 'JLPT 倒计时', untilExam: '距 JLPT', remaining: '还有', days: '天', examToday: '就是今天', examEnded: '考试已结束',
+    startLearning: '开始学习', dailyPractice: '今日练习', prepareTitle: '给今天准备一组练习', draftReady: '新题目已准备好，先看看内容再开始。', practiceMeta: (count: number, minutes: number) => `${count} 题 · 约 ${minutes} 分钟`, prepareHint: '准备好题目，开始今天的学习。', viewDraft: '查看新题目', startPractice: '开始练习', preparePractice: '准备今日练习',
+    reviewCards: '复习卡片', reviewAvailable: '翻一翻，记住学过的内容', reviewDone: '今天复习完了，也可以再看看', textbookPlan: '今日教材计划', textbookProgress: '教材完成进度', noTextbookTasks: '今天没有教材任务', viewTextbook: '查看教材任务',
+  };
+  const practiceTitle = latestDraft?.title || practice?.title || copy.prepareTitle;
   const practiceAction = latestDraft ? () => onOpenDraft(latestDraft.id)
     : practice ? () => onStartDailyPractice(practice.id) : onCreateDailyPractice;
   const greeting = greetingFor(new Date().getHours(), locale);
@@ -42,39 +58,39 @@ export function HomeDashboard({ token, username, locale, hasMemoryReview, plan, 
           <ChevronRight size={18} aria-hidden="true" className="today-welcome-chevron" />
         </a>
         <header className="today-summary">
-          <section className="today-progress" aria-label="今日计划进度">
+          <section className="today-progress" aria-label={copy.planProgress}>
             <p className="today-date">{dateLabel}</p>
-            <div className="today-progress-label"><strong>今日计划</strong><span aria-label={`已完成 ${completed} / ${todayTasks.length} 项`} title="今日完成进度">{todayTasks.length ? <><CircleCheck size={16} aria-hidden="true"/>{completed} / {todayTasks.length}</> : '今天还没有安排任务'}</span></div>
-            <progress max={todayTasks.length || 1} value={completed} aria-label="今日计划完成进度" />
-            {skipped > 0 && <small><LearningStatusIcon kind="skipped" label="已跳过"/> {skipped}</small>}
+            <div className="today-progress-label"><strong>{copy.plan}</strong><span aria-label={`${copy.completed} ${completed} / ${todayTasks.length} ${copy.items}`} title={copy.progress}>{todayTasks.length ? <><CircleCheck size={16} aria-hidden="true"/>{completed} / {todayTasks.length}</> : copy.noTasks}</span></div>
+            <progress max={todayTasks.length || 1} value={completed} aria-label={copy.planProgress} />
+            {skipped > 0 && <small><LearningStatusIcon kind="skipped" label={copy.skipped}/> {skipped}</small>}
           </section>
-          <section className="today-countdown" aria-label="JLPT 倒计时">
+          <section className="today-countdown" aria-label={copy.countdown}>
             <CalendarDays size={20} aria-hidden="true" />
-            <div><span>距 JLPT {plan.profile.level}</span><strong>{examCountdown > 0 ? <>还有 <b>{examCountdown}</b> 天</> : examCountdown === 0 ? '就是今天' : '考试已结束'}</strong><small>{examDateLabel}</small></div>
+            <div><span>{copy.untilExam} {plan.profile.level}</span><strong>{examCountdown > 0 ? <>{copy.remaining} <b>{examCountdown}</b> {copy.days}</> : examCountdown === 0 ? copy.examToday : copy.examEnded}</strong><small>{examDateLabel}</small></div>
           </section>
         </header>
-        <section className="today-learning" aria-label="开始学习">
+        <section className="today-learning" aria-label={copy.startLearning}>
           <button type="button" className="today-feature" onClick={practiceAction}>
-            <span className="today-feature-label"><Sparkles size={20} aria-hidden="true" />今日练习</span>
+            <span className="today-feature-label"><Sparkles size={20} aria-hidden="true" />{copy.dailyPractice}</span>
             <strong className="today-feature-title">{practiceTitle}</strong>
-            <span className="today-feature-meta">{latestDraft ? '新题目已准备好，先看看内容再开始。' : practice ? `${practice.questionCount} 题 · 约 ${practice.minutes} 分钟` : '准备好题目，开始今天的学习。'}</span>
-            <span className="today-feature-action">{latestDraft ? '查看新题目' : practice ? '开始练习' : '准备今日练习'}<Play size={17} aria-hidden="true" /></span>
+            <span className="today-feature-meta">{latestDraft ? copy.draftReady : practice ? copy.practiceMeta(practice.questionCount, practice.minutes) : copy.prepareHint}</span>
+            <span className="today-feature-action">{latestDraft ? copy.viewDraft : practice ? copy.startPractice : copy.preparePractice}<Play size={17} aria-hidden="true" /></span>
           </button>
           <div className="today-side">
             <button type="button" className="today-secondary" onClick={() => onNavigate('memory-review')}>
               <span className="today-card-icon"><Brain size={24} aria-hidden="true" /></span>
-              <span><strong>复习卡片</strong><small>{hasMemoryReview ? '翻一翻，记住学过的内容' : '今天复习完了，也可以再看看'}</small></span>
+              <span><strong>{copy.reviewCards}</strong><small>{hasMemoryReview ? copy.reviewAvailable : copy.reviewDone}</small></span>
 
             </button>
             <a className="today-secondary today-textbooks" href="#/plan/textbooks">
               <span className="today-card-icon"><ListChecks size={24} aria-hidden="true" /></span>
-              <span><strong>今日教材计划</strong><small aria-label={`已完成 ${textbookCompleted} / ${textbookTasks.length} 项`}><LearningStatusIcon kind={textbookTasks.length && textbookCompleted === textbookTasks.length ? "completed" : "pending"} label={textbookTasks.length ? "教材完成进度" : "今天没有教材任务"}/>{textbookCompleted} / {textbookTasks.length}</small><span className="today-textbook-hint">查看教材任务</span></span>
+              <span><strong>{copy.textbookPlan}</strong><small aria-label={`${copy.completed} ${textbookCompleted} / ${textbookTasks.length} ${copy.items}`}><LearningStatusIcon kind={textbookTasks.length && textbookCompleted === textbookTasks.length ? "completed" : "pending"} label={textbookTasks.length ? copy.textbookProgress : copy.noTextbookTasks}/>{textbookCompleted} / {textbookTasks.length}</small><span className="today-textbook-hint">{copy.viewTextbook}</span></span>
 
             </a>
           </div>
         </section>
         <AiTip locale={locale} />
-        <HomeDiscovery token={token} />
+        <HomeDiscovery token={token} locale={locale} />
       </div>
     </main>
   );

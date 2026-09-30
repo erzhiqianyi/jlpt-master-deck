@@ -68,6 +68,17 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     const tokenResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(approved.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
     assert.equal(tokenResponse.status,200,await tokenResponse.clone().text());
     const issued=await tokenResponse.json();
+    const recordingAudioPath='/api/listening-recordings/'+recording.id+'/audio';
+    assert.equal(await (await request(audioPath,'GET',undefined,issued.access_token)).text(),'test-audio-bytes');
+    assert.equal(await (await request(recordingAudioPath,'GET',undefined,issued.access_token)).text(),'learner-audio-bytes');
+    assert.equal((await request(recordingAudioPath,'GET',undefined,'test-2')).status,404);
+    assert.equal((await request(recordingAudioPath,'GET',undefined,'agt_invalid')).status,401);
+    assert.equal((await request(recordingAudioPath,'GET',undefined,'')).status,401);
+    const studyOnlyApproval=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study']});
+    const studyOnlyResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(studyOnlyApproval.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
+    assert.equal(studyOnlyResponse.status,200);
+    const studyOnly=await studyOnlyResponse.json();
+    assert.equal((await request(recordingAudioPath,'GET',undefined,studyOnly.access_token)).status,403);
     const rpc=async(method,params={})=>{
       const r=await mf.dispatchFetch(origin+'/api/jlpt/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',authorization:`Bearer ${issued.access_token}`},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
       assert.equal(r.status,200,await r.clone().text());
@@ -86,6 +97,8 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.ok(catalogue.some(x=>x.name==='rate_review_card'));
     assert.ok(catalogue.some(x=>x.name==='get_listening_audio'));
     assert.ok(catalogue.some(x=>x.name==='get_listening_recording_audio'));
+    assert.ok(catalogue.some(x=>x.name==='get_listening_audio_download'));
+    assert.ok(catalogue.some(x=>x.name==='get_listening_recording_download'));
     assert.ok(catalogue.some(x=>x.name==='list_pending_listening_recordings'));
     assert.ok(catalogue.some(x=>x.name==='save_listening_recording_analysis'));
     const home = await rpc('tools/call', { name: 'get_ai_learning_home', arguments: {} });
@@ -98,6 +111,14 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(Buffer.from(mcpAudio.content[0].data, 'base64').toString(), 'test-audio-bytes');
     const learnerAudio = await rpc('tools/call', { name:'get_listening_recording_audio', arguments:{recording_id:recording.id} });
     assert.equal(Buffer.from(learnerAudio.content[0].data, 'base64').toString(), 'learner-audio-bytes');
+    const recordingDownload = await rpc('tools/call', { name:'get_listening_recording_download', arguments:{recording_id:recording.id} });
+    const downloadInfo = JSON.parse(recordingDownload.content[0].text);
+    assert.equal(downloadInfo.url,origin+recordingAudioPath);
+    assert.equal(downloadInfo.mimeType,'audio/wav');
+    assert.equal(downloadInfo.size,19);
+    assert.ok(!recordingDownload.content[0].text.includes(issued.access_token));
+    const referenceDownload = await rpc('tools/call', { name:'get_listening_audio_download', arguments:{question_id:question.id} });
+    assert.equal(JSON.parse(referenceDownload.content[0].text).url,origin+audioPath);
     const pendingRecordings = await rpc('tools/call', { name:'list_pending_listening_recordings', arguments:{} });
     assert.ok(JSON.parse(pendingRecordings.content[0].text).some(x=>x.id===recording.id));
     await rpc('tools/call', { name:'save_listening_recording_analysis', arguments:{recording_id:recording.id,status:'completed',analysis:{summary:'発音を比較した。',transcript:'学習者の発話',referenceTranscript:'男：音声の原文。',nextPractice:'もう一度聞く。'}} });

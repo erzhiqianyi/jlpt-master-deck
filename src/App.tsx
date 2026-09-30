@@ -1,5 +1,5 @@
 import { WordLookupProvider } from './features/review/WordLookup';
-import { listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
+import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
 'use client';
 
 import { LoginLanding } from './features/auth/LoginLanding';
@@ -343,6 +343,14 @@ export default function App() {
     if (route.view !== 'daily-practice' || !activeDailyPractice || route.itemId !== activeDailyPractice.id || !activeDailyPractice.reference) return;
     window.location.replace(routeHash('daily-practice', route.page, activeDailyPractice.reference));
   }, [route.view, route.page, route.itemId, activeDailyPractice?.id, activeDailyPractice?.reference]);
+
+  useEffect(() => {
+    if (!authToken || route.view !== 'listening' || route.page !== 'words' || !route.itemId) return;
+    const group = listeningAudioGroupForRoute(listeningQuestions, route.itemId);
+    if (!group.length) return;
+    const canonicalId = listeningAudioRouteId(group[0]);
+    if (route.itemId !== canonicalId) window.location.replace(routeHash('listening', 'words', canonicalId));
+  }, [authToken, route.view, route.page, route.itemId, listeningQuestions]);
 
   // Drafts may be created by an external agent while the home page stays open.
   useEffect(() => {
@@ -1545,13 +1553,15 @@ export default function App() {
   const showMobileBackHeader = !isMobileTabRoute(route) || dataDetailOpen;
   const mobileBackRouteValue = mobileBackRoute(route);
   const desktopBackRouteValue = desktopBackRoute(route);
+  const listeningDetailGroup = route.view === 'listening' && route.page === 'words' && route.itemId
+    ? listeningAudioGroupForRoute(listeningQuestions, route.itemId) : [];
   const detailTitle = route.page === 'words' && route.itemId
     ? (route.view === 'reading' ? readingQuestions.find((item) => item.id === route.itemId)?.title
-      : route.view === 'listening' ? listeningQuestions.find((item) => item.id === route.itemId)?.title
+      : route.view === 'listening' ? listeningDetailGroup[0]?.audioFileName
       : data.items.find((item) => item.id === route.itemId)?.original)
     : undefined;
   const listeningDetailReference = route.view === 'listening' && route.page === 'words' && route.itemId
-    ? listeningQuestions.find((item) => item.id === route.itemId)?.reference
+    ? listeningDetailGroup[0]?.audioReference
     : undefined;
   const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference,
     matchesPracticeRoute(route.itemId, activeDailyPractice) ? activeDailyPractice?.reference : undefined);
@@ -1630,7 +1640,7 @@ export default function App() {
 
   return (
     <AuthoringNavigation.Provider value={setAuthoringLocation}>
-    <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-hidden text-[#28312d]">
+    <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
         onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}

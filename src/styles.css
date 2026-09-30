@@ -207,7 +207,7 @@ body {
     radial-gradient(circle at 15% 8%, rgba(255, 217, 227, 0.7), transparent 28%),
     radial-gradient(circle at 86% 18%, rgba(226, 248, 235, 0.72), transparent 26%),
     linear-gradient(135deg, #fffaf6 0%, #fff7fb 46%, #f8fff9 100%);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 html[data-font-size='small'] body {
@@ -238,7 +238,7 @@ html[data-font-size='large'] .text-4xl { font-size: 2.5rem; }
 
 #root {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 button,
@@ -6791,6 +6791,26 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .discovery-heading h1 { font-size: 28px; font-weight: 750; letter-spacing: -.03em; }
 .discovery-panel .market-preview { border-top: 0; margin-top: 0; padding-top: 0; }
 .discovery-panel .market-preview h2 { margin: 20px 0; font-size: 22px; font-weight: 700; }
+.market-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.market-row-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; border-radius: 10px; }
+.market-row-add { padding: 8px 12px; background: #e7f5eb; color: #235e43; font-weight: 650; white-space: nowrap; }
+.market-row-withdraw { width: 40px; color: #8f3d2e; background: #fff5ef; }
+@media (max-width: 767px) {
+  .discovery-panel .list-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .discovery-panel .list-toolbar .list-search { grid-column: 1 / -1; }
+  .discovery-panel .list-toolbar .list-select { grid-column: 1 / -1; }
+  .discovery-panel .list-toolbar .list-tools { min-width: 0; margin: 0; flex-wrap: nowrap; }
+  .discovery-panel .list-toolbar .list-tools[aria-label='内容分类'] { overflow-x: auto; }
+  .discovery-panel .standard-list-row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .discovery-panel .standard-list-open { padding: 14px 6px 14px 16px; min-height: 72px; }
+  .discovery-panel .standard-list-fields { display: block; min-width: 0; }
+  .discovery-panel .standard-list-description { display: block; min-width: 0; font-size: 13px; }
+  .discovery-panel .standard-list-description::before,
+  .discovery-panel .standard-list-status { display: none; }
+  .discovery-panel .standard-list-actions { padding: 0 12px 0 0; }
+  .market-row-add { min-width: 70px; padding: 8px; }
+  .market-preview { padding-inline: 16px !important; }
+}
 
 /* Keep topic sharing beside the open action instead of adding another row. */
 .topic-library .learning-list-row:has(.learning-list-secondary) { display: flex; align-items: center; }

@@ -2,7 +2,7 @@ import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest,
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
 import { getDailySummary, listDailySummaries, validSummaryDate } from './daily-summary.mjs';
-import { userReviewData, sharingSources, sourcePackage, publishShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
+import { userReviewData, sharingSources, sourcePackage, publishShare, publishListeningShare, listeningShareAudio, importListeningShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
 import { createReadStream, existsSync, readFileSync, statSync } from './files.mjs';
@@ -84,7 +84,18 @@ return async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     const token = bearerToken(req);
-    const user = userForToken(token);
+    let user = userForToken(token);
+    if (!user && req.method === 'GET' && /^\/api\/(listening-questions|listening-recordings)\/[^/]+\/audio$/.test(url.pathname) && mcp) {
+      const authRequest = new Request(url, { headers: req.headers });
+      if (mcp.carriesToken(authRequest)) {
+        let grant;
+        try { grant = await mcp.authenticate(authRequest); }
+        catch { return json(res, 401, { error: 'Authentication required' }); }
+        if (!grant) return json(res, 401, { error: 'Authentication required' });
+        if (!grant.scopes.includes('audio:read')) return json(res, 403, { error: 'Audio access not granted' });
+        user = { id: Number(grant.ownerId) };
+      }
+    }
     res.referenceUserId = url.pathname.startsWith('/api/market') || url.pathname.startsWith('/api/local-') ? undefined : user?.id;
     if (req.method === 'POST' && url.pathname === '/api/references/question') {
       if (!user) return json(res, 401, { error: 'Authentication required' });
@@ -207,11 +218,22 @@ return async (req, res) => {
     if (url.pathname === '/api/market/validate' && req.method === 'POST') return json(res,200,{ package:validatePackage(await readJson(req)) });
     if (url.pathname === '/api/market/import' && req.method === 'POST') {
       const input = await readJson(req);
-      return json(res,201,input?.shareId !== undefined ? importShare(user.id, input.shareId) : importPackage(user.id,input));
+      if (input?.shareId !== undefined) {
+        const share = shareDetail(user.id, input.shareId);
+        return json(res,201,share.package.kind === 'listening' ? await importListeningShare(user.id, input.shareId) : importShare(user.id, input.shareId));
+      }
+      return json(res,201,importPackage(user.id,input));
     }
+    if (url.pathname === '/api/market/listening' && req.method === 'POST') return json(res,201,await publishListeningShare(user.id,await readJson(req)));
     if (url.pathname === '/api/market' && req.method === 'GET') return json(res,200,{shares:listShares(user.id)});
     if (url.pathname === '/api/market' && req.method === 'POST') return json(res,201,publishShare(user.id,await readJson(req)));
     const shareMatch = /^\/api\/market\/([^/]+)$/.exec(url.pathname);
+    const shareAudioMatch = /^\/api\/market\/([^/]+)\/audio$/.exec(url.pathname);
+    if (shareAudioMatch && req.method === 'GET') {
+      const audio = listeningShareAudio(user.id, shareAudioMatch[1]);
+      res.writeHead(200, { 'content-type': audio.audio_mime, 'content-length': audio.audio_size, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
+      return createReadStream(audio.audio_path).pipe(res);
+    }
     if (shareMatch && req.method === 'GET') return json(res,200,shareDetail(user.id,shareMatch[1]));
     if (shareMatch && req.method === 'DELETE') return json(res,200,withdrawShare(user.id,shareMatch[1]));
 

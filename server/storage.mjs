@@ -928,9 +928,6 @@ export function createListeningQuestion(userId, payload) {
       })()
     : rawChoices;
   const choiceDetails = normalizeListeningChoiceDetails(payload?.choiceDetails, choices.length);
-  if (choices.some(Boolean) && choices.some((choice, index) => choice && !choiceDetails[index].explanation)) {
-    throw new Error('Add an explanation for every non-empty listening choice');
-  }
   const answerIndex = Number(payload?.answerIndex);
   const audioMime = String(payload?.audioMime ?? '').toLowerCase();
   const audioFileName = String(payload?.audioFileName ?? 'listening-audio').trim().slice(0, 180);
@@ -1152,9 +1149,6 @@ export function updateListeningQuestion(userId, id, payload) {
   }
   const answerIndex = has('answerIndex') ? Number(payload.answerIndex) : current.answerIndex;
   const choiceDetails = normalizeListeningChoiceDetails(has('choiceDetails') ? payload.choiceDetails : current.choiceDetails, choices.length);
-  if ((has('choices') || has('choiceDetails')) && choices.some(Boolean) && choices.some((choice, index) => choice && !choiceDetails[index].explanation)) {
-    throw new Error('Add an explanation for every non-empty listening choice');
-  }
   const title = has('title') ? (String(payload.title ?? '').trim().slice(0, 120) || question.slice(0, 120)) : current.title;
   const explanation = has('explanation') ? String(payload.explanation ?? '').trim().slice(0, 2000) : current.explanation;
 
@@ -2642,11 +2636,16 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       throw new Error(`Draft question ${question.id ?? index + 1} has an invalid answer`);
     }
     const answer = choices[answerIndex];
-    const item = reviewItems.find((candidate) =>
+    const seededItem = reviewItems.find((candidate) =>
       (candidate.practice_questions ?? []).some((seed) => seed.id === question.id || (
         seed.source_draft_id === draft.id && seed.tested_expression === question.tested
       )),
     );
+    const target = String(question.tested ?? question.target ?? '').trim().normalize('NFKC');
+    const matchingItems = target ? reviewItems.filter((candidate) =>
+      candidate.original?.trim().normalize('NFKC') === target &&
+      (draftQuestionKind(question.kind) !== 'grammar' || candidate.deck === 'grammar_expression')) : [];
+    const item = seededItem ?? (matchingItems.length === 1 ? matchingItems[0] : undefined);
     const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
     const sourceReference = String(question.source_reference ?? '').trim().slice(0, 200);
     const sourceOrigin = question.source_origin === 'ai_generated' ? 'ai_generated'

@@ -48,6 +48,27 @@ test('MCP update_listening_question edits metadata without touching audio', asyn
   assert.equal(changed.libraryNumber, saved.libraryNumber);
 });
 
+test('listening choices and answer can be saved before AI explanations are added', async () => {
+  const { choiceDetails: _choiceDetails, explanation: _explanation, ...input } = makeInput('analysis-later');
+  const saved = await call('create_listening_question', input);
+  assert.deepEqual(saved.choiceDetails, input.choices.map(() => ({ translation: '', explanation: '' })));
+  assert.equal(saved.answerIndex, 0);
+
+  const revised = await call('update_listening_question', {
+    id: saved.id,
+    choices: ['男', '女', '両方', '不明'],
+    answerIndex: 1,
+  });
+  assert.equal(revised.answerIndex, 1);
+  assert.deepEqual(revised.choiceDetails, revised.choices.map(() => ({ translation: '', explanation: '' })));
+
+  const analyzed = await call('update_listening_question', {
+    id: saved.id,
+    choiceDetails: [{ explanation: '話しているのは男ではない。' }, { explanation: '女が話している。' }],
+  });
+  assert.equal(analyzed.choiceDetails[1].explanation, '女が話している。');
+});
+
 test('HTTP edit updates one question and the shared transcript without changing audio', async () => {
   const token = storage.loginUser('listener', 'password-one').token;
   const handler = createApiHandler({});

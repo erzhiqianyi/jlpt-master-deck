@@ -3,6 +3,7 @@ import { withPlatform } from '../server/platform.mjs';
 import { sqliteAdapter } from './sqlite-adapter.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
+import { listeningShareAudio } from '../server/market.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
 import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser, itemImageForUser } from '../server/storage.mjs';
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
@@ -104,11 +105,33 @@ export class JlptDatabase extends DurableObject {
       return Response.json({error:'此内容尚未同步到云端。'},{status:404});
     }
     const audio = /^\/api\/(listening-questions|listening-recordings)\/([^/]+)\/audio$/.exec(url.pathname);
-    if (audio && request.method === 'GET') {
+    const sharedAudio = /^\/api\/market\/([^/]+)\/audio$/.exec(url.pathname);
+    if (sharedAudio && request.method === 'GET') {
       const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
       const user = userForToken(token);
       if (!user) return Response.json({error:'Authentication required'},{status:401});
-      const row = (audio[1] === 'listening-questions' ? listeningAudioForUser : listeningRecordingAudioForUser)(user.id, audio[2]);
+      let row;
+      try { row = listeningShareAudio(user.id, sharedAudio[1]); }
+      catch { return new Response('Not found',{status:404}); }
+      const object = await this.env.MEDIA.get(objectKey(row.audio_path));
+      if (!object) return new Response('Not found',{status:404});
+      return new Response(object.body,{headers:{'content-type':row.audio_mime,'content-length':String(object.size),'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+    }
+    if (audio && request.method === 'GET') {
+      const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
+      let userId;
+      if (mcp.carriesToken(request)) {
+        let grant;
+        try { grant = await mcp.authenticate(request); }
+        catch { return Response.json({error:'Authentication required'},{status:401}); }
+        if (!grant) return Response.json({error:'Authentication required'},{status:401});
+        if (!grant.scopes.includes('audio:read')) return Response.json({error:'Audio access not granted'},{status:403});
+        userId = Number(grant.ownerId);
+      } else {
+        userId = userForToken(token)?.id;
+      }
+      if (!userId) return Response.json({error:'Authentication required'},{status:401});
+      const row = (audio[1] === 'listening-questions' ? listeningAudioForUser : listeningRecordingAudioForUser)(userId, audio[2]);
       if (!row) return new Response('Not found',{status:404});
       const object = await this.env.MEDIA.get(objectKey(row.audio_path));
       if (!object) return new Response('Not found',{status:404});

@@ -50,6 +50,8 @@ import {
   getHistoryQuestions,
   findListeningAudioQuestions,
   listListeningRecordings,
+  listeningAudioForUser,
+  listeningRecordingAudioForUser,
   listDueReviews,
   listListeningQuestions,
   readListeningAudioForUser,
@@ -175,7 +177,7 @@ const listeningCreateFields = {
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string(),
   choices: z.array(z.string()).max(4),
-  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().min(1) })).max(4).describe('Required for every non-empty choice: one entry per choice, in choice order, with a reason it is right or wrong and an optional Chinese translation.'),
+  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().optional() })).max(4).optional().describe('Optional per-choice translations and explanations, in choice order. They can be added later.'),
   answerIndex: z.number().int(),
   explanation: z.string().optional(),
   transcript: z.string().max(30000).optional().describe('Japanese transcript shared by every question linked to this audio.'),
@@ -190,7 +192,7 @@ const listeningUpdateFields = {
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string().optional(),
   choices: z.array(z.string()).max(4).optional(),
-  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().min(1) })).max(4).optional().describe('One entry per choice, in choice order; replace the full list together with choices. Each entry requires the reason that choice is right or wrong.'),
+  choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().optional() })).max(4).optional().describe('Optional per-choice translations and explanations, in choice order; replace the full list when supplied.'),
   answerIndex: z.number().int().optional(),
   explanation: z.string().optional(),
   libraryNumber: z.number().int().min(1).optional().describe('New 1-based 题号 position in the owner\'s listening library, e.g. move question #11 to #1.'),
@@ -336,13 +338,27 @@ export const tools = [
     { recording_id: z.string().min(1) }, ro,
     async ({ recording_id }, ctx) => ({ content: [{ type: 'audio', ...found(await readListeningRecordingAudioForUser(uid(ctx), recording_id), 'Listening recording audio not found') }] }),
     { scope: 'audio:read' }),
+  tool('get_listening_audio_download', 'Get a stable authenticated URL for one owned reference audio. The client must send its MCP OAuth Bearer token on the GET request; no token is included in this result. Requires audio:read permission.',
+    { question_id: z.string().min(1) }, ro,
+    async ({ question_id }, ctx) => {
+      const audio = found(listeningAudioForUser(uid(ctx), question_id), 'Listening audio not found');
+      if (!ctx.request) throw new Error('Audio download URLs require an HTTP MCP connection');
+      return text({ url: new URL(`/api/listening-questions/${encodeURIComponent(question_id)}/audio`, ctx.request.url).toString(), mimeType: audio.audio_mime, size: audio.audio_size, auth: 'MCP OAuth Bearer token with audio:read' });
+    }, { scope: 'audio:read' }),
+  tool('get_listening_recording_download', 'Get a stable authenticated URL for one owned learner recording. The client must send its MCP OAuth Bearer token on the GET request; no token is included in this result. Requires audio:read permission.',
+    { recording_id: z.string().min(1) }, ro,
+    async ({ recording_id }, ctx) => {
+      const audio = found(listeningRecordingAudioForUser(uid(ctx), recording_id), 'Listening recording audio not found');
+      if (!ctx.request) throw new Error('Audio download URLs require an HTTP MCP connection');
+      return text({ url: new URL(`/api/listening-recordings/${encodeURIComponent(recording_id)}/audio`, ctx.request.url).toString(), mimeType: audio.audio_mime, size: audio.audio_size, auth: 'MCP OAuth Bearer token with audio:read' });
+    }, { scope: 'audio:read' }),
   tool('find_listening_audio_questions', 'Find your listening questions attached to an audio SHA-256, matching the web audio lookup.',
     { sha256: z.string().regex(/^[a-f0-9]{64}$/) }, ro,
     async ({ sha256 }, ctx) => text(findListeningAudioQuestions(uid(ctx), sha256))),
   tool('list_listening_recordings', 'Read all your recordings for a listening question, including completed analyses; this does not claim or change a recording.',
     { question_id: z.string() }, ro,
     async ({ question_id }, ctx) => text(listListeningRecordings(uid(ctx), question_id))),
-  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Provide the shared Japanese transcript and its Chinese translation when available. For every choice, provide choiceDetails in the same order with its translation and a specific explanation of why it is right or wrong. Empty choices with answerIndex -1 are supported for listening-basic-training.',
+  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Provide the shared Japanese transcript and its Chinese translation when available. Per-choice translations and explanations are optional and can be added later. Empty choices with answerIndex -1 are supported for listening-basic-training.',
     listeningCreateFields, rw, async (args, ctx) => text(createListeningQuestion(uid(ctx), args)), { scope: 'library:write' }),
   ...['update_listening_question', 'edit_listening_question', 'patch_listening_question'].map((name) =>
     tool(name, listeningUpdateDescription, listeningUpdateFields, replacing,

@@ -7,7 +7,7 @@ const dir = mkdtempSync(join(tmpdir(), "jlpt-market-"));
 process.env.JLPT_DB_PATH = join(dir, "test.sqlite");
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, "data");
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, getDb, listWordbooks, getDailyPractice, getStudyState } =
+const { createUser, createReviewPackDraft, createDailyPracticeFromDraft, getDb, listWordbooks, getDailyPractice, getStudyState } =
   await import("./storage.mjs");
 const {
   importPackage,
@@ -98,6 +98,61 @@ test("practice import remaps identifiers, preserves questions and isolates answe
   assert.deepEqual(getStudyState(b.id).answers, {});
   assert.equal(importPackage(b.id, pkg).alreadyImported, true);
   assert.equal(getDailyPractice(c.id, second.id), null);
+});
+test('practice imports linked grammar into the learner library and keeps question links', () => {
+  const pkg = {
+    format: 'jlpt-share', version: 1, kind: 'practice', title: '时间关系',
+    items: [{ id: 'private-grammar-id', deck: 'grammar_expression', original: '～が早いか', reading: 'がはやいか', meaning_zh: '刚一……就……' }],
+    questions: [{ kind: 'grammar', prompt: '着く（　）走った。', choices: ['が早いか', 'ほど'], answer: 'が早いか', sourceItemIndex: 0 }],
+  };
+  const imported = importPackage(b.id, pkg);
+  const linkedId = getDailyPractice(b.id, imported.id).questions[0].itemId;
+  const linkedItem = userReviewData(b.id).items.find((item) => item.id === linkedId);
+  assert.equal(linkedItem?.original, '～が早いか');
+  assert.equal(linkedItem?.deck, 'grammar_expression');
+  assert.notEqual(linkedId, 'private-grammar-id');
+  assert.equal(importPackage(b.id, pkg).alreadyImported, true);
+  assert.equal(userReviewData(b.id).items.filter((item) => item.id === linkedId).length, 1);
+  const republished = sourcePackage(b.id, { kind: 'practice', sourceId: imported.id });
+  assert.equal(republished.questions[0].sourceItemIndex, 0);
+  assert.equal(republished.items[0].original, '～が早いか');
+});
+test('older question-only shares recover exact grammar links while the source exists', () => {
+  const source = importPackage(a.id, {
+    format: 'jlpt-share', version: 1, kind: 'practice', title: '旧版时间关系',
+    items: [{ deck: 'grammar_expression', original: '～そばから', meaning_zh: '刚……就……' }],
+    questions: [{ kind: 'grammar', prompt: '覚える（　）忘れる。', choices: ['そばから', 'ところで'], answer: 'そばから', memoryPoint: '～そばから', sourceItemIndex: 0 }],
+  });
+  const published = publishShare(a.id, { kind: 'practice', sourceId: source.id });
+  const old = structuredClone(published.package);
+  delete old.items;
+  delete old.questions[0].sourceItemIndex;
+  getDb().prepare('UPDATE market_shares SET package_json=? WHERE id=?').run(JSON.stringify(old), published.id);
+  const oldCopy = importPackage(c.id, old);
+  assert.equal(userReviewData(c.id).items.some((item) => item.original === '～そばから'), false);
+  const copy = importShare(c.id, published.id);
+  assert.equal(copy.id, oldCopy.id);
+  assert.equal(copy.alreadyImported, true);
+  const linkedId = getDailyPractice(c.id, copy.id).questions[0].itemId;
+  assert.equal(userReviewData(c.id).items.find((item) => item.id === linkedId)?.original, '～そばから');
+  assert.equal(importShare(c.id, published.id).id, oldCopy.id);
+  assert.equal(userReviewData(c.id).items.filter((item) => item.original === '～そばから').length, 1);
+});
+test('sharing a draft practice includes original grammar notes even before they are in the library', () => {
+  const draft = createReviewPackDraft(a.id, { title: '文法原始笔记', status: 'approved', content: {
+    grammar_points: [{ grammar_point: '～や否や', meaning_zh: '刚……就……', core_memory: ['书面语'] }],
+    sections: [{ title: '时间关系', questions: [{ id: 'q1', kind: '文法', tested: '～や否や',
+      prompt: '見る（　）走った。', choices: ['や否や', 'ほど'], answer: 'や否や',
+      explanation_zh: '动作紧接着发生。', translation_zh: '一看见就跑了。',
+      choiceAnalysis: [{ choice: 'や否や', explanation: '表示紧接着发生。' }, { choice: 'ほど', explanation: '程度表达不合语境。' }] }] }],
+  } });
+  const practice = createDailyPracticeFromDraft(a.id, draft.id);
+  const shared = sourcePackage(a.id, { kind: 'practice', sourceId: practice.id });
+  assert.equal(shared.items[0].original, '～や否や');
+  assert.equal(shared.questions[0].sourceItemIndex, 0);
+  const imported = importPackage(c.id, shared);
+  const linkedId = getDailyPractice(c.id, imported.id).questions[0].itemId;
+  assert.equal(userReviewData(c.id).items.find((item) => item.id === linkedId)?.original, '～や否や');
 });
 test("invalid and oversized packages fail without partial writes", () => {
   const count = getDb()

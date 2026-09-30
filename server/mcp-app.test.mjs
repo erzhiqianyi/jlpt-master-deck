@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Writable } from 'node:stream';
 
 const dir = mkdtempSync(join(tmpdir(), 'jlpt-mcp-app-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
@@ -11,9 +12,10 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
-const { createUser, loginUser, createLearningCapture, createListeningQuestion, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
+const { createUser, loginUser, createLearningCapture, createListeningQuestion, createListeningRecording, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
 const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, AI_HOME_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
+const { createApiHandler } = await import('./api-handler.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
 
 const origin = 'http://127.0.0.1:4221';
@@ -242,6 +244,22 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const audioResult = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name: 'get_listening_audio', arguments: { question_id: listening.id } }));
   assert.equal(audioResult.result.content[0].type, 'audio');
   assert.equal(Buffer.from(audioResult.result.content[0].data, 'base64').toString(), 'mcp-audio-bytes');
+  const recording = createListeningRecording(user.id, listening.id, { audioMime: 'audio/wav', audioBase64: Buffer.from('local-recording').toString('base64') });
+  const localAudio = async (path, bearer) => {
+    const chunks = [];
+    let status;
+    const response = new Writable({ write(chunk, _encoding, callback) { chunks.push(Buffer.from(chunk)); callback(); } });
+    response.writeHead = (code) => { status = code; return response; };
+    const finished = new Promise((resolve) => response.once('finish', resolve));
+    await createApiHandler({ mcp })({ method: 'GET', url: path, headers: { host: '127.0.0.1:4221', authorization: `Bearer ${bearer}` } }, response);
+    await finished;
+    return { status, body: Buffer.concat(chunks).toString() };
+  };
+  const recordingPath = `/api/listening-recordings/${recording.id}/audio`;
+  assert.deepEqual(await localAudio(recordingPath, writeToken.access_token), { status: 200, body: 'local-recording' });
+  assert.equal((await localAudio(recordingPath, issued.access_token)).status, 403);
+  assert.equal((await localAudio(recordingPath, 'agt_invalid')).status, 401);
+  assert.equal((await localAudio(`/api/listening-recordings/${recording.id}-other/audio`, writeToken.access_token)).status, 404);
   for (const tool of protectedTools) {
     const exposed = writeList.result.tools.find((entry) => entry.name === tool.name);
     assert.ok(exposed, tool.name);

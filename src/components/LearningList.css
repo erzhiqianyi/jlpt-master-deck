@@ -112,6 +112,15 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
  .list-frame .list-header { padding: 16px; }
  .list-frame .list-title { margin-bottom: 12px; }
  .list-frame .list-item-secondary { padding-right: 12px; }
+ .topic-practice-list .list-item-name strong,
+ .discovery-panel .standard-list-fields .list-item-name strong {
+   display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+ }
+ .topic-practice-list .list-item-description,
+ .discovery-panel .standard-list-description {
+   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+ }
+ .topic-practice-list .list-item-open { min-height: 76px; }
 }
 
 /* Icon actions share a touch-sized target; labels remain available to assistive tech. */

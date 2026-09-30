@@ -6,7 +6,7 @@ import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { LearningList, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, LoaderCircle, Mic, Pause, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, LoaderCircle, Mic, Pause, Pencil, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
@@ -44,6 +44,7 @@ type ListeningPanelProps = {
   progress?: ProgressState;
   onRecordPractice?: (item: ListeningQuestion, sessionId: string) => Promise<void>;
   onCreate: (input: ListeningQuestionInput) => Promise<void>;
+  onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
   onPractice?: () => void;
@@ -59,7 +60,7 @@ type ListeningAudioGroup = { key: string; representative: ListeningQuestion; que
 const sameListeningHeading = (a: ListeningQuestion | undefined, b: ListeningQuestion | undefined) =>
   Boolean(a && b && a.questionTypeId === b.questionTypeId && a.title.trim() === b.title.trim());
 
-export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
+export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onUpdate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
   const sessionId = useMemo(() => crypto.randomUUID(), [mode, activeQuestionId]);
   const recordPractice: RecordPractice = async (item) => { await onRecordPractice?.(item, sessionId); };
   const [title, setTitle] = useState('');
@@ -142,7 +143,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           const sharedTitle = sameAsPrevious || sameListeningHeading(item, activeGroup[index + 1]);
           return <Fragment key={item.id}>
             {sharedTitle && !sameAsPrevious ? <h3 className="break-words bg-[#f4faf5] px-4 py-4 text-lg font-semibold leading-7 text-[#27312c] md:px-6">{item.title}</h3> : null}
-            <ListeningQuestionItem onRecordPractice={recordPractice} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail hideTitle={sharedTitle} showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />
+            <ListeningQuestionItem onRecordPractice={recordPractice} item={item} labels={labels} locale={locale} token={token} onUpdate={onUpdate} onDelete={onDelete} detail hideTitle={sharedTitle} showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />
           </Fragment>;
         })}</div>
       </section>
@@ -236,7 +237,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), (byte) => byte.toString(16).padStart(2, '0')).join('');
       const result = await apiRequest<{ questions: ListeningQuestion[] }>(`/api/listening-audio-match?sha256=${hash}`, { token });
       if (selection !== audioSelection.current) return;
-      const drafts = result.questions.map((item) => ({ ...item, existingQuestionId: item.id }));
+      const drafts = result.questions.map((item) => ({ ...item, choiceDetails: resizeListeningChoiceDetails(item.choiceDetails ?? [], item.choices.length), existingQuestionId: item.id }));
       if (drafts.length) {
         setQueuedDrafts(drafts);
         setActiveDraftIndex(0);
@@ -563,14 +564,14 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
         {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-bold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
-      {revealed && item.explanation ? <p className="cute-answer-note mt-4 whitespace-pre-wrap border border-[#f0d4dd] bg-[#fff7fb] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
-      {revealed && item.transcript ? <details className="mt-4 rounded-md border border-[#dce9df] bg-[#f7fbf7] p-3"><summary className="cursor-pointer font-bold text-[#31564c]">{labels.listeningTranscript}</summary><p lang="ja" className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.transcript}</p>{item.transcriptTranslation ? <details className="mt-3 border-t border-[#dce9df] pt-2"><summary className="cursor-pointer text-sm font-semibold text-[#68716b]">{labels.listeningShowTranslation}</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#4f5b55]">{item.transcriptTranslation}</p></details> : null}</details> : null}
+      {revealed ? <ListeningExplanation item={item} labels={labels} /> : null}
       {revealed ? <ListeningAnswerBreakdown item={item} /> : null}
     </div>
   );
 }
 
-function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail = false, hideTitle = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onDelete: (id: string) => Promise<void>; detail?: boolean; hideTitle?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
+function ListeningQuestionItem({ item, labels, locale, token, onUpdate, onDelete, detail = false, hideTitle = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; detail?: boolean; hideTitle?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
+  const [editing, setEditing] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
@@ -641,9 +642,11 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
           {showAudio ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
         </div>
         <div className="flex shrink-0 justify-end gap-1">
+          {detail ? <QuestionAction label={`编辑: ${item.title}`} title="编辑" onClick={() => setEditing((value) => !value)}><Pencil size={16} /></QuestionAction> : null}
           <QuestionAction label={`${labels.listeningDelete}: ${item.title}`} title={labels.listeningDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction>
         </div>
       </div>
+      {editing ? <ListeningQuestionEditor key={item.id} item={item} labels={labels} showTranscript={showAudio} onUpdate={onUpdate} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} /> : null}
       {showAudio ? <div className="mt-4">
         {audioUrl ? <AudioPlayer src={audioUrl} labels={labels} /> : <p className="text-sm text-[#68716b]">{audioError || 'Loading audio...'}</p>}
       </div> : null}
@@ -671,11 +674,72 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
-      {revealed && item.explanation ? <p className="mt-4 whitespace-pre-wrap rounded-md bg-[#f5f7f3] p-3 text-sm leading-6 text-[#4f5b55]">{item.explanation}</p> : null}
-      {revealed && item.transcript ? <details className="mt-4 rounded-md border border-[#dce9df] bg-[#f7fbf7] p-3"><summary className="cursor-pointer font-bold text-[#31564c]">{labels.listeningTranscript}</summary><p lang="ja" className="mt-3 whitespace-pre-wrap text-sm leading-7">{item.transcript}</p>{item.transcriptTranslation ? <details className="mt-3 border-t border-[#dce9df] pt-2"><summary className="cursor-pointer text-sm font-semibold text-[#68716b]">{labels.listeningShowTranslation}</summary><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#4f5b55]">{item.transcriptTranslation}</p></details> : null}</details> : null}
+      {revealed ? <ListeningExplanation item={item} labels={labels} /> : null}
       {revealed ? <ListeningAnswerBreakdown item={item} /> : null}
     </article>
   );
+}
+
+function ListeningQuestionEditor({ item, labels, showTranscript, onUpdate, onCancel, onSaved }: { item: ListeningQuestion; labels: Record<string, string>; showTranscript: boolean; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onCancel: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState(item.title);
+  const [questionTypeId, setQuestionTypeId] = useState(item.questionTypeId);
+  const [question, setQuestion] = useState(item.question);
+  const [choices, setChoices] = useState(() => Array.from({ length: listeningTypeGuidance[item.questionTypeId]?.choiceCount ?? 4 }, (_, index) => item.choices[index] ?? ''));
+  const [choiceDetails, setChoiceDetails] = useState(() => resizeListeningChoiceDetails(item.choiceDetails ?? [], listeningTypeGuidance[item.questionTypeId]?.choiceCount ?? 4));
+  const [answerIndex, setAnswerIndex] = useState(item.answerIndex);
+  const [explanation, setExplanation] = useState(item.explanation);
+  const [transcript, setTranscript] = useState(item.transcript ?? '');
+  const [transcriptTranslation, setTranscriptTranslation] = useState(item.transcriptTranslation ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const guidance = listeningTypeGuidance[questionTypeId] ?? listeningTypeGuidance['listening-task'];
+  const blankBasic = questionTypeId === 'listening-basic-training' && choices.every((choice) => !choice.trim());
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await onUpdate(item.id, {
+        title, questionTypeId, question, choices, choiceDetails,
+        answerIndex: blankBasic ? -1 : answerIndex < 0 ? 0 : answerIndex,
+        explanation,
+        ...(showTranscript ? { transcript, transcriptTranslation } : {}),
+      });
+      onSaved();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <form onSubmit={save} className="mt-4 grid gap-4 rounded-xl border border-[#dce9df] bg-[#f7fbf7] p-4">
+    <h4 className="font-bold text-[#31564c]">编辑听力题</h4>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <label className="text-sm font-semibold">{labels.questionType}<select value={questionTypeId} onChange={(event) => {
+        const next = event.target.value;
+        const nextGuidance = listeningTypeGuidance[next] ?? listeningTypeGuidance['listening-task'];
+        setQuestionTypeId(next);
+        setQuestion(nextGuidance.prompt);
+        setChoices((current) => Array.from({ length: nextGuidance.choiceCount }, (_, index) => current[index] ?? ''));
+        setChoiceDetails((current) => resizeListeningChoiceDetails(current, nextGuidance.choiceCount));
+        setAnswerIndex(0);
+      }} className="mt-1 block h-10 w-full rounded-md border border-[#c8d1c8] bg-white px-3">{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</select></label>
+      <label className="text-sm font-semibold">{labels.listeningTitle}<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} className="mt-1 block h-10 w-full rounded-md border border-[#c8d1c8] bg-white px-3" /></label>
+    </div>
+    <label className="text-sm font-semibold">{labels.listeningQuestion}<textarea value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={1000} required className="mt-1 block min-h-24 w-full rounded-md border border-[#c8d1c8] bg-white p-3" /></label>
+    <div className="grid gap-3 sm:grid-cols-2">{choices.map((choice, index) => <fieldset key={index} className="grid gap-2 rounded-md border border-[#dce9df] bg-white p-3">
+      <label className="text-sm font-semibold">{labels.listeningChoice.replace('{number}', String(index + 1))}<input value={choice} onChange={(event) => setChoices((current) => current.map((value, i) => i === index ? event.target.value : value))} maxLength={300} required={!guidance.choicesOptional} className="mt-1 block h-10 w-full rounded-md border border-[#c8d1c8] px-3" /></label>
+      <label className="text-sm">{labels.listeningChoiceTranslation}<input value={choiceDetails[index]?.translation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'translation', event.target.value))} maxLength={2000} className="mt-1 block h-10 w-full rounded-md border border-[#c8d1c8] px-3" /></label>
+      <label className="text-sm">{labels.listeningChoiceExplanation}<textarea value={choiceDetails[index]?.explanation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'explanation', event.target.value))} maxLength={4000} required={Boolean(choice.trim())} className="mt-1 block min-h-16 w-full rounded-md border border-[#c8d1c8] p-2" /></label>
+    </fieldset>)}</div>
+    {!blankBasic ? <label className="text-sm font-semibold">{labels.listeningCorrectAnswer}<select value={answerIndex < 0 ? 0 : answerIndex} onChange={(event) => setAnswerIndex(Number(event.target.value))} className="mt-1 block h-10 w-full rounded-md border border-[#c8d1c8] bg-white px-3">{choices.map((choice, index) => <option key={index} value={index}>{index + 1}. {choice || '（未填写）'}</option>)}</select></label> : null}
+    <label className="text-sm font-semibold">{labels.listeningExplanation}<textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-md border border-[#c8d1c8] bg-white p-3" /></label>
+    {showTranscript ? <><p className="text-xs text-[#68716b]">原文和翻译由这段音频的所有题目共用。</p><label className="text-sm font-semibold">{labels.listeningTranscript}<textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} maxLength={30000} className="mt-1 block min-h-32 w-full rounded-md border border-[#c8d1c8] bg-white p-3" /></label><label className="text-sm font-semibold">{labels.listeningTranscriptTranslation}<textarea value={transcriptTranslation} onChange={(event) => setTranscriptTranslation(event.target.value)} maxLength={30000} className="mt-1 block min-h-24 w-full rounded-md border border-[#c8d1c8] bg-white p-3" /></label></> : null}
+    {error ? <p role="alert" className="text-sm text-[#a84269]">{error}</p> : null}
+    <div className="flex justify-end gap-2"><button type="button" onClick={onCancel} disabled={saving} className="h-10 rounded-md border border-[#c8d1c8] px-4 text-sm">{labels.cancelAction}</button><button type="submit" disabled={saving} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-bold text-white disabled:opacity-50">{saving ? labels.listeningSubmitting : '保存修改'}</button></div>
+  </form>;
 }
 
 function ListeningRecordingAnalysisPanel({ item, labels, locale, token }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string }) {
@@ -953,12 +1017,56 @@ function isFreeResponse(item: ListeningQuestion) {
   return item.choices.length === 0;
 }
 
+type ListeningExplanationSection = { title: string; body: string; kind: 'analysis' | 'transcript' | 'translation' };
+
+function splitListeningExplanation(value: string): ListeningExplanationSection[] {
+  const sections: ListeningExplanationSection[] = [];
+  const heading = /^[ \t]*【([^】\n]{1,40})】[ \t]*$/gm;
+  let previousEnd = 0;
+  let previousTitle = '';
+  for (const match of value.matchAll(heading)) {
+    const body = value.slice(previousEnd, match.index).trim();
+    if (body) sections.push({ title: previousTitle, body, kind: listeningSectionKind(previousTitle) });
+    previousTitle = match[1].trim();
+    previousEnd = match.index + match[0].length;
+  }
+  const tail = value.slice(previousEnd).trim();
+  if (tail) sections.push({ title: previousTitle, body: tail, kind: listeningSectionKind(previousTitle) });
+  return sections;
+}
+
+function listeningSectionKind(title: string): ListeningExplanationSection['kind'] {
+  if (/听力原文|聴解スクリプト|音声スクリプト|^原文$|transcript/i.test(title)) return 'transcript';
+  if (/全文翻译|全文翻訳|原文翻译|原文翻訳|^翻译$|^翻訳$|translation/i.test(title)) return 'translation';
+  return 'analysis';
+}
+
+function ListeningExplanation({ item, labels }: { item: ListeningQuestion; labels: Record<string, string> }) {
+  const embedded = splitListeningExplanation(item.explanation ?? '');
+  const sections = [
+    ...embedded.filter((section) => section.kind === 'analysis'),
+    ...(item.transcript?.trim() ? [{ title: labels.listeningTranscript, body: item.transcript.trim(), kind: 'transcript' as const }] : embedded.filter((section) => section.kind === 'transcript')),
+    ...(item.transcriptTranslation?.trim() ? [{ title: labels.listeningTranscriptTranslation, body: item.transcriptTranslation.trim(), kind: 'translation' as const }] : embedded.filter((section) => section.kind === 'translation')),
+  ];
+  if (!sections.length) return null;
+  return <div className="mt-4 grid gap-3" aria-label={labels.listeningExplanation}>
+    {sections.map((section, index) => {
+      const title = section.title || (section.kind === 'transcript' ? labels.listeningTranscript : section.kind === 'translation' ? labels.listeningTranscriptTranslation : labels.listeningExplanation.replace(/（.*?）|\(.*?\)/gu, '').trim());
+      const content = <p lang={section.kind === 'transcript' ? 'ja' : undefined} className="whitespace-pre-wrap break-words text-sm leading-7 text-[#4f5b55]">{section.body}</p>;
+      return <details key={`${section.kind}-${index}`} className={`rounded-lg border border-[#dce9df] p-4 ${section.kind === 'analysis' ? 'bg-[#f7fbf7]' : 'bg-white'}`}>
+        <summary className="cursor-pointer font-bold text-[#31564c]">{title}</summary>
+        <div className="mt-3 border-t border-[#e7eee8] pt-3">{content}</div>
+      </details>;
+    })}
+  </div>;
+}
+
 function ListeningAnswerBreakdown({ item }: { item: ListeningQuestion }) {
   return (
-    <div className="mt-4 rounded-md border border-[#dce9df] bg-[#f7fbf7] p-3 text-sm leading-6 text-[#4f5b55]">
-      <p className="font-bold text-[#31564c]">{listeningQuestionTypeName(item.questionTypeId)} · 解析要点</p>
-      {isFreeResponse(item) ? <p className="mt-1">这是自由作答题：先比较你的回答是否完成了题目要求，再根据上方解析检查语气、信息和回应是否自然。</p> : <ol className="mt-2 list-decimal space-y-1 pl-5">{item.choices.map((choice, index) => <li key={index} className={index === item.answerIndex ? 'font-bold text-[#356146]' : ''}>{choice || '（未填写）'}{index === item.answerIndex ? ' · 正确答案' : ''}</li>)}</ol>}
-    </div>
+    <details className="mt-4 rounded-lg border border-[#dce9df] bg-[#f7fbf7] p-4 text-sm leading-6 text-[#4f5b55]">
+      <summary className="cursor-pointer font-bold text-[#31564c]">{listeningQuestionTypeName(item.questionTypeId)} · 解析要点</summary>
+      <div className="mt-3 border-t border-[#e7eee8] pt-3">{isFreeResponse(item) ? <p>这是自由作答题：先比较你的回答是否完成了题目要求，再根据上方解析检查语气、信息和回应是否自然。</p> : <ol className="list-decimal space-y-1 pl-5">{item.choices.map((choice, index) => <li key={index} className={index === item.answerIndex ? 'font-bold text-[#356146]' : ''}>{choice || '（未填写）'}{index === item.answerIndex ? ' · 正确答案' : ''}</li>)}</ol>}</div>
+    </details>
   );
 }
 

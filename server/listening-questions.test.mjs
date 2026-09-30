@@ -11,6 +11,7 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 const storage = await import('./storage.mjs');
 const { tools } = await import('./mcp-tools.mjs');
+const { createApiHandler } = await import('./api-handler.mjs');
 const alice = storage.createUser('listener', 'password-one');
 const bob = storage.createUser('other-listener', 'password-two');
 
@@ -45,6 +46,28 @@ test('MCP update_listening_question edits metadata without touching audio', asyn
   assert.deepEqual(changed.choices, saved.choices);
   assert.equal(changed.audioFileName, saved.audioFileName);
   assert.equal(changed.libraryNumber, saved.libraryNumber);
+});
+
+test('HTTP edit updates one question and the shared transcript without changing audio', async () => {
+  const token = storage.loginUser('listener', 'password-one').token;
+  const handler = createApiHandler({});
+  const input = makeInput('http-edit');
+  const first = storage.createListeningQuestion(alice.id, input);
+  const second = storage.createListeningQuestion(alice.id, { ...input, title: '第2問', question: '質問2' });
+  const request = async (id, body) => {
+    let status, result;
+    await handler({ method: 'PATCH', url: `/api/listening-questions/${id}`, headers: { host: 'localhost', authorization: `Bearer ${token}` }, async *[Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify(body)); } }, { writeHead(code) { status = code; }, end(value) { result = JSON.parse(value); } });
+    return { status, ...result };
+  };
+  const changed = await request(first.id, { title: '改訂', question: '新しい質問', choices: ['A', 'B', 'C', 'D'], choiceDetails: input.choiceDetails, answerIndex: 1, transcript: '音声の原文', transcriptTranslation: '音频原文' });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.question.title, '改訂');
+  assert.equal(changed.question.answerIndex, 1);
+  assert.equal(changed.question.audioAssetId, first.audioAssetId);
+  assert.equal(storage.listeningQuestionForUser(alice.id, second.id).transcript, '音声の原文');
+  assert.equal(storage.listeningQuestionForUser(alice.id, second.id).question, '質問2');
+  assert.equal((await request(first.id, { answerIndex: 9 })).status, 400);
+  assert.equal((await request(storage.createListeningQuestion(bob.id, makeInput('other-http-edit')).id, { title: 'stolen' })).status, 404);
 });
 
 test('questions sharing one audio play in their numbered order', async () => {

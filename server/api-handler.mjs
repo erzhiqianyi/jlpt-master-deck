@@ -27,6 +27,8 @@ import {
   createReadingQuestion,
   readingQuestionForUser,
   updateReadingQuestion,
+  updateListeningQuestion,
+  updateListeningTranscript,
   createUser,
   createWordbook,
   databasePath,
@@ -43,6 +45,7 @@ import {
   listReviewPackDrafts,
   listDailyPractices,
   listListeningQuestions,
+  listeningQuestionForUser,
   listListeningRecordings,
   listReadingQuestions,
   listLearningCaptures,
@@ -431,6 +434,18 @@ return async (req, res) => {
     }
 
     const listeningQuestionMatch = /^\/api\/listening-questions\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'PATCH' && listeningQuestionMatch) {
+      const { transcript, transcriptTranslation, ...patch } = await readJson(req);
+      const question = updateListeningQuestion(user.id, listeningQuestionMatch[1], patch);
+      if (!question) return json(res, 404, { error: 'Listening question not found' });
+      if (transcript !== undefined || transcriptTranslation !== undefined) {
+        updateListeningTranscript(user.id, question.id, {
+          ...(transcript !== undefined ? { transcript } : {}),
+          ...(transcriptTranslation !== undefined ? { transcriptTranslation } : {}),
+        });
+      }
+      return json(res, 200, { question: listeningQuestionForUser(user.id, question.id) });
+    }
     if (req.method === 'DELETE' && listeningQuestionMatch) {
       if (!deleteListeningQuestion(user.id, listeningQuestionMatch[1])) {
         return json(res, 404, { error: 'Listening question not found' });

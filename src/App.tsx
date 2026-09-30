@@ -1370,6 +1370,17 @@ export default function App() {
     setListeningQuestions((current) => [...current.filter((item) => item.id !== response.question.id), response.question]);
   }
 
+  async function updateListeningQuestion(id: string, patch: Partial<ListeningQuestion>) {
+    const response = await apiRequest<{ question: ListeningQuestion }>(`/api/listening-questions/${id}`, {
+      method: 'PATCH', token: authToken, body: patch,
+    });
+    setListeningQuestions((current) => current.map((item) => item.id === id
+      ? response.question
+      : item.audioAssetId && item.audioAssetId === response.question.audioAssetId
+        ? { ...item, transcript: response.question.transcript, transcriptTranslation: response.question.transcriptTranslation }
+        : item));
+  }
+
   async function removeListeningQuestion(id: string) {
     if (!authToken) return;
     await apiRequest(`/api/listening-questions/${id}`, { method: 'DELETE', token: authToken });
@@ -1919,6 +1930,7 @@ export default function App() {
                 progress={progress}
                 onRecordPractice={saveListeningPractice}
                 onCreate={createListeningQuestion}
+                onUpdate={updateListeningQuestion}
                 onDelete={removeListeningQuestion}
                 onOpenLibrary={() => navigateTo('listening', 'words')}
                 onPractice={() => navigateTo('listening', 'questions')}
@@ -1936,6 +1948,7 @@ export default function App() {
                 progress={progress}
                 onRecordPractice={saveListeningPractice}
                 onCreate={createListeningQuestion}
+                onUpdate={updateListeningQuestion}
                 onDelete={removeListeningQuestion}
                 onPractice={() => navigateTo('listening', 'questions')}
                 onTips={() => navigateTo('listening', 'tips')}

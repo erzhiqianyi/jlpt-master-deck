@@ -68,7 +68,7 @@ export async function resolveConnection({ ownerId }) {
 }
 
 export function createJlptMcp({ storage, onEvent = recordEvent, origins = originsFor, inspector = false } = {}) {
-  return createMcpAppServer({
+  const server = createMcpAppServer({
     name: 'jlpt',
     version: '0.2.0',
     basePath: MCP_BASE_PATH,
@@ -84,6 +84,24 @@ export function createJlptMcp({ storage, onEvent = recordEvent, origins = origin
     inspector, // dev-only browser page at <basePath>/mcp/inspector; the worker never enables it
     onEvent,
   });
+  const fetch = server.fetch.bind(server);
+  return {
+    ...server,
+    async fetch(request) {
+      const url = new URL(request.url);
+      if (request.method === 'GET' && [
+        `${MCP_BASE_PATH}/oauth/authorize`,
+        `${MCP_BASE_PATH}/oauth/client`,
+      ].includes(url.pathname)) {
+        // OAuth clients may keep requesting only their original scopes after a server adds a
+        // permission. Show every currently supported permission on the consent page so users
+        // can grant new capabilities explicitly without making them required or default-on.
+        url.searchParams.set('scope', Object.keys(scopes).join(' '));
+        request = new Request(url, request);
+      }
+      return fetch(request);
+    },
+  };
 }
 
 // Keep the `.local/mcp-status.json` heartbeat the About page reads, and log the audit event.

@@ -11,7 +11,7 @@ process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
-const { createUser, loginUser, createLearningCapture, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
+const { createUser, loginUser, createLearningCapture, createListeningQuestion, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
 const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
@@ -69,6 +69,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   createLearningCapture(user.id, { body: '面目躍如', category: 'word' });
   const other = createUser('someone-else', 'test-password');
   createLearningCapture(other.id, { body: 'should not leak', category: 'word' });
+  const listening = createListeningQuestion(user.id, { question: '何をしますか。', choices: ['読む', '書く', '聞く', '話す'], answerIndex: 2, audioFileName: 'mcp-test.wav', audioMime: 'audio/wav', audioBase64: Buffer.from('mcp-audio-bytes').toString('base64') });
 
   const resource = await mcp.fetch(new Request(origin + '/.well-known/oauth-protected-resource'));
   assert.equal(resource.status, 200);
@@ -94,7 +95,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
     code_challenge: challenge,
     code_challenge_method: 'S256',
     state: 'xyz',
-    scope: 'study library:write',
+    scope: 'study library:write audio:read',
     resource: origin + '/api/jlpt/mcp',
   };
   const authorize = await mcp.fetch(new Request(origin + '/api/jlpt/oauth/authorize?' + new URLSearchParams(authorizeParams), { redirect: 'manual' }));
@@ -103,9 +104,9 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   assert.equal(consentUrl.origin + consentUrl.pathname, origin + '/oauth/authorize');
   assert.equal(consentUrl.searchParams.get('client_id'), registered.client_id);
 
-  const clientInfo = await (await mcp.fetch(new Request(origin + '/api/jlpt/oauth/client?' + new URLSearchParams({ client_id: registered.client_id, scope: 'study library:write' })))).json();
+  const clientInfo = await (await mcp.fetch(new Request(origin + '/api/jlpt/oauth/client?' + new URLSearchParams({ client_id: registered.client_id, scope: 'study library:write audio:read' })))).json();
   assert.equal(clientInfo.clientName, 'Claude Code');
-  assert.deepEqual(clientInfo.scopeDetails.map((s) => [s.name, s.required, s.default]), [['study', true, true], ['library:write', false, false]]);
+  assert.deepEqual(clientInfo.scopeDetails.map((s) => [s.name, s.required, s.default]), [['study', true, true], ['audio:read', false, false], ['library:write', false, false]]);
 
   // Approving without a session must fail; with the browser's session token it succeeds.
   const anonymous = await mcp.fetch(jsonRequest('/api/jlpt/oauth/approve', { ...Object.fromEntries(consentUrl.searchParams), decision: 'approve', scopes: ['study'] }));
@@ -134,6 +135,9 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   assert.ok(names.includes('get_review_data'));
   assert.ok(names.includes('update_review_pack_draft'));
   assert.ok(!names.includes('upsert_review_item'), 'library:write was not granted');
+  assert.ok(!names.includes('get_listening_audio'), 'audio:read was not granted');
+  const deniedAudio = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_listening_audio', arguments: { question_id: listening.id } }));
+  assert.ok(deniedAudio.error || deniedAudio.result?.isError);
   const protectedTools = tools.filter((tool) => tool.name.startsWith('delete_') || /^(create|update|edit|patch|upsert)_listening_question$/.test(tool.name));
   for (const tool of protectedTools) {
     assert.equal(tool.scope, 'library:write', tool.name);
@@ -215,7 +219,7 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const writeAuthorize = await mcp.fetch(new Request(origin + '/api/jlpt/oauth/authorize?' + new URLSearchParams(authorizeParams), { redirect: 'manual' }));
   const writeConsent = new URL(writeAuthorize.headers.get('location'));
   const writeApproval = await (await mcp.fetch(jsonRequest('/api/jlpt/oauth/approve', {
-    ...Object.fromEntries(writeConsent.searchParams), decision: 'approve', scopes: ['study', 'library:write'],
+    ...Object.fromEntries(writeConsent.searchParams), decision: 'approve', scopes: ['study', 'library:write', 'audio:read'],
   }, { authorization: `Bearer ${session.token}` }))).json();
   const writeToken = await (await mcp.fetch(new Request(origin + '/api/jlpt/oauth/token', {
     method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -223,6 +227,10 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   }))).json();
   assert.ok(writeToken.access_token);
   const writeList = await rpcResult(await rpc(writeToken.access_token, 'tools/list'));
+  assert.ok(writeList.result.tools.some((entry) => entry.name === 'get_listening_audio'));
+  const audioResult = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name: 'get_listening_audio', arguments: { question_id: listening.id } }));
+  assert.equal(audioResult.result.content[0].type, 'audio');
+  assert.equal(Buffer.from(audioResult.result.content[0].data, 'base64').toString(), 'mcp-audio-bytes');
   for (const tool of protectedTools) {
     const exposed = writeList.result.tools.find((entry) => entry.name === tool.name);
     assert.ok(exposed, tool.name);

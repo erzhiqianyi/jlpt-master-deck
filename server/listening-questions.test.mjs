@@ -46,6 +46,34 @@ test('MCP update_listening_question edits metadata without touching audio', asyn
   assert.equal(changed.libraryNumber, saved.libraryNumber);
 });
 
+test('questions sharing one audio play in their numbered order', async () => {
+  const audio = makeInput('shared-audio');
+  const saved = [];
+  for (let number = 1; number <= 4; number += 1) {
+    saved.push(await call('create_listening_question', {
+      ...audio,
+      title: `第${number}問`,
+      question: `質問${number}`,
+    }));
+  }
+  const ids = new Set(saved.map((item) => item.id));
+  assert.deepEqual(
+    storage.listListeningQuestions(alice.id).filter((item) => ids.has(item.id)).map((item) => item.title),
+    ['第1問', '第2問', '第3問', '第4問'],
+  );
+});
+
+test('MCP audio returns the owned file as audio content and rejects other users', async () => {
+  const saved = await call('create_listening_question', makeInput('mcp-audio'));
+  const tool = tools.find((entry) => entry.name === 'get_listening_audio');
+  assert.equal(tool.scope, 'audio:read');
+  const result = await tool.handler({ question_id: saved.id }, { ownerId: String(alice.id) });
+  assert.equal(result.content[0].type, 'audio');
+  assert.equal(result.content[0].mimeType, 'audio/mpeg');
+  assert.deepEqual(Buffer.from(result.content[0].data, 'base64'), Buffer.from('fake-audio-bytes-mcp-audio'));
+  await assert.rejects(tool.handler({ question_id: saved.id }, { ownerId: String(bob.id) }), /not found/i);
+});
+
 test('libraryNumber reorder (题号) shifts intervening questions and stays unique', async () => {
   const questions = [];
   for (let n = 1; n <= 5; n += 1) questions.push(await call('create_listening_question', makeInput(`order-${n}`)));

@@ -1367,7 +1367,7 @@ export default function App() {
       token: authToken,
       body: input,
     });
-    setListeningQuestions((current) => [response.question, ...current.filter((item) => item.id !== response.question.id)]);
+    setListeningQuestions((current) => [...current.filter((item) => item.id !== response.question.id), response.question]);
   }
 
   async function removeListeningQuestion(id: string) {

@@ -62,8 +62,8 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(doc.resource,origin+'/api/jlpt/mcp');
     const client=await json('/api/jlpt/oauth/register','POST',{client_name:'Runtime test',redirect_uris:['http://localhost:9999/callback'],token_endpoint_auth_method:'none'});
     const verifier='a'.repeat(64);
-    const params={client_id:client.client_id,redirect_uri:'http://localhost:9999/callback',response_type:'code',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',state:'test',scope:'study library:write',resource:origin+'/api/jlpt/mcp'};
-    const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study','library:write']});
+    const params={client_id:client.client_id,redirect_uri:'http://localhost:9999/callback',response_type:'code',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',state:'test',scope:'study library:write audio:read',resource:origin+'/api/jlpt/mcp'};
+    const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study','library:write','audio:read']});
     const tokenResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(approved.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
     assert.equal(tokenResponse.status,200,await tokenResponse.clone().text());
     const issued=await tokenResponse.json();
@@ -75,6 +75,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     };
     const catalogue = (await rpc('tools/list')).tools;
     assert.ok(catalogue.some(x=>x.name==='get_review_data'));
+    assert.ok(catalogue.some(x=>x.name==='get_listening_audio'));
+    const mcpAudio = await rpc('tools/call', { name:'get_listening_audio', arguments:{question_id:question.id} });
+    assert.equal(mcpAudio.content[0].type, 'audio');
+    assert.equal(mcpAudio.content[0].mimeType, 'audio/wav');
+    assert.equal(Buffer.from(mcpAudio.content[0].data, 'base64').toString(), 'test-audio-bytes');
     for (const name of ['get_daily_summary', 'generate_daily_summary_context', 'upsert_daily_summary']) assert.ok(catalogue.some(x=>x.name===name), name);
     const emptySummary = await rpc('tools/call', { name: 'get_daily_summary', arguments: { date: '2026-09-27' } });
     assert.equal(JSON.parse(emptySummary.content[0].text).status, 'not_found');

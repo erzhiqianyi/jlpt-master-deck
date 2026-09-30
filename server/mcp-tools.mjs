@@ -50,6 +50,7 @@ import {
   listListeningRecordings,
   listDueReviews,
   listListeningQuestions,
+  readListeningAudioForUser,
   listPendingListeningRecordings,
   listLearningCaptures,
   updateLearningCaptureStatus,
@@ -71,9 +72,10 @@ import { reviewCardsResource, reviewCardsToolMeta, practiceResource, practiceToo
 import { createQueryTools } from './mcp-query.mjs';
 import { getDb } from './storage.mjs';
 
-/** Scope catalogue. `study` covers everything filtered by user id; `library:write` permits personal item writes. */
+/** Scope catalogue. Audio bytes and library writes each require an optional grant beyond study. */
 export const scopes = {
   study: { description: '读取并更新你的学习记录、计划、草稿、词书和题目', required: true },
+  'audio:read': { description: '读取你上传的听力音频文件，供授权的 AI Agent 听取和分析', default: false },
   'library:write': { description: '新增/更新听力题和复习条目、导出备份；删除你自己的复习条目、听力题、阅读题、词书、草稿、录音和每日练习', default: false },
 };
 
@@ -302,8 +304,12 @@ export const tools = [
   { title: '复习卡片', _meta: reviewCardsToolMeta }),
   tool('list_due_reviews', 'List items whose nextReviewAt is due or overdue.',
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
-  tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata. Audio bytes stay in local storage.",
+  tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata without audio bytes.",
     {}, ro, async (_args, ctx) => text(listListeningQuestions(uid(ctx)))),
+  tool('get_listening_audio', 'Read the uploaded audio for one owned listening question as MCP audio content. Requires audio:read permission; use an id from list_listening_questions or resolve_reference. Audio is limited to 25 MB.',
+    { question_id: z.string().min(1) }, ro,
+    async ({ question_id }, ctx) => ({ content: [{ type: 'audio', ...found(await readListeningAudioForUser(uid(ctx), question_id), 'Listening audio not found') }] }),
+    { scope: 'audio:read' }),
   tool('find_listening_audio_questions', 'Find your listening questions attached to an audio SHA-256, matching the web audio lookup.',
     { sha256: z.string().regex(/^[a-f0-9]{64}$/) }, ro,
     async ({ sha256 }, ctx) => text(findListeningAudioQuestions(uid(ctx), sha256))),

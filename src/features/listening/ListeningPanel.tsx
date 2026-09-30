@@ -7,12 +7,16 @@ import { LearningList, LearningListRow, LearningListSelect } from '../../compone
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
 import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, Lightbulb, LoaderCircle, Mic, Pause, Play, Plus, RotateCcw, ScrollText, Sparkles, Square, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
 import type { ListeningQuestion, ListeningQuestionInput, ListeningRecording, Locale, ProgressState } from '../../types';
 
 const LISTENING_LIBRARY_PAGE_SIZE = 8;
+const byLibraryNumber = (a: ListeningQuestion, b: ListeningQuestion) =>
+  (a.libraryNumber ?? Number.MAX_SAFE_INTEGER) - (b.libraryNumber ?? Number.MAX_SAFE_INTEGER)
+  || a.createdAt.localeCompare(b.createdAt)
+  || a.id.localeCompare(b.id);
 const listeningQuestionTypes = [
   ...officialN1QuestionTypes.filter((type) => type.section === 'listening').map((type) => ({ id: type.id, label: type.officialName })),
   { id: 'listening-basic-training', label: '基础训练' },
@@ -52,6 +56,8 @@ type ListeningPanelProps = {
 
 type ListeningDraft = { existingQuestionId?: string; title: string; questionTypeId: string; question: string; choices: string[]; answerIndex: number; explanation: string };
 type ListeningAudioGroup = { key: string; representative: ListeningQuestion; questions: ListeningQuestion[] };
+const sameListeningHeading = (a: ListeningQuestion | undefined, b: ListeningQuestion | undefined) =>
+  Boolean(a && b && a.questionTypeId === b.questionTypeId && a.title.trim() === b.title.trim());
 
 export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
   const sessionId = useMemo(() => crypto.randomUUID(), [mode, activeQuestionId]);
@@ -101,7 +107,10 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       const key = item.audioAssetId ?? `${item.audioFileName}|${item.audioSize}`;
       groups.set(key, [...(groups.get(key) ?? []), item]);
     }
-    return [...groups.entries()].map(([key, grouped]) => ({ key, representative: grouped[0], questions: grouped }));
+    return [...groups.entries()].map(([key, grouped]) => {
+      const ordered = [...grouped].sort(byLibraryNumber);
+      return { key, representative: ordered[0], questions: ordered };
+    });
   }, [visibleQuestions]);
 
   useEffect(() => {
@@ -114,7 +123,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
 
   const activeLibraryQuestion = activeQuestionId ? questions.find((item) => item.id === activeQuestionId) : undefined;
   if (activeLibraryQuestion) {
-    const activeGroup = questions.filter((item) => (item.audioAssetId ?? `${item.audioFileName}|${item.audioSize}`) === (activeLibraryQuestion.audioAssetId ?? `${activeLibraryQuestion.audioFileName}|${activeLibraryQuestion.audioSize}`));
+    const activeGroup = questions.filter((item) => (item.audioAssetId ?? `${item.audioFileName}|${item.audioSize}`) === (activeLibraryQuestion.audioAssetId ?? `${activeLibraryQuestion.audioFileName}|${activeLibraryQuestion.audioSize}`)).sort(byLibraryNumber);
     return (
       <section className="cute-practice-card min-w-0 overflow-hidden border">
         <div className="flex items-center gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-6">
@@ -125,7 +134,14 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <h2 className="truncate text-lg font-black text-[#3d3036]">{activeLibraryQuestion.reference ? `${activeLibraryQuestion.reference} · ` : ''}{listeningQuestionTypeName(activeLibraryQuestion.questionTypeId)}</h2>
           </div>
         </div>
-        <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => <ListeningQuestionItem onRecordPractice={recordPractice} key={item.id} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />)}</div>
+        <div className="divide-y divide-[#f0d4dd]">{activeGroup.map((item, index) => {
+          const sameAsPrevious = sameListeningHeading(activeGroup[index - 1], item);
+          const sharedTitle = sameAsPrevious || sameListeningHeading(item, activeGroup[index + 1]);
+          return <Fragment key={item.id}>
+            {sharedTitle && !sameAsPrevious ? <h3 className="break-words bg-[#f4faf5] px-4 py-4 text-lg font-semibold leading-7 text-[#27312c] md:px-6">{item.title}</h3> : null}
+            <ListeningQuestionItem onRecordPractice={recordPractice} item={item} labels={labels} locale={locale} token={token} onDelete={onDelete} detail hideTitle={sharedTitle} showAudio={index === 0} showRecording={index === 0} questionNumber={index + 1} />
+          </Fragment>;
+        })}</div>
       </section>
     );
   }
@@ -396,7 +412,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
 
 function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrary, onRecordPractice }: { labels: Record<string, string>; locale: Locale; token: string; questions: ListeningQuestion[]; onOpenLibrary?: () => void; onRecordPractice: RecordPractice }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeQuestion = questions[activeIndex % Math.max(questions.length, 1)];
+  const orderedQuestions = useMemo(() => [...questions].sort(byLibraryNumber), [questions]);
+  const activeQuestion = orderedQuestions[activeIndex % Math.max(orderedQuestions.length, 1)];
 
   useEffect(() => {
     setActiveIndex((index) => Math.min(index, Math.max(questions.length - 1, 0)));
@@ -529,7 +546,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
   );
 }
 
-function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onDelete: (id: string) => Promise<void>; detail?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
+function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail = false, hideTitle = false, showAudio = true, showRecording = true, questionNumber, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; locale: Locale; token: string; onDelete: (id: string) => Promise<void>; detail?: boolean; hideTitle?: boolean; showAudio?: boolean; showRecording?: boolean; questionNumber?: number; onRecordPractice: RecordPractice }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
@@ -593,8 +610,10 @@ function ListeningQuestionItem({ item, labels, locale, token, onDelete, detail =
     <article className={`min-w-0 bg-white p-4 md:p-6 ${detail ? '' : 'rounded-md border border-[#d8e0d7]'}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <RecordReference reference={item.reference} locale={locale} />
-          <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber} · ${item.title}` : item.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-2">
+            <RecordReference reference={item.reference} locale={locale} />
+            <h3 className="break-words text-lg font-semibold text-[#27312c]">{detail && questionNumber ? `问题 ${questionNumber}${hideTitle ? '' : ` · ${item.title}`}` : item.title}</h3>
+          </div>
           {showAudio ? <p className="mt-1 text-xs text-[#778079]">{listeningQuestionTypeName(item.questionTypeId)} · {item.audioFileName} · {formatFileSize(item.audioSize, locale)} · {formatDateTime(item.createdAt, locale)}</p> : null}
         </div>
         <div className="flex shrink-0 justify-end gap-1">
@@ -836,7 +855,7 @@ function AudioPlayer({ src, labels }: { src: string; labels: Record<string, stri
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <div className="grid min-w-0 gap-3">
       <audio
         ref={audioRef}
         controls

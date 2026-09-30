@@ -42,6 +42,7 @@
 | `/captures` | `list_learning_captures` |
 | `/analysis/weak-points` | `analyze_weak_points` |
 | `/listening-questions` | `list_listening_questions` |
+| `/listening-questions/:id/audio` | `get_listening_audio({ question_id })`，需单独授权 `audio:read`；返回 MCP 音频内容，不是公开 URL |
 | `/listening-audio-match?sha256=` | **新增** `find_listening_audio_questions` |
 | `/listening-questions/:id/recordings` | **新增** `list_listening_recordings`（含已完成解析，读取不领取分析任务） |
 | `/reading-questions` | `list_reading_questions` |
@@ -66,10 +67,10 @@
 ## 环境与非学习接口边界
 
 - 官方样题／模拟题仍需 localhost HTTP MCP 或本地 stdio；不能通过公开隧道读取工作站素材。新闻查询与原 API 一样可经已认证的本地服务读取。Cloudflare 没有本地素材，MCP 返回明确不可用错误，不假装数据为空。
-- 音频／PDF 二进制传输仍走原文件接口：`/listening-questions/:id/audio`、`/listening-recordings/:id/audio`、`/local-news-audio/...`、`/local-mock-files/...`、`/local-official-jlpt/...`。MCP 数据中的资源地址及元数据可用于定位；本次没有增加二进制下载工具或将文件转成巨大的 Base64 文本。
+- 听力题音频可通过单独授权的 `get_listening_audio` 返回 MCP `audio` 内容，大小上限 25 MB；网页仍使用 `/listening-questions/:id/audio`。跟读录音、新闻音频及本地样题文件仍走原文件接口，未加入这个 MCP 工具。
 - `/me` 对应 HTTP MCP 内置 `get_connection_info` 的授权账号信息。`/auth/config`、`/auth/firebase/status`、`/agents`、`/health` 是登录／连接管理和诊断接口，不是学习数据；本次未新增其 MCP 镜像。stdio 没有 HTTP 服务内置的 `get_connection_info`。
 - 所有个人数据操作从授权上下文获取 userId；市场公开分享沿用网页可见性规则。本次不扩展写入／删除权限。
 
 验证：`server/mcp-read-parity.test.mjs` 对照阅读详情及新增查询的 API/MCP 返回值，并覆盖阅读长文分段、账户隔离、修改后的游标失效和本地／云端环境边界；原有 MCP OAuth、schema 序列化和阅读 CRUD 回归测试继续适用。
 
-当前验证结果：40 项本地回归通过，Cloudflare API 打包通过。Cloudflare 运行时回归在数据库初始化阶段因工作区编号注册 SQL 报 `too many terms in compound SELECT` 中断，因此尚未确认云端运行通过。未部署。
+2026-09-30 音频读取扩展验证：本地听力题和 MCP OAuth 测试通过，Cloudflare R2/MCP 运行时测试通过；云端 API Worker 已部署。已有 ChatGPT 授权仍需重新同意新增的可选 `audio:read` 权限，才能在该连接中发现并调用 `get_listening_audio`。

@@ -86,6 +86,7 @@ Planned tool boundary:
 - `save_generated_study_plan`: write a validated daily calendar plan. Task dates must stay within the study period, IDs must be unique, and each day's total must stay within the saved time limit.
 - `list_due_reviews`: find items that need review.
 - `list_listening_questions`: read personal listening prompts, choices, answers, explanations, and audio metadata without returning audio bytes.
+- `get_listening_audio({ question_id })`: return one owned listening question's uploaded audio as an MCP `audio` content block (`data` is Base64 with its `mimeType`). Requires the optional `audio:read` OAuth scope; the default `study` scope and `library:write` do not grant audio access. Audio is limited to 25 MB. Use a question ID from `list_listening_questions` or resolve an LS reference first. Local stdio grants this scope to its already authenticated local session.
 - `create_listening_question`: write a local listening question only when real local audio bytes are available.
 - `update_listening_question`: partially update an owned listening question's text fields (title, type, question, choices, answer, explanation) and/or move it to a new `libraryNumber` (题号) position, shifting intervening questions to keep numbers contiguous. Audio is unchanged.
 - `edit_listening_question` / `patch_listening_question`: aliases of `update_listening_question`, with the same schema and ownership checks.

@@ -47,7 +47,14 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite' };
+      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, dataSource: 'cloudflare-sqlite',
+        readMedia: async (path, limit) => {
+          const object = await this.env.MEDIA.get(objectKey(path));
+          if (!object) return null;
+          if (object.size > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
+          return new Uint8Array(await object.arrayBuffer());
+        },
+      };
       try {
         const response = await this.ctx.storage.transaction(async () => withPlatform(platform, async () => {
           const mcp = createJlptMcp({ onEvent() {}, origins: () => ({ publicOrigin: this.env.PUBLIC_ORIGIN, webOrigin: this.env.PUBLIC_ORIGIN }) });

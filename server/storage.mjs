@@ -1010,7 +1010,7 @@ export function listListeningQuestions(userId) {
       audio_file_name, audio_mime, audio_size, created_at
     FROM listening_questions
     WHERE user_id = ?
-    ORDER BY created_at DESC
+    ORDER BY library_number ASC, created_at ASC, id ASC
   `).all(userId).map(mapListeningQuestion);
 }
 
@@ -1032,6 +1032,20 @@ export function listeningAudioForUser(userId, id) {
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
   return row && existsSync(row.audio_path) ? row : null;
+}
+
+/** Read an owned question's audio for MCP; cloud reads use the request's R2 adapter. */
+export async function readListeningAudioForUser(userId, id) {
+  const audio = listeningAudioForUser(userId, id);
+  if (!audio) return null;
+  const limit = 25 * 1024 * 1024;
+  if (audio.audio_size > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
+  const bytes = currentPlatform()?.readMedia
+    ? await currentPlatform().readMedia(audio.audio_path, limit)
+    : readFileSync(audio.audio_path);
+  if (!bytes) return null;
+  if (bytes.byteLength > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
+  return { data: Buffer.from(bytes).toString('base64'), mimeType: audio.audio_mime };
 }
 
 export function deleteListeningQuestion(userId, id) {

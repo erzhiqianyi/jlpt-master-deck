@@ -19,7 +19,7 @@ if (!user) {
   console.error('JLPT_MCP_TOKEN is missing or not a valid session token. Copy localStorage["jlpt-auth-token-v1"] from a signed-in browser, or connect over HTTP instead: claude mcp add --transport http jlpt <origin>/api/jlpt/mcp');
   process.exit(1);
 }
-const ctx = { ownerId: String(user.id), scopes: ['study', 'library:write'], grantId: 'stdio', clientId: 'stdio', clientName: 'stdio', request: null };
+const ctx = { ownerId: String(user.id), scopes: ['study', 'audio:read', 'library:write'], grantId: 'stdio', clientId: 'stdio', clientName: 'stdio', request: null };
 const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
 
 process.stdin.setEncoding('utf8');

@@ -110,7 +110,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
       return;
     }
     const prompt = [
-      '请使用 JLPT Review 本地 MCP / 本地后台，为当前账号生成阅读题库。',
+      '请使用 JLPT Master Deck 本地 MCP / 本地后台，为当前账号生成阅读题库。',
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
       '要求：读取文章内容，生成 JLPT N1 风格阅读题。每题包含标题、文章、题目、4 个选项、正确答案，以及中文总解析 explanation。以下解析均为必填，缺失或空白会被 MCP 拒绝：passageTranslation 完整中文翻译（覆盖所有段落，不能用摘要代替）；choiceExplanations 按选项顺序填写 text、中文 translation、逐项 analysis、原文 evidence、errorType；readingAnalysis 填写中文 summary、structure 和逐字引用原文的 keySentences；explanationNodes 用明确标题分节写出具体解题步骤和干扰项排除技巧。正确选项的 errorType 必须留空，三个错误选项必须标明类型。保存前逐项核对翻译、依据和推理质量；更新旧题时必须一次补齐缺失解析，不能清空必填字段。',

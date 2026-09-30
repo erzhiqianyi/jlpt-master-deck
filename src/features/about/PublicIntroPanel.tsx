@@ -1,4 +1,5 @@
 import { ArrowRight, BarChart3, BookOpenCheck, Bot, ClipboardPenLine, Database, Flame, ListChecks, ShieldCheck, Target } from 'lucide-react';
+import type { Locale } from '../../types';
 
 const primaryActions = [
   {
@@ -125,22 +126,21 @@ function MiniPhonePreview() {
   );
 }
 
-export function PublicIntroPanel() {
+export function PublicIntroPanel({ locale }: { locale: Locale }) {
+  const communityLabel = locale === 'ja' ? '学習コミュニティ' : locale === 'en' ? 'Learning community' : '学习社区';
   return (
     <main className="min-h-[100dvh] bg-[#f7f8f4] text-[#25312d]">
       <header className="fixed left-0 right-0 top-0 z-20 border-b border-white/30 bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-8">
-          <a href="#/about" className="text-sm font-bold text-[#21332d]">JLPT Review</a>
-          <a href="#/home/questions" className="inline-flex items-center gap-2 rounded-md bg-[#d95f8a] px-4 py-2 text-sm font-semibold text-white shadow-sm">
-            登录开始 <ArrowRight size={15} />
-          </a>
+          <a href="/" className="text-sm font-bold text-[#21332d]">JLPT Master Deck</a>
+          <nav className="flex items-center gap-4" aria-label="站点导航"><a href={`${locale === 'zh-CN' ? '' : `/${locale}`}/community/`} className="text-sm font-semibold text-[#2d5549] hover:underline">{communityLabel}</a><a href="#/home/questions" className="inline-flex items-center gap-2 rounded-md bg-[#d95f8a] px-4 py-2 text-sm font-semibold text-white shadow-sm">登录开始 <ArrowRight size={15} /></a></nav>
         </div>
       </header>
 
       <section className="relative min-h-[82vh] overflow-hidden pt-20">
         <img
           src="/promotions/jlpt-review-hero.png"
-          alt="JLPT Review 应用展示"
+          alt="JLPT Master Deck 应用展示"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/78 to-white/10" />
@@ -189,7 +189,8 @@ export function PublicIntroPanel() {
         <div className="rounded-2xl border border-[#d9e6de] bg-white p-6 md:p-8">
           <p className="text-sm font-semibold text-[#2d6b55]">接入 AI</p>
           <h2 className="mt-2 text-2xl font-black leading-tight text-[#1f2e2a] md:text-3xl">把它接进你常用的 AI，它就能替你动手</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#40504a]">一句话让 AI 整理词条、分析错题、出今日练习、排备考计划，还能设成定时任务自动跑。登录后在「AI 助手」里三步接好。</p>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#40504a]">一句话让 AI 整理词条、分析错题、出今日练习、排备考计划。了解连接方式和授权范围，再决定怎样使用。</p>
+          <a href={`${locale === 'zh-CN' ? '' : `/${locale}`}/community/`} className="mt-5 inline-flex items-center gap-2 rounded-lg border border-[#bdd7c7] bg-[#edf8f1] px-4 py-2.5 text-sm font-semibold text-[#245b43] hover:bg-[#dff2e7]">{locale === 'ja' ? 'コミュニティを見る' : locale === 'en' ? 'Explore the community' : '浏览学习社区'} <ArrowRight size={16} /></a>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {aiIntro.map(({ icon: Icon, title, text }) => (
               <div key={title} className="rounded-xl bg-[#f4faf6] p-4">

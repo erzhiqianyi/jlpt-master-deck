@@ -949,9 +949,9 @@ function ResultField({ label, value, strong = false }: { label: string; value: s
   );
 }
 
-function numericAnswerIndex(answer?: string) {
-  if (!answer) return null;
-  const parsed = Number(answer.trim());
+function numericAnswerIndex(answer: unknown) {
+  if (typeof answer !== 'string' && typeof answer !== 'number') return null;
+  const parsed = typeof answer === 'string' ? Number(answer.trim()) : answer;
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
 }
 

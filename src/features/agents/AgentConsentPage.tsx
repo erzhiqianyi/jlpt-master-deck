@@ -22,7 +22,7 @@ export function AgentConsentPage({ authToken, username }: { authToken: string; u
   return (
     <main className="cute-shell flex min-h-[100dvh] items-start justify-center px-5 py-10 text-[#28312d] sm:items-center sm:px-8 sm:py-12 lg:px-12">
       <section className="cute-card w-full max-w-md bg-transparent sm:max-w-[440px] sm:border sm:p-8">
-        <h1 className="cute-brand text-2xl">JLPT Review</h1>
+        <h1 className="cute-brand text-2xl">JLPT Master Deck</h1>
         {missingClient || (!client && error) ? (
           <div className="mt-6 space-y-3">
             <p className="text-base font-semibold">无效的授权请求</p>

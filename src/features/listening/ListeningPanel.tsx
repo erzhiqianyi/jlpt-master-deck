@@ -275,7 +275,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       return;
     }
     const prompt = [
-      '请使用 JLPT Review 本地 MCP / 本地后台，为当前账号生成听力题库。',
+      '请使用 JLPT Master Deck 本地 MCP / 本地后台，为当前账号生成听力题库。',
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
       '要求：读取或转写音频内容，生成 JLPT N1 风格听力题。提供共享音频的完整日文原文和中文翻译；每道题的每个选项都填写中文翻译和具体解析（正确项说明依据，错误项说明错因），并保留整体解析作为补充。',

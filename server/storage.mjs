@@ -1598,7 +1598,7 @@ export function buildStudyRecord(userId) {
   const mastered = Object.values(state.progress).filter((item) => item.status === 'mastered').length;
   return {
     exported_at: new Date().toISOString(),
-    app: 'JLPT Review',
+    app: 'JLPT Master Deck',
     data_generated_at: data.generated_at,
     data_source: 'backend',
     storage: 'sqlite',

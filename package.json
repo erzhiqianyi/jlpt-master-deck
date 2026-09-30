@@ -7,11 +7,12 @@
   },
   "scripts": {
     "dev": "node server/dev.mjs",
-    "predev": "npm run build:mcp-app",
+    "predev": "node scripts/build-community-locales.mjs && npm run build:mcp-app",
     "dev:app": "vite",
     "backend": "node server/api.mjs",
     "mcp": "node server/mcp-server.mjs",
     "mcp:setup": "node scripts/setup-project-mcp.mjs",
+    "prebuild": "node scripts/build-community-locales.mjs",
     "build": "vite build && npm run build:mcp-app",
     "build:mcp-app": "vite build --config vite.mcp-app.config.ts && vite build --config vite.mcp-app.config.ts --mode review-cards && vite build --config vite.mcp-app.config.ts --mode ai-learning-home",
     "start": "vite preview",

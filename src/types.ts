@@ -99,6 +99,7 @@ export type TtsProviderId = 'browser' | 'openai' | 'google-cloud' | 'azure';
 export type AuthUser = { id: number; username: string };
 
 export type StudyState = {
+  practiceCompletionCounts?: Record<string, number>;
   answers: AnswerState;
   progress: ProgressState;
   settings: DisplaySettings;

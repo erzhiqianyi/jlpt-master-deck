@@ -196,6 +196,7 @@ export default function App() {
   const [topicShuffleEpoch, setTopicShuffleEpoch] = useState(0);
   const [answers, setAnswers] = useState<AnswerState>({});
   const [progress, setProgress] = useState<ProgressState>({});
+  const [practiceCompletionCounts, setPracticeCompletionCounts] = useState<Record<string, number>>({});
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
   const [settings, setSettings] = useState<DisplaySettings>(() => ({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale }));
@@ -632,7 +633,9 @@ export default function App() {
     }
     return drafts.filter(isTopicDraft).map((draft) => {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
+      const completedCount = practice ? practiceCompletionCounts[practice.id] ?? 0 : 0;
       return {
+        completedCount,
         modules: practice ? practiceModules(practice.questions, draft.title) : draft.modules ?? practiceModules([], draft.title),
         key: draft.id, title: draft.title, reference: practice?.reference ?? draft.reference,
         sourceSummary: practice ? practiceSourceSummary(practice.questions) : draft.sourceSummary,
@@ -648,7 +651,7 @@ export default function App() {
         },
       };
     });
-  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken]);
+  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken, practiceCompletionCounts]);
   const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${JSON.stringify(practiceFocus)}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : activeView === 'daily-practice' ? topicQuestionSeed : ''}`;
 
   useEffect(() => {
@@ -1035,6 +1038,7 @@ export default function App() {
   }
 
   function applyStudyState(studyState: StudyState) {
+    setPracticeCompletionCounts(studyState.practiceCompletionCounts ?? {});
     setAnswers(Object.fromEntries(Object.entries(studyState.answers ?? {}).filter(([id]) => !id.startsWith('memory-card:'))));
     setProgress(studyState.progress ?? {});
     setAttemptHistory(studyState.attemptHistory ?? []);

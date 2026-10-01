@@ -42,3 +42,25 @@ test('audio practice counters persist without replacing vocabulary progress or a
   assert.equal(state.progress['word-1'].correct, 2);
   assert.equal(state.attemptHistory[0].id, 'existing-attempt');
 });
+
+test('completion statistics persist beyond history and retries without backfilling old attempts', () => {
+  const user = createUser('completion-stats-test', 'test-password');
+  const db = getDb();
+  db.prepare(`INSERT INTO daily_practices (id, user_id, practice_date, title, minutes, practice_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run('stats-practice', user.id, '2026-10-02', '文法', 5, JSON.stringify({ questions: [{ id: 'stats-q1' }] }), 'now', 'now');
+  const old = { id: 'old-completion', practiceId: 'stats-practice', completedAt: 'before', questionIds: ['stats-q1'], answers: [] };
+  db.prepare('UPDATE practice_state SET attempt_history_json = ? WHERE user_id = ?').run(JSON.stringify([old]), user.id);
+  savePracticeState(user.id, { attemptHistory: [old] });
+  assert.deepEqual(getStudyState(user.id).practiceCompletionCounts, {});
+  const completed = { ...old, id: 'new-completion', completedAt: 'now' };
+  savePracticeState(user.id, { attemptHistory: [completed, old] });
+  savePracticeState(user.id, { attemptHistory: [completed, old] });
+  assert.equal(getStudyState(user.id).practiceCompletionCounts['stats-practice'], 1);
+  savePracticeState(user.id, { attemptHistory: [] });
+  savePracticeState(user.id, { attemptHistory: [completed] });
+  assert.equal(getStudyState(user.id).practiceCompletionCounts['stats-practice'], 1);
+  savePracticeState(user.id, { attemptHistory: [{ ...completed, id: 'next-completion' }] });
+  assert.equal(getStudyState(user.id).practiceCompletionCounts['stats-practice'], 2);
+  savePracticeState(user.id, { attemptHistory: [{ ...completed, id: 'unfinished', completedAt: undefined }] });
+  assert.equal(getStudyState(user.id).practiceCompletionCounts['stats-practice'], 2);
+});

@@ -157,6 +157,25 @@ export function getDb() {
         updated_at TEXT NOT NULL
       );
 
+CREATE TABLE IF NOT EXISTS practice_completion_stats (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practice_id TEXT NOT NULL REFERENCES daily_practices(id) ON DELETE CASCADE,
+  completed_count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, practice_id)
+);
+CREATE TABLE IF NOT EXISTS practice_completion_receipts (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  attempt_id TEXT NOT NULL,
+  practice_id TEXT NOT NULL REFERENCES daily_practices(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, attempt_id)
+);
+CREATE TRIGGER IF NOT EXISTS increment_practice_completion AFTER INSERT ON practice_completion_receipts
+BEGIN
+  INSERT INTO practice_completion_stats (user_id, practice_id, completed_count)
+  VALUES (NEW.user_id, NEW.practice_id, 1)
+  ON CONFLICT(user_id, practice_id) DO UPDATE SET completed_count = completed_count + 1;
+END;
+
       CREATE TABLE IF NOT EXISTS listening_questions (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1391,6 +1410,7 @@ export function getStudyState(userId) {
     settings: normalizeSettings(JSON.parse(settingsRow.settings_json)),
     answers: Object.fromEntries(answerRows.map((row) => [row.question_id, { selected: row.selected, correct: Boolean(row.correct), answeredAt: row.answered_at }])),
     progress: Object.fromEntries(progressRows.map((row) => [row.item_id, JSON.parse(row.progress_json)])),
+    practiceCompletionCounts: Object.fromEntries(getDb().prepare('SELECT practice_id, completed_count FROM practice_completion_stats WHERE user_id = ?').all(userId).map((row) => [row.practice_id, row.completed_count])),
     attemptHistory: practice.attemptHistory,
     activeAttempt: practice.activeAttempt,
   };
@@ -3710,6 +3730,22 @@ function upsertPracticeState(userId, attemptHistory, activeAttempt, now = new Da
   const current = getPracticeState(userId);
   const history = Array.isArray(attemptHistory) ? attemptHistory.slice(0, 50) : current.attemptHistory;
   const active = activeAttempt === undefined ? current.activeAttempt : activeAttempt;
+  // Count only newly completed attempts; existing completed history is never backfilled.
+  const alreadyCompleted = new Set(current.attemptHistory.filter((attempt) => attempt.completedAt).map((attempt) => attempt.id));
+  for (const attempt of Array.isArray(attemptHistory) ? attemptHistory : []) {
+    if (!attempt?.completedAt || !attempt.id || alreadyCompleted.has(attempt.id)) continue;
+    let practiceId = attempt.practiceId;
+    if (!practiceId && attempt.view === 'daily-practice' && attempt.questionIds?.length) {
+      const match = getDb().prepare('SELECT id, practice_json FROM daily_practices WHERE user_id = ?').all(userId).find((row) => {
+        const ids = new Set(parseJson(row.practice_json, {}).questions?.map((question) => question.id) ?? []);
+        return attempt.questionIds.every((id) => ids.has(id));
+      });
+      practiceId = match?.id;
+    }
+    if (!practiceId) continue;
+    getDb().prepare(`INSERT OR IGNORE INTO practice_completion_receipts (user_id, attempt_id, practice_id)
+      SELECT ?, ?, id FROM daily_practices WHERE user_id = ? AND id = ?`).run(userId, attempt.id, userId, practiceId);
+  }
   getDb()
     .prepare(`
       INSERT INTO practice_state (user_id, attempt_history_json, active_attempt_json, updated_at)

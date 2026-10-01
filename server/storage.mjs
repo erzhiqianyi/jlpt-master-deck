@@ -46,6 +46,7 @@ const memoryCardBackCompatKey = '_memory_card_back_fields';
 
 const defaultSettings = {
   showReviewRuby: true,
+  memoryCardWordSpacing: true,
   showExplanationRuby: true,
   locale: 'zh-CN',
   fontSize: 'standard',
@@ -3375,6 +3376,7 @@ function normalizeSettings(value) {
   const questionTypeTips = Object.fromEntries(Object.entries(rawQuestionTypeTips).filter(([key]) => key !== memoryCardFrontCompatKey && key !== memoryCardBackCompatKey));
   const ttsProvider = value?.ttsProvider === 'browser' || ttsProviderIds.includes(value?.ttsProvider) ? value.ttsProvider : defaultSettings.ttsProvider;
   return {
+    memoryCardWordSpacing: typeof value?.memoryCardWordSpacing === 'boolean' ? value.memoryCardWordSpacing : defaultSettings.memoryCardWordSpacing,
     showReviewRuby: typeof value?.showReviewRuby === 'boolean' ? value.showReviewRuby : defaultSettings.showReviewRuby,
     showExplanationRuby: typeof value?.showExplanationRuby === 'boolean' ? value.showExplanationRuby : defaultSettings.showExplanationRuby,
     locale,

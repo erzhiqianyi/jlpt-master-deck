@@ -108,6 +108,7 @@ const fallbackWordbooks: Wordbook[] = [
 
 const defaultSettings: DisplaySettings = {
   showReviewRuby: true,
+  memoryCardWordSpacing: true,
   showExplanationRuby: true,
   locale: 'zh-CN',
   fontSize: 'standard',
@@ -1566,7 +1567,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
+  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} wordSpacing={settings.memoryCardWordSpacing} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);
@@ -2497,6 +2498,7 @@ function normalizeSettings(value: Partial<DisplaySettings> | undefined): Display
     fontSize: value?.fontSize === 'small' || value?.fontSize === 'large' ? value.fontSize : defaultSettings.fontSize,
     memoryCardFrontFields: normalizeMemoryCardFields(value?.memoryCardFrontFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[MEMORY_CARD_FRONT_COMPAT_KEY]), defaultMemoryCardFrontFields),
     memoryCardBackFields: normalizeMemoryCardFields(value?.memoryCardBackFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[MEMORY_CARD_BACK_COMPAT_KEY]), defaultMemoryCardBackFields),
+    memoryCardWordSpacing: typeof value?.memoryCardWordSpacing === 'boolean' ? value.memoryCardWordSpacing : defaultSettings.memoryCardWordSpacing,
     questionTypeTips,
     customQuestionTypeTips: normalizeCustomQuestionTypeTips(value?.customQuestionTypeTips),
   };

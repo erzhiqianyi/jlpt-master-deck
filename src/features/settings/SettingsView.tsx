@@ -337,6 +337,8 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
   return (
     <div className="grid gap-4">
       <p className="m-0 text-sm leading-6 text-[#68716b]">{copy.body}</p>
+      <Toggle checked={settings.memoryCardWordSpacing} label={{ 'zh-CN': '日语分词显示', 'zh-TW': '日語分詞顯示', ja: '日本語を単語ごとに表示', en: 'Space Japanese words' }[settings.locale]} onChange={(checked) => onUpdateSettings({ ...settings, memoryCardWordSpacing: checked })} />
+      <p className="m-0 text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '在日语词语之间留出间隔，方便点词查询和选词。', 'zh-TW': '在日語詞語之間留出間隔，方便點詞查詢和選詞。', ja: '単語の間に余白を入れ、選択や辞書検索をしやすくします。', en: 'Add space between Japanese words for easier selection and lookup.' }[settings.locale]}</p>
       {(['front', 'back'] as const).map((side) => {
         const selected = side === 'front' ? settings.memoryCardFrontFields : settings.memoryCardBackFields;
         return (

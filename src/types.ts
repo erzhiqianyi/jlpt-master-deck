@@ -82,6 +82,7 @@ export type PracticeAttempt = {
 
 export type DisplaySettings = {
   showReviewRuby: boolean;
+  memoryCardWordSpacing: boolean;
   showExplanationRuby: boolean;
   locale: Locale;
   fontSize: FontSize;

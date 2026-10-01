@@ -11,10 +11,11 @@ import type { Locale, VocabItem } from '../../types';
 
 export type MemoryRating = 'forgot' | 'hard' | 'remembered' | 'easy';
 
-export function FocusedMemoryReview({ items, locale, token, frontFields, backFields, onExit, onRate }: {
+export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFields, backFields, onExit, onRate }: {
   items: VocabItem[];
   locale: Locale;
   token?: string;
+  wordSpacing: boolean;
   frontFields: MemoryCardField[];
   backFields: MemoryCardField[];
   onExit: () => void;
@@ -64,7 +65,7 @@ export function FocusedMemoryReview({ items, locale, token, frontFields, backFie
       </header>
       <div className="ledger-focus-progress" role="progressbar" aria-valuemin={0} aria-valuemax={queue.length} aria-valuenow={reviewed}><i style={{ width: `${(reviewed / queue.length) * 100}%` }} /></div>
       <section
-        className={`ledger-focus-stage ${revealed ? 'has-ratings' : 'can-reveal'}`}
+        className={`ledger-focus-stage ${wordSpacing ? 'has-word-spacing' : ''} ${revealed ? 'has-ratings' : 'can-reveal'}`}
         onClick={!revealed ? () => setRevealed(true) : undefined}
       >
         <div
@@ -198,11 +199,19 @@ function isMetaLearningExample(value: string) {
 
 const joined = (parts: (string | undefined)[], separator = '：') => parts.map((part) => part?.trim()).filter(Boolean).join(separator);
 
+// In mixed Chinese/Japanese notes, only tokenize runs containing kana.
+function MemoryLookupText({ text }: { text: string }) {
+  return <>{text.split(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー々]+)/u).map((part, index) =>
+    /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(part)
+      ? <LookupText key={index} text={part} source={text} />
+      : part)}</>;
+}
+
 function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardField): ReactNode | null {
-  const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{lang === 'ja' ? <LookupText text={value} /> : value}</span> : null;
+  const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{lang === 'ja' ? <LookupText text={value} /> : <MemoryLookupText text={value} />}</span> : null;
   const lines = (values: string[], lang?: string) => {
     const kept = values.filter(Boolean);
-    return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}>{value}</span>)}</span> : null;
+    return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}><MemoryLookupText text={value} /></span>)}</span> : null;
   };
   switch (field) {
     case 'original': return scalar(item.original, 'ja');
@@ -216,9 +225,9 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'meaning_ja': return scalar(item.meaning_ja, 'ja');
     case 'core_memory': {
       const points = itemMemoryPoints(item, locale);
-      return points.length ? <ul className="list-disc space-y-2 pl-5">{points.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul> : null;
+      return points.length ? <ul className="list-disc space-y-2 pl-5">{points.map((point, index) => <li key={`${index}-${point}`}><MemoryLookupText text={point} /></li>)}</ul> : null;
     }
-    case 'explanation': return itemExplanation(item, locale) ? <StudyText text={itemExplanation(item, locale) ?? ''} /> : null;
+    case 'explanation': return itemExplanation(item, locale) ? <StudyText text={itemExplanation(item, locale) ?? ''} renderText={(text) => <MemoryLookupText text={text} />} /> : null;
     case 'patterns': return lines((item.patterns ?? []).map((entry) => joined([entry.pattern, entry.connection_zh, entry.meaning_zh])));
     case 'points': return lines((item.points ?? []).map((entry) => joined([entry.label, entry.detail_zh])));
     case 'comparisons': return lines((item.comparisons ?? []).map((entry) => joined([entry.kind === 'everyday' ? `〔日常〕${entry.target ?? ''}` : entry.target, entry.difference_zh])));

@@ -5,6 +5,7 @@ JlptDatabase.prototype.fetch = async function(request) {
     if (new URL(request.url).pathname === '/__legacy-audio-schema') {
       return this.ctx.blockConcurrencyWhile(async () => {
         this.db.exec('DROP TABLE listening_audio_assets; DELETE FROM cloud_schema_version WHERE version=3;');
+        this.db.exec('DROP TRIGGER increment_practice_completion; DROP TABLE practice_completion_receipts; DROP TABLE practice_completion_stats; DELETE FROM cloud_schema_version WHERE version=7;');
         return new Response('legacy schema restored');
       });
     }

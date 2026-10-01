@@ -12,6 +12,7 @@ import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
 import { ensureDailySummarySchema } from '../server/daily-summary.mjs';
 import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
+import practiceCompletionSchema from './migrations/0002_practice_completion_stats.sql';
 import practiceHtml from 'jlpt:practice-html';
 import reviewCardsHtml from 'jlpt:review-cards-html';
 import aiHomeHtml from 'jlpt:ai-home-html';
@@ -36,6 +37,10 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV3(this.db);
         migrateCloudSchemaV4(this.db);
         migrateCloudSchemaV6(this.db);
+        if (!this.db.prepare('SELECT version FROM cloud_schema_version WHERE version=7').get()) {
+          this.db.exec(practiceCompletionSchema);
+          this.db.exec('INSERT INTO cloud_schema_version(version) VALUES(7)');
+        }
         ensureDailySummarySchema(this.db);
         this.db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(5)');
         migrateReviewItemOwnership(this.db);

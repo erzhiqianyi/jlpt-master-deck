@@ -46,7 +46,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/reading-questions/' + reading.id, 'PATCH', { explanation: 'stolen' }, 'test-2')).status, 404);
     assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
     const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],choiceDetails:['読む','書く','聞く','話す'].map((choice)=>({translation:choice,explanation:`${choice} の理由`})),answerIndex:2,transcript:'男：音声の原文。',transcriptTranslation:'男：音频原文。',audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
-    // Model an existing v2 database: 0001 already ran, but the later audio table is absent.
+    // Model an existing database missing the later audio and completion-statistics tables.
     assert.equal((await request('/__legacy-audio-schema')).status, 200);
     await mf.dispose(); mf=new Miniflare(options);
     assert.equal((await json('/api/health')).databaseReady, true);
@@ -102,6 +102,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.ok(catalogue.some(x=>x.name==='list_pending_listening_recordings'));
     assert.ok(catalogue.some(x=>x.name==='save_listening_recording_analysis'));
     const home = await rpc('tools/call', { name: 'get_ai_learning_home', arguments: {} });
+    assert.ok(!home.isError, JSON.stringify(home));
     assert.equal(typeof home.structuredContent.due.total, 'number');
     const homeView = await rpc('resources/read', { uri: 'ui://jlpt/ai-learning-home.html' });
     assert.match(homeView.contents[0].text, /get_ai_learning_home/);

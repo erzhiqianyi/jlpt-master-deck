@@ -1,3 +1,4 @@
+import { practiceModules } from './domain/practiceModules.mjs';
 import { WordLookupProvider } from './features/review/WordLookup';
 import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
 'use client';
@@ -632,6 +633,7 @@ export default function App() {
     return drafts.filter(isTopicDraft).map((draft) => {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
       return {
+        modules: practice ? practiceModules(practice.questions, draft.title) : draft.modules ?? practiceModules([], draft.title),
         key: draft.id, title: draft.title, reference: practice?.reference ?? draft.reference,
         sourceSummary: practice ? practiceSourceSummary(practice.questions) : draft.sourceSummary,
         share: practice ? (description: string) => shareLearningContent('practice', practice.id, description) : undefined,

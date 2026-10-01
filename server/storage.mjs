@@ -1,3 +1,4 @@
+import { practiceModules } from '../src/domain/practiceModules.mjs';
 import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations, isEmptyReason } from '../src/domain/practiceExplanations.mjs';
@@ -3144,7 +3145,8 @@ export function listReviewPackDrafts(userId) {
       const questions = Array.isArray(content.sections)
         ? content.sections.flatMap((section) => Array.isArray(section?.questions) ? section.questions : [])
         : [];
-      return { ...row, sourceSummary: practiceSourceSummary(questions) };
+      const allQuestions = [...questions, ...['source_questions', 'practice_questions', 'review_questions', 'daily_quiz', 'questions'].flatMap((key) => Array.isArray(content[key]) ? content[key] : [])];
+      return { ...row, modules: practiceModules(allQuestions, row.title), sourceSummary: practiceSourceSummary(questions) };
     });
 }
 

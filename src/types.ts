@@ -106,7 +106,7 @@ export type StudyState = {
   activeAttempt: PracticeAttempt | null;
 };
 
-export type DraftSummary = { reference?: string; sourceSummary?: string; id: string; title: string; status: string; created_at: string; updated_at: string };
+export type DraftSummary = { modules?: Array<'grammar' | 'listening' | 'vocabulary' | 'reading'>; reference?: string; sourceSummary?: string; id: string; title: string; status: string; created_at: string; updated_at: string };
 export type DraftAnnotation = { id: string; body: string; created_at: string };
 export type ReviewPackDraft = DraftSummary & { content: unknown; annotations: DraftAnnotation[] };
 export type DailyPracticeSummary = {

@@ -2,11 +2,10 @@ import { RecordReference } from '../../components/RecordReference';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningListRow } from '../../components/LearningList';
 import { isTopicDraft } from '../../domain/practicePurpose';
-import { practiceQuestionSourceLabel } from '../../domain/practiceProvenance';
 import { normalizePracticeExplanations } from '../../domain/practiceExplanations.mjs';
 import { useConfirmation } from '../../components/confirmation';
 import { QuestionReviewWorkspace } from './QuestionReviewWorkspace';
-import { ArrowLeft, ChevronRight, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Bot, ChevronRight, MessageSquare, MoreHorizontal, BookOpenText, ClipboardList, FileText, Languages, Lightbulb, ListChecks, Trash2, type LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DraftSummary, ReviewPackDraft } from '../../types';
 
@@ -877,13 +876,15 @@ function QuestionList({ questions, sections, grammarItems = [], labels, startNum
           answer: answerChoiceNumber !== null ? question.choices?.[answerChoiceNumber - 1] ?? question.answer : question.answer,
         });
         const relevantGrammarItems = grammarPointsForQuestion(question, grammarItems);
+        const SourceIcon = question.source_origin === 'ai_generated' ? Bot : question.source_origin === 'textbook_original' ? BookOpenText : null;
+        const sourceIconLabel = question.source_origin === 'ai_generated' ? 'AI 生成' : '教材原题';
         return (
           <article key={questionId} className="py-4 first:pt-0 last:pb-0">
-            <p className="mb-2 text-xs font-semibold text-[#52645b]">{practiceQuestionSourceLabel(question)}{question.source_origin === 'textbook_original' && question.source_reference?.trim() ? ` · ${question.source_reference.trim()}` : ''}</p>
             <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
               <span className="pt-0.5 text-base font-semibold text-[#31564c]">{startNumber + index}.</span>
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <p className="text-base font-semibold leading-7 text-[#27312c]">{question.prompt}</p>
+                {SourceIcon ? <span className="shrink-0 pt-1 text-[#52645b]" role="img" aria-label={sourceIconLabel} title={sourceIconLabel}><SourceIcon size={18} aria-hidden="true" /></span> : null}
               </div>
             </div>
             {isRevealed && hasStarResult ? (

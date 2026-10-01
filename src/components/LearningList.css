@@ -398,3 +398,13 @@ section.list-frame.ledger-word-index.ledger-entry-index, section.list-frame.ledg
   .standard-list-description, .standard-list-status { text-align: center; }
   .learning-list-columns .list-item-metadata > span { text-align: center; }
 }
+
+.standard-list-count { text-align: center; color: #53645d; font-size: 14px; font-variant-numeric: tabular-nums; }
+@media (min-width: 768px) {
+  .learning-list-columns.has-count-column .standard-list-fields { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.4fr) minmax(0, .8fr) 80px; }
+  .learning-list-columns.has-list-references.has-count-column .standard-list-fields { grid-template-columns: 88px minmax(0, 1.3fr) minmax(0, 1.4fr) minmax(0, .8fr) 80px; }
+}
+@media (max-width: 767px) {
+  .standard-list-count { text-align: left; }
+  .standard-list-count::before { content: attr(data-mobile-label); display: block; margin-bottom: 4px; font-size: 12px; color: #657a70; }
+}

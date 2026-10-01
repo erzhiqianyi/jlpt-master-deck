@@ -3,6 +3,7 @@ import { Children, createContext, isValidElement, useContext, type ReactNode } f
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
 import { batchText, type ListSelection } from './ListBatch';
 
+const CountColumnContext = createContext<string | undefined>(undefined);
 const StandardListContext = createContext(false);
 const ListLabelsContext = createContext<[string, string | null, string | null]>(['名称', '信息', '状态']);
 const SelectionContext = createContext<ListSelection | undefined>(undefined);
@@ -14,8 +15,8 @@ function referenceLabel(locale?: string) {
 }
 
 /** Every catalog retains its columns even when there are no matching rows. */
-export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, hasActions, selection }: {
-  children?: ReactNode; columns?: ReactNode; locale?: string; columnLabels?: [string, string | null, string | null]; hasActions?: boolean;
+export function LearningList({ children, columns, locale = 'zh-CN', columnLabels, countLabel, hasActions, selection }: {
+  countLabel?: string; children?: ReactNode; columns?: ReactNode; locale?: string; columnLabels?: [string, string | null, string | null]; hasActions?: boolean;
   /** Batch mode: rows with a `selectId` prop get a leading checkbox. */
   selection?: ListSelection;
 }) {
@@ -26,7 +27,7 @@ export function LearningList({ children, columns, locale = 'zh-CN', columnLabels
   const actions = hasActions ?? rows.some((row) => isValidElement<{ actionIcon?: ReactNode; trailing?: ReactNode; inlineActions?: boolean; secondary?: ReactNode }>(row) && (row.props.actionIcon || row.props.trailing || (row.props.inlineActions && row.props.secondary)));
   const referenceColumn = rows.some((row) => isValidElement<{ references?: (string | undefined)[] }>(row) && row.props.references?.some(Boolean));
   const referenceHeading = referenceColumn ? <span key="reference" className="list-column-reference">{referenceLabel(language)}</span> : null;
-  const header = columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{referenceHeading}{labels.map((label, index) => label === null ? null : <span key={index} className={index === 0 ? 'list-column-title' : undefined}>{label}</span>)}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>;
+  const header = columns ?? <div className="standard-list-header" aria-hidden="true"><span className="standard-list-fields">{referenceHeading}{labels.map((label, index) => label === null ? null : <span key={index} className={index === 0 ? 'list-column-title' : undefined}>{label}</span>)}{countLabel ? <span>{countLabel}</span> : null}</span><span className="standard-actions-heading">{language === 'ja' ? '操作' : language === 'en' ? 'Actions' : '操作'}</span></div>;
   const text = batchText(language);
   const rowSelection = (row: ReactNode) => isValidElement<{ selectId?: string; title?: ReactNode }>(row) && row.props.selectId ? { id: row.props.selectId, label: typeof row.props.title === 'string' ? row.props.title : row.props.selectId } : null;
   const body = selection ? rows.map((row, index) => {
@@ -37,23 +38,24 @@ export function LearningList({ children, columns, locale = 'zh-CN', columnLabels
       {row}
     </div>;
   }) : rows;
-  return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}${selection ? ' is-selecting' : ''}${referenceColumn ? ' has-list-references' : ''}`}>
+  return <div className="learning-list-scroll"><div className={`learning-list-columns${columns ? '' : ' standard-list-columns'}${actions ? '' : ' without-list-actions'}${labels[1] === null ? ' without-list-description' : ''}${labels[2] === null ? ' without-list-status' : ''}${countLabel ? ' has-count-column' : ''}${selection ? ' is-selecting' : ''}${referenceColumn ? ' has-list-references' : ''}`}>
     {header}
-    <ListLabelsContext.Provider value={labels}><StandardListContext.Provider value={!columns}><SelectionContext.Provider value={selection}><ReferenceColumnContext.Provider value={referenceColumn}>
+    <CountColumnContext.Provider value={countLabel}><ListLabelsContext.Provider value={labels}><StandardListContext.Provider value={!columns}><SelectionContext.Provider value={selection}><ReferenceColumnContext.Provider value={referenceColumn}>
       <div className="learning-list unified-list" role="list">{rows.length ? body : <div role="listitem" className="list-empty-row"><span role="status">{language === 'ja' ? 'データがありません' : language === 'en' ? 'No data' : '没有数据'}</span></div>}</div>
-    </ReferenceColumnContext.Provider></SelectionContext.Provider></StandardListContext.Provider></ListLabelsContext.Provider>
+    </ReferenceColumnContext.Provider></SelectionContext.Provider></StandardListContext.Provider></ListLabelsContext.Provider></CountColumnContext.Provider>
   </div></div>;
 }
 
-export function LearningListRow({ selectId, title, references, reading, description, metadata, status, statusKind, locale, onOpen: openRow, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
+export function LearningListRow({ selectId, title, references, reading, description, metadata, count, status, statusKind, locale, onOpen: openRow, actionLabel, actionIcon, trailing, secondary, expanded, compact = false, inlineActions = false }: {
   /** Read by the parent LearningList in batch mode. */
   selectId?: string;
-  title: ReactNode; references?: (string | undefined)[]; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
+  count?: number; title: ReactNode; references?: (string | undefined)[]; reading?: ReactNode; description?: ReactNode; metadata?: ReactNode; status?: ReactNode; statusKind?: LearningStatus;
   locale?: string; onOpen: () => void; actionLabel?: string; actionIcon?: ReactNode; trailing?: ReactNode; secondary?: ReactNode; expanded?: boolean; compact?: boolean; inlineActions?: boolean;
 }) {
   const referenceCodes = [...new Set((references ?? []).filter((code): code is string => Boolean(code)))];
   const referenceChips = referenceCodes.length ? referenceCodes.map(code => <span key={code}>{code}</span>) : null;
   const referenceText = referenceChips ? <span className="list-item-references" aria-label={`${referenceLabel(locale)} ${referenceCodes.join(', ')}`}>{referenceChips}</span> : null;
+  const countLabel = useContext(CountColumnContext);
   const standard = useContext(StandardListContext);
   const referenceColumn = useContext(ReferenceColumnContext) && (standard || Boolean(metadata));
   // Desktop shows a dedicated column cell; mobile shows the inline chips under the title (CSS toggles which one renders).
@@ -70,6 +72,7 @@ export function LearningListRow({ selectId, title, references, reading, descript
       <span className="standard-list-description" data-mobile-label={labels[1] ?? undefined}>{description || '—'}</span>
       <span className="standard-list-status" data-mobile-label={labels[2] ?? undefined}>{status || '—'}</span>
       <span className="sr-only">{action}</span>
+      {countLabel ? <span className="standard-list-count" data-mobile-label={countLabel}><span className="sr-only">{countLabel} </span>{count ?? 0}</span> : null}
     </button>
     <div className="standard-list-actions">
       {actionIcon ? <button type="button" aria-label={action} title={action} onClick={onOpen}>{actionIcon}</button> : null}

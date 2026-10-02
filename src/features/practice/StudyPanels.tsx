@@ -1,3 +1,4 @@
+import { PracticeTimer } from '../../components/PracticeTimer';
 import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
@@ -330,6 +331,7 @@ export function PracticePanel({
   analysisStatus: PracticeAttempt['analysisStatus'];
   loading?: boolean;
 }) {
+  const [timerSession, setTimerSession] = useState(0);
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const [answerSheetPage, setAnswerSheetPage] = useState(0);
   const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
@@ -337,6 +339,11 @@ export function PracticePanel({
   const [reviewPreparing, setReviewPreparing] = useState(false);
   const practiceCardRef = useRef<HTMLElement | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  function restartTimedPractice() {
+    setTimerSession((session) => session + 1);
+    onRestart();
+  }
 
   function navigateFromSwipe(direction: 'prev' | 'next') {
     if (direction === 'prev') onPrev();
@@ -502,6 +509,7 @@ export function PracticePanel({
       <div className="practice-question-section">
         <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
           <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
+          {questionsLength > 0 ? <PracticeTimer key={`${questions.map((question) => question.id).join(',')}:${timerSession}`} locale={settings.locale} running={!complete && !loading} /> : null}
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
 
 
@@ -515,7 +523,7 @@ export function PracticePanel({
               <span className="journal-number text-sm font-black">{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
             </button>
             {questionsLength > 0 ? (
-              <button type="button" onClick={onRestart} aria-label={labels.restartPractice} title={labels.restartPractice} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
+              <button type="button" onClick={restartTimedPractice} aria-label={labels.restartPractice} title={labels.restartPractice} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
                 <RotateCcw size={17} />
               </button>
             ) : null}
@@ -725,7 +733,7 @@ export function PracticePanel({
               <button type="button" onClick={() => runReviewDialogAction(onPracticeHome)} className="cute-button-secondary flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold">
                 <House size={18} /> {labels.reviewBackToPracticeHome}
               </button>
-              <button type="button" onClick={() => runReviewDialogAction(onRestart)} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-[#a84269] hover:bg-[#fff7fb]">
+              <button type="button" onClick={() => runReviewDialogAction(restartTimedPractice)} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-[#a84269] hover:bg-[#fff7fb]">
                 <RotateCcw size={17} /> {labels.restartPractice}
               </button>
             </div>

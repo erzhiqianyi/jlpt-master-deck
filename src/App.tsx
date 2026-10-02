@@ -2007,6 +2007,7 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                progress={progress}
                 activeQuestionId={route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}
@@ -2025,6 +2026,7 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                progress={progress}
                 activeQuestionId={route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}

@@ -1,3 +1,4 @@
+import { PracticeTimer } from '../../components/PracticeTimer';
 import { LookupText } from '../review/WordLookup';
 import { RecordReference } from '../../components/RecordReference';
 import { ReadingExplanation } from './ReadingExplanation';
@@ -10,7 +11,7 @@ import { LearningListRow } from '../../components/LearningList';
 import { useConfirmation } from '../../components/confirmation';
 import { ChevronLeft, ChevronRight, Clipboard, Lightbulb, Plus, ScrollText, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import type { Locale, ReadingQuestion, ReadingQuestionInput } from '../../types';
+import type { Locale, ProgressState, ReadingQuestion, ReadingQuestionInput } from '../../types';
 
 // Keep original question IDs and answers; only share the passage presentation.
 export function groupReadingQuestions(questions: ReadingQuestion[]) {
@@ -35,6 +36,7 @@ type ReadingPanelProps = {
   labels: Record<string, string>;
   locale: Locale;
   questions: ReadingQuestion[];
+  progress?: ProgressState;
   onCreate: (input: ReadingQuestionInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
@@ -43,7 +45,7 @@ type ReadingPanelProps = {
   onReview?: () => void;
 };
 
-export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
+export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
   const [title, setTitle] = useState('');
   const [passage, setPassage] = useState('');
   const [question, setQuestion] = useState('');
@@ -216,7 +218,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
         <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
           {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
         </div>
-        <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false}
+        <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false} practiceCount
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
           collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale}
           batch={{ id: (group) => group[0].id, actions: [{
@@ -231,7 +233,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
           const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];
           return <LearningListRow key={group[0].id} title={group[0].title} references={group.map(item => item.reference)}
             reading={questionCountLabel(group.length, locale)}
-            metadata={<LearningListMetadata locale={locale} addedAt={addedAt}
+            metadata={<LearningListMetadata locale={locale} addedAt={addedAt} practiceCount={group.reduce((count, item) => count + (progress[item.id]?.reviewCount ?? 0), 0)}
               collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}
               collection={tags.length ? tags.join(' · ') : (locale === 'ja' ? 'タグなし' : locale === 'en' ? 'No tags' : '未分类')}/>}
             locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; }}/>
@@ -286,8 +288,9 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
 function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQuestion[]; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const item = items[0];
   const [segmented, setSegmented] = useState(false);
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
   return <article className="reading-passage min-w-0">
-    <h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /></div>
     <RecordReference reference={item.reference} locale={locale} />
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
     <details className="reading-passage-body mt-6" open>
@@ -299,12 +302,12 @@ function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQue
       <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
     <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
   </article>;
 }
 
-function ReadingQuestionItem({ item, number, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
@@ -334,7 +337,12 @@ function ReadingQuestionItem({ item, number, segmented, labels, locale, onDelete
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
       <ChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.readingSelectAnswer) : setRevealed(true)} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
+        <button type="button" onClick={() => {
+          if (selected === null) { setAnswerNotice(labels.readingSelectAnswer); return; }
+          setAnswerNotice('');
+          setRevealed(true);
+          onComplete();
+        }} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>

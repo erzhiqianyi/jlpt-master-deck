@@ -299,12 +299,12 @@ function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQue
       <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
     <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} labels={labels} locale={locale} onDelete={onDelete} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
   </article>;
 }
 
-function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item: ReadingQuestion; number: number; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
@@ -331,7 +331,8 @@ function ReadingQuestionItem({ item, number, labels, locale, onDelete }: { item:
       <RecordReference reference={item.reference} locale={locale} />
       {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
       <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
-      <ChoiceGrid item={item} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
+      {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
+      <ChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => selected === null ? setAnswerNotice(labels.readingSelectAnswer) : setRevealed(true)} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
@@ -351,13 +352,25 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
   );
 }
 
-function ChoiceGrid({ item, selected, revealed, onSelect }: { item: ReadingQuestion; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
+function ChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: ReadingQuestion; segmented: boolean; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
   return (
     <div className="reading-choices mt-4">
       {item.choices.map((choice, index) => {
         const answerState = revealed
           ? index === item.answerIndex ? 'correct' : selected === index ? 'incorrect' : 'idle'
           : selected === index ? 'selected' : 'idle';
+        if (segmented) {
+          return (
+            <div key={index} data-answer-state={answerState} className="reading-choice">
+              <button type="button" aria-label={`${index + 1}. ${choice}`} aria-pressed={selected === index} onClick={() => onSelect(index)} className="reading-choice-number shrink-0">
+                {index + 1}
+              </button>
+              <span lang="ja" className="reading-segmented min-w-0 whitespace-pre-wrap break-words">
+                <LookupText text={choice} source={`阅读 ${item.reference ?? item.id} · ${item.title} · 選択肢 ${index + 1}`} />
+              </span>
+            </div>
+          );
+        }
         return (
           <button key={index} type="button" aria-pressed={selected === index} data-answer-state={answerState} onClick={() => onSelect(index)} className="reading-choice">
             <span className="reading-choice-number">{index + 1}</span>

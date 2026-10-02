@@ -162,3 +162,30 @@ Inputs: optional `deck`, `wordbook_id`, `only_due` (default true), `limit` (1–
 The vanilla MCP App supports reveal/hide, previous/next card and previous/next page. It can load due cards when opened directly by an MCP Apps host, or render the originating tool result. It does not record a memory rating or change mastery. Build both views with `npm run build:mcp-app`; the Cloudflare bundler embeds both HTML documents. Restart the backend and refresh client discovery to see newly registered resources.
 
 Protocol reference: [OpenAI MCP Apps UI documentation](https://developers.openai.com/plugins/build/chatgpt-ui).
+# 修改已发布专项练习的解析
+
+已确认并发布的专项练习保存在正式练习中。先通过 `list_daily_practices` 和
+`get_daily_practice` 取得实际练习 ID、题目 ID，再调用
+`update_practice_question_explanation`（需要 `library:write`）：
+
+```json
+{
+  "practice_id": "<practice.id>",
+  "question_id": "<practice.questions[n].id>",
+  "patch": {
+    "correctReason": "结合题干线索解释正确答案成立的原因。",
+    "memoryPoint": "本题的记忆要点"
+  }
+}
+```
+
+可更新 `correctReason`、`memoryPoint`、`translationZh` 和 `choiceAnalysis`。
+未提供的字段保留；`choiceAnalysis` 若提供，必须包含每个现有选项恰好一次，
+每项为 `{ "choice": "原选项文本", "explanation": "具体解析" }`。
+合并后的整题与所有选项解析必须完整；旧题缺失解析时，应在同次更新补齐。
+题干、选项、正确答案、题目 ID、作答记录与来源草稿均保持不变。
+返回更新后的完整练习。更新只作用于指定练习，不同步其他副本。
+
+HTTP 使用 `PATCH /api/daily-practices/:practiceId/questions/:questionId/explanation`，
+请求体直接为上述 `patch` 对象。尚未发布的已确认草稿仍使用
+`update_review_pack_draft` 修改，再发布。

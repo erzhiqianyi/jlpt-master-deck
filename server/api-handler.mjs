@@ -39,6 +39,7 @@ import {
   deleteReviewPackDraft,
   getReviewPackDraft,
   getDailyPractice,
+  updatePracticeQuestionExplanation,
   getHistoryQuestions,
   getStudyState,
   getStudyPlan,
@@ -532,6 +533,11 @@ return async (req, res) => {
       return json(res, 201, { practice });
     }
 
+    const explanationMatch = /^\/api\/daily-practices\/([^/]+)\/questions\/([^/]+)\/explanation$/.exec(url.pathname);
+    if (req.method === 'PATCH' && explanationMatch) {
+      const practice = updatePracticeQuestionExplanation(user.id, decodeURIComponent(explanationMatch[1]), decodeURIComponent(explanationMatch[2]), await readJson(req));
+      return json(res, 200, { practice });
+    }
     const dailyPracticeMatch = /^\/api\/daily-practices\/([^/]+)$/.exec(url.pathname);
     if (req.method === 'GET' && dailyPracticeMatch) {
       const requestedId = decodeURIComponent(dailyPracticeMatch[1]);

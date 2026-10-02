@@ -1,4 +1,5 @@
 import { practiceModules } from '../src/domain/practiceModules.mjs';
+import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
 import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations, isEmptyReason } from '../src/domain/practiceExplanations.mjs';
@@ -2826,6 +2827,30 @@ export function deleteDailyPractice(userId, id) {
     upsertPracticeState(userId, state.attemptHistory.filter((attempt) => !belongsToPractice(attempt)),
       belongsToPractice(state.activeAttempt) ? null : state.activeAttempt);
     return true;
+  });
+}
+
+export function updatePracticeQuestionExplanation(userId, practiceId, questionId, patch) {
+  const changes = practiceExplanationPatchSchema.parse(patch);
+  const database = getDb();
+  return transaction(database, () => {
+    const row = database.prepare('SELECT practice_json FROM daily_practices WHERE user_id = ? AND id = ?').get(userId, practiceId);
+    if (!row) throw Object.assign(new Error('Practice not found'), { statusCode: 404 });
+    const practice = JSON.parse(row.practice_json);
+    const matches = (practice.questions ?? []).filter((question) => question.id === questionId);
+    if (matches.length !== 1) throw Object.assign(new Error('Question not found or ambiguous in this practice'), { statusCode: 404 });
+    const current = matches[0];
+    if (changes.choiceAnalysis && (changes.choiceAnalysis.length !== current.choices.length
+      || new Set(changes.choiceAnalysis.map((entry) => entry.choice)).size !== current.choices.length
+      || changes.choiceAnalysis.some((entry) => !current.choices.includes(entry.choice)))) {
+      throw new Error('choiceAnalysis must include every existing choice exactly once');
+    }
+    const updated = normalizePracticeExplanations({ ...normalizePracticeExplanations(current), ...changes });
+    assertPracticeExplanations([updated]);
+    practice.questions = practice.questions.map((question) => question === current ? updated : question);
+    database.prepare('UPDATE daily_practices SET practice_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')
+      .run(JSON.stringify(practice), new Date().toISOString(), userId, practiceId);
+    return getDailyPractice(userId, practiceId);
   });
 }
 

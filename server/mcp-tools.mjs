@@ -1,4 +1,5 @@
 import { currentPlatform } from './platform.mjs';
+import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
 import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
@@ -43,6 +44,7 @@ import {
   exportReviewDataBackup,
   getReviewPackDraft,
   getDailyPractice,
+  updatePracticeQuestionExplanation,
   getPlanGenerationContext,
   getPracticeSession,
   getStudyPlan,
@@ -434,6 +436,10 @@ export const tools = [
   tool('get_daily_practice', 'Read one formal daily practice with its generated questions.',
     { practice_id: z.string() }, ro,
     async ({ practice_id }, ctx) => text(found(getDailyPractice(uid(ctx), practice_id), 'Daily practice not found'))),
+  tool('update_practice_question_explanation', 'Update explanations of one question in an owned published topic or daily practice, including confirmed draft publications. Read get_daily_practice first and use its practice and question IDs. Omitted fields are preserved; choiceAnalysis replaces all option explanations. The merged question must have specific overall and per-choice reasons. Preserves question text, choices, answer, IDs and learning history. Updates the published practice directly, not its source draft or other copies.',
+    { practice_id: z.string().min(1), question_id: z.string().min(1), patch: practiceExplanationPatchSchema }, replacing,
+    async ({ practice_id, question_id, patch }, ctx) => text(updatePracticeQuestionExplanation(uid(ctx), practice_id, question_id, patch)),
+    { scope: 'library:write' }),
   tool('delete_daily_practice', 'Permanently delete one owned daily practice, its attempts and active attempt, and answers not shared by another practice. Preserve vocabulary items, cumulative mastery, source drafts and other practices. This cannot be undone.',
     { practice_id: z.string().min(1) }, destructive,
     async ({ practice_id }, ctx) => text({ ok: found(deleteDailyPractice(uid(ctx), practice_id), 'Daily practice not found') }),

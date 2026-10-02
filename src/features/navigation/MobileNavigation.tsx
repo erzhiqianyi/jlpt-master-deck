@@ -8,7 +8,9 @@ export type MobileStudyPanel = 'task' | 'filter' | null;
 type NavItem = { view: AppView; label: string };
 type RouteNavItem = NavItem & { page?: StudyPage; itemId?: string; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
 
-export function MobileAppHeader({ onSearch, searchLabel, filterLabel, filterName, filterIconOnly, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+export function MobileAppHeader({ onSettings, settingsLabel, onSearch, searchLabel, filterLabel, filterName, filterIconOnly, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+  onSettings?: () => void;
+  settingsLabel?: string;
   onSearch?: () => void;
   searchLabel?: string;
   filterLabel?: string;
@@ -32,7 +34,7 @@ export function MobileAppHeader({ onSearch, searchLabel, filterLabel, filterName
   filterActionAriaLabel?: string;
   onFilterAction?: () => void;
 }) {
-  if (!showBack && !onNavToggle && !onSearch && !onHeaderFilter) {
+  if (!showBack && !onSettings && !onNavToggle && !onSearch && !onHeaderFilter) {
     return null;
   }
 
@@ -43,6 +45,10 @@ export function MobileAppHeader({ onSearch, searchLabel, filterLabel, filterName
           {showBack ? (
             <button type="button" onClick={onBack} aria-label={backLabel} title={backLabel} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#6b5a61] hover:bg-[#fff0f5]">
               <ArrowLeft size={21} />
+            </button>
+          ) : onSettings && settingsLabel ? (
+            <button type="button" onClick={onSettings} aria-label={settingsLabel} title={settingsLabel} className="mobile-settings-entry cute-focus">
+              <Settings size={20} aria-hidden="true" />
             </button>
           ) : null}
         </div>
@@ -319,7 +325,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
 
   return (
     <aside className={`desktop-sidebar flex ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : 'is-mobile-closed'}`} aria-label={labels.mobileNavigation}>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="desktop-sidebar-header">
           <button type="button" onClick={() => navigateFromSidebar('home')} className="workspace-brand cute-focus" aria-label={`${brand} · ${labels.navTaskHome ?? labels.navHome}`} title={brand}>
             <img src="/jlpt-brand.png" width="40" height="40" alt="" />

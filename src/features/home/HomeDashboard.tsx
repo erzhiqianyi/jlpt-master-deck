@@ -1,12 +1,12 @@
-import { ArrowRight, Brain, CalendarDays, Check, Clock3, ChevronRight } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, Check, Clock3, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { localDateString, tasksForDate } from '../../domain/studyPlan';
-import type { AppView, DailyPracticeSummary, DraftSummary, Locale, StudyPlanDocument, StudyPlanTaskStatus } from '../../types';
+import type { AppView, DailyPracticeSummary, DraftSummary, Locale, StudyPlanDocument, StudyPlanTaskStatus, VocabItem } from '../../types';
 
-export function HomeDashboard({ username, locale, hasMemoryReview, plan, todayPractices, latestDraft, onOpenDraft, onNavigate, onStartDailyPractice, onCreateDailyPractice, onTaskStatus }: {
+export function HomeDashboard({ username, locale, dueItems, onOpenReviewItem, plan, todayPractices, latestDraft, onOpenDraft, onNavigate, onStartDailyPractice, onCreateDailyPractice, onTaskStatus }: {
   token: string; username: string;
   labels: Record<string, string>; locale: Locale;
-  hasMemoryReview: boolean; plan: StudyPlanDocument; todayPractices: DailyPracticeSummary[];
+  dueItems: VocabItem[]; onOpenReviewItem: (item: VocabItem) => void; plan: StudyPlanDocument; todayPractices: DailyPracticeSummary[];
   latestDraft?: DraftSummary; onOpenDraft: (id: string) => void;
   onNavigate: (view: AppView) => void; onStartDailyPractice: (id?: string) => void; onCreateDailyPractice: () => void;
   onOpenPracticeHistory: () => void;
@@ -20,11 +20,11 @@ export function HomeDashboard({ username, locale, hasMemoryReview, plan, todayPr
   const practice = todayPractices[0];
   const zh = locale === 'zh-CN'; const ja = locale === 'ja';
   const text = zh ? {
-    title: '今日', plan: '今日计划', all: '查看计划', empty: '今天还没有安排任务。', setup: '安排学习计划', minutes: '分钟', done: '已完成', mark: '标为已完成', undo: '恢复待完成', practice: '今日练习', start: '开始练习', prepare: '准备今日练习', reviewDraft: '查看待确认题目', review: '记忆复习', reviewBody: '再看一遍学过的内容，让记忆更牢固。', reviewEmpty: '还没有学习卡片。', library: '学习模块', days: '天', goal: '备考目标', recent: '最近 7 天', study: '学习', full: '完整记录', more: '更多练习', moreBody: '专项、综合与模拟考试', hello: '你好', noActivity: '完成练习后，这里会记录你的学习节奏。'
+    title: '今日', plan: '今日计划', all: '查看计划', empty: '今天还没有安排任务。', setup: '安排学习计划', minutes: '分钟', done: '已完成', mark: '标为已完成', undo: '恢复待完成', practice: '今日练习', start: '开始练习', prepare: '准备今日练习', reviewDraft: '查看待确认题目', review: '待复习', reviewAll: '查看全部', reviewCount: '项可开始复习', reviewStart: '开始记忆复习', reviewDone: '没有到期内容，休息一下也很好。', grammar: '语法表达', reviewBody: '再看一遍学过的内容，让记忆更牢固。', reviewEmpty: '还没有学习卡片。', library: '学习模块', days: '天', goal: '备考目标', recent: '最近 7 天', study: '学习', full: '完整记录', more: '更多练习', moreBody: '专项、综合与模拟考试', hello: '你好', noActivity: '完成练习后，这里会记录你的学习节奏。'
   } : ja ? {
-    title: '今日', plan: '今日の計画', all: '計画を見る', empty: '今日の予定はまだありません。', setup: '計画を立てる', minutes: '分', done: '完了', mark: '完了にする', undo: '未完了に戻す', practice: '今日の練習', start: '練習を始める', prepare: '今日の練習を準備', reviewDraft: '確認待ちの問題を見る', review: '記憶の復習', reviewBody: '学んだ内容を、もう一度振り返りましょう。', reviewEmpty: '学習カードはまだありません。', library: 'ライブラリへ', days: '日', goal: '学習目標', recent: '最近7日間', study: '学習', full: '記録を見る', more: 'ほかの練習', moreBody: 'テーマ別・総合・模擬試験', hello: 'こんにちは', noActivity: '練習を終えると、ここに記録されます。'
+    title: '今日', plan: '今日の計画', all: '計画を見る', empty: '今日の予定はまだありません。', setup: '計画を立てる', minutes: '分', done: '完了', mark: '完了にする', undo: '未完了に戻す', practice: '今日の練習', start: '練習を始める', prepare: '今日の練習を準備', reviewDraft: '確認待ちの問題を見る', review: '復習待ち', reviewAll: 'すべて見る', reviewCount: '件を復習できます', reviewStart: '復習を始める', reviewDone: '今は復習する項目がありません。ひと休みしましょう。', grammar: '文法表現', reviewBody: '学んだ内容を、もう一度振り返りましょう。', reviewEmpty: '学習カードはまだありません。', library: 'ライブラリへ', days: '日', goal: '学習目標', recent: '最近7日間', study: '学習', full: '記録を見る', more: 'ほかの練習', moreBody: 'テーマ別・総合・模擬試験', hello: 'こんにちは', noActivity: '練習を終えると、ここに記録されます。'
   } : {
-    title: 'Today', plan: "Today's plan", all: 'View plan', empty: 'Nothing planned for today yet.', setup: 'Make a plan', minutes: 'min', done: 'Done', mark: 'Mark done', undo: 'Mark pending', practice: "Today's practice", start: 'Start practice', prepare: 'Prepare practice', reviewDraft: 'Review pending questions', review: 'Memory review', reviewBody: 'Return to what you have learned and make it stick.', reviewEmpty: 'No learning cards yet.', library: 'Study modules', days: 'days', goal: 'Your goal', recent: 'Last 7 days', study: 'Study', full: 'View history', more: 'More practice', moreBody: 'Topics, mixed practice and mock exams', hello: 'Hello', noActivity: 'Your study rhythm will appear after your first practice.'
+    title: 'Today', plan: "Today's plan", all: 'View plan', empty: 'Nothing planned for today yet.', setup: 'Make a plan', minutes: 'min', done: 'Done', mark: 'Mark done', undo: 'Mark pending', practice: "Today's practice", start: 'Start practice', prepare: 'Prepare practice', reviewDraft: 'Review pending questions', review: 'Due for review', reviewAll: 'View all', reviewCount: 'items ready to review', reviewStart: 'Start review', reviewDone: 'Nothing due. Take a well-earned break.', grammar: 'Grammar expression', reviewBody: 'Return to what you have learned and make it stick.', reviewEmpty: 'No learning cards yet.', library: 'Study modules', days: 'days', goal: 'Your goal', recent: 'Last 7 days', study: 'Study', full: 'View history', more: 'More practice', moreBody: 'Topics, mixed practice and mock exams', hello: 'Hello', noActivity: 'Your study rhythm will appear after your first practice.'
   };
   const days = Array.from({length: 7}, (_, index) => { const date = new Date(); date.setDate(date.getDate() - 6 + index); const day = localDateString(date); return { day, label: new Intl.DateTimeFormat(locale, {weekday:'short'}).format(date), minutes: plan.dailySummaries.find(s => s.date === day)?.practiceMinutes ?? 0 }; });
   const total = days.reduce((sum, day) => sum + day.minutes, 0);
@@ -43,7 +43,14 @@ export function HomeDashboard({ username, locale, hasMemoryReview, plan, todayPr
       <section className="light-panel light-practice-feature"><span className="light-eyebrow">{text.practice}</span><h2>{practice?.title ?? text.prepare}</h2>{practice && <p>{practice.questionCount} {zh ? '题' : ja ? '問' : 'questions'} · {practice.minutes} {text.minutes}</p>}<button className="light-primary" onClick={() => practice ? onStartDailyPractice(practice.id) : latestDraft ? onOpenDraft(latestDraft.id) : onCreateDailyPractice()}>{practice ? text.start : latestDraft ? text.reviewDraft : text.prepare}<ArrowRight size={17}/></button></section>
       <button className="light-more-row" onClick={() => onNavigate('mixed')}><span><strong>{text.more}</strong><small>{text.moreBody}</small></span><ArrowRight size={20}/></button>
     </div><aside className="light-aside-column">
-      <section className="light-panel light-review-panel"><Brain size={28}/><h2>{text.review}</h2>{!hasMemoryReview ? <p>{text.reviewEmpty}</p> : null}<button className="light-primary" onClick={() => onNavigate(hasMemoryReview ? 'memory-review' : 'study')}>{hasMemoryReview ? text.review : text.library}<ArrowRight size={17}/></button></section>
+      <section className="light-panel light-review-panel">
+        <div className="light-section-head"><h2>{text.review}</h2><button onClick={() => onNavigate('memory')}>{text.reviewAll}<ArrowRight size={16}/></button></div>
+        <div className="light-review-count"><strong>{dueItems.length}</strong><span>{text.reviewCount}</span></div>
+        {dueItems.length ? <ul className="light-review-preview">{dueItems.slice(0, 3).map(item => <li key={item.id}>
+          <button className="cute-focus" onClick={() => onOpenReviewItem(item)}><BookOpen size={20} aria-hidden="true"/><span><strong lang="ja">{item.original}</strong><small lang={item.reading ? 'ja' : undefined}>{item.reading || (item.deck === 'grammar_expression' ? text.grammar : item.meaning_zh)}</small></span><ChevronRight size={16} aria-hidden="true"/></button>
+        </li>)}</ul> : <p>{text.reviewDone}</p>}
+        {dueItems.length > 0 && <button className="light-primary" onClick={() => onNavigate('memory-review')}>{text.reviewStart}<ArrowRight size={17}/></button>}
+      </section>
       <section className="light-panel light-week"><div className="light-section-head"><h2>{text.recent}</h2><button aria-label={text.full} onClick={() => onNavigate('history')}><ArrowRight size={16}/></button></div><div className="light-bars">{days.map(day => <div key={day.day}><div className="light-bar-track"><span style={{height:`${day.minutes / max * 100}%`}} title={`${day.day}: ${day.minutes} ${text.minutes}`}/></div><small>{day.label}</small></div>)}</div><p>{total ? `${text.study} ${total} ${text.minutes}` : text.noActivity}</p></section>
       <button className="light-goal" onClick={() => onNavigate('plan')}><CalendarDays size={22}/><span><small>{text.goal} · JLPT {plan.profile.level}</small><strong>{Number.isFinite(countdown) && countdown > 0 ? `${countdown} ${text.days}` : plan.profile.examDate}</strong></span><ChevronRight size={18}/></button>
     </aside></div>

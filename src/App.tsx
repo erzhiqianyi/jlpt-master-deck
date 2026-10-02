@@ -559,7 +559,6 @@ export default function App() {
   const deckLabels = deckLabelsFor(locale);
   const today = useMemo(() => todayDateKey(), []);
   const needsHomeMetrics = routeReady && activeView === 'home';
-  const hasMemoryReview = needsHomeMetrics && data.items.length > 0;
   const homeTodayPractices = useMemo(() => {
     if (!needsHomeMetrics) {
       return [];
@@ -581,7 +580,7 @@ export default function App() {
     [routeReady, activeView, data.items, labels],
   );
   const memoryReviewItems = useMemo(() => {
-    if (!routeReady || activeView !== 'memory-review') {
+    if (!routeReady || (activeView !== 'memory-review' && activeView !== 'home')) {
       return [];
     }
     const now = new Date().toISOString();
@@ -1701,6 +1700,8 @@ export default function App() {
     <main className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
+        onSettings={() => navigateTo('settings')}
+        settingsLabel={labels.settings}
         onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
         filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
         filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
@@ -1809,7 +1810,8 @@ export default function App() {
               username={user.username}
               labels={labels}
               locale={locale}
-              hasMemoryReview={hasMemoryReview}
+              dueItems={memoryReviewItems}
+              onOpenReviewItem={(item) => navigateTo(item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary', 'words', item.id)}
               plan={studyPlan}
               todayPractices={homeTodayPractices}
               latestDraft={latestHomeDraft}

@@ -37,6 +37,7 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV3(this.db);
         migrateCloudSchemaV4(this.db);
         migrateCloudSchemaV6(this.db);
+        migrateCloudReadingRuby(this.db);
         if (!this.db.prepare('SELECT version FROM cloud_schema_version WHERE version=7').get()) {
           this.db.exec(practiceCompletionSchema);
           this.db.exec('INSERT INTO cloud_schema_version(version) VALUES(7)');
@@ -236,3 +237,11 @@ export default {
     return env.JLPT_DATABASE.get(env.JLPT_DATABASE.idFromName('primary-v1')).fetch(request);
   },
 };
+
+function migrateCloudReadingRuby(db) {
+  if (db.prepare('SELECT version FROM cloud_schema_version WHERE version=8').get()) return;
+  if (!db.prepare('PRAGMA table_info(reading_questions)').all().some((column) => column.name === 'ruby_terms_json')) {
+    db.exec("ALTER TABLE reading_questions ADD COLUMN ruby_terms_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  db.exec('INSERT INTO cloud_schema_version(version) VALUES(8)');
+}

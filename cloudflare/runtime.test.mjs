@@ -156,6 +156,12 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     const explanationNodes = [{ title: '解题思路与排除技巧', body: '定位主语素材，再排除地点、人物和时间。' }];
     const readingUpdateResult = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, passageTranslation: '云端 MCP 更新译文', explanationNodes } });
     assert.ok(!readingUpdateResult.isError, JSON.stringify(readingUpdateResult));
+    const rubyTerms = [{ text: '素材', reading: 'そざい' }];
+    const readingsUpdate = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, rubyTerms } });
+    assert.ok(!readingsUpdate.isError, JSON.stringify(readingsUpdate));
+    assert.deepEqual((await json('/api/reading-questions/' + reading.id)).question.rubyTerms, rubyTerms);
+    const readingMetadata = await rpc('tools/call', { name: 'jlpt_get', arguments: { entity: 'reading_question', id: reading.id, sections: ['metadata'] } });
+    assert.deepEqual(JSON.parse(readingMetadata.content[0].text).data.metadata.rubyTerms, rubyTerms);
     const inventedEvidence = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, readingAnalysis: { ...reading.readingAnalysis, keySentences: ['本文にはない。'] } } });
     assert.ok(inventedEvidence.isError, JSON.stringify(inventedEvidence));
     const privateItem = { id:'cloud-private-item', deck:'grammar_expression', type:'grammar', original:'〜にほかならない', meaning_zh:'正是' };
@@ -172,6 +178,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(persistedReading.explanation, '更新总解析');
     assert.deepEqual(persistedReading.readingAnalysis, reading.readingAnalysis);
     assert.deepEqual(persistedReading.explanationNodes, explanationNodes);
+    assert.deepEqual(persistedReading.rubyTerms, rubyTerms);
     assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
     const persistedShare = await json('/api/market/'+share.id,'GET',undefined,'test-2');
     assert.equal(persistedShare.createdAt,share.createdAt);

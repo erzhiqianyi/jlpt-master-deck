@@ -306,6 +306,7 @@ END;
     ensureColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'passage_translation', "TEXT NOT NULL DEFAULT ''");
     ensureColumn('reading_questions', 'choice_explanations_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'ruby_terms_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'reading_analysis_json', "TEXT NOT NULL DEFAULT '{}'");
     ensureDailyPracticesMultiVersion();
     ensureReviewItemsSeeded();
@@ -1348,7 +1349,7 @@ export function saveListeningRecordingAnalysis(userId, id, payload) {
 function readingQuestionValues(value) {
   return [value.title, value.passage, value.question, JSON.stringify(value.choices), value.answerIndex,
     value.explanation, JSON.stringify(value.tags), JSON.stringify(value.explanationNodes), JSON.stringify(value.translationLines),
-    value.passageTranslation, JSON.stringify(value.choiceExplanations), JSON.stringify(value.readingAnalysis)];
+    value.passageTranslation, JSON.stringify(value.choiceExplanations), JSON.stringify(value.readingAnalysis), JSON.stringify(value.rubyTerms)];
 }
 
 export function createReadingQuestion(userId, payload) {
@@ -1357,8 +1358,8 @@ export function createReadingQuestion(userId, payload) {
   getDb().prepare(`
     INSERT INTO reading_questions (
       id, user_id, title, passage, question, choices_json, answer_index, explanation, tags_json,
-      explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, userId, ...readingQuestionValues(value), new Date().toISOString());
   return readingQuestionForUser(userId, id);
 }
@@ -1371,7 +1372,7 @@ export function updateReadingQuestion(userId, id, payload) {
   const value = normalizeReadingQuestion({ ...fields, ...patch });
   getDb().prepare(`UPDATE reading_questions SET
     title = ?, passage = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?, tags_json = ?,
-    explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?
+    explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?, ruby_terms_json = ?
     WHERE user_id = ? AND id = ?
   `).run(...readingQuestionValues(value), userId, id);
   return readingQuestionForUser(userId, id);
@@ -1379,7 +1380,7 @@ export function updateReadingQuestion(userId, id, payload) {
 
 export function listReadingQuestions(userId) {
   return getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
     FROM reading_questions
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -1388,7 +1389,7 @@ export function listReadingQuestions(userId) {
 
 export function readingQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
     FROM reading_questions
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
@@ -3848,6 +3849,7 @@ function mapReadingQuestion(row) {
     tags: parseJson(row.tags_json, []),
     explanationNodes: parseJson(row.explanation_nodes_json, []),
     translationLines: parseJson(row.translation_lines_json, []),
+    rubyTerms: parseJson(row.ruby_terms_json, []),
     passageTranslation: row.passage_translation ?? '',
     choiceExplanations: parseJson(row.choice_explanations_json, []),
     readingAnalysis: { summary: '', structure: '', keySentences: [], ...parseJson(row.reading_analysis_json, {}) },

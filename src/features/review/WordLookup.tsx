@@ -14,11 +14,11 @@ const LookupContext = createContext<{
   open: (range: LookupRange, source?: string) => void;
 } | null>(null);
 
-export function LookupText({ text, source }: { text: string; source?: string }) {
+export function LookupText({ text, source, renderText, additionalForms }: { text: string; source?: string; renderText?: (text: string) => ReactNode; additionalForms?: string[] }) {
   const lookup = useContext(LookupContext);
-  const parts = useMemo(() => segmentJapanese(text, lookup?.forms), [text, lookup?.forms]);
+  const parts = useMemo(() => segmentJapanese(text, additionalForms ? new Set([...(lookup?.forms ?? []), ...additionalForms]) : lookup?.forms), [text, lookup?.forms, additionalForms]);
   const owner = useId();
-  if (!lookup) return <>{text}</>;
+  if (!lookup) return <>{renderText ? renderText(text) : text}</>;
   const range = lookup.range?.owner === owner && lookup.range.text === text ? lookup.range : null;
   let offset = 0;
   const renderedParts: { text: string; word: boolean; start: number; end: number; selected: boolean }[] = [];
@@ -41,8 +41,8 @@ export function LookupText({ text, source }: { text: string; source?: string }) 
     ? <button type="button" className={`lookup-word${part.selected ? ' lookup-word-selected' : ''}`} key={part.start} aria-pressed={part.selected} aria-label={`查询「${part.text}」`} onClick={(event) => {
       event.stopPropagation();
       lookup.open({ owner, text, start: part.start, end: part.end }, source);
-    }} onKeyDown={(event) => event.stopPropagation()}>{part.text}</button>
-    : <span key={part.start}>{part.text}</span>)}</>;
+    }} onKeyDown={(event) => event.stopPropagation()}>{renderText ? renderText(part.text) : part.text}</button>
+    : <span key={part.start}>{renderText ? renderText(part.text) : part.text}</span>)}</>;
 }
 
 export function WordLookupProvider({ children, items, captures, locale, enabled, onCapture, authToken, ttsProvider }: {

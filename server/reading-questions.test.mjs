@@ -153,3 +153,21 @@ test('HTTP get/patch honor ownership and return validation errors', async () => 
   assert.equal((await request('GET', other.id)).status, 404);
   assert.equal((await request('PATCH', other.id, { explanation: 'stolen' })).status, 404);
 });
+
+test('MCP readings round-trip independently, preserve analysis and validate kana atomically', async () => {
+  const rubyTerms = [{ text: '素材', reading: 'そざい' }];
+  const saved = await call('create_reading_question', { ...input, rubyTerms });
+  assert.deepEqual(saved.rubyTerms, rubyTerms);
+  assert.deepEqual((await call('get_reading_question', { id: saved.id })).rubyTerms, rubyTerms);
+  const revised = await call('update_reading_question', { id: saved.id, rubyTerms: [{ text: '昔', reading: 'むかし' }] });
+  assert.equal(revised.passage, saved.passage);
+  assert.deepEqual(revised.choiceExplanations, saved.choiceExplanations);
+  assert.deepEqual(revised.readingAnalysis, saved.readingAnalysis);
+  assert.equal(revised.createdAt, saved.createdAt);
+  const untouched = await call('update_reading_question', { id: saved.id, title: '更新标题' });
+  assert.deepEqual(untouched.rubyTerms, revised.rubyTerms);
+  const beforeInvalid = storage.readingQuestionForUser(alice.id, saved.id);
+  await assert.rejects(call('update_reading_question', { id: saved.id, rubyTerms: [{ text: '昔', reading: '错误' }] }));
+  assert.deepEqual(storage.readingQuestionForUser(alice.id, saved.id), beforeInvalid);
+  assert.deepEqual((await call('update_reading_question', { id: saved.id, rubyTerms: [] })).rubyTerms, []);
+});

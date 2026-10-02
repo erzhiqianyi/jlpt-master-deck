@@ -1,3 +1,4 @@
+import { ReadingText } from './ReadingText';
 import type { Locale, ReadingQuestion } from '../../types';
 
 const copy = {
@@ -18,7 +19,7 @@ export function ReadingExplanation({ item, locale }: { item: ReadingQuestion; lo
   return <section className="reading-explanation mt-6" aria-label={labels.overall}>
     <section className="reading-answer-section">
       <h4>{labels.correct}</h4>
-      <p className="font-semibold">{labels.answer}：{item.answerIndex + 1}. {item.choices[item.answerIndex]}</p>
+      <p className="font-semibold">{labels.answer}：{item.answerIndex + 1}. <ReadingText text={item.choices[item.answerIndex]} /></p>
       {correct?.translation ? <p className="reading-translation">{correct.translation}</p> : null}
       {correct?.analysis ? <p>{correct.analysis}</p> : null}
       {item.explanation ? <div className="mt-4"><h5 className="font-semibold">{labels.overall}</h5><p>{item.explanation}</p></div> : null}
@@ -27,7 +28,7 @@ export function ReadingExplanation({ item, locale }: { item: ReadingQuestion; lo
       <summary>{labels.translation}</summary>
       {item.passageTranslation ? <p>{item.passageTranslation}</p> : null}
       {lines.length ? <details className="mt-4"><summary>{labels.sentenceTranslation}</summary>
-        {lines.map((line, index) => <div key={index} className="reading-translation-line"><p lang="ja">{line.ja}</p><p className="reading-translation">{line.zh}</p></div>)}
+        {lines.map((line, index) => <div key={index} className="reading-translation-line"><p lang="ja"><ReadingText text={line.ja} /></p><p className="reading-translation">{line.zh}</p></div>)}
       </details> : null}
     </details> : null}
     {analysis?.summary || analysis?.structure ? <details className="reading-answer-section">
@@ -38,15 +39,15 @@ export function ReadingExplanation({ item, locale }: { item: ReadingQuestion; lo
     {hasChoices ? <details className="reading-answer-section" open>
       <summary>{labels.choices}</summary>
       {item.choices.map((text, index) => <details key={index} className="reading-choice-analysis">
-        <summary>{index + 1}. {text}{index === item.answerIndex ? `（${labels.answer}）` : ''}</summary>
+        <summary>{index + 1}. <ReadingText text={text} />{index === item.answerIndex ? `（${labels.answer}）` : ''}</summary>
         {choices[index]?.translation ? <p className="reading-translation">{choices[index].translation}</p> : null}
         <p>{choices[index]?.analysis || labels.noAnalysis}</p>
       </details>)}
     </details> : null}
     {hasEvidence ? <details className="reading-answer-section">
       <summary>{labels.evidence}</summary>
-      {analysis?.keySentences?.map((sentence, index) => <blockquote key={index} lang="ja">{sentence}</blockquote>)}
-      {choices.map((choice, index) => choice.evidence ? <div key={index} className="mt-4"><h5 className="font-semibold">{labels.option} {index + 1}</h5><p>{choice.evidence}</p></div> : null)}
+      {analysis?.keySentences?.map((sentence, index) => <blockquote key={index} lang="ja"><ReadingText text={sentence} /></blockquote>)}
+      {choices.map((choice, index) => choice.evidence ? <div key={index} className="mt-4"><h5 className="font-semibold">{labels.option} {index + 1}</h5><p lang="ja"><ReadingText text={choice.evidence} /></p></div> : null)}
     </details> : null}
     {hasChoices ? <details className="reading-answer-section">
       <summary>{labels.errors}</summary>

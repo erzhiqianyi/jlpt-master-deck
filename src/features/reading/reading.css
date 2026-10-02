@@ -105,3 +105,6 @@
 .reading-error-type dt { flex-shrink: 0; color: #68716b; }
 
 .reading-segmented button.lookup-word { margin-inline: 2px; padding-inline: 2px; }
+
+.reading-passage ruby { ruby-position: over; }
+.reading-passage rt { font-size: 0.65em; font-weight: 400; color: #68716b; }

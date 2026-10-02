@@ -1,5 +1,5 @@
 import { PracticeTimer } from '../../components/PracticeTimer';
-import { LookupText } from '../review/WordLookup';
+import { ReadingRubyProvider, ReadingText } from './ReadingText';
 import { RecordReference } from '../../components/RecordReference';
 import { ReadingExplanation } from './ReadingExplanation';
 import './reading.css';
@@ -119,6 +119,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
       `素材链接：${url}`,
       `题目数量：${questionCount}`,
       '要求：读取文章内容，生成 JLPT N1 风格阅读题。每题包含标题、文章、题目、4 个选项、正确答案，以及中文总解析 explanation。以下解析均为必填，缺失或空白会被 MCP 拒绝：passageTranslation 完整中文翻译（覆盖所有段落，不能用摘要代替）；choiceExplanations 按选项顺序填写 text、中文 translation、逐项 analysis、原文 evidence、errorType；readingAnalysis 填写中文 summary、structure 和逐字引用原文的 keySentences；explanationNodes 用明确标题分节写出具体解题步骤和干扰项排除技巧。正确选项的 errorType 必须留空，三个错误选项必须标明类型。保存前逐项核对翻译、依据和推理质量；更新旧题时必须一次补齐缺失解析，不能清空必填字段。',
+      '为原文、问题、选项及解析引用的日文补充 rubyTerms（text 原文片段、reading 上下文中的假名读音），不改写正文。多音词使用更长的词组区分，避免给中文注音。',
       '同一篇文章的各题请使用完全相同的文章全文，应用会合并展示为一篇多题。',
       '保存：生成后写入本应用的阅读题库，完成后告诉我生成了哪些题。',
     ].join('\n');
@@ -291,12 +292,19 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
   const item = items[0];
   const [sessionId] = useState(() => crypto.randomUUID());
   const [segmented, setSegmented] = useState(false);
+  const [showRuby, setShowRuby] = useState(false);
+  const rubyTerms = items.flatMap((question) => question.rubyTerms ?? []);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
-  return <article className="reading-passage min-w-0">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /></div>
+  return <ReadingRubyProvider terms={rubyTerms} enabled={showRuby}><article className="reading-passage min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]"><ReadingText text={item.title} /></h2><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /></div>
     <RecordReference reference={item.reference} locale={locale} />
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
+    <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-[#31564c]">
+      <input type="checkbox" role="switch" checked={showRuby} onChange={(event) => setShowRuby(event.target.checked)} />
+      {locale === 'ja' ? 'ふりがなを表示' : locale === 'en' ? 'Show furigana' : '显示假名'}
+    </label>
+    {showRuby && !rubyTerms.length ? <p role="status" className="mt-2 text-sm text-[#68716b]">{locale === 'ja' ? 'この文章にはまだ読みが登録されていません。' : locale === 'en' ? 'No readings have been added to this passage yet.' : '这篇文章尚未补充读音，补充后即可显示假名。'}</p> : null}
     <div className="reading-practice-layout">
     <details className="reading-passage-body" open>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
@@ -304,7 +312,7 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
         <input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} />
         {locale === 'ja' ? '分かち書き・単語検索' : locale === 'en' ? 'Segment and look up words' : '分词查词'}
       </label>
-      <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
+      <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}><ReadingText text={item.passage} lookup={segmented} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /></p>
     </details>
     <div className="reading-question-column divide-y divide-[#e1e7df]">
       {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
@@ -316,7 +324,7 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
         <ReadingExplanation item={question} locale={locale} />
       </section> : null)}
     </div> : null}
-  </article>;
+  </article></ReadingRubyProvider>;
 }
 
 function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; revealed: boolean; setRevealed: (revealed: boolean) => void; onRecordPractice: (correct: boolean) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
@@ -345,7 +353,7 @@ function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPrac
       </div>
       <RecordReference reference={item.reference} locale={locale} />
       {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
-      <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8">{item.question}</p>
+      <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8"><ReadingText text={item.question} /></p>
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
       <ChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -393,7 +401,7 @@ function ChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: R
                 {index + 1}
               </button>
               <span lang="ja" className="reading-segmented min-w-0 whitespace-pre-wrap break-words">
-                <LookupText text={choice} source={`阅读 ${item.reference ?? item.id} · ${item.title} · 選択肢 ${index + 1}`} />
+                <ReadingText lookup text={choice} source={`阅读 ${item.reference ?? item.id} · ${item.title} · 選択肢 ${index + 1}`} />
               </span>
             </div>
           );
@@ -401,7 +409,7 @@ function ChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: R
         return (
           <button key={index} type="button" aria-pressed={selected === index} data-answer-state={answerState} onClick={() => onSelect(index)} className="reading-choice">
             <span className="reading-choice-number">{index + 1}</span>
-            <span className="min-w-0 break-words">{choice}</span>
+            <span className="min-w-0 break-words"><ReadingText text={choice} /></span>
           </button>
         );
       })}

@@ -862,7 +862,7 @@ function loadRecord(db, userId, entity, id, sections) {
     texts.answer_key = asText(row.answer);
     texts.explanation = lines([['correct_reason', row.correct_reason], ['memory_point', row.memory_point], ['translation_zh', row.translation_zh], ['choice_analysis', row.choice_analysis_json ? JSON.parse(row.choice_analysis_json) : null]]);
   } else if (entity === 'reading_question') {
-    metadata = { id: row.id, title: row.title, tags: parseJsonArray(row.tags_json), created_at: row.created_at };
+    metadata = { id: row.id, title: row.title, tags: parseJsonArray(row.tags_json), rubyTerms: parseJsonArray(row.ruby_terms_json), created_at: row.created_at };
     texts.passage = row.passage;
     texts.prompt = row.question;
     texts.options = optionLines(JSON.parse(row.choices_json));

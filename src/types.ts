@@ -205,6 +205,7 @@ export type ListeningRecording = {
 };
 
 export type ReadingQuestion = {
+  rubyTerms?: RubyTerm[];
   reference?: string;
   id: string;
   title: string;

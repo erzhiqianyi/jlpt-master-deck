@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const text = (max) => z.string().trim().max(max);
 export const readingFields = {
+  rubyTerms: z.array(z.object({ text: text(200).min(1), reading: text(400).min(1).regex(/^[\p{Script=Hiragana}\p{Script=Katakana}ー・\s]+$/u, 'Use kana for readings.') }).strict()).max(2000).optional()
+    .describe('Explicit contextual furigana for Japanese text in passage, question, choices and quoted evidence. Preserve original text. Longest matching text wins; use longer phrases to disambiguate readings. Omitted preserves existing annotations on update; [] clears them. Entire array is replaced.'),
   title: text(120).optional(),
   passage: text(8000).min(1),
   question: text(1000).min(1),
@@ -79,7 +81,7 @@ export function normalizeReadingQuestion(payload) {
     throw new Error('Choice explanation text must match the choice at the same index; update or clear choiceExplanations when changing choices.');
   }
   return {
-    ...value, title: value.title || value.question.slice(0, 120), explanation: value.explanation ?? '',
+    ...value, rubyTerms: value.rubyTerms ?? [], title: value.title || value.question.slice(0, 120), explanation: value.explanation ?? '',
     tags: [...new Set(value.tags ?? [])], explanationNodes: value.explanationNodes ?? [], translationLines: value.translationLines ?? [],
     passageTranslation: value.passageTranslation ?? '', choiceExplanations: value.choiceExplanations ?? [],
     readingAnalysis: value.readingAnalysis ?? { summary: '', structure: '', keySentences: [] },

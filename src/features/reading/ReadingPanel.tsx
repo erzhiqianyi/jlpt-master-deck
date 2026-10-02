@@ -292,6 +292,7 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [segmented, setSegmented] = useState(false);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [revealedIds, setRevealedIds] = useState<string[]>([]);
   return <article className="reading-passage min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /></div>
     <RecordReference reference={item.reference} locale={locale} />
@@ -306,15 +307,20 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
       <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
     <div className="reading-question-column divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
     </div>
+    {items.some((question) => revealedIds.includes(question.id)) ? <div className="reading-explanations mt-8">
+      {items.map((question, index) => revealedIds.includes(question.id) ? <section key={question.id} aria-label={locale === 'ja' ? `問${index + 1}の解説` : locale === 'en' ? `Question ${index + 1} explanation` : `第 ${index + 1} 题解析`}>
+        <h3 className="mb-3 text-sm font-bold text-[#31564c]">{locale === 'ja' ? `問${index + 1}の解説` : locale === 'en' ? `Question ${index + 1} explanation` : `第 ${index + 1} 题解析`}</h3>
+        <ReadingExplanation item={question} locale={locale} />
+      </section> : null)}
+    </div> : null}
   </article>;
 }
 
-function ReadingQuestionItem({ item, number, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; onRecordPractice: (correct: boolean) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; revealed: boolean; setRevealed: (revealed: boolean) => void; onRecordPractice: (correct: boolean) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
   const [saving, setSaving] = useState(false);
   const confirm = useConfirmation();
@@ -360,7 +366,6 @@ function ReadingQuestionItem({ item, number, onRecordPractice, onComplete, segme
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
-      {revealed ? <ReadingExplanation item={item} locale={locale} /> : null}
     </section>
   );
 }

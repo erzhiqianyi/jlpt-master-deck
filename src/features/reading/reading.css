@@ -23,7 +23,8 @@
 
 @media (min-width: 1024px) {
   .reading-passage {
-    max-width: 1200px;
+    max-width: none;
+    padding-inline: 0;
   }
 
   .reading-practice-layout {
@@ -40,6 +41,10 @@
     border-top: 0;
     border-left: 1px solid #e1e7df;
   }
+}
+
+.reading-explanations > section + section {
+  margin-top: 32px;
 }
 
 .reading-passage .reading-choice {

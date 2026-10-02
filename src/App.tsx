@@ -1398,6 +1398,32 @@ export default function App() {
     await save;
   }
 
+  async function saveReadingPractice(item: ReadingQuestion, sessionId: string, correct: boolean) {
+    if (!authToken) throw new Error('请先登录');
+    const save = pendingPracticeSave.current.catch(() => undefined).then(async () => {
+      const previous = listeningProgressRef.current[item.id];
+      if (previous?.lastPracticeSessionId === sessionId) return;
+      const now = new Date().toISOString();
+      const entry: ProgressEntry = {
+        ...previous,
+        correct: (previous?.correct ?? 0) + (correct ? 1 : 0),
+        wrong: (previous?.wrong ?? 0) + (correct ? 0 : 1),
+        status: 'learning',
+        reviewCount: (previous?.reviewCount ?? 0) + 1,
+        firstSeenAt: previous?.firstSeenAt ?? now,
+        lastReviewedAt: now,
+        lastPracticeSessionId: sessionId,
+      };
+      await apiRequest<StudyState>('/api/study-state/practice', {
+        method: 'PUT', token: authToken, timeoutMs: 15000, body: { progress: { [item.id]: entry } },
+      });
+      listeningProgressRef.current = { ...listeningProgressRef.current, [item.id]: entry };
+      setProgress((current) => ({ ...current, [item.id]: entry }));
+    });
+    pendingPracticeSave.current = save;
+    await save;
+  }
+
   async function createListeningQuestion(input: ListeningQuestionInput) {
     if (!authToken) return;
     const response = await apiRequest<{ question: ListeningQuestion }>('/api/listening-questions', {
@@ -2007,6 +2033,7 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                onRecordPractice={saveReadingPractice}
                 progress={progress}
                 activeQuestionId={route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
@@ -2026,6 +2053,7 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 questions={readingQuestions}
+                onRecordPractice={saveReadingPractice}
                 progress={progress}
                 activeQuestionId={route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}

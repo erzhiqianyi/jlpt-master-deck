@@ -29,6 +29,8 @@ function questionCountLabel(count: number, locale: Locale) {
   return locale === 'ja' ? `全${count}問` : locale === 'en' ? `${count} questions` : `共 ${count} 题`;
 }
 
+type RecordReadingPractice = (item: ReadingQuestion, sessionId: string, correct: boolean) => Promise<void>;
+
 type ReadingPanelProps = {
   activeQuestionId?: string;
   onBackToLibrary?: () => void;
@@ -37,6 +39,7 @@ type ReadingPanelProps = {
   locale: Locale;
   questions: ReadingQuestion[];
   progress?: ProgressState;
+  onRecordPractice: RecordReadingPractice;
   onCreate: (input: ReadingQuestionInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
@@ -45,7 +48,7 @@ type ReadingPanelProps = {
   onReview?: () => void;
 };
 
-export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
+export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
   const [title, setTitle] = useState('');
   const [passage, setPassage] = useState('');
   const [question, setQuestion] = useState('');
@@ -68,12 +71,12 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   const filteredGroups = activeTag === '全部' ? groups : groups.filter((group) => group.some((item) => (item.tags ?? []).includes(activeTag)));
 
   if (mode === 'practice') {
-    return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} onOpenLibrary={onOpenLibrary} />;
+    return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} onRecordPractice={onRecordPractice} onOpenLibrary={onOpenLibrary} />;
   }
 
   if (activeQuestionId) {
     const group = groups.find((items) => items.some((item) => item.id === activeQuestionId));
-    return group ? <ReadingPassage key={group[0].passage} items={group} labels={labels} locale={locale} onDelete={async (id) => {
+    return group ? <ReadingPassage key={group[0].passage} items={group} onRecordPractice={onRecordPractice} labels={labels} locale={locale} onDelete={async (id) => {
       await onDelete(id);
       if (id === activeQuestionId) {
         const remaining = group.find((item) => item.id !== id);
@@ -232,7 +235,6 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];
           return <LearningListRow key={group[0].id} title={group[0].title} references={group.map(item => item.reference)}
-            reading={questionCountLabel(group.length, locale)}
             metadata={<LearningListMetadata locale={locale} addedAt={addedAt} practiceCount={group.reduce((count, item) => count + (progress[item.id]?.reviewCount ?? 0), 0)}
               collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}
               collection={tags.length ? tags.join(' · ') : (locale === 'ja' ? 'タグなし' : locale === 'en' ? 'No tags' : '未分类')}/>}
@@ -243,7 +245,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   );
 }
 
-function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { labels: Record<string, string>; locale: Locale; questions: ReadingQuestion[]; onOpenLibrary?: () => void }) {
+function ReadingPracticePanel({ labels, locale, questions, onRecordPractice, onOpenLibrary }: { labels: Record<string, string>; locale: Locale; questions: ReadingQuestion[]; onRecordPractice: RecordReadingPractice; onOpenLibrary?: () => void }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const groups = groupReadingQuestions(questions);
   const activeQuestion = groups[activeIndex % Math.max(groups.length, 1)];
@@ -280,13 +282,14 @@ function ReadingPracticePanel({ labels, locale, questions, onOpenLibrary }: { la
           </button>
         </div>
       </div>
-      <ReadingPassage key={activeQuestion[0].passage} items={activeQuestion} labels={labels} locale={locale} />
+      <ReadingPassage key={activeQuestion[0].passage} items={activeQuestion} onRecordPractice={onRecordPractice} labels={labels} locale={locale} />
     </section>
   );
 }
 
-function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQuestion[]; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: { items: ReadingQuestion[]; onRecordPractice: RecordReadingPractice; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const item = items[0];
+  const [sessionId] = useState(() => crypto.randomUUID());
   const [segmented, setSegmented] = useState(false);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   return <article className="reading-passage min-w-0">
@@ -302,15 +305,16 @@ function ReadingPassage({ items, labels, locale, onDelete }: { items: ReadingQue
       <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
     <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
     </div>
   </article>;
 }
 
-function ReadingQuestionItem({ item, number, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; onRecordPractice: (correct: boolean) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
+  const [saving, setSaving] = useState(false);
   const confirm = useConfirmation();
   const [deleting, setDeleting] = useState(false);
 
@@ -337,11 +341,19 @@ function ReadingQuestionItem({ item, number, onComplete, segmented, labels, loca
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
       <ChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => {
+        <button type="button" disabled={saving} onClick={async () => {
           if (selected === null) { setAnswerNotice(labels.readingSelectAnswer); return; }
           setAnswerNotice('');
-          setRevealed(true);
-          onComplete();
+          setSaving(true);
+          try {
+            await onRecordPractice(selected === item.answerIndex);
+            setRevealed(true);
+            onComplete();
+          } catch (error) {
+            setAnswerNotice(error instanceof Error ? error.message : '保存失败，请重试');
+          } finally {
+            setSaving(false);
+          }
         }} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}

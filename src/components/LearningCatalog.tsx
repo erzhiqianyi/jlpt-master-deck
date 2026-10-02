@@ -24,7 +24,7 @@ export function LearningCatalog<T>({ title, items, searchText, renderRow, locale
     const row = renderRow(item);
     return batchConfig && isValidElement(row) ? cloneElement(row as ReactElement<{ selectId?: string }>, { selectId: batchConfig.id(item) }) : row;
   };
-  return <LearningListFrame label={title} className="learning-catalog">
+  return <LearningListFrame locale={locale} label={title} className={`learning-catalog${columns ? ' study-catalog' : ''}`}>
     {onBack ? <button className="catalog-mobile-back" type="button" aria-label={ja ? '戻る' : en ? 'Back' : '返回练习'} onClick={onBack}><ChevronLeft size={20}/></button> : null}
     <LearningListHeader title={title} count={`${filtered.length}${ja ? ' 件' : en ? ' items' : ' 项'}`} search={<LearningListSearch value={query} locale={locale} label={`${ja ? '検索' : en ? 'Search' : '搜索'}${title}`} placeholder={ja ? 'タイトル・キーワードで検索' : en ? 'Search titles or keywords' : '搜索标题或关键词'} onChange={(value) => { setQuery(value); setPage(0); }}/>} >{tools}{batchConfig ? <div className="list-tools"><BatchManageButton batch={batch} locale={locale}/></div> : null}</LearningListHeader>
     {batchConfig ? <BatchActionBar batch={batch} actions={batchConfig.actions} locale={locale}/> : null}

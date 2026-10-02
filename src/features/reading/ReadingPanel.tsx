@@ -44,11 +44,12 @@ type ReadingPanelProps = {
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
   onPractice?: () => void;
+  onAsk?: (question: string) => Promise<void>;
   onTips?: () => void;
   onReview?: () => void;
 };
 
-export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onTips, onReview }: ReadingPanelProps) {
+export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview }: ReadingPanelProps) {
   const [title, setTitle] = useState('');
   const [passage, setPassage] = useState('');
   const [question, setQuestion] = useState('');
@@ -131,7 +132,9 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
     <section className="ledger-word-index ledger-module-page min-w-0">
       {showForm || showAiForm ? null : <ModuleActionBar
         label="阅读"
-        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: onPractice } : undefined}
+        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: () => { const group = filteredGroups[Math.floor(Math.random() * filteredGroups.length)]; if (group) window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; } } : undefined}
+        onAsk={onAsk}
+        contentActions={filteredGroups.map((group) => ({ key: group[0].id, label: group[0].title, onClick: () => { window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; } }))}
         actions={[
           ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
           ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
@@ -222,7 +225,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
         <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
           {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
         </div>
-        <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false} practiceCount
+        <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false} practiceCount practiceCountLabel={locale === 'zh-CN' ? '累计作答' : locale === 'ja' ? '累計解答' : 'Answers'}
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
           collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}/>} title={locale === 'ja' ? '読解ライブラリ' : locale === 'en' ? 'Reading library' : '阅读题库'} items={filteredGroups} locale={locale}
           batch={{ id: (group) => group[0].id, actions: [{
@@ -236,7 +239,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
             .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
           const tags = [...new Set(group.flatMap((item) => item.tags ?? []))];
           return <LearningListRow key={group[0].id} title={group[0].title} references={group.map(item => item.reference)}
-            metadata={<LearningListMetadata locale={locale} addedAt={addedAt} practiceCount={group.reduce((count, item) => count + (progress[item.id]?.reviewCount ?? 0), 0)}
+            metadata={<LearningListMetadata locale={locale} addedAt={addedAt} practiceCountLabel={locale === 'zh-CN' ? '累计作答' : locale === 'ja' ? '累計解答' : 'Answers'} practiceCount={group.reduce((count, item) => count + (progress[item.id]?.reviewCount ?? 0), 0)}
               collectionLabel={locale === 'ja' ? 'タグ' : locale === 'en' ? 'Tags' : '标签'}
               collection={tags.length ? tags.join(' · ') : (locale === 'ja' ? 'タグなし' : locale === 'en' ? 'No tags' : '未分类')}/>}
             locale={locale} onOpen={() => { window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; }}/>

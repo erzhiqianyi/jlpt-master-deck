@@ -1,5 +1,5 @@
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bot, Bug, Volume2 } from 'lucide-react';
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import { fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
@@ -137,6 +137,7 @@ export function SettingsView({ labels, settings, username, authToken, activeSect
             <SettingsSectionContent section={section} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </SettingsSection>
         ))}
+        <AiSettingsBlock labels={labels} />
         <McpInspectorLink copy={copy} />
         <div className="settings-desktop-footer">
           <span>{labels.currentUser}: <strong>{username}</strong></span>
@@ -234,9 +235,19 @@ function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: Setting
       <SettingsNavItem icon={<Volume2 size={22} />} title={copy.pronunciation} subtitle={copy.pronunciationHint} onClick={() => onOpenSection('pronunciation')} />
       <SettingsNavItem icon={<MessageSquareText size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
       <McpInspectorLink copy={copy} />
-      <NavigationCard icon={<Bot size={22} />} title={labels.aboutTitle} description={labels.settingsAboutBody} href="#/about" />
+      <AiSettingsBlock labels={labels} />
     </div>
   );
+}
+
+function AiSettingsBlock({ labels }: { labels: Record<string, string> }) {
+  return <section className="settings-ai-block" aria-label={labels.aboutTitle}>
+    <a href="#/about">
+      <img src="/study-companion.png" width="76" height="76" alt="" />
+      <span><strong>{labels.aboutTitle}</strong><small>{labels.settingsAboutLink}</small></span>
+      <ChevronRight size={20} aria-hidden="true" />
+    </a>
+  </section>;
 }
 
 function McpInspectorLink({ copy }: { copy: SettingsCopy }) {
@@ -303,12 +314,7 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
           <span className="rounded-md bg-[#eef3ed] px-3 py-2 text-sm font-semibold text-[#31564c]">{username}</span>
         </div>
       </SettingsRow>
-      <SettingsRow title={labels.aboutTitle}>
-        <p className="text-sm leading-6 text-[#68716b]">{labels.settingsAboutBody}</p>
-        <a href="#/about" className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-[#31564c] hover:underline">
-          {labels.settingsAboutLink} →
-        </a>
-      </SettingsRow>
+
     </>
   );
 }

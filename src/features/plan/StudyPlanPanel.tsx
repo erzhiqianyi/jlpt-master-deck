@@ -97,16 +97,17 @@ export function StudyPlanPanel({
   }
 
   return (
-    <div className="gentle-plan plan-single mx-auto max-w-4xl">
+    <div className="gentle-plan plan-single light-plan mx-auto max-w-4xl">
+      <header className="light-heading"><p>JLPT {plan.profile.level} · {plan.profile.examDate}</p><h1>{locale === 'zh-CN' ? '把目标，分成每天的一小步。' : locale === 'ja' ? '目標を、毎日の一歩に。' : 'One small step toward your goal.'}</h1></header>
       <section className="plan-single-section" aria-labelledby="plan-today-title">
         <h2 id="plan-today-title" className="plan-single-title">{copy.today}</h2>
         <PlanCalendar labels={labels} locale={locale} tasks={plan.tasks} summaries={plan.dailySummaries} evidence={evidence} onTaskStatus={onTaskStatus} />
       </section>
 
-      <section className="plan-single-section plan-overview-page" aria-labelledby="plan-arrangement-title">
-        <h2 id="plan-arrangement-title" className="plan-single-title">{copy.arrangement}</h2>
+      <details className="plan-single-section plan-overview-page light-plan-overview">
+        <summary id="plan-arrangement-title">{copy.arrangement}<ChevronDown size={18}/></summary>
         <PlanOverviewPanel labels={labels} locale={locale} plan={plan} phases={phases} onAdjust={openSettings} />
-      </section>
+      </details>
 
       <details ref={settingsRef} className="gentle-details plan-settings" id="plan-settings">
         <summary>

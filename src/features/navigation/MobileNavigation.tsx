@@ -1,4 +1,4 @@
-import { ArrowLeft, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
+import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
 import { wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
@@ -253,7 +253,9 @@ export function MobileStudyControls({
   );
 }
 
-export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch, showBack, filterLabel, filterName, onHeaderFilter }: {
+export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch, showBack, filterLabel, filterName, onHeaderFilter, sidebarHidden, onShowSidebar }: {
+  sidebarHidden?: boolean;
+  onShowSidebar?: () => void;
   breadcrumbs?: Array<{ label: string; onClick: () => void }>;
   title: string;
   labels: Record<string, string>;
@@ -266,6 +268,7 @@ export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch
 }) {
   return (
     <header className="workspace-topbar">
+      {sidebarHidden ? <button type="button" className="workspace-back cute-focus" onClick={onShowSidebar} aria-label={labels.navExpandAll} title={labels.navExpandAll} aria-expanded={false}><PanelLeft size={22} /></button> : null}
       {showBack ? <button type="button" className="workspace-back cute-focus" onClick={onBack} aria-label={labels.navBack} title={labels.navBack}><ArrowLeft size={20} /></button> : null}
       {breadcrumbs ? <nav className="workspace-page-title flex flex-wrap items-center gap-2" aria-label={labels.navPath}>
         {breadcrumbs.map((crumb, index) => <span key={index} className="inline-flex items-center gap-2">
@@ -319,11 +322,11 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="desktop-sidebar-header">
           <button type="button" onClick={() => navigateFromSidebar('home')} className="workspace-brand cute-focus" aria-label={`${brand} · ${labels.navTaskHome ?? labels.navHome}`} title={brand}>
-            <img src="/jlpt-logo.svg" width="40" height="40" alt="" />
-            <span className="workspace-brand-name"><strong>JLPT</strong><span>Master Deck</span></span>
+            <img src="/jlpt-brand.png" width="40" height="40" alt="" />
+            <span className="workspace-brand-name"><strong>JLPT Master</strong></span>
           </button>
           <button type="button" onClick={toggleSidebar} className="desktop-sidebar-toggle cute-focus" aria-label={collapsed ? labels.navExpandAll : labels.navCollapseAll} aria-expanded={!collapsed} title={collapsed ? labels.navExpandAll : labels.navCollapseAll}>
-            {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
+            <PanelLeft size={22} />
           </button>
         </div>
 
@@ -340,7 +343,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
               <div key={`${item.view}-${item.page ?? 'index'}-${item.label}`} className={`desktop-sidebar-group ${item.group ? `desktop-sidebar-group-${item.group}` : ''}`}>
                 {showGroupLabel ? (
                   <p className="desktop-sidebar-section-label">
-                    <span className="desktop-sidebar-text">{item.group === 'today' ? labels.navGroupToday : item.group === 'study' ? labels.navGroupStudy : item.group === 'review' ? labels.navGroupReview : item.group === 'record' ? labels.navGroupRecord : labels.navGroupManage}</span>
+                    <span className="desktop-sidebar-text">{item.group === 'today' ? labels.navGroupToday : item.group === 'study' ? labels.homeStudyArea : item.group === 'review' ? labels.navGroupReview : item.group === 'record' ? labels.navGroupRecord : labels.navGroupManage}</span>
                   </p>
                 ) : null}
                 {hasChildren ? (
@@ -369,7 +372,7 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
                 ) : (
                   <button
                     type="button"
-                    onClick={() => navigateFromSidebar(item.view, item.page)}
+                    onClick={() => navigateFromSidebar(item.view, item.page, item.itemId)}
                     aria-current={active ? 'page' : undefined}
                     aria-label={item.label}
                     title={collapsed ? item.label : undefined}
@@ -429,8 +432,8 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
             <span className="desktop-sidebar-icon"><UserRound size={18} /></span>
             <span className="desktop-sidebar-text">{username}</span>
           </button>
-          <button type="button" onClick={onLogout} aria-label={labels.logout} title={labels.logout} className="desktop-sidebar-logout cute-focus">
-            <LogOut size={18} />
+          <button type="button" onClick={openSettingsFromSidebar} aria-label={labels.settings} title={labels.settings} className="desktop-sidebar-logout cute-focus">
+            <Settings size={18} />
           </button>
         </div>
       </div>
@@ -577,11 +580,17 @@ function SheetChoice({ active, label, onClick }: { active: boolean; label: strin
 
 function mobileNavIcon(view: AppView) {
   switch (view) {
+    case 'study':
+      return Library;
+    case 'vocabulary': return BookA;
+    case 'grammar': return Captions;
+    case 'reading': return BookOpen;
+    case 'listening': return Headphones;
     case 'home':
       return House;
     case 'mixed':
     case 'daily-practice':
-      return Shuffle;
+      return FileText;
     case 'plan':
       return CalendarDays;
     case 'mock-exams':
@@ -589,7 +598,7 @@ function mobileNavIcon(view: AppView) {
     case 'news-cycle':
       return Newspaper;
     case 'history':
-      return History;
+      return ChartNoAxesColumn;
     case 'captures':
       return NotebookPen;
     case 'insights':

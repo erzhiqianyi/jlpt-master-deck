@@ -1,3 +1,4 @@
+import { itemPracticeCounts } from '../../domain/itemPracticeCounts.mjs';
 import { PracticeTimer } from '../../components/PracticeTimer';
 import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
@@ -864,11 +865,12 @@ function EntryLink({ item, label, compact = false }: { item: VocabItem; label: s
   );
 }
 
-export function WordIndexPanel({ items, questions, answers, progress, labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenQuestionBank, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange, onOrganize }: {
+export function WordIndexPanel({ items, questions, answers, progress, attempts = [], labels: baseLabels, locale, deckLabels, wordbooks, selectedWordbookId = 'all', captureCategory, defaultTargetDeck = 'n1_vocab', pendingCaptureCount = 0, onOpen, onPractice, onTips, onReview, onManageWordbooks, onOpenQuestionBank, onOpenPendingCaptures, onSaveCapture, onCreateWordbook, onWordbookChange, onOrganize }: {
   items: VocabItem[];
   questions: QuestionReference[];
   answers: AnswerState;
   progress: ProgressState;
+  attempts?: PracticeAttempt[];
   labels: Record<string, string>;
   locale: Locale;
   deckLabels: Record<Deck | 'all', string>;
@@ -893,6 +895,7 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   const [batchWordbookId, setBatchWordbookId] = useState('');
   const [batchTag, setBatchTag] = useState('');
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
+  const recentPracticeCounts = useMemo(() => itemPracticeCounts(attempts), [attempts]);
  const [showCaptureForm, setShowCaptureForm] = useState(false);
   useAuthoringNavigation(showCaptureForm ? (captureCategory === 'grammar' ? '记一个句型' : '记一个单词') : null, () => { setShowCaptureForm(false); });
   // The library is always visible; the action bar above it replaces the old entry hub.
@@ -1073,11 +1076,13 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
   }
 
   return (
-    <LearningListFrame className={showEntryHub ? 'ledger-word-index ledger-module-page min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
+    <LearningListFrame locale={locale} className={showEntryHub ? 'ledger-word-index ledger-module-page min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
       {showEntryHub && !showCaptureForm ? (
         <ModuleActionBar
           label={isGrammarLibrary ? '语法' : '单词'}
           primary={onPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
+          onAsk={onSaveCapture ? (body) => onSaveCapture({ body, category: captureCategory ?? 'unsure', context: `学习模块：${isGrammarLibrary ? '语法' : '词汇'} · 用户提问`, targetDeck: defaultTargetDeck, ...(selectedWordbookId !== 'all' ? { targetWordbookId: selectedWordbookId } : {}) }) : undefined}
+          contentActions={libraryWordbooks.map((wordbook) => ({ key: wordbook.id, label: wordbook.title, onClick: () => { onWordbookChange?.(wordbook.id); onPractice?.({ kind: 'random' }); } }))}
           actions={[
             { key: 'focused', label: '按题型练习', icon: <Target size={16} aria-hidden="true" />, active: showFocusedPractice, onClick: () => { setShowFocusedPractice((value) => !value); setShowCaptureForm(false); } },
             ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
@@ -1127,27 +1132,6 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
       ) : null}
       <div className={showEntryLibrary ? "learning-list-controls" : undefined}>
       {showEntryLibrary ? <LearningListHeader title={isGrammarLibrary ? (locale === 'zh-CN' ? '语法笔记' : locale === 'ja' ? '文法ノート' : 'Grammar') : (locale === 'zh-CN' ? '单词本' : locale === 'ja' ? '単語帳' : 'Wordbook')} count={`${sortedItems.length} ${labels.items}`} search={<LearningListSearch value={listSearch} locale={locale} label={locale === 'zh-CN' ? '查找当前列表' : locale === 'ja' ? 'リストを検索' : 'Search this list'} placeholder={locale === 'zh-CN' ? '搜索词语、读音或释义' : locale === 'ja' ? 'リストを検索' : 'Search this list'} onChange={(value) => { setListSearch(value); setPageIndex(0); }}/>} >
-        {showEntryHub && onManageWordbooks ? (
-          <button
-            type="button"
-            onClick={onManageWordbooks}
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]"
-          >
-            <Settings size={16} aria-hidden="true" />
-            <span>{labels.wordbookManage}</span>
-          </button>
-        ) : null}
-        {batchActions.length ? <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div> : null}
-      </LearningListHeader> : null}
-      <details onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }} onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) event.currentTarget.open = false; }} className={`ledger-word-toolbar learning-list-more border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
-        <summary>{locale === 'zh-CN' ? '更多' : locale === 'ja' ? 'その他' : 'More'}</summary>
-        <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3">
-          <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
-            {!showEntryHub && onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
-            {!showEntryHub && onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
-            {!showEntryHub && onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
-          </div>
-          <div className="mobile-filter-row flex flex-wrap items-center gap-2">
             {showEntryHub && onWordbookChange ? (
               <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
                 <span className="shrink-0">{labels.wordbookFilter}</span>
@@ -1164,6 +1148,27 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
                 </select>
               </label>
             ) : null}
+        {showEntryHub && onManageWordbooks ? (
+          <button
+            type="button"
+            onClick={onManageWordbooks}
+            className="list-management-control inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#24473f]"
+          >
+            <Settings size={16} aria-hidden="true" />
+            <span>{labels.wordbookManage}</span>
+          </button>
+        ) : null}
+        {batchActions.length ? <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div> : null}
+      </LearningListHeader> : null}
+      <details onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }} className={`ledger-word-toolbar learning-list-more border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
+        <summary>{locale === 'zh-CN' ? '筛选与排序' : locale === 'ja' ? '絞り込みと並び替え' : 'Filter and sort'}</summary>
+        <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3">
+          <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
+            {!showEntryHub && onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
+            {!showEntryHub && onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
+            {!showEntryHub && onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
+          </div>
+          <div className="mobile-filter-row flex flex-wrap items-center gap-2">
             {showEntryHub && tagOptions.length ? (
               <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
                 <span className="shrink-0">{labels.entryTagFilter}</span>
@@ -1283,10 +1288,10 @@ export function WordIndexPanel({ items, questions, answers, progress, labels: ba
             title={item.original}
             references={[item.reference]}
             reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading}
-            description={showEntryHub ? undefined : itemMeaning(item, locale)}
-            metadata={showEntryHub ? <LearningListMetadata locale={locale}
+            description={itemMeaning(item, locale)}
+            metadata={showEntryHub ? <><LearningListMetadata locale={locale}
               addedAt={item.input_at} collectionLabel={collectionLabel} collection={wordbookTitle}
-              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)}/> : undefined}
+              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)}/><span className="list-practice-count recent-practice-count" title={locale === 'zh-CN' ? '最近 50 场已完成练习中，每场涉及该知识点计一次；不含记忆卡复习和未关联的题目。' : locale === 'ja' ? '直近50回の完了した練習。項目ごとに1回を集計。' : 'Completed sessions in the last 50 retained attempts; once per linked item, excluding memory cards.'}>{locale === 'zh-CN' ? '近期练习' : locale === 'ja' ? '最近の練習' : 'Recent practice'} {recentPracticeCounts[item.id] ?? 0}{locale === 'en' ? '' : ' 次'}</span></> : undefined}
             statusKind={progress[item.id]?.status ?? "new"}
             status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew}
             locale={locale} onOpen={() => onOpen(item.id)}/>;

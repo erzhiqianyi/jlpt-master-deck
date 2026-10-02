@@ -26,6 +26,8 @@ import { AboutPanel, aboutSectionTitle, isAboutSection } from './features/about/
 import { UserProfilePanel } from './features/profile/UserProfilePanel';
 import { CapturePanel } from './features/capture/CapturePanel';
 import { DraftsPanel } from './features/drafts/DraftsPanel';
+import { StudyModulesHub } from './features/home/StudyModulesHub';
+import './features/home/LightWorkspace.css';
 import { HomeDashboard } from './features/home/HomeDashboard';
 import { AttemptQuestionDetail } from './features/history/HistoryPanel';
 import { DataManagementPanel, type DataTab } from './features/insights/DataManagementPanel';
@@ -1696,7 +1698,7 @@ export default function App() {
 
   return (
     <AuthoringNavigation.Provider value={setAuthoringLocation}>
-    <main className="cute-shell flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
+    <main className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
         onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
@@ -1729,8 +1731,8 @@ export default function App() {
       />
       <div className="app-frame flex min-w-0 flex-1 md:items-stretch">
         <DesktopSidebarNavigation
-          brand="JLPT Master Deck"
-          items={desktopSidebarNavItems(labels)}
+          brand="JLPT Master"
+          items={desktopSidebarNavItems(labels, locale)}
           route={route}
           labels={labels}
           username={user.username}
@@ -1745,6 +1747,8 @@ export default function App() {
 
         <div className={`app-content flex min-w-0 flex-1 flex-col ${isListeningDetail ? 'listening-detail-content' : ''}`} data-page-kind={pageKind}>
       <DesktopPageHeader
+        sidebarHidden={desktopSidebarCollapsed}
+        onShowSidebar={() => { setDesktopSidebarCollapsed(false); try { localStorage.setItem('jlpt.sidebar.collapsed', 'false'); } catch { /* Storage may be unavailable. */ } }}
         breadcrumbs={pageCrumbs.map((crumb, index, crumbs) => ({
           label: crumb.label,
           onClick: () => {
@@ -1930,6 +1934,7 @@ export default function App() {
                 <QuestionTypeGuide labels={labels} locale={locale} customTips={settings.questionTypeTips} customTipEntries={settings.customQuestionTypeTips} onOpen={openQuestionType} onCreateCustomTip={createCustomQuestionTypeTip} />
               )
             ) : null}
+            {activeView === 'study' ? <StudyModulesHub locale={locale} labels={labels} onNavigate={navigateTo} /> : null}
             {activeView === 'settings' ? (
               <SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
             ) : null}
@@ -2002,6 +2007,7 @@ export default function App() {
                 onDelete={removeListeningQuestion}
                 onOpenLibrary={() => navigateTo('listening', 'words')}
                 onPractice={() => navigateTo('listening', 'questions')}
+                onAsk={(body) => createCapture({ body, category: 'listening', context: '学习模块：听力 · 用户提问' })}
                 onTips={() => navigateTo('listening', 'tips')}
                 onReview={() => navigateTo('listening', 'review')}
               />
@@ -2019,6 +2025,7 @@ export default function App() {
                 onUpdate={updateListeningQuestion}
                 onDelete={removeListeningQuestion}
                 onPractice={() => navigateTo('listening', 'questions')}
+                onAsk={(body) => createCapture({ body, category: 'listening', context: '学习模块：听力 · 用户提问' })}
                 onTips={() => navigateTo('listening', 'tips')}
                 onReview={() => navigateTo('listening', 'review')}
                 activeQuestionId={route.itemId}
@@ -2041,6 +2048,7 @@ export default function App() {
                 onDelete={removeReadingQuestion}
                 onOpenLibrary={() => navigateTo('reading', 'words')}
                 onPractice={() => navigateTo('reading', 'questions')}
+                onAsk={(body) => createCapture({ body, category: 'reading', context: '学习模块：阅读 · 用户提问' })}
                 onTips={() => navigateTo('reading', 'tips')}
                 onReview={() => navigateTo('reading', 'review')}
               />
@@ -2060,12 +2068,13 @@ export default function App() {
                 onCreate={createReadingQuestion}
                 onDelete={removeReadingQuestion}
                 onPractice={() => navigateTo('reading', 'questions')}
+                onAsk={(body) => createCapture({ body, category: 'reading', context: '学习模块：阅读 · 用户提问' })}
                 onTips={() => navigateTo('reading', 'tips')}
                 onReview={() => navigateTo('reading', 'review')}
               />
               </WordLookupProvider>
             ) : null}
-	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
+	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'study' && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <>
                 <PracticePanel
@@ -2137,6 +2146,7 @@ export default function App() {
                   questions={wordIndexQuestions}
                   answers={answers}
                   progress={progress}
+                  attempts={attemptHistory}
                   labels={labels}
                   locale={locale}
                   deckLabels={deckLabels}
@@ -2330,7 +2340,7 @@ function isOfficialSampleModule(view: AppView): view is OfficialSampleModule {
 }
 
 function isAppView(value: string): value is AppView {
-  return ['market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'profile', 'settings'].includes(value);
+  return ['study', 'market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'profile', 'settings'].includes(value);
 }
 
 function nextIndex(index: number, total: number) {
@@ -2623,44 +2633,25 @@ function bottomNavItems(labels: Record<string, string>): AppRouteNavItem[] {
 
 function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
   return [
-    { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, activeViews: ['daily-practice'] as AppView[] },
-    { view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'memory'] as AppView[] },
-    { view: 'history' as const, label: labels.navStatsHome, activeViews: ['captures', 'mistakes'] as AppView[] },
-    { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan },
-    { view: 'market' as const, label: labels.navMarket },
-    { view: 'settings' as const, label: labels.settings, activeViews: ['data', 'mcp'] as AppView[] },
+    { view: 'home', label: labels.navTaskHome ?? labels.navHome },
+    { view: 'mixed', label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['daily-practice', 'mock-exams', 'news-cycle', 'drafts'] },
+    { view: 'history', label: labels.navStatsHome, activeViews: ['captures', 'mistakes', 'insights'] },
+    { view: 'market', label: labels.navMarket },
+    { view: 'study', label: labels.homeStudyArea, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types'] },
   ];
 }
 
-function desktopSidebarNavItems(labels: Record<string, string>): AppRouteNavItem[] {
+function desktopSidebarNavItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
+  const zh = locale === 'zh-CN'; const ja = locale === 'ja';
   return [
-    { view: 'home' as const, label: labels.navTaskHome ?? labels.navHome, group: 'today', activeViews: ['daily-practice'] as AppView[] },
-    {
-      view: 'mixed' as const, label: labels.navPracticeHome ?? labels.navMixed, group: 'today', activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types', 'mock-exams', 'news-cycle', 'drafts', 'insights', 'capture', 'memory'] as AppView[],
-      children: [
-        { view: 'vocabulary' as const, label: labels.navVocabulary },
-        { view: 'grammar' as const, label: labels.navGrammar },
-        { view: 'grammar' as const, page: 'bank' as const, label: labels.navBankManage },
-        { view: 'listening' as const, label: labels.navListening },
-        { view: 'reading' as const, label: labels.navReading },
-        { view: 'mixed' as const, page: 'tips' as const, itemId: 'topics', label: labels.navTopicsPractice },
-        { view: 'news-cycle' as const, label: labels.navNewsPractice },
-      ],
-    },
-    { view: 'plan' as const, label: labels.navStudyPlan ?? labels.navPlan, group: 'review' },
-    {
-      view: 'history' as const, label: labels.navStatsHome, group: 'record', activeViews: ['captures', 'mistakes', 'drafts'] as AppView[],
-      children: [
-        { view: 'history' as const, itemId: 'today', label: labels.navTodayStats },
-        { view: 'history' as const, itemId: 'history', label: labels.navHistoryRecords },
-        { view: 'mistakes' as const, label: labels.navMistakesList },
-        { view: 'captures' as const, label: labels.navCaptureRecords },
-        { view: 'drafts' as const, label: labels.navPracticeDrafts },
-      ],
-    },
-    { view: 'market' as const, label: labels.navMarket, group: 'manage' },
-    { view: 'about' as const, label: labels.aboutTitle, group: 'manage' },
-    { view: 'settings' as const, label: labels.settings, group: 'manage', activeViews: ['data', 'mcp'] as AppView[] },
+    { view: 'home', label: zh ? '今日' : ja ? '今日' : 'Today', group: 'today' },
+    { view: 'mixed', label: zh ? '练习' : ja ? '練習' : 'Practice', group: 'today', activeViews: ['daily-practice', 'mock-exams', 'news-cycle', 'drafts'] },
+    { view: 'history', label: zh ? '学习记录' : ja ? '学習記録' : 'History', group: 'today', activeViews: ['captures', 'mistakes', 'insights', 'memory'] },
+    { view: 'market', label: labels.navMarket, group: 'today' },
+    { view: 'vocabulary', label: zh ? '词汇' : labels.navVocabulary, group: 'study', page: 'words' },
+    { view: 'grammar', label: labels.navGrammar, group: 'study', page: 'words' },
+    { view: 'reading', label: labels.navReading, group: 'study', page: 'words' },
+    { view: 'listening', label: labels.navListening, group: 'study', page: 'words' },
   ];
 }
 
@@ -2676,6 +2667,7 @@ function studyModeNavItems(view: AppView, labels: Record<string, string>, allowL
 
 function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale: Locale, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
   const activeView = route.view;
+  if (activeView === 'study') return labels.homeStudyArea;
   if (activeView === 'market') return route.itemId ? labels.navMarketDetail : labels.navMarket;
   if (activeView === 'about') return isAboutSection(route.itemId) ? aboutSectionTitle(route.itemId, locale) : labels.aboutTitle;
   if (activeView === 'profile') return labels.account;
@@ -2740,7 +2732,7 @@ function settingsSectionMobileTitle(section: string, labels: Record<string, stri
 }
 
 function isMobileTabRoute(route: AppRoute) {
-  if (route.view === 'home' || (route.view === 'market' && !route.itemId) || (route.view === 'plan' && !route.itemId) || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
+  if (route.view === 'study' || route.view === 'home' || (route.view === 'market' && !route.itemId) || (route.view === 'plan' && !route.itemId) || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
     return true;
   }
   if (route.view === 'mixed') {
@@ -2758,7 +2750,7 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) {
     if (route.itemId) return { view: route.view, page: route.page };
     if (route.page !== 'words') return { view: route.view, page: 'words' };
-    return { view: 'mixed', page: 'tips' };
+    return { view: 'study', page: 'questions' };
   }
 
   if (route.view === 'mock-exams' && route.itemId) {
@@ -2857,12 +2849,16 @@ function defaultDesktopStudyPage(view: AppView): StudyPage {
 }
 
 function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN', listeningDetailReference?: string, practiceReference?: string): Array<{ label: string; route?: AppRoute }> {
+  if (route.view === 'study') return [{ label: labels.homeStudyArea, route }];
+  if (route.view === 'home') return [{ label: labels.navTaskHome ?? labels.navHome, route }];
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
 
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'question-types'].includes(route.view)) {
-    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
+    crumbs[0] = ['vocabulary', 'grammar', 'listening', 'reading', 'question-types'].includes(route.view)
+      ? { label: labels.homeStudyArea, route: { view: 'study', page: 'questions' } }
+      : { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
     if (route.view === 'mixed') {
       if (route.page !== 'tips' || route.itemId) crumbs.push({ label: mobileAppTitle(route, labels, locale), route });
       return crumbs;
@@ -3070,8 +3066,8 @@ function moduleSummaries(items: VocabItem[], labels: Record<string, string>) {
 
 function LoadingScreen() {
   return (
-    <main className="cute-shell flex min-h-[100dvh] items-center justify-center px-5 text-[#28312d]" aria-label="Loading">
-      <p className="cute-brand text-xl">JLPT Master Deck</p>
+    <main className="cute-shell light-workspace flex min-h-[100dvh] items-center justify-center px-5 text-[#28312d]" aria-label="Loading">
+      <p className="cute-brand text-xl">JLPT Master</p>
     </main>
   );
 }
@@ -3110,9 +3106,9 @@ function LoginScreen({
   }
 
   return (
-    <main lang={locale} className="cute-shell flex min-h-[100dvh] items-start justify-center px-5 py-10 text-[#28312d] sm:items-center sm:px-8 sm:py-12 lg:px-12">
+    <main lang={locale} className="cute-shell light-workspace flex min-h-[100dvh] items-start justify-center px-5 py-10 text-[#28312d] sm:items-center sm:px-8 sm:py-12 lg:px-12">
       <section className="cute-card w-full max-w-md bg-transparent sm:max-w-[420px] sm:border sm:p-8 lg:max-w-sm">
-        <div className="flex items-center justify-between gap-3"><h1 className="cute-brand text-2xl">JLPT Master Deck</h1><LoginLanguageSelect locale={locale} onChange={onLocaleChange} /></div>
+        <div className="flex items-center justify-between gap-3"><h1 className="cute-brand text-2xl">JLPT Master</h1><LoginLanguageSelect locale={locale} onChange={onLocaleChange} /></div>
 
         <p className="mt-3 text-sm">{copy.note}</p>
         <div className="mt-6 grid grid-cols-2 gap-2">

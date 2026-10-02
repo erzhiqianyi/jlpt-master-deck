@@ -51,6 +51,7 @@ type ListeningPanelProps = {
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
   onPractice?: () => void;
+  onAsk?: (question: string) => Promise<void>;
   onTips?: () => void;
   onReview?: () => void;
   activeQuestionId?: string;
@@ -63,7 +64,7 @@ type ListeningAudioGroup = { key: string; representative: ListeningQuestion; que
 const sameListeningHeading = (a: ListeningQuestion | undefined, b: ListeningQuestion | undefined) =>
   Boolean(a && b && a.questionTypeId === b.questionTypeId && a.title.trim() === b.title.trim());
 
-export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onUpdate, onDelete, onOpenLibrary, onPractice, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
+export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onUpdate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
   const sessionId = useMemo(() => crypto.randomUUID(), [mode, activeQuestionId]);
   const [readAlongOpen, setReadAlongOpen] = useState(false);
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
@@ -294,7 +295,9 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
         </div>
       </div> : <ModuleActionBar
         label="听力"
-        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: onPractice } : undefined}
+        primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: () => { const group = audioGroups[Math.floor(Math.random() * audioGroups.length)]; if (group) onOpenQuestion?.(listeningAudioRouteId(group.representative)); } } : undefined}
+        onAsk={onAsk}
+        contentActions={audioGroups.map((group) => ({ key: group.key, label: group.representative.title, onClick: () => onOpenQuestion?.(listeningAudioRouteId(group.representative)) }))}
         actions={[
           ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
           ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
@@ -433,8 +436,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             references={item.representative.audioReference ? [item.representative.audioReference] : item.questions.map(question => question.reference)}
             metadata={<>
               <span><span className="sr-only">{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
-              <span>{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
-              <span><span className="sr-only">{locale === "ja" ? "練習回数 " : locale === "en" ? "Practice count " : "练习次数 "}</span>{progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0}</span>
+              <span className="list-added">{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
+              <span className="list-practice-count"><span className="practice-count-label">{locale === "ja" ? "練習回数 " : locale === "en" ? "Practice count " : "练习次数 "}</span>{progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0}</span>
             </>} locale={locale} onOpen={() => onOpenQuestion?.(listeningAudioRouteId(item.representative))}/>;
         }}
       /> : null}

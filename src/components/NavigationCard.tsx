@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 export function NavigationCard({ icon, title, description, href, onOpen, onStart, startLabel = '开始练习' }: {
   icon: ReactNode;
   title: string;
-  description: string;
+  description?: string;
   href?: string;
   onOpen?: () => void;
   onStart?: () => void;
@@ -13,7 +13,7 @@ export function NavigationCard({ icon, title, description, href, onOpen, onStart
 }) {
   const content = <>
     <span className="navigation-card-icon" aria-hidden="true">{icon}</span>
-    <span className="navigation-card-copy"><strong>{title}</strong><small>{description}</small></span>
+    <span className="navigation-card-copy"><strong>{title}</strong>{description ? <small>{description}</small> : null}</span>
     {!onStart && <ArrowRight size={18} aria-hidden="true" />}
   </>;
   return <article className={`navigation-card${onStart ? ' has-start' : ''}`}>

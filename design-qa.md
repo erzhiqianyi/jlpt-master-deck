@@ -39,3 +39,13 @@ The repository ESLint configuration does not match TS/TSX source files; this was
 ## Remaining polish
 
 P3: art is original and follows the chosen style rather than duplicating every decorative detail of the concept. Each caption and example is selectable localized HTML. Live-account and deployed-site verification remain separate from this component QA.
+
+## 2026-10-02 — Selected vermilion brand
+
+- Target: third displayed generated concept, `exec-21b002e7-1260-4260-a623-774c62f8218a.png`.
+- Scope: logo and primary palette, preserving the user's later removal of the duplicate practice title and More Practice section. Keep JLPT Master Deck as the real product name; do not copy the concept's invented name or presentation swatches into UI.
+- Compared source and desktop capture together: `.design-qa/web-light/vermilion-practice.jpg`. The reference includes a presentation strip; compare application content only, allowing the existing responsive density.
+- Typography: existing legible system font retained. Spacing: two-column desktop practice grid and one-column mobile; no extra headings. Colors: vermilion #B65340, paper #FAF7F2, ink #30302D. Image: generated transparent overlapping-card mark shared with native assets, visibly legible at sidebar size. Copy: no new explanatory prose.
+- Mobile capture: `.design-qa/web-light/vermilion-mobile.jpg`; selected navigation corrected from green to vermilion. All four practice actions remain present, scrolling supported.
+- Whole-sidebar hide/show previously verified and retained. No P0/P1/P2 findings in this scoped brand change. Existing detailed learning-page styles are outside this pass.
+- final result: passed

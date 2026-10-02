@@ -2,7 +2,7 @@ import type { PracticeModule } from '../../domain/practiceModules.mjs';
 import { NavigationCard } from '../../components/NavigationCard';
 import { ShareButton } from '../../components/ShareButton';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
-import { Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, NotebookTabs, RotateCcw, type LucideIcon } from 'lucide-react';
+import { Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, RotateCcw, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -60,28 +60,19 @@ export function MixedPracticeHub({
   const grammarCount = items.filter((item) => item.deck === 'grammar_expression').length;
   const vocabularyCount = items.filter((item) => item.deck !== 'grammar_expression').length;
   const plannedTaskCount = studyPlan.tasks.length;
-  const syncedWorkCount = captures.length + drafts.length;
   const moduleCount = (view: AppView) => modules.find((module) => module.view === view)?.count ?? 0;
   const activeGroupKey = groupKey?.split('/')[0] ?? null;
   const opinionTopicId = activeGroupKey === 'opinion' ? groupKey?.split('/')[1] : undefined;
   const opinionTopic = opinionPractices.find((item) => item.id === opinionTopicId);
   const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
   const copy = practiceCopy(locale);
-  const moduleEntries: PracticeEntry[] = [
-    { key: 'vocabulary', title: labels.navVocabulary, body: copy.vocabularyBody, count: vocabularyCount || moduleCount('vocabulary'), icon: Languages, tone: 'green', action: () => onNavigate('vocabulary'), start: () => onStartModule('vocabulary') },
-    { key: 'grammar', title: labels.navGrammar, body: copy.grammarBody, count: grammarCount || moduleCount('grammar'), icon: Brain, tone: 'orange', action: () => onNavigate('grammar'), start: () => onStartModule('grammar') },
-    { key: 'listening', title: labels.navListening, body: copy.listeningBody, count: listeningQuestions.length || moduleCount('listening'), icon: Headphones, tone: 'blue', action: () => onNavigate('listening'), start: () => onStartModule('listening') },
-    { key: 'reading', title: labels.navReading, body: copy.readingBody, count: readingQuestions.length || moduleCount('reading'), icon: BookOpenText, tone: 'mint', action: () => onNavigate('reading'), start: () => onStartModule('reading') },
-  ];
-  // Everything that is not one of the four core modules lives in one flat list below the module cards.
   const moreEntries: PracticeEntry[] = [
     { key: 'mixed', title: copy.mixed, body: copy.mixedBody, count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
     { key: 'topics', title: copy.topics, body: copy.topicsBody, count: topicEntries.length, icon: BookOpenText, tone: 'mint', action: () => setActiveGroupKey('topics') },
     { key: 'daily', title: copy.daily, body: copy.dailyBody, count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
-    { key: 'news', title: copy.news, body: copy.newsBody, count: syncedWorkCount, icon: NotebookTabs, tone: 'yellow', action: () => onNavigate('news-cycle') },
     { key: 'dialogue', title: copy.dialogue, body: copy.dialogueBody, count: dialoguePractices.length, icon: MessagesSquare, tone: 'blue', action: () => setActiveGroupKey('dialogue') },
     { key: 'opinion', title: copy.opinion, body: copy.opinionBody, count: opinionPractices.length, icon: Mic, tone: 'mint', action: () => setActiveGroupKey('opinion') },
-    { key: 'mock', title: copy.mock, body: copy.mockBody, count: plannedTaskCount, icon: FileCheck2, tone: 'gray', action: onStartMock },
+    { key: 'mock', title: copy.mock, body: copy.mockBody, count: 0, icon: FileCheck2, tone: 'gray', action: onStartMock },
     { key: 'drafts', title: copy.drafts, body: copy.draftsBody, count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
   ];
   const groups: PracticeGroup[] = [
@@ -93,12 +84,11 @@ export function MixedPracticeHub({
 
   return (
     <main className={`ledger-mixed ledger-practice-center${activeGroupKey === 'topics' ? ' topic-practice-page' : ''}`}>
-      {activeGroupKey !== 'topics' && activeGroupKey !== 'dialogue' && !(activeGroupKey === 'opinion' && !opinionTopicId) ? <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
+      {activeGroup && activeGroupKey !== 'topics' && activeGroupKey !== 'dialogue' && !(activeGroupKey === 'opinion' && !opinionTopicId) ? <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
         {activeGroup ? <button type="button" aria-label={opinionTopicId ? copy.backOpinion : copy.backPractice} onClick={() => setActiveGroupKey(opinionTopicId ? 'opinion' : null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
         <div>
           <p>{copy.practice}</p>
-          <h1>{opinionTopic?.title ?? (activeGroup ? activeGroup.title : copy.whatToPractice)}</h1>
-          {!activeGroup ? <span>{copy.choose}</span> : null}
+          <h1>{opinionTopic?.title ?? (activeGroup ? activeGroup.title : copy.practice)}</h1>
         </div>
       </header> : null}
 
@@ -106,13 +96,9 @@ export function MixedPracticeHub({
         activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} />
       ) : (
         <>
-          <section className="navigation-grid practice-core-grid" aria-label={copy.modules}>
-            {moduleEntries.map((card) => <PracticeModuleCard key={card.key} entry={card} unit={copy.items} />)}
-          </section>
-          <section className="navigation-section" aria-labelledby="more-practice-title">
-            <h2 id="more-practice-title">{copy.morePractice}</h2>
+          <section className="navigation-section" aria-label={copy.practice}>
             <div className="navigation-grid">
-              {moreEntries.map((entry) => <PracticeModuleCard key={entry.key} entry={entry} unit={copy.items} />)}
+              {moreEntries.filter(entry => ['topics', 'mixed', 'daily', 'mock'].includes(entry.key)).sort((a,b) => ['topics','mixed','daily','mock'].indexOf(a.key) - ['topics','mixed','daily','mock'].indexOf(b.key)).map(entry => <PracticeModuleCard key={entry.key} entry={entry} unit={copy.items} />)}
             </div>
           </section>
         </>
@@ -162,10 +148,9 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
   );
 }
 
-function PracticeModuleCard({ entry, unit }: { entry: PracticeEntry; unit: string }) {
+function PracticeModuleCard({ entry }: { entry: PracticeEntry; unit: string }) {
   const Icon = entry.icon;
   return <NavigationCard icon={<Icon size={24} />} title={entry.title}
-    description={entry.count ? `${entry.body} · ${entry.count} ${unit}` : entry.body}
     onOpen={entry.action} onStart={entry.start} />;
 }
 

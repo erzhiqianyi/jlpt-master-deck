@@ -1,8 +1,9 @@
 import { ChevronLeft, ChevronRight, Eye, Minus, Search, X } from 'lucide-react';
-import { Children, createContext, isValidElement, useContext, type ReactNode } from 'react';
+import { Children, createContext, isValidElement, useContext, useState, type ReactNode } from 'react';
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
 import { batchText, type ListSelection } from './ListBatch';
 
+const ListDensityContext = createContext<{ locale: string; detailed: boolean; toggle: () => void } | null>(null);
 const CountColumnContext = createContext<string | undefined>(undefined);
 const StandardListContext = createContext(false);
 const ListLabelsContext = createContext<[string, string | null, string | null]>(['名称', '信息', '状态']);
@@ -97,7 +98,8 @@ export function LearningListRow({ selectId, title, references, reading, descript
 
 /** Slots keep feature-specific filters, row content and actions outside the layout. */
 export function LearningListHeader({ title, count, search, children }: { title?: ReactNode; count?: ReactNode; search?: ReactNode; children?: ReactNode }) {
-  return <header className="list-header">{title ? <div className="list-title"><h1>{title}</h1>{count ? <span>{count}</span> : null}</div> : null}<div className="list-toolbar">{search}{children}</div></header>;
+  const density = useContext(ListDensityContext);
+  return <header className="list-header">{title ? <div className="list-title"><h1>{title}</h1>{count ? <span>{count}</span> : null}</div> : null}<div className="list-toolbar">{search}{children}{density ? <button type="button" className="list-density-toggle" aria-pressed={density.detailed} onClick={density.toggle}>{density.locale === 'ja' ? '詳細表示' : density.locale === 'en' ? 'Detailed list' : '详细列表'}</button> : null}</div></header>;
 }
 
 export function LearningListSearch({ value, onChange, label = '搜索列表', placeholder = '搜索标题或关键词', locale = 'zh-CN' }: { value: string; onChange: (value: string) => void; label?: string; placeholder?: string; locale?: string }) {
@@ -113,6 +115,8 @@ export function LearningListPagination({ page, pages, onChange, summary, previou
   return <nav className="list-pagination" aria-label={`${previous} / ${next}`}><span className="list-page-summary">{summary}</span><button type="button" aria-label={previous} title={previous} disabled={page === 0} onClick={() => onChange(page - 1)}><ChevronLeft size={16} aria-hidden="true"/></button><span aria-live="polite">{page + 1} / {pages}</span><button type="button" aria-label={next} title={next} disabled={page + 1 >= pages} onClick={() => onChange(page + 1)}><ChevronRight size={16} aria-hidden="true"/></button></nav>;
 }
 
-export function LearningListFrame({ children, className = '', enabled = true, label }: { children: ReactNode; className?: string; enabled?: boolean; label?: string }) {
-  return <section className={`${className}${enabled ? ' list-frame' : ''}`} aria-label={label}>{children}</section>;
+export function LearningListFrame({ children, className = '', enabled = true, label, locale = 'zh-CN' }: { locale?: string; children: ReactNode; className?: string; enabled?: boolean; label?: string }) {
+  const [detailed, setDetailed] = useState(false);
+  const isStudyList = /ledger-word-index|study-catalog/.test(className);
+  return <ListDensityContext.Provider value={isStudyList ? { locale, detailed, toggle: () => setDetailed(value => !value) } : null}><section className={`${className}${enabled ? ' list-frame' : ''}${isStudyList && !detailed ? ' is-simple-study-list' : ''}`} aria-label={label}>{children}</section></ListDensityContext.Provider>;
 }

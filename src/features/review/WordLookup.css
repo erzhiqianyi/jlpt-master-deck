@@ -22,3 +22,5 @@ button.lookup-word:hover, button.lookup-word:focus-visible { background: #dcebe3
 }
 
 .has-word-spacing button.lookup-word { display: inline-block; margin-inline: 0.12em; padding-inline: 0.08em; user-select: text; -webkit-user-select: text; }
+
+button.lookup-word.lookup-word-selected { background: #dcebe3; border-bottom: 2px solid #58796a; }

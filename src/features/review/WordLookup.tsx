@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useId, type ReactNode } from 'react';
 import { Volume2 } from 'lucide-react';
 import { findLookupItems, lookupForms, normalizeLookup, segmentJapanese } from '../../domain/wordLookup';
 import { itemMeaning } from '../../domain/items';
@@ -7,21 +7,42 @@ import type { LearningCapture, Locale, TtsProviderId, VocabItem } from '../../ty
 import './WordLookup.css';
 
 type CaptureInput = { body: string; category: 'word'; context: string; targetDeck: 'n1_vocab' };
-const LookupContext = createContext<{ forms: Set<string>; open: (word: string, context: string) => void } | null>(null);
+type LookupRange = { owner: string; text: string; start: number; end: number };
+const LookupContext = createContext<{
+  forms: Set<string>;
+  range: LookupRange | null;
+  open: (range: LookupRange, source?: string) => void;
+} | null>(null);
 
 export function LookupText({ text, source }: { text: string; source?: string }) {
   const lookup = useContext(LookupContext);
   const parts = useMemo(() => segmentJapanese(text, lookup?.forms), [text, lookup?.forms]);
+  const owner = useId();
   if (!lookup) return <>{text}</>;
+  const range = lookup.range?.owner === owner && lookup.range.text === text ? lookup.range : null;
   let offset = 0;
-  const contexts = parts.map((part) => {
-    const context = text.slice(Math.max(0, offset - 400), offset + part.text.length + 400);
+  const renderedParts: { text: string; word: boolean; start: number; end: number; selected: boolean }[] = [];
+  for (const part of parts) {
+    const start = offset;
     offset += part.text.length;
-    return source ? `${source}\n${context}` : context;
-  });
-  return <>{parts.map((part, index) => part.word
-    ? <button type="button" className="lookup-word" key={index} aria-label={`查询「${part.text}」`} onClick={(event) => { event.stopPropagation(); lookup.open(part.text, contexts[index]); }} onKeyDown={(event) => event.stopPropagation()}>{part.text}</button>
-    : <span key={index}>{part.text}</span>)}</>;
+    if (range && start >= range.start && offset <= range.end) {
+      const previous = renderedParts[renderedParts.length - 1];
+      if (previous?.selected) {
+        previous.text += part.text;
+        previous.end = offset;
+      } else {
+        renderedParts.push({ ...part, start, end: offset, selected: true });
+      }
+    } else {
+      renderedParts.push({ ...part, start, end: offset, selected: false });
+    }
+  }
+  return <>{renderedParts.map((part) => part.word
+    ? <button type="button" className={`lookup-word${part.selected ? ' lookup-word-selected' : ''}`} key={part.start} aria-pressed={part.selected} aria-label={`查询「${part.text}」`} onClick={(event) => {
+      event.stopPropagation();
+      lookup.open({ owner, text, start: part.start, end: part.end }, source);
+    }} onKeyDown={(event) => event.stopPropagation()}>{part.text}</button>
+    : <span key={part.start}>{part.text}</span>)}</>;
 }
 
 export function WordLookupProvider({ children, items, captures, locale, enabled, onCapture, authToken, ttsProvider }: {
@@ -29,8 +50,17 @@ export function WordLookupProvider({ children, items, captures, locale, enabled,
   onCapture: (input: CaptureInput) => Promise<void>; authToken: string; ttsProvider: TtsProviderId;
 }) {
   const [selection, setSelection] = useState<{ word: string; context: string } | null>(null);
+  const [range, setRange] = useState<LookupRange | null>(null);
   const forms = useMemo(() => new Set(items.flatMap(lookupForms)), [items]);
-  return <LookupContext.Provider value={{ forms, open: (word, context) => setSelection({ word, context }) }}>
+  function open(next: LookupRange, source?: string) {
+    const adjacent = range?.owner === next.owner && range.text === next.text
+      && (range.end === next.start || next.end === range.start);
+    const merged = adjacent ? { ...next, start: Math.min(range.start, next.start), end: Math.max(range.end, next.end) } : next;
+    setRange(merged);
+    const context = merged.text.slice(Math.max(0, merged.start - 400), merged.end + 400);
+    setSelection({ word: merged.text.slice(merged.start, merged.end), context: source ? `${source}\n${context}` : context });
+  }
+  return <LookupContext.Provider value={{ forms, range, open }}>
     {children}
     {selection && <LookupDialog key={`${selection.word}:${selection.context}`} selection={selection} items={items} captures={captures} locale={locale} enabled={enabled} onCapture={onCapture} authToken={authToken} ttsProvider={ttsProvider} onClose={() => setSelection(null)} />}
   </LookupContext.Provider>;

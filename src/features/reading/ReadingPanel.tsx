@@ -296,7 +296,8 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="break-words text-xl font-semibold leading-8 text-[#27312c]">{item.title}</h2><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /></div>
     <RecordReference reference={item.reference} locale={locale} />
     <p className="mt-2 text-sm text-[#778079]">{questionCountLabel(items.length, locale)}</p>
-    <details className="reading-passage-body mt-6" open>
+    <div className="reading-practice-layout">
+    <details className="reading-passage-body" open>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
       <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-[#31564c]">
         <input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} />
@@ -304,8 +305,9 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
       </label>
       <p lang="ja" className={`mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}>{segmented ? <LookupText text={item.passage} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /> : item.passage}</p>
     </details>
-    <div className="mt-8 border-t border-[#e1e7df] pt-6 divide-y divide-[#e1e7df]">
+    <div className="reading-question-column divide-y divide-[#e1e7df]">
       {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={onDelete} />)}
+    </div>
     </div>
   </article>;
 }

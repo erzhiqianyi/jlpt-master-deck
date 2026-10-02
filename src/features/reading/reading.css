@@ -5,6 +5,43 @@
   color: #37473f;
 }
 
+.reading-practice-layout {
+  margin-top: 24px;
+}
+
+.reading-passage-body,
+.reading-question-column {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reading-question-column {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e1e7df;
+}
+
+@media (min-width: 1024px) {
+  .reading-passage {
+    max-width: 1200px;
+  }
+
+  .reading-practice-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 32px;
+  }
+
+  .reading-question-column {
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 32px;
+    border-top: 0;
+    border-left: 1px solid #e1e7df;
+  }
+}
+
 .reading-passage .reading-choice {
   display: flex;
   align-items: flex-start;

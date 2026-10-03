@@ -38,7 +38,8 @@ import { StudyPlanPanel } from './features/plan/StudyPlanPanel';
 import { MixedEntryIndexPanel, MixedPracticeHub } from './features/practice/MixedPracticeHub';
 import { MockExamCatalog } from './features/practice/MockExamCatalog';
 import { MockExamPanel } from './features/practice/MockExamPanel';
-import { NewsCyclePanel } from './features/news/NewsCyclePanel';
+import { DesignedExamPanel } from './features/practice/DesignedExamPanel';
+import { migrateNewsHash } from './domain/mockExam.mjs';
 import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel, type WordIndexPracticeFocus } from './features/practice/StudyPanels';
 import { QuestionBankPanel } from './features/practice/QuestionBankPanel';
 import { itemInWordbook, wordbookFamily } from './domain/wordbooks';
@@ -207,6 +208,10 @@ export default function App() {
   const restoreLastPage = useRef(!window.location.hash || window.location.hash === '#/');
   const browserHash = useBrowserHash();
   const route = routeFromHash(browserHash);
+  useEffect(() => {
+    const migrated = migrateNewsHash(browserHash);
+    if (migrated) window.location.replace(migrated);
+  }, [browserHash]);
   const [renderedHash, setRenderedHash] = useState<string | null>(null);
   const routeReady = renderedHash === browserHash;
   const [practiceLoadError, setPracticeLoadError] = useState<string | null>(null);
@@ -1916,18 +1921,10 @@ export default function App() {
               />
             ) : null}
             {activeView === 'mock-exams' ? (
-              route.itemId ? <MockExamPanel key={route.itemId} examId={route.itemId} locale={locale} onBack={() => openMockExam()} /> : <MockExamCatalog locale={locale} onOpen={openMockExam} />
-            ) : null}
-            {activeView === 'news-cycle' ? (
-              <NewsCyclePanel
-                locale={locale}
-                token={authToken}
-                selection={route.itemId}
-                onOpenCycle={(cycleId) => { window.location.hash = routeHash('news-cycle', 'questions', cycleId); }}
-                onOpenDay={(cycleId, date) => { window.location.hash = routeHash('news-cycle', 'questions', `${cycleId}:${date}`); }}
-                onPracticeCycle={(cycleId) => { window.location.hash = routeHash('news-cycle', 'questions', `${cycleId}:practice`); }}
-                onBack={() => navigateTo('news-cycle')}
-              />
+              route.itemId && /^(week|custom):/.test(route.itemId)
+                ? <DesignedExamPanel key={`${user.id}:${route.itemId}`} userId={user.id} locale={locale} token={authToken} selection={route.itemId} onOpen={openMockExam} />
+                : route.itemId ? <MockExamPanel key={route.itemId} examId={route.itemId} locale={locale} onBack={() => openMockExam()} />
+                  : <MockExamCatalog locale={locale} token={authToken} onOpen={openMockExam} />
             ) : null}
             {activeView === 'question-types' ? (
               route.itemId ? (
@@ -2231,6 +2228,7 @@ function PublicGuideRedirect({ target }: { target: string }) {
 }
 
 function routeFromHash(hash: string): AppRoute {
+  hash = migrateNewsHash(hash) ?? hash;
   const [viewValue, pageValue, itemValue, detailValue] = hash.replace(/^#\/?/, '').split('/');
   const view = isAppView(viewValue) ? viewValue : 'home';
   if (view === 'plan') {
@@ -2304,7 +2302,7 @@ function routeHash(view: AppView, page: StudyPage, itemId?: string) {
     return itemId ? `#/mock-exams/${encodeURIComponent(itemId)}` : '#/mock-exams';
   }
   if (view === 'news-cycle') {
-    return itemId ? `#/news-cycle/${encodeURIComponent(itemId)}` : '#/news-cycle';
+    return migrateNewsHash(itemId ? `#/news-cycle/${encodeURIComponent(itemId)}` : '#/news-cycle')!;
   }
   if (view === 'about') {
     return itemId ? `#/about/${encodeURIComponent(itemId)}` : '#/about';
@@ -2715,7 +2713,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     return labels.navMockExams;
   }
   if (activeView === 'news-cycle') {
-    return labels.navNewsPractice;
+    return labels.navMockExams;
   }
   return navItems(labels).find((item) => item.view === activeView)?.label ?? labels.brand;
 }
@@ -2756,7 +2754,7 @@ function mobileBackRoute(route: AppRoute): AppRoute {
   }
 
   if (route.view === 'mock-exams' && route.itemId) {
-    return { view: 'mock-exams', page: 'questions' };
+    return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
   }
   if (route.view === 'mock-exams') {
     return { view: 'home', page: 'questions' };
@@ -2878,7 +2876,12 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'mock-exams') {
-    crumbs.push({ label: labels.navMockExams });
+    crumbs.push({ label: labels.navMockExams, route: route.itemId ? { view: 'mock-exams', page: 'questions' } : undefined });
+    if (route.itemId && /^(week|custom):/.test(route.itemId)) {
+      const [kind, week, date] = route.itemId.split(':');
+      crumbs.push({ label: kind === 'week' ? week : (locale === 'zh-CN' ? '试卷' : locale === 'ja' ? '試験' : 'Exam'), route: date ? { view: 'mock-exams', page: 'questions', itemId: `${kind}:${week}` } : undefined });
+      if (date) crumbs.push({ label: kind === 'week' ? date : (locale === 'zh-CN' ? '作答' : locale === 'ja' ? '解答' : 'Session') });
+    }
     return crumbs;
   }
 
@@ -2933,7 +2936,7 @@ function moduleLabelFor(view: AppView, labels: Record<string, string>) {
     case 'daily-practice':
       return labels.dailyPracticeTitle;
     case 'news-cycle':
-      return labels.navNewsPractice;
+      return labels.navMockExams;
     case 'plan':
       return labels.navPlan;
     case 'capture':

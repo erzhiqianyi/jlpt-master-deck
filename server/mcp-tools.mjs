@@ -1,3 +1,4 @@
+import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { currentPlatform } from './platform.mjs';
 import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
@@ -202,6 +203,16 @@ const listeningUpdateFields = {
 const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, per-choice translations and explanations, answer or overall explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
 
 export const tools = [
+  tool('list_mock_exams', 'List your user-designed exams and their sessions. Available on local and hosted backends. No fixed topic, schedule or question count.',
+    {}, ro, async (_args, ctx) => text({ exams: listMockExams(getDb(), uid(ctx)) })),
+  tool('get_mock_exam', 'Read a complete owned exam before editing, including revision, sessions, questions, sources and explanations.',
+    { id: z.string() }, ro, async ({ id }, ctx) => text(found(getMockExam(getDb(), uid(ctx), id), 'Exam not found'))),
+  tool('create_mock_exam', 'Create a user-designed exam. Sessions are independently submitted parts: a single paper, daily work, or any arrangement chosen by the user or automation. Dates and time limits are optional. Supply original or authorized content and explanations. This saves content; it does not certify human review or generate a study plan.',
+    examContentFields, rw, async (args, ctx) => text(createMockExam(getDb(), uid(ctx), args)), { scope: 'library:write' }),
+  tool('update_mock_exam', 'Update an owned exam using its expectedRevision from get_mock_exam. Omitted fields are preserved. If sessions is supplied it replaces the whole array; read first and retain all sessions/questions you want to keep. Edited question content invalidates the affected browser attempt.',
+    { id: z.string(), expectedRevision: z.number().int().positive(), title: examContentFields.title.optional(), description: z.string().optional(), level: z.string().optional(), sessions: examContentFields.sessions.optional() }, replacing,
+    async ({ id, ...patch }, ctx) => text(found(updateMockExam(getDb(), uid(ctx), id, patch), 'Exam not found')), { scope: 'library:write' }),
+
   tool('get_reference_metadata', 'Read owned listening, audio asset, recording, capture or wordbook metadata by public reference. Does not expose audio bytes or filesystem paths.',
     { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(getReferenceMetadata(getDb(), uid(ctx), reference), 'Reference not found'))),
   tool('get_reference_question', 'Read an immutable browser-generated question snapshot by reference. Answer and explanations remain hidden until answered.',

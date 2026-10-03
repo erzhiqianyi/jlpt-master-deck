@@ -189,3 +189,44 @@ Protocol reference: [OpenAI MCP Apps UI documentation](https://developers.openai
 HTTP 使用 `PATCH /api/daily-practices/:practiceId/questions/:questionId/explanation`，
 请求体直接为上述 `patch` 对象。尚未发布的已确认草稿仍使用
 `update_review_pack_draft` 修改，再发布。
+
+## User-designed mock exams
+
+`模拟考试` is a neutral container for user-supplied content and schedules. It does not
+collect news or choose a weekly plan. A user, assistant, or automation supplies the
+questions and decides how to divide them into independently submitted `sessions`.
+Dates and time limits are optional; there is no full-JLPT, seven-day, fixed topic,
+question-count, or listening quota. This release supports choice questions with
+2–10 options and optional reading passages, source links, audio, translations, and
+per-choice explanations. It does not automatically grade free-text or spoken answers.
+
+- `list_mock_exams`: owned catalogue, with session question counts.
+- `get_mock_exam({ id })`: full owned content and `revision`.
+- `create_mock_exam({ title, description?, level?, sessions })`: save a new exam.
+- `update_mock_exam({ id, expectedRevision, title?, description?, level?, sessions? })`:
+  preserve omitted fields; a supplied `sessions` array replaces the whole array.
+  Read first and retain every part that should remain. Stale revisions fail.
+
+Each session has `id`, `title`, `questions`, and optional `description`,
+`scheduledDate` (`YYYY-MM-DD`), and `durationMinutes` (omit for untimed).
+Each question has `id`, `prompt`, `choices`, `answerIndex` (zero-based), and
+`explanation`; optional fields are `passage`, `choiceExplanations` (choice order),
+`translation`, `sourceUrl`, `sourceLabel`, `type`, `audioUrl`, `transcript`, and
+`scoringReady` (false excludes unfinished material from scoring).
+IDs are stable within their containing exam/session. Saving is not human review.
+
+The four MCP tools use shared local/Cloudflare storage and are not local-file tools.
+Creation and updates require `library:write`. REST equivalents are authenticated
+`GET/POST /api/mock-exams` and owner-scoped `GET/PATCH /api/mock-exams/:id`.
+SQLite table `mock_exams` is created on first use, including on Durable Objects.
+A cloud API deployment and client tool rediscovery are needed to expose new tools.
+
+The old news UI is removed. Existing local news files are adapted into exam sessions
+by date without modifying the personal knowledge corpus; old `#/news-cycle` bookmarks
+redirect into `#/mock-exams`. File-based full mock exams remain available locally.
+These compatibility sources are not silently copied into cloud storage.
+
+Answers remain hidden until a session is submitted. Optional limits count elapsed
+wall time and submit on expiry; untimed sessions do not impose a timer. Attempts are
+stored per account/exam/session in the browser, not synced across devices. Question
+edits invalidate that session's cached attempt rather than silently changing its score.

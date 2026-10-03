@@ -24,6 +24,12 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
     await request('/__seed');
     assert.ok((await json('/api/study-plan')).plan.profile);
+    const mock = (await json('/api/mock-exams', 'POST', { title: '自由な試験', sessions: [{ id: 'part', title: '自由なパート', questions: [{ id: 'q', prompt: '選んでください', choices: ['A', 'B'], answerIndex: 1, explanation: 'Bです' }] }] })).exam;
+    assert.equal((await json('/api/mock-exams')).exams[0].id, mock.id);
+    assert.equal((await request('/api/mock-exams/' + mock.id, 'GET', undefined, 'test-2')).status, 404);
+    assert.equal((await json('/api/mock-exams/' + mock.id, 'PATCH', { expectedRevision: 1, title: '変更' })).exam.revision, 2);
+    assert.equal((await request('/api/mock-exams/' + mock.id, 'PATCH', { expectedRevision: 1, title: '古い更新' })).status, 409);
+
     assert.deepEqual((await json('/api/daily-summaries/2026-09-27')).summary, null);
     assert.deepEqual((await json('/api/daily-summaries')).summaries, []);
     assert.equal((await request('/api/daily-summaries/invalid')).status, 400);
@@ -50,6 +56,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/__legacy-audio-schema')).status, 200);
     await mf.dispose(); mf=new Miniflare(options);
     assert.equal((await json('/api/health')).databaseReady, true);
+    assert.equal((await json('/api/mock-exams/' + mock.id)).exam.title, '変更');
     assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '更新总解析');
     const failed=await mf.dispatchFetch(origin+'/api/listening-questions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
     assert.equal(failed.status,503);

@@ -1,0 +1,6 @@
+build/
+Config/GoogleService-Info.plist
+Config/Local.xcconfig
+**/xcuserdata/
+.build/
+__pycache__/

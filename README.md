@@ -62,6 +62,12 @@ The app uses hash routing, so these routes also work on static hosting:
 /#/settings
 ```
 
+## Native Apple client
+
+The first SwiftUI iPad/iPhone client lives in [`apple/`](apple/README.md), with Mac Catalyst support. Open `apple/JLPTMasterDeck.xcodeproj` to build. It connects to the same cloud backend and Firebase project as the website. A clearly labeled demo mode works without provider configuration; real Google/Apple login requires the Firebase iOS configuration and signing capabilities described in the [Apple client guide](apple/README.md).
+
+See [Apple client architecture](docs/apple-client-architecture.md) for identity linking, data boundaries, and the deferred web QR sign-in design.
+
 ## MCP and agent workflows
 
 The repository includes two skills:

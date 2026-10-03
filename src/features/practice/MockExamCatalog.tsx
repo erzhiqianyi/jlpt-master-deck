@@ -1,31 +1,38 @@
+import { useEffect, useState } from 'react';
 import { LearningCatalog } from '../../components/LearningCatalog';
-import { LearningList, LearningListRow } from '../../components/LearningList';
-import { ChevronLeft, ChevronRight, Clock3, Headphones, LoaderCircle, Play } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LocalMockExamManifest, LocalMockExamSummary, Locale } from '../../types';
+import { LearningListRow } from '../../components/LearningList';
+import { apiRequest } from '../../lib/api';
+import type { LocalMockExamManifest, Locale, NewsCycleCatalogData } from '../../types';
+import type { ExamSummary } from './mockExamTypes';
 
-const MOCK_EXAM_PAGE_SIZE = 20;
-
+type Entry = { id: string; title: string; description: string; status: string };
 const copy = {
-  'zh-CN': { title: '模拟试题', subtitle: 'N1 - N5 · 两套完整试卷', notice: '外部 Agent 写回练习题 · 非官方真题 · 未人工审校 · 系统合成听力', loading: '正在读取本地试卷目录...', unavailable: '本地试卷目录无法读取。请确认本地后端正在运行。', questions: '题', minutes: '分钟', audio: '听力', open: '打开', total: '套试卷', exam: '试卷', level: '级别', duration: '时长', prev: '上一页', next: '下一页', noMore: '没有更多了' },
-  ja: { title: '模擬試験', subtitle: 'N1 - N5 · 2回分の一式試験', notice: 'AI オリジナル練習 · 公式問題ではありません · 未校閲 · 合成音声', loading: 'ローカル試験一覧を読み込んでいます...', unavailable: 'ローカル試験一覧を読み込めません。ローカルサーバーを確認してください。', questions: '問', minutes: '分', audio: '聴解', open: '開く', total: '回分', exam: '試験', level: '級', duration: '時間', prev: '前へ', next: '次へ', noMore: 'これ以上ありません' },
-  en: { title: 'Mock exams', subtitle: 'N1 - N5 · Two full papers', notice: 'AI-original practice · Not official papers · Not human-reviewed · Synthesized listening', loading: 'Loading the local exam catalog...', unavailable: 'The local exam catalog could not be loaded. Check the local backend.', questions: 'questions', minutes: 'minutes', audio: 'listening', open: 'Open', total: 'papers', exam: 'Paper', level: 'Level', duration: 'Duration', prev: 'Previous page', next: 'Next page', noMore: 'No more items' },
-} satisfies Record<Locale, Record<string, string>>;
-
-export function MockExamCatalog({ locale, onOpen }: { locale: Locale; onOpen: (examId: string) => void }) {
+  'zh-CN': { title: '模拟考试', notice: '内容和安排由你设计。可整套作答，也可拆成多次小测。', loading: '正在读取试卷…', empty: '还没有试卷。可让助手或定时任务通过 MCP 创建。', parts: '部分', questions: '题', legacy: '已有试卷', imported: '原新闻内容', failed: '部分试卷未能读取，请重试或连接对应的本地后端。', retry: '重试' },
+  ja: { title: '模擬試験', notice: '内容と予定は自由に設計できます。一括でも、複数回に分けても受験できます。', loading: '読み込み中…', empty: '試験はありません。アシスタントや定期タスクから MCP で作成できます。', parts: 'パート', questions: '問', legacy: '既存の試験', imported: '旧ニュース教材', failed: '一部を読み込めません。再試行するかローカルサーバーに接続してください。', retry: '再試行' },
+  en: { title: 'Mock exams', notice: 'Design your own content and schedule. Take a full paper or split it into sessions.', loading: 'Loading exams…', empty: 'No exams yet. Ask an assistant or scheduled task to create one through MCP.', parts: 'sessions', questions: 'questions', legacy: 'Existing paper', imported: 'Previous news content', failed: 'Some exams could not be loaded. Retry or connect to their local backend.', retry: 'Retry' },
+};
+export function MockExamCatalog({ locale, token, onOpen }: { locale: Locale; token: string; onOpen: (id: string) => void }) {
   const t = copy[locale];
-  const [manifest, setManifest] = useState<LocalMockExamManifest | null>(null);
-  const [error, setError] = useState('');
+  const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/local-mock-exams').then(async (response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json() as Promise<LocalMockExamManifest>;
-    }).then((payload) => { if (!cancelled) setManifest(payload); }).catch(() => { if (!cancelled) setError(t.unavailable); });
+    setEntries(null); setFailed(false);
+    Promise.allSettled([
+      apiRequest<{ exams: ExamSummary[] }>('/api/mock-exams', { token }).then(({ exams }) => exams.map(exam => ({ id: `custom:${exam.id}`, title: exam.title, description: `${exam.sessions.length} ${t.parts} · ${exam.sessions.reduce((sum, part) => sum + part.questionCount, 0)} ${t.questions}`, status: exam.level ?? '' }))),
+      apiRequest<NewsCycleCatalogData>('/api/local-news-cycles', { token }).then(({ cycles }) => cycles.map(cycle => ({ id: `week:${cycle.id}`, title: cycle.id, description: `${cycle.range ? `${cycle.range.from} – ${cycle.range.to} · ` : ''}${cycle.totalQuestions} ${t.questions}`, status: t.imported }))),
+      apiRequest<LocalMockExamManifest>('/api/local-mock-exams', { token }).then(({ exams }) => exams.map(exam => ({ id: exam.id, title: locale === 'ja' ? exam.titleJa : exam.title, description: `${exam.questionCount} ${t.questions}`, status: exam.level || t.legacy }))),
+    ]).then(results => {
+      if (cancelled) return;
+      setFailed(results.some(result => result.status === 'rejected'));
+      setEntries(results.flatMap(result => result.status === 'fulfilled' ? result.value : []));
+    });
     return () => { cancelled = true; };
-  }, [t.unavailable]);
-  const exams = useMemo(() => manifest?.exams ?? [], [manifest]);
-  return <section className="mx-auto w-full max-w-5xl py-1 md:py-4">
-    {!manifest ? <p role="status">{error || t.loading}</p> : <LearningCatalog columnLabels={locale === "ja" ? ["模擬試験", "問題数・時間", "レベル"] : locale === "en" ? ["Exam", "Questions / duration", "Level"] : ["试卷", "题数与时长", "等级"]} title={t.title} items={exams} locale={locale} notice={t.notice} searchText={(exam) => `${exam.title} ${exam.titleJa} ${exam.level}`} renderRow={(exam) => <LearningListRow key={exam.id} title={locale === 'ja' ? exam.titleJa : exam.title} description={`${exam.questionCount} ${t.questions} · ${exam.totalDurationMinutes} ${t.minutes}`} status={exam.level} locale={locale} onOpen={() => onOpen(exam.id)}/>}/>}
-  </section>;
+  }, [token, locale, retry, t]);
+  if (!entries) return <p role="status">{t.loading}</p>;
+  return <LearningCatalog title={t.title} locale={locale} items={entries} searchText={entry => `${entry.title} ${entry.description} ${entry.status}`}
+    notice={<>{t.notice}{failed ? <p role="alert">{t.failed} <button type="button" className="gentle-direct-link" onClick={() => setRetry(value => value + 1)}>{t.retry}</button></p> : null}{!entries.length && !failed ? <p>{t.empty}</p> : null}</>}
+    columnLabels={locale === 'ja' ? ['試験', '構成', null] : locale === 'en' ? ['Exam', 'Contents', null] : ['试卷', '内容安排', null]}
+    renderRow={entry => <LearningListRow key={entry.id} title={entry.title} description={entry.description} status={entry.status} locale={locale} onOpen={() => onOpen(entry.id)} />} />;
 }

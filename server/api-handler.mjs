@@ -1,3 +1,4 @@
+import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
@@ -508,6 +509,23 @@ return async (req, res) => {
         return json(res, 404, { error: 'Reading question not found' });
       }
       return json(res, 200, { ok: true });
+    }
+
+    if (url.pathname === '/api/mock-exams' || /^\/api\/mock-exams\/[^/]+$/.test(url.pathname)) {
+      try {
+        if (url.pathname === '/api/mock-exams') {
+          if (req.method === 'GET') return json(res, 200, { exams: listMockExams(getDb(), user.id) });
+          if (req.method === 'POST') return json(res, 201, { exam: createMockExam(getDb(), user.id, await readJson(req, 4 * 1024 * 1024)) });
+        } else {
+          const id = decodeURIComponent(url.pathname.split('/').pop());
+          if (req.method === 'GET' || req.method === 'PATCH') {
+            const exam = req.method === 'GET' ? getMockExam(getDb(), user.id, id)
+              : updateMockExam(getDb(), user.id, id, await readJson(req, 4 * 1024 * 1024));
+            return json(res, exam ? 200 : 404, exam ? { exam } : { error: 'Exam not found' });
+          }
+        }
+        return json(res, 405, { error: 'Method not allowed' });
+      } catch (error) { return json(res, error.status ?? error.statusCode ?? 400, { error: error.message }); }
     }
 
     if (req.method === 'GET' && url.pathname === '/api/drafts') {

@@ -1,0 +1,33 @@
+.gentle-settings .settings-profile-card {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.gentle-settings .settings-language-pair {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.gentle-settings .settings-language-pair > .settings-language-divider {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.gentle-settings .settings-language-pair > span {
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.gentle-settings .settings-language-pair svg {
+  flex-shrink: 0;
+}
+
+.settings-unified-content {
+  margin-top: 18px;
+}
+
+@media (min-width: 768px) {
+  .gentle-settings .settings-detail-card {
+    margin-top: 24px;
+    padding: 12px 24px;
+  }
+}

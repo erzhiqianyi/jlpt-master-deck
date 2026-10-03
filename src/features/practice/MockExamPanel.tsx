@@ -1,21 +1,14 @@
+import './practice-layout.css';
+import { emptyLegacyMockState, legacyMockRevision, legacyMockStorageKey, readLegacyMockState, type SavedExamState } from './legacyMockState';
+import { conciseEvidence } from './practicePresentation';
 import { LearningList, LearningListRow } from '../../components/LearningList';
 import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileCheck2, Flag, Headphones, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LocalMockExam, Locale, MockExamQuestion } from '../../types';
 
-type ExamStatus = 'intro' | 'active' | 'result';
-type SavedExamState = {
-  status: ExamStatus;
-  answers: Record<string, number>;
-  flagged: string[];
-  currentIndex: number;
-  startedAt?: string;
-  submittedAt?: string;
-};
-
 const copy = {
   'zh-CN': {
-    back: '返回模拟试题', loading: '正在读取本地模拟卷...', unavailable: '本地模拟卷无法读取。请确认本地后端正在运行。',
+    storageError: '浏览器无法保存进度，请勿关闭页面。答案仍保留在当前页面。', retry: '重试', allCorrect: '全部答对了！可以切换到全部题目继续复盘。', rawScore: '这里是原始正确率，不是 JLPT 换算分。', back: '返回模拟试题', loading: '正在读取本地模拟卷...', unavailable: '试卷暂时无法读取，请重试或返回目录。',
     original: 'Agent 写回模拟题', unverified: '未人工校验', questions: '题', minutes: '分钟', start: '开始整套考试', resume: '继续考试',
     intro: '完整试卷分为语言知识・阅读和听力两部分。开始后计时会持续运行，答案会自动保存在当前浏览器。',
     warning: '这不是官方试题或历年真题。题目与解析由外部 Agent 通过 MCP 写回，听力使用系统合成语音，请把成绩作为练习参考。',
@@ -26,7 +19,7 @@ const copy = {
     confirmRestart: '重新作答会清除这套试卷当前保存的答案。', confirmRestartButton: '清除并重来', timeUp: '考试时间已结束，系统已自动交卷。',
   },
   ja: {
-    back: '模擬試験一覧へ戻る', loading: 'ローカル模擬試験を読み込んでいます...', unavailable: 'ローカル模擬試験を読み込めません。ローカルサーバーを確認してください。',
+    storageError: '保存できません。解答はこのページに残っています。ページを閉じないでください。', retry: '再試行', allCorrect: '全問正解です！すべての問題を復習できます。', rawScore: 'これは正答率であり、JLPT の尺度得点ではありません。', back: '模擬試験一覧へ戻る', loading: 'ローカル模擬試験を読み込んでいます...', unavailable: '試験を読み込めません。再試行するか一覧に戻ってください。',
     original: 'AI オリジナル模擬問題', unverified: '未校閲', questions: '問', minutes: '分', start: '模擬試験を始める', resume: '試験を続ける',
     intro: '言語知識・読解と聴解の二部構成です。開始後も計時は継続し、解答はこのブラウザに自動保存されます。',
     warning: '公式問題・過去問題ではありません。問題と解説は AI 生成、聴解は合成音声です。得点は練習の目安として利用してください。',
@@ -37,7 +30,7 @@ const copy = {
     confirmRestart: '保存済みの解答を消去して、最初からやり直します。', confirmRestartButton: '消去してやり直す', timeUp: '試験時間が終了したため、自動的に採点しました。',
   },
   en: {
-    back: 'Back to mock exams', loading: 'Loading the local mock exam...', unavailable: 'The local mock exam could not be loaded. Check that the local backend is running.',
+    storageError: 'Progress cannot be saved. Answers are still on this page; keep it open.', retry: 'Retry', allCorrect: 'Every answer is correct! Show all questions to review them.', rawScore: 'This is raw accuracy, not a JLPT scaled score.', back: 'Back to mock exams', loading: 'Loading the local mock exam...', unavailable: 'This exam could not be loaded. Retry or return to the catalog.',
     original: 'AI-original mock exam', unverified: 'Not human-reviewed', questions: 'questions', minutes: 'minutes', start: 'Start full exam', resume: 'Resume exam',
     intro: 'The full paper has Language Knowledge and Reading, followed by Listening. The clock continues after you start, and answers are saved in this browser.',
     warning: 'This is not an official or past JLPT paper. Questions and explanations are AI-generated, and listening uses synthesized speech. Treat the score as practice feedback.',
@@ -49,12 +42,19 @@ const copy = {
   },
 } satisfies Record<Locale, Record<string, string>>;
 
-export function MockExamPanel({ examId, locale, onBack }: { examId: string; locale: Locale; onBack: () => void }) {
+type MockExamPanelProps = { examId: string; userId: number; locale: Locale; onBack: () => void };
+export function MockExamPanel(props: MockExamPanelProps) {
+  return <MockExamContent key={`${props.userId}:${props.examId}`} {...props} />;
+}
+
+function MockExamContent({ examId, userId, locale, onBack }: MockExamPanelProps) {
   const t = copy[locale];
-  const storageKey = `jlpt-local-mock:${examId}`;
+  const storageKey = legacyMockStorageKey(userId, examId);
   const [exam, setExam] = useState<LocalMockExam | null>(null);
   const [loadingError, setLoadingError] = useState('');
-  const [saved, setSaved] = useState<SavedExamState>(() => readSavedState(storageKey));
+  const [reload, setReload] = useState(0);
+  const [storageError, setStorageError] = useState(false);
+  const [saved, setSaved] = useState<SavedExamState>(() => emptyLegacyMockState());
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [reviewQuestionId, setReviewQuestionId] = useState<string | null>(null);
   const [wrongOnly, setWrongOnly] = useState(true);
@@ -66,19 +66,27 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
 
   useEffect(() => {
     let cancelled = false;
+    setExam(null); setLoadingError('');
     fetch(`/api/local-mock-exams/${encodeURIComponent(examId)}`)
       .then(async (response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json() as Promise<LocalMockExam>;
       })
-      .then((payload) => { if (!cancelled) setExam(payload); })
+      .then((payload) => {
+        if (cancelled) return;
+        try { setSaved(readLegacyMockState(localStorage, storageKey, payload)); }
+        catch { setSaved(emptyLegacyMockState(legacyMockRevision(payload))); setStorageError(true); }
+        setExam(payload);
+      })
       .catch(() => { if (!cancelled) setLoadingError(t.unavailable); });
     return () => { cancelled = true; };
-  }, [examId, t.unavailable]);
+  }, [examId, storageKey, reload, t.unavailable]);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(saved));
-  }, [saved, storageKey]);
+    if (!exam || saved.revision !== legacyMockRevision(exam)) return;
+    try { localStorage.setItem(storageKey, JSON.stringify(saved)); setStorageError(false); }
+    catch { setStorageError(true); }
+  }, [exam, saved, storageKey]);
 
   useEffect(() => {
     if (!exam || saved.status !== 'active' || !saved.startedAt) return;
@@ -96,7 +104,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
     return () => window.clearInterval(timer);
   }, [exam, saved.startedAt, saved.status]);
 
-  const answeredCount = Object.keys(saved.answers).length;
+  const answeredCount = exam?.questions.filter((question) => Number.isInteger(saved.answers[question.id])).length ?? 0;
   const flaggedSet = useMemo(() => new Set(saved.flagged), [saved.flagged]);
   const currentQuestion = exam?.questions[saved.currentIndex];
   const correctCount = exam?.questions.filter((item) => saved.answers[item.id] === item.answerIndex).length ?? 0;
@@ -109,7 +117,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
   }, [saved.currentIndex, saved.status]);
 
   useEffect(() => {
-    if (!exam || saved.status !== 'active' || !currentQuestion) return;
+    if (!exam || saved.status !== 'active' || !currentQuestion || confirmingSubmit) return;
     const activeExam = exam;
     const activeQuestion = currentQuestion;
 
@@ -117,6 +125,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
       const target = event.target instanceof HTMLElement ? event.target : null;
       const insideControl = Boolean(target?.closest('button, a, audio, input, textarea, select, summary'));
 
+      if (event.defaultPrevented || target?.isContentEditable || target?.closest('input, textarea, select, dialog[open]')) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
         setConfirmingSubmit(true);
@@ -130,7 +139,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
       if (event.altKey || event.ctrlKey || event.metaKey) return;
 
       const choiceIndex = /^[1-4]$/.test(event.key) ? Number(event.key) - 1 : -1;
-      if (choiceIndex >= 0) {
+      if (choiceIndex >= 0 && choiceIndex < activeQuestion.choices.length) {
         event.preventDefault();
         setSaved((current) => ({ ...current, answers: { ...current.answers, [activeQuestion.id]: choiceIndex } }));
         return;
@@ -163,10 +172,17 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [confirmingSubmit, currentQuestion, exam, saved.answers, saved.status]);
 
+  useEffect(() => {
+    if (!confirmingSubmit) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setConfirmingSubmit(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [confirmingSubmit]);
+
   function startExam() {
-    if (!exam) return;
+    if (!exam?.questions.length) return;
     if (saved.status === 'active') return;
-    setSaved({ status: 'active', answers: {}, flagged: [], currentIndex: 0, startedAt: new Date().toISOString() });
+    setSaved({ revision: legacyMockRevision(exam), status: 'active', answers: {}, flagged: [], currentIndex: 0, startedAt: new Date().toISOString() });
     setRemainingSeconds(exam.totalDurationMinutes * 60);
   }
 
@@ -196,15 +212,16 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
     setTimeUpNotice(false);
     setWrongOnly(true);
     setConfirmingRestart(false);
-    setSaved({ status: 'intro', answers: {}, flagged: [], currentIndex: 0 });
+    setSaved(emptyLegacyMockState(saved.revision));
   }
 
   if (!exam) {
     return (
-      <section className="mx-auto w-full max-w-5xl py-8">
+      <section className="practice-mock-exam mx-auto w-full max-w-5xl py-8">
         <button type="button" onClick={onBack} className="cute-focus inline-flex items-center gap-2 text-sm font-bold text-[#a84269]"><ArrowLeft size={17} />{t.back}</button>
+        {storageError ? <p role="alert" className="practice-save-error">{t.storageError}</p> : null}
         <div className="mt-5 rounded-lg border border-[#dfe5dc] bg-white p-8 text-center">
-          {loadingError ? <p className="text-sm font-semibold text-[#9b435f]">{loadingError}</p> : <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#59645e]"><LoaderCircle className="animate-spin" size={18} />{t.loading}</p>}
+          {loadingError ? <div><p role="alert" className="text-sm font-semibold text-[#9b435f]">{loadingError}</p><button type="button" className="practice-primary-action mt-4" onClick={() => setReload(value => value + 1)}>{t.retry}</button></div> : <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#59645e]"><LoaderCircle className="animate-spin" size={18} />{t.loading}</p>}
         </div>
       </section>
     );
@@ -212,8 +229,9 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
 
   if (saved.status === 'intro') {
     return (
-      <section className="mx-auto w-full max-w-5xl py-3 md:py-6">
+      <section className="practice-mock-exam mx-auto w-full max-w-5xl py-3 md:py-6">
         <button type="button" onClick={onBack} className="cute-focus inline-flex items-center gap-2 text-sm font-bold text-[#a84269]"><ArrowLeft size={17} />{t.back}</button>
+        {storageError ? <p role="alert" className="practice-save-error">{t.storageError}</p> : null}
         <div className="mt-5 overflow-hidden rounded-lg border border-[#d8e1da] bg-[#fcfdfa] shadow-sm">
           <div className="border-b border-[#e1e7df] bg-white px-5 py-6 md:px-8 md:py-8">
             <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -240,7 +258,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
               ))}
             </div>
             <p className="mt-5 flex items-start gap-2 rounded-md border border-[#ecdca8] bg-[#fffbea] p-4 text-sm leading-6 text-[#6f5b20]"><AlertTriangle className="mt-0.5 shrink-0" size={18} />{t.warning}</p>
-            <button type="button" onClick={startExam} className="cute-button-primary cute-focus mt-6 inline-flex h-12 items-center gap-2 rounded-md border px-6 text-sm font-bold"><Clock3 size={18} />{t.start}</button>
+            <button type="button" onClick={startExam} disabled={!exam.questions.length} className="cute-button-primary cute-focus mt-6 inline-flex h-12 items-center gap-2 rounded-md border px-6 text-sm font-bold"><Clock3 size={18} />{t.start}</button>
           </div>
         </div>
       </section>
@@ -248,10 +266,11 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
   }
 
   if (saved.status === 'result') {
-    const accuracy = Math.round((correctCount / exam.questions.length) * 100);
+    const accuracy = exam.questions.length ? Math.round((correctCount / exam.questions.length) * 100) : 0;
     return (
-      <section className="mx-auto w-full max-w-6xl py-3 md:py-6">
+      <section className="practice-mock-exam mx-auto w-full max-w-6xl py-3 md:py-6">
         <button type="button" onClick={onBack} className="cute-focus inline-flex items-center gap-2 text-sm font-bold text-[#a84269]"><ArrowLeft size={17} />{t.back}</button>
+        {storageError ? <p role="alert" className="practice-save-error">{t.storageError}</p> : null}
         {timeUpNotice ? <p role="status" className="mt-4 rounded-md border border-[#ecdca8] bg-[#fffbea] p-3 text-sm font-bold text-[#6f5b20]">{t.timeUp}</p> : null}
         <div className="mt-4 rounded-lg border border-[#dce4dd] bg-white p-5 shadow-sm md:p-7">
           <div className="flex flex-wrap items-start justify-between gap-5">
@@ -275,6 +294,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
             <ResultMetric label={t.accuracy} value={`${accuracy}%`} />
             <ResultMetric label={t.unanswered} value={String(exam.questions.length - answeredCount)} />
           </div>
+          <p className="mt-3 text-sm text-[#65706a]">{t.rawScore}</p>
           <div className="mt-6 grid gap-3 md:grid-cols-2">
             {exam.sections.map((section) => {
               const sectionQuestions = exam.questions.filter((item) => item.sectionId === section.id);
@@ -288,14 +308,15 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
           <button type="button" onClick={() => setWrongOnly((value) => !value)} className="h-9 rounded-md border border-[#c9d4cc] bg-white px-3 text-sm font-bold text-[#46514c]">{wrongOnly ? t.all : t.onlyWrong}</button>
         </div>
         <div className="mt-3 grid gap-4">
-          <LearningList locale={locale} columnLabels={locale === "ja" ? ["問題", "内容", "結果"] : locale === "en" ? ["Question", "Content", "Result"] : ["题目", "内容", "结果"]}>{reviewQuestions.map((item) => <LearningListRow key={item.id} title={item.group} description={item.prompt} locale={locale} expanded={reviewQuestionId === item.id} statusKind={saved.answers[item.id] === undefined ? 'unanswered' : saved.answers[item.id] === item.answerIndex ? 'correct' : 'incorrect'} status={saved.answers[item.id] === undefined ? t.noAnswer : saved.answers[item.id] === item.answerIndex ? (locale === 'ja' ? '正解' : locale === 'en' ? 'Correct' : '正确') : (locale === 'ja' ? '不正解' : locale === 'en' ? 'Incorrect' : '错误')} onOpen={() => setReviewQuestionId(reviewQuestionId === item.id ? null : item.id)} secondary={reviewQuestionId === item.id ? <div className="w-full"><ReviewQuestion item={item} selected={saved.answers[item.id]} t={t}/></div> : undefined}/>)}</LearningList>
+          {wrongOnly && reviewQuestions.length === 0 ? <p role="status" className="practice-results-empty">{t.allCorrect}</p> : <LearningList locale={locale} columnLabels={locale === "ja" ? ["問題", "内容", "結果"] : locale === "en" ? ["Question", "Content", "Result"] : ["题目", "内容", "结果"]}>{reviewQuestions.map((item) => <LearningListRow key={item.id} title={item.group} description={item.prompt} locale={locale} expanded={reviewQuestionId === item.id} statusKind={saved.answers[item.id] === undefined ? 'unanswered' : saved.answers[item.id] === item.answerIndex ? 'correct' : 'incorrect'} status={saved.answers[item.id] === undefined ? t.noAnswer : saved.answers[item.id] === item.answerIndex ? (locale === 'ja' ? '正解' : locale === 'en' ? 'Correct' : '正确') : (locale === 'ja' ? '不正解' : locale === 'en' ? 'Incorrect' : '错误')} onOpen={() => setReviewQuestionId(reviewQuestionId === item.id ? null : item.id)} secondary={reviewQuestionId === item.id ? <div className="w-full"><ReviewQuestion item={item} selected={saved.answers[item.id]} t={t}/></div> : undefined}/>)}</LearningList>}
         </div>
       </section>
     );
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl py-2 md:py-4">
+    <section className="practice-mock-exam mx-auto w-full max-w-7xl py-2 md:py-4">
+      {storageError ? <p role="alert" className="practice-save-error">{t.storageError}</p> : null}
       <div className="sticky top-[64px] z-20 flex flex-wrap items-center justify-between gap-3 border-y border-[#dce4dd] bg-[#fffefa]/95 px-3 py-3 backdrop-blur md:top-[65px] md:rounded-md md:border">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-[#34423b]">{exam.title}</p>
@@ -322,7 +343,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
                 <p className="text-xs font-bold text-[#9b435f]">{currentQuestion.group}</p>
                 <p className="mt-1 text-sm font-semibold text-[#68716b]">{saved.currentIndex + 1} / {exam.questions.length}</p>
               </div>
-              <button type="button" aria-keyshortcuts="F" onClick={() => toggleFlag(currentQuestion.id)} className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold ${flaggedSet.has(currentQuestion.id) ? 'border-[#e5bd52] bg-[#fff7d9] text-[#775516]' : 'border-[#d4ddd6] text-[#65706a]'}`}><Flag size={16} />{flaggedSet.has(currentQuestion.id) ? t.unflag : t.flag}</button>
+              <button type="button" aria-keyshortcuts="F" aria-pressed={flaggedSet.has(currentQuestion.id)} onClick={() => toggleFlag(currentQuestion.id)} className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold ${flaggedSet.has(currentQuestion.id) ? 'border-[#e5bd52] bg-[#fff7d9] text-[#775516]' : 'border-[#d4ddd6] text-[#65706a]'}`}><Flag size={16} />{flaggedSet.has(currentQuestion.id) ? t.unflag : t.flag}</button>
             </div>
             <div className="p-4 md:p-7">
               {currentQuestion.audioUrl ? <audio ref={audioRef} key={currentQuestion.id} aria-keyshortcuts="Space" className="w-full" controls preload="metadata" src={currentQuestion.audioUrl} /> : null}
@@ -332,7 +353,7 @@ export function MockExamPanel({ examId, locale, onBack }: { examId: string; loca
                 {currentQuestion.choices.map((choice, choiceIndex) => {
                   const selected = saved.answers[currentQuestion.id] === choiceIndex;
                   return (
-                    <button key={choiceIndex} type="button" aria-keyshortcuts={String(choiceIndex + 1)} onClick={() => answer(currentQuestion.id, choiceIndex)} className={`flex min-h-14 w-full items-start gap-3 rounded-md border px-4 py-3 text-left text-base leading-7 transition ${selected ? 'border-[#31564c] bg-[#edf6f0] text-[#24473f] ring-1 ring-[#31564c]' : 'border-[#dce4dd] bg-white text-[#3f4944] hover:bg-[#f7faf7]'}`}>
+                    <button key={choiceIndex} type="button" aria-keyshortcuts={String(choiceIndex + 1)} aria-pressed={selected} onClick={() => answer(currentQuestion.id, choiceIndex)} className={`flex min-h-14 w-full items-start gap-3 rounded-md border px-4 py-3 text-left text-base leading-7 transition ${selected ? 'border-[#31564c] bg-[#edf6f0] text-[#24473f] ring-1 ring-[#31564c]' : 'border-[#dce4dd] bg-white text-[#3f4944] hover:bg-[#f7faf7]'}`}>
                       <span className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${selected ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#bdc9c1] bg-white text-[#5d6962]'}`}>{choiceIndex + 1}</span>
                       <span>{choice}</span>
                     </button>
@@ -357,9 +378,9 @@ function QuestionNavigator({ exam, saved, flaggedSet, onMove }: { exam: LocalMoc
       {exam.sections.map((section) => (
         <div key={section.id} className="mb-4 last:mb-0">
           <p className="mb-2 text-xs font-bold leading-5 text-[#5c6962]">{section.title}</p>
-          <div className="grid grid-cols-8 gap-1.5 lg:grid-cols-6">
+          <div className="practice-mock-question-grid">
             {exam.questions.map((item, index) => item.sectionId === section.id ? (
-              <button key={item.id} type="button" title={`${index + 1}. ${item.group}`} onClick={() => onMove(index)} className={`relative aspect-square rounded border text-xs font-bold ${saved.currentIndex === index ? 'border-[#a84269] bg-[#a84269] text-white' : saved.answers[item.id] !== undefined ? 'border-[#9fc0aa] bg-[#eef7f0] text-[#31564c]' : 'border-[#d9e1db] bg-white text-[#6a756e]'}`}>
+              <button key={item.id} type="button" aria-current={saved.currentIndex === index ? 'true' : undefined} aria-label={`${index + 1}. ${item.group}${saved.answers[item.id] !== undefined ? ' ✓' : ''}${flaggedSet.has(item.id) ? ' ⚑' : ''}`} title={`${index + 1}. ${item.group}`} onClick={() => onMove(index)} className={`relative aspect-square rounded border text-xs font-bold ${saved.currentIndex === index ? 'border-[#a84269] bg-[#a84269] text-white' : saved.answers[item.id] !== undefined ? 'border-[#9fc0aa] bg-[#eef7f0] text-[#31564c]' : 'border-[#d9e1db] bg-white text-[#6a756e]'}`}>
                 {index + 1}
                 {flaggedSet.has(item.id) ? <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-white bg-[#e2ad27]" /> : null}
               </button>
@@ -373,6 +394,7 @@ function QuestionNavigator({ exam, saved, flaggedSet, onMove }: { exam: LocalMoc
 
 function ReviewQuestion({ item, selected, t }: { item: MockExamQuestion; selected?: number; t: Record<string, string> }) {
   const correct = selected === item.answerIndex;
+  const evidence = conciseEvidence(item.explanation);
   return (
     <article className={`rounded-lg border bg-white p-4 shadow-sm md:p-6 ${correct ? 'border-[#cfe2d4]' : 'border-[#eccbd4]'}`}>
       <div className="flex items-center justify-between gap-3">
@@ -385,7 +407,8 @@ function ReviewQuestion({ item, selected, t }: { item: MockExamQuestion; selecte
         <p><span className="font-bold text-[#6c7770]">{t.yourAnswer}: </span>{selected === undefined ? t.noAnswer : `${selected + 1}. ${item.choices[selected]}`}</p>
         <p className="text-[#31564c]"><span className="font-bold">{t.correctAnswer}: </span>{item.answerIndex + 1}. {item.choices[item.answerIndex]}</p>
       </div>
-      <p className="mt-4 rounded-md bg-[#f4f7f3] p-3 text-sm leading-7 text-[#46514c]"><span className="font-bold">{t.explanation}: </span>{item.explanation}</p>
+      <p className="mt-4 rounded-md bg-[#f4f7f3] p-3 text-sm leading-7 text-[#46514c]"><span className="font-bold">{t.explanation}: </span>{evidence.summary}</p>
+      {evidence.hasMore ? <details className="practice-mock-explanation mt-3"><summary>{t.explanation}</summary><p>{item.explanation}</p></details> : null}
       {item.transcript ? <details className="mt-3 rounded-md border border-[#dce4dd] p-3 text-sm leading-7 text-[#46514c]"><summary className="cursor-pointer inline-flex items-center gap-2 font-bold"><Headphones size={16} />{t.transcript}</summary><p className="mt-3 whitespace-pre-wrap">{item.transcript}</p></details> : null}
     </article>
   );
@@ -397,16 +420,6 @@ function ExamMetric({ label, value }: { label: string; value: string }) {
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
   return <div className="rounded-md border border-[#dce4dd] bg-[#f8faf7] p-4"><p className="text-xs font-bold text-[#6d7871]">{label}</p><p className="mt-2 text-3xl font-black text-[#31564c]">{value}</p></div>;
-}
-
-function readSavedState(storageKey: string): SavedExamState {
-  try {
-    const value = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as SavedExamState | null;
-    if (value && ['intro', 'active', 'result'].includes(value.status)) return { ...value, answers: value.answers ?? {}, flagged: value.flagged ?? [], currentIndex: value.currentIndex ?? 0 };
-  } catch {
-    // Ignore malformed local state and start a clean attempt.
-  }
-  return { status: 'intro', answers: {}, flagged: [], currentIndex: 0 };
 }
 
 function formatTime(seconds: number) {

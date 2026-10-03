@@ -1,6 +1,8 @@
+import './SettingsView.css';
+import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
 import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import { fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
 import type { DisplaySettings, Locale } from '../../types';
@@ -27,7 +29,9 @@ type SettingsCopy = {
   connectedAgents: string;
   connectedAgentsHint: string;
   learningLanguage: string;
-  nativeLanguage: string;
+  interfaceLanguage: string;
+  pronunciationClearTitle: string;
+  pronunciationClearBody: string;
   mcpInspector: string;
   mcpInspectorHint: string;
   pronunciation: string;
@@ -51,7 +55,9 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgents: '已连接的 Agent',
     connectedAgentsHint: 'MCP · OAuth 授权 · 断开连接',
     learningLanguage: '学习 日本语',
-    nativeLanguage: '母语 中文',
+    interfaceLanguage: '界面语言',
+    pronunciationClearTitle: '清除朗读配置？',
+    pronunciationClearBody: '将清除该服务商保存的凭据。再次使用前需要重新配置。',
     mcpInspector: 'MCP 调试工具',
     mcpInspectorHint: '本地开发 · 查看 Schema、授权与调试工具调用',
     pronunciation: '发音朗读',
@@ -73,7 +79,9 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgents: '接続済みエージェント',
     connectedAgentsHint: 'MCP · OAuth 認可 · 接続解除',
     learningLanguage: '学習 日本語',
-    nativeLanguage: '母語 中国語',
+    interfaceLanguage: '表示言語',
+    pronunciationClearTitle: '読み上げ設定を削除しますか？',
+    pronunciationClearBody: 'このサービスの保存済み認証情報を削除します。再利用するには設定が必要です。',
     mcpInspector: 'MCP デバッグツール',
     mcpInspectorHint: 'ローカル開発 · スキーマ・認可・ツール呼び出しを確認',
     pronunciation: '発音読み上げ',
@@ -95,7 +103,9 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     connectedAgents: 'Connected Agents',
     connectedAgentsHint: 'MCP · OAuth consent · Disconnect',
     learningLanguage: 'Learning Japanese',
-    nativeLanguage: 'Native Chinese',
+    interfaceLanguage: 'App language',
+    pronunciationClearTitle: 'Clear speech configuration?',
+    pronunciationClearBody: 'This removes the saved credentials for this provider. You will need to configure it again before using it.',
     mcpInspector: 'MCP Inspector',
     mcpInspectorHint: 'Local development · Inspect schemas, authorization and tool calls',
     pronunciation: 'Pronunciation',
@@ -113,39 +123,22 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
 export function SettingsView({ labels, settings, username, authToken, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings }: SettingsViewProps) {
   const copy = settingsPageCopy[settings.locale];
   const activeSection = isSettingsSection(activeSectionValue) ? activeSectionValue : undefined;
-  const onOpenSection = openSection ?? (() => undefined);
-  const profileCard = <SettingsProfileCard copy={copy} username={username} />;
+  const onOpenSection = openSection ?? ((section: SettingsSectionId) => { window.location.hash = `#/settings/${section}`; });
 
   return (
     <section className="gentle-settings mobile-settings-page mobile-page-surface mx-auto min-w-0 max-w-3xl rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:max-w-4xl md:border-0 md:bg-transparent md:p-0 md:shadow-none">
-      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c] md:hidden${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
-
-      {!activeSection ? <div className="settings-home-only md:hidden">{profileCard}</div> : null}
-      <div className="settings-mobile-detail md:hidden">
+      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c]${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
+      {!activeSection ? <div className="settings-home-only"><SettingsProfileCard copy={copy} username={username} locale={settings.locale} /></div> : null}
+      <div className="settings-mobile-detail settings-unified-content">
         {activeSection ? (
-          <section className="settings-section-card settings-detail-card">
+          <section id={`settings-${activeSection}`} className="settings-section-card settings-detail-card" aria-label={sectionTitle(activeSection, labels, copy, settings)}>
             <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </section>
         ) : (
           <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
         )}
       </div>
-      {/* Desktop: every section on one page, top to bottom. No sub-pages. */}
-      <div className="settings-desktop-stack hidden md:grid">
-        {settingsSections.map((section) => (
-          <SettingsSection key={section} id={`settings-${section}`} title={sectionTitle(section, labels, copy, settings)} icon={sectionIcon(section)}>
-            <SettingsSectionContent section={section} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
-          </SettingsSection>
-        ))}
-        <AiSettingsBlock labels={labels} />
-        <McpInspectorLink copy={copy} />
-        <div className="settings-desktop-footer">
-          <span>{labels.currentUser}: <strong>{username}</strong></span>
-          <button type="button" onClick={onLogout} className="settings-logout-button"><LogOut size={18} />{labels.logout}</button>
-        </div>
-      </div>
-
-      {!activeSection ? <div className="settings-logout-area md:hidden">
+      {!activeSection || activeSection === 'account' ? <div className="settings-logout-area">
         <button type="button" onClick={onLogout} className="settings-logout-button">
           <LogOut size={18} />{labels.logout}
         </button>
@@ -153,8 +146,6 @@ export function SettingsView({ labels, settings, username, authToken, activeSect
     </section>
   );
 }
-
-const settingsSections: SettingsSectionId[] = ['display', 'practice', 'memory', 'pronunciation', 'account'];
 
 const memoryCardSettingsCopy: Record<Locale, {
   title: string;
@@ -198,15 +189,7 @@ function sectionTitle(section: SettingsSectionId, labels: Record<string, string>
   return labels.account;
 }
 
-function sectionIcon(section: SettingsSectionId, size = 22) {
-  if (section === 'display') return <Settings2 size={size} />;
-  if (section === 'practice') return <Sparkles size={size} />;
-  if (section === 'memory') return <PanelTop size={size} />;
-  if (section === 'pronunciation') return <Volume2 size={size} />;
-  return <MessageSquareText size={size} />;
-}
-
-function SettingsProfileCard({ copy, username }: { copy: SettingsCopy; username: string }) {
+function SettingsProfileCard({ copy, username, locale }: { copy: SettingsCopy; username: string; locale: Locale }) {
   return (
     <section className="settings-profile-card" aria-label={copy.profileEdit}>
       <div className="settings-avatar" aria-hidden="true">
@@ -216,11 +199,10 @@ function SettingsProfileCard({ copy, username }: { copy: SettingsCopy; username:
         <h3>{username}</h3>
         <p>{copy.profileEdit}</p>
       </div>
-      <ChevronRight className="settings-profile-chevron" size={24} aria-hidden="true" />
       <div className="settings-language-pair">
         <span><BookOpen size={18} />{copy.learningLanguage}</span>
-        <ChevronRight size={18} aria-hidden="true" />
-        <span><Languages size={18} />{copy.nativeLanguage}</span>
+        <span className="settings-language-divider" aria-hidden="true">·</span>
+        <span><Languages size={18} />{copy.interfaceLanguage} · { { 'zh-CN': '简体中文', ja: '日本語', en: 'English' }[locale]}</span>
       </div>
     </section>
   );
@@ -319,17 +301,6 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   );
 }
 
-function SettingsSection({ id, title, icon, children }: { id?: string; title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section id={id} className="settings-section-card">
-      <h3><span>{icon}</span>{title}</h3>
-      <div className="settings-section-body">
-        {children}
-      </div>
-    </section>
-  );
-}
-
 function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: DisplaySettings; onUpdateSettings: (settings: DisplaySettings) => void }) {
   const copy = memoryCardSettingsCopy[settings.locale];
   const update = (side: 'front' | 'back', field: MemoryCardField) => {
@@ -361,7 +332,7 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
                     aria-pressed={active}
                     disabled={lastSelected}
                     onClick={() => update(side, field)}
-                    className={`min-h-10 rounded-md border px-2 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed ${active ? 'border-[#24473f] bg-[#eef3ed] text-[#24473f]' : 'border-[#e1ddd5] bg-white text-[#68716b] hover:bg-[#f7f5ef]'}`}
+                    className={`min-h-11 rounded-md border px-2 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed ${active ? 'border-[#24473f] bg-[#eef3ed] text-[#24473f]' : 'border-[#e1ddd5] bg-white text-[#68716b] hover:bg-[#f7f5ef]'}`}
                   >
                     <span aria-hidden="true" className="mr-1">{active ? '✓' : '○'}</span>{memoryCardFieldLabels[settings.locale][field]}
                   </button>
@@ -379,6 +350,8 @@ function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: Dis
 function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: {
   copy: SettingsCopy; settings: DisplaySettings; authToken: string; onUpdateSettings: (settings: DisplaySettings) => void;
 }) {
+  const confirm = useConfirmation();
+  const actionPending = useRef(false);
   const [providers, setProviders] = useState<TtsProviderDescriptor[]>([]);
   const [credentials, setCredentials] = useState<TtsCredentialStatus[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
@@ -398,37 +371,46 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
   const statusFor = (providerId: string) => credentials.find((entry) => entry.provider === providerId);
 
   async function handleSave(provider: TtsProviderDescriptor) {
+    if (actionPending.current) return;
+    actionPending.current = true;
     setBusyProvider(provider.id); setError('');
     try {
       const result = await saveTtsCredential(authToken, provider.id, drafts[provider.id] ?? {});
       setCredentials(result.credentials);
       setDrafts((current) => ({ ...current, [provider.id]: {} }));
     } catch (err) { setError(err instanceof Error ? err.message : '保存失败，请重试。'); }
-    finally { setBusyProvider(null); }
+    finally { actionPending.current = false; setBusyProvider(null); }
   }
 
   async function handleClear(provider: TtsProviderDescriptor) {
+    if (actionPending.current) return;
+    actionPending.current = true;
     setBusyProvider(provider.id); setError('');
     try {
+      if (!(await confirm({ title: copy.pronunciationClearTitle, description: `${provider.name}: ${copy.pronunciationClearBody}`, confirmLabel: copy.pronunciationClear, cancelLabel: { 'zh-CN': '取消', ja: 'キャンセル', en: 'Cancel' }[settings.locale], danger: true }))) return;
       const result = await deleteTtsCredential(authToken, provider.id);
       setCredentials(result.credentials);
+      setDrafts((current) => ({ ...current, [provider.id]: {} }));
     } catch (err) { setError(err instanceof Error ? err.message : '清除失败，请重试。'); }
-    finally { setBusyProvider(null); }
+    finally { actionPending.current = false; setBusyProvider(null); }
   }
 
   return (
     <>
       <SettingsRow title={copy.pronunciationProvider}>
         <select
+          aria-label={copy.pronunciationProvider}
+          disabled={busyProvider !== null}
           value={settings.ttsProvider}
-          onChange={(event) => onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] })}
-          className="h-11 rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]"
+          onChange={(event) => { setError(''); onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] }); }}
+          className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]"
         >
           <option value="browser">{copy.pronunciationBrowser}</option>
+          {settings.ttsProvider !== 'browser' && !providers.some((provider) => provider.id === settings.ttsProvider) ? <option value={settings.ttsProvider}>{settings.ttsProvider}</option> : null}
           {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
         </select>
       </SettingsRow>
-      {providers.map((provider) => {
+      {providers.filter((provider) => provider.id === settings.ttsProvider).map((provider) => {
         const status = statusFor(provider.id);
         const draft = drafts[provider.id] ?? {};
         return (
@@ -440,20 +422,21 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
               {provider.credentialFields.map((field) => (
                 <input
                   key={field.key}
+                  disabled={busyProvider !== null}
                   type={field.secret ? 'password' : 'text'}
                   placeholder={field.label}
                   aria-label={`${provider.name} ${field.label}`}
                   value={draft[field.key] ?? ''}
                   onChange={(event) => setDrafts((current) => ({ ...current, [provider.id]: { ...current[provider.id], [field.key]: event.target.value } }))}
-                  className="h-10 rounded-md border border-[#c8bcae] bg-white px-3 text-sm"
+                  className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm"
                 />
               ))}
               <div className="flex gap-2">
-                <button type="button" disabled={busyProvider === provider.id} onClick={() => handleSave(provider)} className="min-h-10 rounded-md border border-[#24473f] bg-[#24473f] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                <button type="button" disabled={busyProvider !== null || !Object.values(draft).some((value) => value.trim())} onClick={() => handleSave(provider)} className="min-h-11 rounded-md border border-[#24473f] bg-[#24473f] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
                   {busyProvider === provider.id ? copy.pronunciationSaving : copy.pronunciationSave}
                 </button>
                 {status?.configured && (
-                  <button type="button" disabled={busyProvider === provider.id} onClick={() => handleClear(provider)} className="min-h-10 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#4f5651] disabled:opacity-60">
+                  <button type="button" disabled={busyProvider !== null} onClick={() => handleClear(provider)} className="min-h-11 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#4f5651] disabled:opacity-60">
                     {copy.pronunciationClear}
                   </button>
                 )}
@@ -478,7 +461,7 @@ function SettingsRow({ title, children, desktopOnly = false }: { title: string; 
 
 function LanguageSelect({ value, onChange }: { value: Locale; onChange: (locale: Locale) => void }) {
   return (
-    <select value={value} onChange={(event) => onChange(event.target.value as Locale)} className="h-11 rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]" aria-label="Language">
+    <select value={value} onChange={(event) => onChange(event.target.value as Locale)} className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]" aria-label="Language">
       <option value="zh-CN">简体中文</option>
       <option value="ja">日本語</option>
       <option value="en">English</option>
@@ -497,7 +480,7 @@ function Toggle({ checked, label, onChange }: { checked: boolean; label: string;
 
 function SegmentButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={`min-h-10 min-w-0 rounded-md border px-3 py-2 text-sm font-semibold break-words ${active ? 'border-[#24473f] bg-[#24473f] text-white' : 'border-[#d9d0c3] bg-white text-[#4f5651] hover:bg-[#f6eee3]'}`}>
+    <button type="button" aria-pressed={active} onClick={onClick} className={`min-h-11 min-w-0 rounded-md border px-3 py-2 text-sm font-semibold break-words ${active ? 'border-[#24473f] bg-[#24473f] text-white' : 'border-[#d9d0c3] bg-white text-[#4f5651] hover:bg-[#f6eee3]'}`}>
       {children}
     </button>
   );

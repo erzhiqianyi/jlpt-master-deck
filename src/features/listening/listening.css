@@ -1,0 +1,27 @@
+.listening-workspace {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.listening-workspace button,
+.listening-workspace select,
+.listening-workspace summary {
+  min-height: 44px;
+}
+
+.listening-workspace button {
+  min-width: 44px;
+}
+
+.listening-workspace summary {
+  align-content: center;
+}
+
+.listening-workspace audio {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.listening-workspace .listening-recording-summary {
+  padding-right: 48px;
+}

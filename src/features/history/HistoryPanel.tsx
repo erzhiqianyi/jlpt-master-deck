@@ -2,11 +2,11 @@ import { StudyText } from '../../components/StudyText';
 import { DailySummaryPanel } from './DailySummaryPanel';
 import './RecordHome.css';
 import { NavigationCard } from '../../components/NavigationCard';
-import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
+import { LearningList, LearningListFrame, LearningListHeader, LearningListSearch, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction, type ListSelection } from '../../components/ListBatch';
 import { Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
 type AttemptFilter = {
@@ -34,6 +34,8 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   onAttemptQuestionDetailChange?: (open: boolean) => void;
 }) {
   const [page, setPage] = useState(0);
+  const [captureSearch, setCaptureSearch] = useState('');
+  const [captureFilter, setCaptureFilter] = useState<LearningCaptureStatus | 'all'>('all');
   const [view, setView] = useState<'captures' | 'practice'>('captures');
   const [uncontrolledAttemptId, setUncontrolledAttemptId] = useState<string | null>(null);
   const [attemptFilter, setAttemptFilter] = useState<AttemptFilter>({ module: 'all', result: 'all', range: 'all' });
@@ -50,7 +52,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   const selectedAttempt = sortedAttempts.find((attempt) => attempt.id === selectedAttemptId);
   const selectedCapture = captures.find((capture) => capture.id === selectedCaptureId) ?? null;
   const setSelectedCaptureId = onSelectedCaptureChange ?? setUncontrolledCaptureId;
-  const sortedCaptures = useMemo(() => [...captures].sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)), [captures]);
+  const sortedCaptures = useMemo(() => captures.filter((capture) => (captureFilter === 'all' || capture.status === captureFilter) && (!captureSearch.trim() || `${capture.body} ${capture.context ?? ''}`.toLocaleLowerCase().includes(captureSearch.trim().toLocaleLowerCase()))).sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt)), [captures, captureFilter, captureSearch]);
   const captureBatch = useListBatch(useMemo(() => sortedCaptures.map((capture) => capture.id), [sortedCaptures]));
   const captureStatusOf = (id: string) => captures.find((capture) => capture.id === id)?.status;
   const captureBatchActions: BatchAction[] = ([['processed', CheckCircle2], ['inbox', Inbox], ['archived', Archive]] as const).map(([status, Icon]) => ({
@@ -66,8 +68,8 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   }, [activeView, setSelectedCaptureId]);
 
   const showAttemptHistory = activeView === 'practice' && (mode === 'both' || recordSection === 'history');
-  const count = activeView === 'captures' ? captures.length : showAttemptHistory ? filteredAttempts.length : 0;
-  const mobileList = useMobileList(count, JSON.stringify([activeView, attemptFilter]), 6);
+  const count = activeView === 'captures' ? sortedCaptures.length : showAttemptHistory ? filteredAttempts.length : 0;
+  const mobileList = useMobileList(count, JSON.stringify([activeView, attemptFilter, captureSearch, captureFilter]), 6);
   const pageCount = Math.max(1, Math.ceil(count / 6));
   const currentPage = Math.min(page, pageCount - 1);
   const start = currentPage * 6;
@@ -106,7 +108,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
           />
         ) : (
           <LearningListFrame className="learning-catalog mt-4" label={labels.historyCaptureTab}>
-            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`}><div className="list-tools"><BatchManageButton batch={captureBatch} locale={locale} /></div></LearningListHeader>
+            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`}><div className="list-tools"><LearningListSearch value={captureSearch} onChange={(value) => { setCaptureSearch(value); setPage(0); }} placeholder={locale === 'zh-CN' ? '搜索输入记录' : locale === 'ja' ? '記録を検索' : 'Search captures'} /><LearningListSelect value={captureFilter} onChange={(value) => { setCaptureFilter(value as LearningCaptureStatus | 'all'); setPage(0); }} hideLabel label={locale === 'zh-CN' ? '记录状态' : locale === 'ja' ? '状態' : 'Capture status'}>{(['all', 'inbox', 'processed', 'archived'] as const).map(status => <option key={status} value={status}>{status === 'all' ? (locale === 'zh-CN' ? '全部状态' : locale === 'ja' ? 'すべての状態' : 'All statuses') : captureStatusLabel(labels, status)}</option>)}</LearningListSelect><BatchManageButton batch={captureBatch} locale={locale} /></div></LearningListHeader>
             <BatchActionBar batch={captureBatch} actions={captureBatchActions} locale={locale} />
             <CaptureTable labels={labels} locale={locale} captures={sortedCaptures.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} selection={captureBatch.selection} />
             {listFooter}
@@ -243,6 +245,16 @@ function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
   capture: LearningCapture;
   onToggleStatus: () => Promise<void>;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const pending = useRef(false);
+  async function toggleStatus() {
+    if (pending.current) return;
+    pending.current = true; setBusy(true); setError('');
+    try { await onToggleStatus(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : labels.planSaveFailed); }
+    finally { pending.current = false; setBusy(false); }
+  }
   const parsed = parseCaptureBody(capture.body);
   const summary = captureSummary(capture);
 
@@ -259,11 +271,12 @@ function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
           <h2 className="mt-2 text-lg font-semibold leading-7 text-[#27312c]">{summary.title}</h2>
           {summary.subtitle ? <p className="mt-1 text-sm leading-6 text-[#657069]">{summary.subtitle}</p> : null}
         </div>
-        <button type="button" onClick={onToggleStatus} className="min-h-10 shrink-0 rounded-md border border-[#c8d1c8] bg-white px-3 text-xs font-semibold text-[#31564c]">
-          {capture.status === 'processed' ? labels.captureMarkInbox : labels.captureMarkProcessed}
+        <button type="button" onClick={() => void toggleStatus()} disabled={busy} aria-busy={busy} className="min-h-11 shrink-0 rounded-md border border-[#c8d1c8] bg-white px-3 text-xs font-semibold text-[#31564c]">
+          {busy ? labels.processing : capture.status === 'processed' ? labels.captureMarkInbox : labels.captureMarkProcessed}
         </button>
       </div>
 
+      {error ? <p role="alert" className="mt-3 text-sm text-red-700">{error}</p> : null}
       {capture.context ? <InfoBlock title={labels.captureContextLabel ?? 'Context'}>{capture.context}</InfoBlock> : null}
       <div className="mt-5">
         <h3 className="text-sm font-semibold text-[#27312c]">{labels.captureDetailTitle ?? labels.historyCaptureTab}</h3>

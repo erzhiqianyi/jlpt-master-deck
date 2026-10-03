@@ -13,7 +13,7 @@ The product exists to support one repeated learning loop:
 3. **History:** revisit original inputs and past attempts without mixing them into the active exercise.
 4. **Data:** observe pending work, practice volume, accuracy, and mastery in a compact form.
 
-These four responsibilities define the learning loop, but they do not all need equal navigation weight. The primary navigation prioritizes fast study access: Home, Vocabulary, Grammar, Listening, Reading, Mixed Practice, and Data Management. Capture is a prominent home-page action. Metrics, captured-input management, and practice history are grouped inside Data Management. Planning, question-type guidance, drafts, About, and Settings remain supporting tools in secondary navigation.
+These four responsibilities define the learning loop, but they do not all need equal navigation weight. Web primary destinations have one stable order at compact and regular widths: Today, Practice, Discover, Records, Library (今日、练习、发现、记录、题库). Vocabulary, Grammar, Listening and Reading are library children. Captures, drafts, practice history and learning summaries live under Records. Planning, question-type guidance, About and Settings remain supporting tools. Browsing preserves the relevant primary destination; answering and recording use an explicit focused task with a predictable parent/back route.
 
 Cards and list rows provide an overview and a route into deeper content. They should not attempt to display the complete explanation, editing form, progress history, and related actions at the same time. Detailed information belongs on a dedicated detail page with its own hash route.
 
@@ -145,3 +145,14 @@ Before accepting a new page or component, verify:
 - Is the primary action clear and close to the content it affects?
 - Does the page remain readable without horizontal overflow on a 390px viewport?
 - Can browser back and forward navigation recover the list and detail states?
+
+
+## Responsive Web contract (2026-10 audit repair)
+
+- Compact and regular layouts share action availability, capability gates, selected-route semantics and data. A narrow viewport may move secondary actions to a labeled sheet, never silently drop them.
+- Interactive controls target at least 44 CSS pixels, except inline language lookup tokens that must preserve prose flow. Sheets use native dialog semantics, Escape/dismissal, focus restoration, safe-area padding and contained scrolling.
+- Keep the current paper/vermilion primary palette. Use semantic success/error colors for correctness, not as competing primary brands.
+- Results start with outcome, correct answer and concise evidence. Keep full explanations available behind an explicit disclosure; retain unanswered and unavailable historical questions.
+- Historical replay creates a separate attempt, preserves route identity, and never overwrites an unrelated active session's answers. Existing server retention limits remain unchanged.
+- Mobile/desktop Web responsiveness does not establish iPhone/iPad pixel parity. Native implementation and screenshot comparison are separate checks.
+- Detailed implementation disposition and pending verification: `docs/qa/web-responsive-audit-disposition.json`.

@@ -1,3 +1,4 @@
+import { canReplayAttempt } from '../../domain/attemptReplay';
 import { type ReactNode } from 'react';
 import type { LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question, VocabItem } from '../../types';
 import { HistoryPanel } from '../history/HistoryPanel';
@@ -5,7 +6,8 @@ import { PracticeReviewPanel } from '../practice/StudyPanels';
 
 export type DataTab = 'captures' | 'practice' | 'drafts' | 'settings';
 
-export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby, summaryToken }: {
+export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby, summaryToken, onRestartAttempt }: {
+  onRestartAttempt?: (attempt: PracticeAttempt) => void;
   items: VocabItem[];
   showRuby: boolean;
   summaryToken: string;
@@ -37,7 +39,7 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
     });
     return <>
       {attemptQuestions.length < selectedAttempt.questionIds.length ? <p className="text-sm text-[#68716c]">{locale === 'zh-CN' ? '部分原题暂不可用，答题记录仍保留。' : locale === 'ja' ? '一部の問題を表示できません。解答履歴は保存されています。' : 'Some original questions are unavailable; answer records are preserved.'}</p> : null}
-      <PracticeReviewPanel key={selectedAttempt.id} attempt={selectedAttempt} questions={attemptQuestions} answers={{}} items={items} labels={{ ...labels, backToPractice: labels.historyBackToAttempts }} locale={locale} showRuby={showRuby} onRestart={() => {}} onBackToPractice={() => onActiveAttemptChange?.(null)} />
+      <PracticeReviewPanel key={selectedAttempt.id} attempt={selectedAttempt} questions={attemptQuestions} answers={{}} items={items} labels={{ ...labels, backToPractice: labels.historyBackToAttempts }} locale={locale} showRuby={showRuby} onRestart={onRestartAttempt && canReplayAttempt(selectedAttempt, questions) ? () => onRestartAttempt(selectedAttempt) : undefined} onBackToPractice={() => onActiveAttemptChange?.(null)} />
     </>;
   }
   return (

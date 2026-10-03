@@ -62,6 +62,7 @@ export function DraftsPanel({
   const [editingContent, setEditingContent] = useState('');
   const [editingError, setEditingError] = useState('');
   const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
   const orderedDrafts = useMemo(() => [...drafts].sort((a, b) => {
     const priority = (status: string) => ['draft', 'needs_revision'].includes(status) ? 0 : status === 'approved' ? 1 : 2;
     return priority(a.status) - priority(b.status) || b.updated_at.localeCompare(a.updated_at);
@@ -85,6 +86,7 @@ export function DraftsPanel({
   function openDraft(id: string) {
     setCurrentDetailDraftId(id);
     setUnknownWords('');
+    setActionError('');
     cancelDraftEditing();
     onSelectDraft(id);
   }
@@ -105,11 +107,14 @@ export function DraftsPanel({
     const target = drafts.find((draft) => draft.id === id);
     if (!(await confirm({ title: labels.deleteDraft, description: labels.deleteDraftConfirm.replace('{title}', target?.title ?? labels.draftUntitledItem), confirmLabel: labels.deleteDraft, cancelLabel: labels.cancelAction, danger: true }))) return;
     setDeletingDraftId(id);
+    setActionError('');
     try {
       await onDeleteDraft(id);
       if (currentDetailDraftId === id) {
         setCurrentDetailDraftId(null);
       }
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : '删除失败，请重试。');
     } finally {
       setDeletingDraftId(null);
     }
@@ -118,9 +123,12 @@ export function DraftsPanel({
   async function confirmDraftForAgent(id: string) {
     if (!onConfirmDraft || confirmingDraftId) return;
     setConfirmingDraftId(id);
+    setActionError('');
     try {
       await onConfirmDraft(id, { unknownWords });
       setUnknownWords('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : '确认失败，请重试。');
     } finally {
       setConfirmingDraftId(null);
     }
@@ -129,8 +137,11 @@ export function DraftsPanel({
   async function publishDraft(id: string) {
     if (!onPublishDraft || publishingDraftId) return;
     setPublishingDraftId(id);
+    setActionError('');
     try {
       await onPublishDraft(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : labels.publishDraftFailed);
     } finally {
       setPublishingDraftId(null);
     }
@@ -187,6 +198,7 @@ export function DraftsPanel({
         </div>
       </div>}
 
+      {actionError ? <p role="alert" className="rounded-md border border-[#d7b9ad] bg-white p-3 text-sm text-[#8f3d2e]">{actionError}</p> : null}
       {embedded && drafts.length === 0 ? (
         <div className="border-y border-[#dfe5df] py-8">
           <h3 className="text-lg font-semibold text-[#27312c]">{labels.noDrafts}</h3>
@@ -209,16 +221,16 @@ export function DraftsPanel({
                   {isTopicDraft(detailDraft) ? <p className="mt-1 text-xs font-semibold text-[#52645b]">{drafts.find((draft) => draft.id === detailDraft.id)?.sourceSummary ?? '来源待确认'}</p> : null}
                 </div>
                 <PreviewDisclosure title="更多操作" icon={MoreHorizontal}><div className="mobile-action-row flex flex-wrap gap-2">
-                  <button type="button" onClick={onCopyRevisionContext} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f]">
+                  <button type="button" onClick={onCopyRevisionContext} className="h-11 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f]">
                     {labels.revisionContext}
                   </button>
                   {onUpdateDraft ? (
-                    <button type="button" onClick={() => startDraftEditing(detailDraft)} disabled={editingDraftId === detailDraft.id} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f] disabled:cursor-default disabled:opacity-60">
+                    <button type="button" onClick={(event) => { event.currentTarget.closest('dialog')?.close(); startDraftEditing(detailDraft); }} disabled={editingDraftId === detailDraft.id} className="h-11 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f] disabled:cursor-default disabled:opacity-60">
                       {labels.draftEdit}
                     </button>
                   ) : null}
                   {onDeleteDraft ? (
-                    <button type="button" onClick={() => deleteDraft(detailDraft.id)} disabled={deletingDraftId === detailDraft.id} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#d7b9ad] bg-white px-3 text-sm font-semibold text-[#8f3d2e] disabled:cursor-wait disabled:opacity-60">
+                    <button type="button" onClick={() => deleteDraft(detailDraft.id)} disabled={deletingDraftId === detailDraft.id} className="inline-flex h-11 items-center gap-2 rounded-md border border-[#d7b9ad] bg-white px-3 text-sm font-semibold text-[#8f3d2e] disabled:cursor-wait disabled:opacity-60">
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       {deletingDraftId === detailDraft.id ? labels.processing : labels.deleteDraft}
                     </button>
@@ -282,7 +294,7 @@ export function DraftsPanel({
                       aria-label="想改的地方" placeholder="比如：这道题太难了，想多看一个例子。"
                       className="mt-4 min-h-28 w-full rounded-md border border-[#c8bcae] bg-white p-3 text-sm leading-6"
                     />
-                    <button type="button" onClick={onSaveAnnotation} className="mt-3 h-10 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white">
+                    <button type="button" onClick={onSaveAnnotation} className="mt-3 h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white">
                       {labels.saveAnnotation}
                     </button>
                   </section>
@@ -290,12 +302,12 @@ export function DraftsPanel({
                   <div className="gentle-draft-confirm">
                     <p>{detailDraft.status === 'archived' ? '这份练习已经整理好了。' : detailDraft.status === 'approved' ? (isTopicDraft(detailDraft) ? '已确认，可以保存为专项练习了。' : '已确认。加入今日练习后，就可以开始做题了。') : '看完了吗？先确认题目，再开始练习。'}</p>
                     <div className="flex flex-wrap gap-3">                  {onConfirmDraft && !['approved', 'archived'].includes(detailDraft.status) ? (
-                    <button type="button" onClick={() => confirmDraftForAgent(detailDraft.id)} disabled={confirmingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#173d35] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+                    <button type="button" onClick={() => confirmDraftForAgent(detailDraft.id)} disabled={confirmingDraftId === detailDraft.id} className="h-11 rounded-md bg-[#173d35] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
                       {confirmingDraftId === detailDraft.id ? '正在提交…' : '确认这份练习'}
                     </button>
                   ) : null}
-                  {onPublishDraft && ['approved', 'archived'].includes(detailDraft.status) ? (
-                    <button type="button" onClick={() => publishDraft(detailDraft.id)} disabled={publishingDraftId === detailDraft.id} className="h-10 rounded-md bg-[#a84269] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+                  {onPublishDraft && detailDraft.status === 'approved' ? (
+                    <button type="button" onClick={() => publishDraft(detailDraft.id)} disabled={publishingDraftId === detailDraft.id} className="h-11 rounded-md bg-[#a84269] px-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
                       {publishingDraftId === detailDraft.id ? '正在准备…' : isTopicDraft(detailDraft) ? '保存为专项练习并开始' : '加入今日练习'}
                     </button>
                   ) : null}
@@ -492,10 +504,10 @@ function DraftEditor({
       </div>
       {error ? <p className="mt-3 rounded-md border border-[#e6c3b9] bg-[#fff8f5] p-3 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={onSave} disabled={saving} className="h-10 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+        <button type="button" onClick={onSave} disabled={saving} className="h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
           {saving ? labels.processing : labels.draftEditSave}
         </button>
-        <button type="button" onClick={onCancel} disabled={saving} className="h-10 rounded-md border border-[#cbd6cf] bg-white px-4 text-sm font-semibold text-[#24473f] disabled:cursor-wait disabled:opacity-60">
+        <button type="button" onClick={onCancel} disabled={saving} className="h-11 rounded-md border border-[#cbd6cf] bg-white px-4 text-sm font-semibold text-[#24473f] disabled:cursor-wait disabled:opacity-60">
           {labels.draftEditCancel}
         </button>
       </div>

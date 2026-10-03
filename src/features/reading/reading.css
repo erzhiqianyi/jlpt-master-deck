@@ -79,6 +79,21 @@
   font-size: 12px;
 }
 
+/* In lookup mode the number is the answer control; words stay independent. */
+.reading-passage button.reading-choice-number {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.reading-passage summary,
+.reading-passage label {
+  min-height: 44px;
+  align-content: center;
+}
+
 .reading-passage .reading-choice:hover { background: #f2f6f2; }
 .reading-passage .reading-choice[data-answer-state="selected"],
 .reading-passage .reading-choice[data-answer-state="correct"] { background: #edf5ef; }

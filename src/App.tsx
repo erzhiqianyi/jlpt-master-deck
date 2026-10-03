@@ -1,3 +1,9 @@
+import { allQuestionsConfirmed } from './features/drafts/questionReviewState';
+import { mobileBackRoute, desktopBackRoute, routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
+import { adjacentEntryId, isImmersiveRoute, primaryNavigationView, primaryNavigationViews } from './domain/appNavigation';
+import { answersForAttempt, canReplayAttempt, createReplayAttempt, enqueuePracticeSave, replayPracticeSaveBody, questionsForAttempt, replayRouteAttemptId } from './domain/attemptReplay';
+import { HistoryReplayPanel } from './features/history/HistoryReplayPanel';
+import { ModuleReviewPanel } from './features/history/ModuleReviewPanel';
 import { practiceModules } from './domain/practiceModules.mjs';
 import { WordLookupProvider } from './features/review/WordLookup';
 import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
@@ -208,6 +214,8 @@ export default function App() {
   const restoreLastPage = useRef(!window.location.hash || window.location.hash === '#/');
   const browserHash = useBrowserHash();
   const route = routeFromHash(browserHash);
+  const replayAttemptId = route.view === 'mixed' ? replayRouteAttemptId(route.itemId) : undefined;
+  const replayAttempt = attemptHistory.find((attempt) => attempt.id === replayAttemptId);
   useEffect(() => {
     const migrated = migrateNewsHash(browserHash);
     if (migrated) window.location.replace(migrated);
@@ -395,7 +403,7 @@ export default function App() {
     }
     const scheduleRefresh = () => {
       if (idleHandle || timeoutHandle) return;
-      if ('requestIdleCallback' in window) {
+      if (typeof window.requestIdleCallback === 'function') {
         idleHandle = window.requestIdleCallback(() => {
           idleHandle = undefined;
           void refreshHomeDrafts();
@@ -466,10 +474,12 @@ export default function App() {
       .catch(() => { if (!cancelled) setMistakeQuestionsStatus('error'); });
     return () => { cancelled = true; };
   }, [activeView, authToken, authLoading, attemptHistory]);
-  const needsHistoryQuestions = routeReady && (activeView === 'mistakes'
+  const needsHistoryQuestions = routeReady && (Boolean(replayAttemptId) || activeView === 'mistakes'
     || (['history', 'insights'].includes(activeView) && Boolean(activeAttemptDetailId)));
+  const [practiceDetailsLoadError, setPracticeDetailsLoadError] = useState('');
+  const [practiceDetailsReload, setPracticeDetailsReload] = useState(0);
   const needsPracticeDetails = (needsHistoryQuestions && activeView !== 'mistakes') || activeView === 'home'
-    || (activeView === 'mixed' && studyPage === 'tips' && route.itemId === 'topics')
+    || (activeView === 'mixed' && studyPage === 'tips')
     || (activeView === 'grammar' && studyPage === 'bank');
   useEffect(() => {
     if (!authToken || authLoading || !needsPracticeDetails) return;
@@ -478,6 +488,7 @@ export default function App() {
       (activeView !== 'home' || entry.date === todayDateKey())
       && !dailyPracticeDetails.some((detail) => detail.id === entry.id && detail.updated_at === entry.updated_at));
     if (!missing.length) return;
+    setPracticeDetailsLoadError('');
     Promise.all(missing.map(async (entry) => {
       const result = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${entry.id}`, { token: authToken });
       return result.practice;
@@ -486,10 +497,10 @@ export default function App() {
         ...previous.filter((entry) => !loaded.some((next) => next.id === entry.id)), ...loaded,
       ]);
     }).catch((error) => {
-      if (!cancelled) setAuthError(error instanceof Error ? error.message : 'Failed to load practice details');
+      if (!cancelled) setPracticeDetailsLoadError(error instanceof Error ? error.message : 'Failed to load practice details');
     });
     return () => { cancelled = true; };
-  }, [activeView, authLoading, authToken, dailyPractices, dailyPracticeDetails, needsPracticeDetails]);
+  }, [activeView, authLoading, authToken, dailyPractices, dailyPracticeDetails, needsPracticeDetails, practiceDetailsReload]);
   const historyQuestions = useMemo(() => {
     if (!needsHistoryQuestions) {
       return [];
@@ -559,11 +570,13 @@ export default function App() {
   const practiceAnsweredCount = questions.filter((question) => Boolean(answers[question.id])).length;
   const practiceComplete = questions.length > 0 && practiceAnsweredCount === questions.length;
   const effectiveFeedbackMode = activeView === 'mixed' ? 'batch' : settings.feedbackMode;
-  const activeWord = items[wordIndex % Math.max(items.length, 1)];
+  const activeWord = route.itemId && studyPage === 'words'
+    ? items.find((item) => item.id === route.itemId)
+    : items[wordIndex % Math.max(items.length, 1)];
   const labels = translations[locale];
   const deckLabels = deckLabelsFor(locale);
   const today = useMemo(() => todayDateKey(), []);
-  const needsHomeMetrics = routeReady && activeView === 'home';
+  const needsHomeMetrics = routeReady && (activeView === 'home' || (activeView === 'mixed' && studyPage === 'tips'));
   const homeTodayPractices = useMemo(() => {
     if (!needsHomeMetrics) {
       return [];
@@ -720,16 +733,18 @@ export default function App() {
       if (studyPage !== 'words' || activeView === 'home' || activeView === 'about' || activeView === 'profile' || activeView === 'settings' || activeView === 'drafts' || activeView === 'listening' || activeView === 'reading') {
         return;
       }
+      if (event.target instanceof HTMLElement && (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(event.target.tagName)) || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (!route.itemId || !['vocabulary', 'grammar'].includes(activeView)) return;
       if (event.key === 'ArrowLeft') {
-        setWordIndex((index) => previousIndex(index, items.length));
+        openAdjacentWord(-1);
       }
       if (event.key === 'ArrowRight') {
-        setWordIndex((index) => nextIndex(index, items.length));
+        openAdjacentWord(1);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeView, items.length, studyPage]);
+  }, [activeView, items, route.itemId, studyPage]);
 
   // Per-question timing: the clock starts when a question is shown and pauses while the tab is hidden,
   // so long breaks between sessions never inflate the recorded practice time.
@@ -870,6 +885,7 @@ export default function App() {
       const retryHistory = upsertAttemptHistory(nextHistory, retryAttempt);
       setAttemptHistory(retryHistory);
       setAuthError(error instanceof Error ? error.message : 'Failed to save practice review');
+      if (!navigateToReview) throw error;
 
     } finally {
       processingAttemptIds.current.delete(attempt.id);
@@ -930,6 +946,59 @@ export default function App() {
       return;
     }
     window.location.hash = nextHash;
+  }
+
+  function openAdjacentWord(offset: number) {
+    const id = adjacentEntryId(items, route.itemId, offset);
+    if (id) navigateTo(activeView, 'words', id);
+  }
+
+  async function saveReplayAttempt(attempt: PracticeAttempt) {
+    const previous = attemptHistory.find((entry) => entry.id === attempt.id);
+    const replayAnswers = answersForAttempt(attempt);
+    const nextHistory = upsertAttemptHistory(attemptHistory, attempt);
+    const originals = questionsForAttempt(attempt, historyQuestions);
+    const nextProgress = attempt.completedAt && !previous?.completedAt
+      ? progressAfterAttempt(progress, replayAnswers, originals, new Date()) : progress;
+    setAttemptHistory(nextHistory);
+    const progressPatch = attempt.completedAt && !previous?.completedAt
+      ? Object.fromEntries([...new Set(originals.map((question) => question.itemId))].map((itemId) => [itemId, nextProgress[itemId]]))
+      : undefined;
+    if (progressPatch) setProgress((current) => ({ ...current, ...progressPatch }));
+    const save = enqueuePracticeSave(pendingPracticeSave.current, () => apiRequest<StudyState>('/api/study-state/practice', {
+      method: 'PUT', token: authToken, timeoutMs: 15000,
+      body: replayPracticeSaveBody(nextHistory, progressPatch),
+    }));
+    pendingPracticeSave.current = save;
+    try {
+      const result = await save;
+      if (result.practiceCompletionCounts) setPracticeCompletionCounts(result.practiceCompletionCounts);
+    }
+    catch (error) {
+      // A failed completion remains retryable and must not count twice on retry.
+      if (attempt.completedAt && !previous?.completedAt) {
+        setProgress((current) => {
+          const restored = { ...current };
+          for (const question of originals) {
+            if (current[question.itemId] === nextProgress[question.itemId]) {
+              if (progress[question.itemId]) restored[question.itemId] = progress[question.itemId];
+              else delete restored[question.itemId];
+            }
+          }
+          return restored;
+        });
+        setAttemptHistory((current) => upsertAttemptHistory(current, { ...attempt, completedAt: undefined, analysisStatus: 'idle', summary: undefined }));
+      }
+      throw error;
+    }
+  }
+
+  function replayHistoryAttempt(source: PracticeAttempt) {
+    if (!canReplayAttempt(source, historyQuestions)) return;
+    const nextAttempt = createReplayAttempt(source, `attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, new Date().toISOString());
+    setAttemptHistory((current) => upsertAttemptHistory(current, nextAttempt));
+    void saveReplayAttempt(nextAttempt).catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save practice'));
+    navigateTo('mixed', 'questions', `replay:${nextAttempt.id}`);
   }
 
   function startWordIndexPractice(focus?: WordIndexPracticeFocus) {
@@ -1321,14 +1390,7 @@ export default function App() {
     const latest = await apiRequest<{ draft: ReviewPackDraft }>(`/api/drafts/${id}`, { token: authToken });
     const content = latest.draft.content as Record<string, unknown>;
     const questions = [content.generated_practice, content.quiz, content.practice_questions, content.review_questions].find((list) => Array.isArray(list) && list.length) as unknown[] | undefined;
-    const confirmations = new Map<string, boolean>();
-    for (const annotation of latest.draft.annotations) {
-      try {
-        const entry = JSON.parse(annotation.body);
-        if (entry.kind === 'question_review') confirmations.set(entry.key, entry.confirmed === true);
-      } catch { /* Free-text annotations do not confirm a question. */ }
-    }
-    if (!questions?.length || !questions.every((question, index) => (confirmations.get(JSON.stringify([index, question])) ?? true))) {
+    if (!questions?.length || !allQuestionsConfirmed(questions, latest.draft.annotations)) {
       setActiveDraft(latest.draft);
       throw new Error('题目或确认状态有更新，请重新检查后生成最终版。');
     }
@@ -1612,7 +1674,8 @@ export default function App() {
   const attemptDetailOpen = isDataManagementView(activeView) && dataTab === 'practice' && Boolean(activeAttemptDetailId);
   const questionDetailOpen = attemptDetailOpen && attemptQuestionDetailOpen;
   const dataDetailOpen = captureDetailOpen || draftDetailOpen || attemptDetailOpen;
-  const showMobileBackHeader = !isMobileTabRoute(route) || dataDetailOpen;
+  const showMobileBackHeader = !isMobileTabRoute(route) || dataDetailOpen || Boolean(authoringLocation);
+  const showMobileBottomNavigation = !isImmersiveRoute(route) && !authoringLocation;
   const mobileBackRouteValue = mobileBackRoute(route);
   const desktopBackRouteValue = desktopBackRoute(route);
   const listeningDetailGroup = route.view === 'listening' && route.page === 'words' && route.itemId
@@ -1679,7 +1742,7 @@ export default function App() {
     if (activeView === 'mixed') return { ...attempt, title: activePracticeTitle };
     return attempt;
   }
-  const mobileHeaderTitle = authoringLocation?.label || detailTitle || (activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
+  const mobileHeaderTitle = authoringLocation?.label || replayAttempt?.title || detailTitle || (activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
     ? activePracticeTitle
     : activeView === 'plan' && route.itemId
       ? ({ daily: locale === 'ja' ? '毎日の学習' : locale === 'en' ? 'Daily learning' : '每天学什么', overview: locale === 'ja' ? '試験までの予定' : locale === 'en' ? 'Exam preparation' : '备考安排', adjust: locale === 'ja' ? '計画を調整' : locale === 'en' ? 'Adjust plan' : '调整计划', textbooks: locale === 'ja' ? '教材の学習予定' : locale === 'en' ? 'Textbook plan' : '教材计划' }[route.itemId] ?? labels.planTitle)
@@ -1694,7 +1757,7 @@ export default function App() {
 
   const pageKind = dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
     ? 'detail'
-    : (hasStudyControls && studyPage !== 'words' && studyPage !== 'tips') || (activeView === 'mock-exams' && route.itemId)
+    : replayAttemptId || (hasStudyControls && studyPage !== 'words' && studyPage !== 'tips') || (activeView === 'mock-exams' && route.itemId)
       ? 'practice'
       : isMobileTabRoute(route) && activeView !== 'market'
         ? 'entry'
@@ -1702,7 +1765,7 @@ export default function App() {
 
   return (
     <AuthoringNavigation.Provider value={setAuthoringLocation}>
-    <main className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
+    <main data-bottom-navigation={showMobileBottomNavigation ? 'visible' : 'hidden'} className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
         onSettings={() => navigateTo('settings')}
@@ -1852,6 +1915,7 @@ export default function App() {
                 showRuby={settings.showExplanationRuby}
                 attempts={attemptHistory}
                 questions={historyQuestions}
+                onRestartAttempt={replayHistoryAttempt}
                 draftsContent={<DraftsPanel onSaveQuestionReview={saveQuestionReview} onFinalizeReviewedDraft={finalizeReviewedDraft} embedded labels={labels} drafts={drafts} activeDraft={activeDraft} annotation={draftAnnotation} onAnnotationChange={setDraftAnnotation} onCreateDailyDraft={createDailyDraft} onSelectDraft={selectDraft} onSaveAnnotation={saveDraftAnnotation} onCopyRevisionContext={copyDraftRevisionContext} onCreateDraftFromSelection={createDraftFromSelection} onDeleteDraft={removeDraft} onConfirmDraft={confirmDraftForAgent} onPublishDraft={publishDraftAsDailyPractice} onUpdateDraft={updateDraft} detailDraftId={activeDraftDetailId} onDetailDraftChange={setActiveDraftDetailId} />}
                 settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
                 activeTab={dataTab}
@@ -1923,7 +1987,7 @@ export default function App() {
             {activeView === 'mock-exams' ? (
               route.itemId && /^(week|custom):/.test(route.itemId)
                 ? <DesignedExamPanel key={`${user.id}:${route.itemId}`} userId={user.id} locale={locale} token={authToken} selection={route.itemId} onOpen={openMockExam} />
-                : route.itemId ? <MockExamPanel key={route.itemId} examId={route.itemId} locale={locale} onBack={() => openMockExam()} />
+                : route.itemId ? <MockExamPanel key={`${user.id}:${route.itemId}`} userId={user.id} examId={route.itemId} locale={locale} onBack={() => openMockExam()} />
                   : <MockExamCatalog locale={locale} token={authToken} onOpen={openMockExam} />
             ) : null}
             {activeView === 'question-types' ? (
@@ -1951,6 +2015,8 @@ export default function App() {
             {activeView === 'mixed' && studyPage === 'tips' ? (
               <MixedPracticeHub
                 topicEntries={topicPracticeEntries}
+                dailyPractice={homeTodayPractices[0]}
+                dailyAnswers={answers}
                 groupKey={route.itemId}
                 labels={labels}
                 locale={locale}
@@ -1980,7 +2046,7 @@ export default function App() {
               />
             ) : null}
             {activeView === 'mixed' && studyPage === 'mock' ? (
-              <MockExamPanel examId="n1-ai-demo-001" locale={locale} onBack={() => openMockExam()} />
+              <MockExamPanel key={`${user.id}:n1-ai-demo-001`} userId={user.id} examId="n1-ai-demo-001" locale={locale} onBack={() => openMockExam()} />
             ) : null}
             {activeView === 'grammar' && studyPage === 'bank' ? (
               <QuestionBankPanel grammarQuestions={bankGrammarQuestions} dailyPractices={dailyPracticeDetails}
@@ -1992,6 +2058,24 @@ export default function App() {
             ) : studyPage === 'tips' && supportsStudyPage(activeView) && activeView !== 'mixed' ? (
               <QuestionTypeGuide labels={labels} locale={locale} customTips={settings.questionTypeTips} customTipEntries={settings.customQuestionTypeTips} section={questionTypeSectionFor(activeView)} onOpen={(id) => { window.location.hash = routeHash(activeView, 'tips', id); }} onCreateCustomTip={createCustomQuestionTypeTip} />
             ) : null}
+            {(activeView === 'reading' || activeView === 'listening') && studyPage === 'review' ? (
+              <ModuleReviewPanel module={activeView} locale={locale} readingQuestions={readingQuestions} listeningQuestions={listeningQuestions} progress={progress}
+                onOpen={(id) => navigateTo(activeView, 'words', id)} onPractice={() => navigateTo(activeView, 'questions')} />
+            ) : null}
+            {replayAttemptId ? (() => {
+              const originalQuestions = replayAttempt ? questionsForAttempt(replayAttempt, historyQuestions) : [];
+              const loadingOriginals = dailyPractices.some((entry) => !dailyPracticeDetails.some((detail) => detail.id === entry.id && detail.updated_at === entry.updated_at));
+              if (replayAttempt && canReplayAttempt(replayAttempt, historyQuestions)) return (
+                <HistoryReplayPanel key={replayAttempt.id} attempt={replayAttempt} questions={originalQuestions} items={data.items} labels={labels} locale={locale} settings={settings} token={authToken}
+                  review={studyPage === 'review'} onSave={saveReplayAttempt} onRestart={() => replayHistoryAttempt(replayAttempt)}
+                  onReview={() => navigateTo('mixed', 'review', route.itemId)} onPractice={() => navigateTo('mixed', 'questions', route.itemId)} onBack={() => navigateTo('history')} />
+              );
+              return <section className="mx-auto max-w-xl py-8"><p role="status">{practiceDetailsLoadError || (loadingOriginals && replayAttempt
+                ? (locale === 'zh-CN' ? '正在加载原题…' : locale === 'ja' ? '元の問題を読み込み中…' : 'Loading original questions…')
+                : locale === 'zh-CN' ? '这次练习的原题暂不可用。已保存的学习记录仍然保留。' : locale === 'ja' ? '元の問題を読み込めません。学習履歴は保存されています。' : 'The original questions are unavailable. Your saved history is preserved.')}</p>
+                {practiceDetailsLoadError ? <button type="button" className="cute-button-secondary mt-4 min-h-11 px-4" onClick={() => setPracticeDetailsReload((value) => value + 1)}>{labels.reviewRetry}</button> : null}
+                <button type="button" className="cute-button-secondary mt-4 min-h-11 px-4" onClick={() => navigateTo('history')}>{labels.historyBackToAttempts}</button></section>;
+            })() : null}
             {activeView === 'listening' && studyPage === 'questions' ? (
               <ListeningPanel
                 mode="practice"
@@ -2073,7 +2157,7 @@ export default function App() {
               />
               </WordLookupProvider>
             ) : null}
-	            {studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'study' && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
+	            {!replayAttemptId && studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'study' && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <>
                 <PracticePanel
@@ -2101,7 +2185,7 @@ export default function App() {
                   }}
                   onPracticeHome={() => navigateTo('mixed', 'tips')}
                   onPrepareReview={() => submitPracticeReview(false)}
-                  onReview={() => navigateTo(activeView, 'review')}
+                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined)}
                   analysisStatus={reviewAttempt?.analysisStatus === 'completed' ? 'completed' : processingAttemptIds.current.has(reviewAttempt?.id ?? activeAttempt?.id ?? '') ? 'processing' : 'idle'}
                 />
                 </>
@@ -2132,8 +2216,8 @@ export default function App() {
                   labels={labels}
                   locale={locale}
                   onShowRubyChange={(checked) => updateSettings({ ...settings, showReviewRuby: checked })}
-                  onPrevious={() => setWordIndex((index) => previousIndex(index, items.length))}
-                  onNext={() => setWordIndex((index) => nextIndex(index, items.length))}
+                  onPrevious={() => openAdjacentWord(-1)}
+                  onNext={() => openAdjacentWord(1)}
                   onSelectIndex={(index) => {
                     const selected = items[index];
                     if (selected) window.location.hash = routeHash(activeView, 'words', selected.id);
@@ -2161,7 +2245,7 @@ export default function App() {
                   onOpen={(id) => { window.location.hash = routeHash(activeView, 'words', id); }}
                   onPractice={startWordIndexPractice}
                   onTips={() => navigateTo(activeView, 'tips')}
-                  onReview={() => navigateTo(activeView, 'review')}
+                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined)}
                   captureCategory={activeView === 'vocabulary' ? 'word' : activeView === 'grammar' ? 'grammar' : undefined}
                   defaultTargetDeck={selectedDeck === 'name_reading' ? 'name_reading' : activeView === 'grammar' ? 'grammar_expression' : 'n1_vocab'}
                   pendingCaptureCount={captures.filter((capture) => capture.status === 'inbox' && capture.category === (activeView === 'grammar' ? 'grammar' : 'word')).length}
@@ -2185,7 +2269,7 @@ export default function App() {
                   locale={locale}
                   showRuby={settings.showExplanationRuby}
                   onRestart={restartPractice}
-                  onBackToPractice={() => navigateTo(activeView, 'questions')}
+                  onBackToPractice={() => navigateTo(activeView, 'questions', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined)}
                 />
               )
             ) : null}
@@ -2211,8 +2295,8 @@ export default function App() {
           </footer>
         </div>
       </div>
-      {!showMobileBackHeader ? (
-        <MobileBottomNavigation items={bottomNavItems(labels)} activeView={activeView} onNavigate={navigateTo} navigationLabel={labels.mobileNavigation} />
+      {showMobileBottomNavigation ? (
+        <MobileBottomNavigation items={bottomNavItems(labels, locale)} activeView={primaryNavigationView(route)} onNavigate={navigateTo} navigationLabel={labels.mobileNavigation} />
       ) : null}
 
     </main>
@@ -2227,58 +2311,6 @@ function PublicGuideRedirect({ target }: { target: string }) {
   return <main className="mx-auto max-w-xl p-8"><a href={target}>浏览 JLPT 社区</a></main>;
 }
 
-function routeFromHash(hash: string): AppRoute {
-  hash = migrateNewsHash(hash) ?? hash;
-  const [viewValue, pageValue, itemValue, detailValue] = hash.replace(/^#\/?/, '').split('/');
-  const view = isAppView(viewValue) ? viewValue : 'home';
-  if (view === 'plan') {
-    return { view, page: 'questions', itemId: pageValue === 'textbooks' ? pageValue : undefined };
-  }
-  if (view === 'market' || view === 'question-types') {
-    return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
-  }
-  if (view === 'mock-exams') {
-    return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
-  }
-  if (view === 'news-cycle') {
-    return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
-  }
-  if (view === 'history') {
-    return { view, page: 'questions', itemId: ['today', 'history'].includes(pageValue) ? pageValue : undefined };
-  }
-  if (view === 'about' || view === 'settings') {
-    return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
-  }
-  if (view === 'profile') {
-    return { view, page: 'questions' };
-  }
-  if (isOfficialSampleModule(view) && pageValue === 'samples') {
-    return { view, page: 'samples', itemId: itemValue ? decodeURIComponent(itemValue) : undefined };
-  }
-  if (view === 'mixed') {
-    if (pageValue === 'tips' && itemValue === 'opinion' && detailValue) {
-      return { view, page: 'tips', itemId: `opinion/${detailValue}` };
-    }
-    const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
-    const itemId = page === 'words' && itemValue
-      ? decodeURIComponent(itemValue)
-      : page === 'tips' && ['topics', 'dialogue', 'opinion'].includes(itemValue)
-        ? itemValue
-        : undefined;
-    return { view, page, itemId };
-  }
-  if (view === 'daily-practice') {
-    const page = pageValue === 'review' ? 'review' : 'questions';
-    return { view, page, itemId: itemValue ? decodeURIComponent(itemValue) : undefined };
-  }
-  if (supportsStudyPage(view) && !pageValue) {
-    return { view, page: defaultDesktopStudyPage(view) };
-  }
-  const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' || (view === 'grammar' && pageValue === 'bank') ? pageValue : 'questions';
-  const itemId = (page === 'tips' || page === 'words') && itemValue ? decodeURIComponent(itemValue) : undefined;
-  return { view, page: supportsStudyPage(view) && (page !== 'wordbooks' || view === 'vocabulary' || view === 'grammar') ? page : 'questions', itemId };
-}
-
 function practiceRouteId(practice?: Pick<DailyPracticeSummary, 'id' | 'reference'> | null) {
   return practice?.reference ?? practice?.id;
 }
@@ -2287,60 +2319,12 @@ function matchesPracticeRoute(routeId: string | undefined, practice?: Pick<Daily
   return Boolean(routeId && practice && (routeId === practice.id || routeId.toUpperCase() === practice.reference?.toUpperCase()));
 }
 
-function routeHash(view: AppView, page: StudyPage, itemId?: string) {
-  if (view === 'mixed' && page === 'tips' && itemId?.startsWith('opinion/')) return `#/mixed/tips/${itemId}`;
-  if (view === 'plan') {
-    return itemId ? `#/plan/${encodeURIComponent(itemId)}` : '#/plan';
-  }
-  if (view === 'history') {
-    return itemId ? `#/history/${encodeURIComponent(itemId)}` : '#/history';
-  }
-  if (view === 'market' || view === 'question-types') {
-    return itemId ? `#/${view}/${encodeURIComponent(itemId)}` : `#/${view}`;
-  }
-  if (view === 'mock-exams') {
-    return itemId ? `#/mock-exams/${encodeURIComponent(itemId)}` : '#/mock-exams';
-  }
-  if (view === 'news-cycle') {
-    return migrateNewsHash(itemId ? `#/news-cycle/${encodeURIComponent(itemId)}` : '#/news-cycle')!;
-  }
-  if (view === 'about') {
-    return itemId ? `#/about/${encodeURIComponent(itemId)}` : '#/about';
-  }
-  if (view === 'profile') {
-    return '#/profile';
-  }
-  if (view === 'settings') {
-    return itemId ? `#/settings/${encodeURIComponent(itemId)}` : '#/settings';
-  }
-  if (isOfficialSampleModule(view) && page === 'samples') {
-    return itemId ? `#/${view}/samples/${encodeURIComponent(itemId)}` : `#/${view}/samples`;
-  }
-  if (view === 'daily-practice' && itemId) return `#/${view}/${page}/${encodeURIComponent(itemId)}`;
-  if (!supportsStudyPage(view)) {
-    return `#/${view}`;
-  }
-  return itemId && (page === 'tips' || page === 'words') ? `#/${view}/${page}/${encodeURIComponent(itemId)}` : `#/${view}/${page}`;
-}
-
-function supportsStudyPage(view: AppView) {
-  return view === 'vocabulary' || view === 'grammar' || view === 'mixed' || view === 'daily-practice' || view === 'reading' || view === 'listening';
-}
-
 function questionTypeSectionFor(view: AppView) {
   if (view === 'vocabulary') return 'vocabulary' as const;
   if (view === 'grammar') return 'grammar' as const;
   if (view === 'reading') return 'reading' as const;
   if (view === 'listening') return 'listening' as const;
   return undefined;
-}
-
-function isOfficialSampleModule(view: AppView): view is OfficialSampleModule {
-  return view === 'grammar' || view === 'reading' || view === 'listening';
-}
-
-function isAppView(value: string): value is AppView {
-  return ['study', 'market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'profile', 'settings'].includes(value);
 }
 
 function nextIndex(index: number, total: number) {
@@ -2620,39 +2604,30 @@ function navItems(labels: Record<string, string>) {
   return routeNavItems(labels);
 }
 
-function bottomNavItems(labels: Record<string, string>): AppRouteNavItem[] {
-  const shortLabels: Partial<Record<AppView, string | undefined>> = {
-    home: labels.navBottomHome,
-    mixed: labels.navBottomPractice,
-    history: labels.navBottomHistory,
-    plan: labels.navBottomPlan,
-    market: labels.navBottomMarket,
-  };
-  return routeNavItems(labels).map((item) => ({ ...item, label: shortLabels[item.view] ?? item.label }));
+function primaryNavigationItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
+  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '记录', '题库']
+    : locale === 'ja' ? ['今日', '練習', '発見', '記録', '問題集'] : ['Today', 'Practice', 'Discover', 'History', 'Library'];
+  return primaryNavigationViews.map((view, index) => ({ view, label: titles[index] }));
+}
+
+function bottomNavItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
+  return primaryNavigationItems(labels, locale);
 }
 
 function routeNavItems(labels: Record<string, string>): AppRouteNavItem[] {
-  return [
-    { view: 'home', label: labels.navTaskHome ?? labels.navHome },
-    { view: 'mixed', label: labels.navPracticeHome ?? labels.navMixed, activeViews: ['daily-practice', 'mock-exams', 'news-cycle', 'drafts'] },
-    { view: 'history', label: labels.navStatsHome, activeViews: ['captures', 'mistakes', 'insights'] },
-    { view: 'market', label: labels.navMarket },
-    { view: 'study', label: labels.homeStudyArea, activeViews: ['vocabulary', 'grammar', 'listening', 'reading', 'question-types'] },
-  ];
+  return primaryNavigationItems(labels, labels.navBottomPractice === '练习' ? 'zh-CN' : labels.navBottomPractice === '練習' ? 'ja' : 'en');
 }
 
 function desktopSidebarNavItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
-  const zh = locale === 'zh-CN'; const ja = locale === 'ja';
-  return [
-    { view: 'home', label: zh ? '今日' : ja ? '今日' : 'Today', group: 'today' },
-    { view: 'mixed', label: zh ? '练习' : ja ? '練習' : 'Practice', group: 'today', activeViews: ['daily-practice', 'mock-exams', 'news-cycle', 'drafts'] },
-    { view: 'history', label: zh ? '学习记录' : ja ? '学習記録' : 'History', group: 'today', activeViews: ['captures', 'mistakes', 'insights', 'memory'] },
-    { view: 'market', label: labels.navMarket, group: 'today' },
-    { view: 'vocabulary', label: zh ? '词汇' : labels.navVocabulary, group: 'study', page: 'words' },
-    { view: 'grammar', label: labels.navGrammar, group: 'study', page: 'words' },
-    { view: 'reading', label: labels.navReading, group: 'study', page: 'words' },
-    { view: 'listening', label: labels.navListening, group: 'study', page: 'words' },
-  ];
+  return primaryNavigationItems(labels, locale).map((item) => item.view === 'study' ? {
+    ...item,
+    children: [
+      { view: 'vocabulary', page: 'words', label: labels.navVocabulary },
+      { view: 'grammar', page: 'words', label: labels.navGrammar },
+      { view: 'reading', page: 'words', label: labels.navReading },
+      { view: 'listening', page: 'words', label: labels.navListening },
+    ],
+  } : item);
 }
 
 function studyModeNavItems(view: AppView, labels: Record<string, string>, allowLibrary: boolean, libraryLabel?: string): AppRouteNavItem[] {
@@ -2741,61 +2716,6 @@ function isMobileTabRoute(route: AppRoute) {
   return false;
 }
 
-function mobileBackRoute(route: AppRoute): AppRoute {
-  if (route.view === 'plan' && route.itemId) return { view: route.itemId === 'textbooks' ? 'home' : 'plan', page: 'questions' };
-  if (route.view === 'market' && route.itemId) return { view: 'market', page: 'questions' };
-  if (route.view === 'mixed' && route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
-  if (route.view === 'history' && route.itemId) return { view: 'history', page: 'questions' };
-  if (route.view === 'mixed' && route.page === 'tips' && route.itemId) return { view: 'mixed', page: 'tips' };
-  if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) {
-    if (route.itemId) return { view: route.view, page: route.page };
-    if (route.page !== 'words') return { view: route.view, page: 'words' };
-    return { view: 'study', page: 'questions' };
-  }
-
-  if (route.view === 'mock-exams' && route.itemId) {
-    return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
-  }
-  if (route.view === 'mock-exams') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'news-cycle' && route.itemId) {
-    return { view: 'news-cycle', page: 'questions' };
-  }
-  if (route.view === 'news-cycle') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'mixed' && route.page !== 'tips') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'daily-practice') {
-    return { view: 'home', page: 'questions' };
-  }
-  if ((route.view === 'vocabulary' || route.view === 'grammar') && route.page === 'wordbooks') {
-    return { view: route.view, page: 'words' };
-  }
-  if (route.itemId && route.page === 'words' && ['vocabulary', 'grammar'].includes(route.view)) {
-    return { view: route.view, page: 'words' };
-  }
-  if (['vocabulary', 'grammar', 'listening', 'reading', 'question-types'].includes(route.view)) {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'captures') {
-    return { view: 'history', page: 'questions' };
-  }
-  if (['history', 'insights', 'captures', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {
-    return { view: 'mixed', page: 'tips' };
-  }
-  if (route.view === 'settings' && route.itemId) {
-    return { view: 'settings', page: 'questions' };
-  }
-  if (route.view === 'about' && route.itemId?.startsWith('guide-')) return { view: 'about', page: 'questions', itemId: 'guide' };
-  if (route.view === 'about' && route.itemId) {
-    return { view: 'about', page: 'questions' };
-  }
-  return { view: 'home', page: 'questions' };
-}
-
 function isDataManagementView(view: AppView) {
   return view === 'insights' || view === 'captures' || view === 'history' || view === 'drafts' || view === 'settings';
 }
@@ -2807,48 +2727,11 @@ function dataTabForRoute(view: AppView): DataTab {
   return 'captures';
 }
 
-function desktopBackRoute(route: AppRoute): AppRoute | null {
-  if (['vocabulary', 'grammar', 'listening', 'reading'].includes(route.view)) return mobileBackRoute(route);
-
-  if (route.view === 'home') {
-    return null;
-  }
-  if (route.view === 'history') {
-    return route.itemId ? { view: 'history', page: 'questions' } : null;
-  }
-  if (route.itemId) {
-    return { view: route.view, page: route.page };
-  }
-  if (supportsStudyPage(route.view) && route.page !== defaultDesktopStudyPage(route.view)) {
-    return { view: route.view, page: defaultDesktopStudyPage(route.view) };
-  }
-  if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice'].includes(route.view)) {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'question-types') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'mock-exams') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'news-cycle') {
-    return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'captures') {
-    return { view: 'history', page: 'questions' };
-  }
-  if (['history', 'insights', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {
-    return { view: 'mixed', page: 'tips' };
-  }
-  return { view: 'home', page: 'questions' };
-}
-
-function defaultDesktopStudyPage(view: AppView): StudyPage {
-  if (view === 'daily-practice') return 'questions';
-  return view === 'vocabulary' || view === 'grammar' || view === 'listening' || view === 'reading' ? 'words' : 'tips';
-}
-
 function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activeDataTab?: DataTab, activeDraftTitle?: string, detailTitle?: string, locale: Locale = 'zh-CN', listeningDetailReference?: string, practiceReference?: string): Array<{ label: string; route?: AppRoute }> {
+  if (route.view === 'mixed' && replayRouteAttemptId(route.itemId)) return [
+    { label: labels.historyPracticeTab, route: { view: 'history', page: 'questions', itemId: 'history' } },
+    { label: route.page === 'review' ? labels.reviewPage : labels.questionPage, route },
+  ];
   if (route.view === 'study') return [{ label: labels.homeStudyArea, route }];
   if (route.view === 'home') return [{ label: labels.navTaskHome ?? labels.navHome, route }];
   const crumbs: Array<{ label: string; route?: AppRoute }> = [

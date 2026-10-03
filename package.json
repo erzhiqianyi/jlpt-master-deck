@@ -51,6 +51,7 @@
     "@vitejs/plugin-react": "6.0.2",
     "esbuild": "0.28.2",
     "eslint": "9.39.4",
+    "jsdom": "26.1.0",
     "miniflare": "5.20260918.0-alpha",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",

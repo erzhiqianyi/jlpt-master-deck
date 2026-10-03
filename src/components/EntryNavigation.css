@@ -32,12 +32,12 @@
 
 /* ---- Sidebar sub-menus (desktop and the mobile drawer). ---- */
 .desktop-sidebar-parent-row { position: relative; width: 100%; min-width: 0; }
-.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-parent { grid-template-columns: 28px minmax(0, 1fr) !important; padding-right: 40px !important; }
-.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure { position: absolute; top: 50%; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: #6e8479; transform: translateY(-50%); transition: transform 160ms ease; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-parent { grid-template-columns: 28px minmax(0, 1fr) !important; padding-right: 52px !important; }
+.desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure { position: absolute; top: 50%; right: 4px; display: grid; place-items: center; width: var(--ui-target-size); height: var(--ui-target-size); border-radius: 8px; color: #6e8479; transform: translateY(-50%); transition: transform 160ms ease; }
 .desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure:hover { background: #dbeadf; }
 .desktop-sidebar-nav .desktop-sidebar-parent-row > .desktop-sidebar-disclosure[aria-expanded='true'] { transform: translateY(-50%) rotate(90deg); }
 .desktop-sidebar-nav .desktop-sidebar-subnav.is-root-subnav { display: grid; gap: 2px; padding: 4px 0 6px 40px; }
-.desktop-sidebar-nav .desktop-sidebar-subitem { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px; border-radius: 9px; color: #52645b; font-size: 14px; font-weight: 600; text-align: left; }
+.desktop-sidebar-nav .desktop-sidebar-subitem { display: flex; align-items: center; gap: 10px; min-height: var(--ui-target-size); padding: 6px 10px; border-radius: 9px; color: #52645b; font-size: 14px; font-weight: 600; text-align: left; }
 .desktop-sidebar-nav .desktop-sidebar-subitem:hover { background: #edf5ef; color: #244c3c; }
 .desktop-sidebar-nav .desktop-sidebar-subitem.is-active { background: #e2f0e7; color: #1f5c43; }
 .desktop-sidebar-nav .desktop-sidebar-subdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
@@ -70,30 +70,57 @@
  .ledger-practice-center > .practice-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
  .practice-module-open { padding: 14px 14px 8px; }
  .practice-module-open strong { font-size: 16px; }
- .practice-module-start { min-height: 40px; margin: 0 10px 10px; }
+ .practice-module-start { min-height: var(--ui-target-size); margin: 0 10px 10px; }
 }
 
-/* ---- Module action bar: the primary CTA and its helpers sit above the module's list. ---- */
-.ledger-module-page > .module-action-bar { display: grid; gap: 14px; padding: 20px 22px 18px; border-bottom: 1px solid #e4ece6; }
-.module-action-bar-heading { display: flex; align-items: baseline; gap: 12px; }
-.module-action-bar-heading h2 { margin: 0; color: #24473f; font: 700 24px/1.4 system-ui, sans-serif; }
-.module-action-bar-heading span { font-size: 14px; color: #68776e; }
-.module-action-bar-actions { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
-.module-action-primary { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 12px; min-height: 56px; padding: 10px 18px; border-radius: 12px; background: #d1562f; color: #fff; text-align: left; }
-.module-action-primary:hover { background: #b9481f; }
-.module-action-primary strong { grid-column: 1; font-size: 16px; font-weight: 700; }
-.module-action-primary small { grid-column: 1; grid-row: 2; font-size: 12px; opacity: .85; }
+/* Module actions live in the toolbar. Compact screens use a focus-managed sheet. */
+.module-action-bar { display: grid; min-width: 0; gap: var(--ui-space-3); padding: var(--ui-space-4); border-bottom: 1px solid var(--ledger-line); }
+.module-action-bar-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ui-space-3); min-width: 0; }
+.module-action-bar-heading h2 { margin: 0; color: var(--ledger-ink); font-size: var(--ui-heading-size); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.module-action-bar-heading span { font-size: var(--ui-small-size); color: #68776e; }
+.module-action-bar-actions, .module-action-desktop-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-2); min-width: 0; }
+.module-action-desktop-actions { flex: 1; }
+.module-action-primary { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px var(--ui-space-3); min-width: 0; min-height: var(--ui-target-size); max-width: 100%; padding: 10px 16px; border-radius: var(--ui-radius); background: #b65340; color: #fff; text-align: left; overflow-wrap: anywhere; }
+.module-action-primary:hover:not(:disabled) { background: #994533; }
+.module-action-primary strong { grid-column: 1; font-size: var(--ui-body-size); font-weight: 650; }
+.module-action-primary small { grid-column: 1; grid-row: 2; font-size: var(--ui-small-size); line-height: 1.5; }
 .module-action-primary > svg { grid-column: 2; grid-row: 1 / span 2; }
-.module-action-secondary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #24473f; font-size: 14px; font-weight: 600; }
-.module-action-secondary:hover { background: #edf5ef; }
+.module-action-secondary { display: inline-flex; align-items: center; gap: var(--ui-space-2); min-height: var(--ui-target-size); max-width: 100%; padding: 8px 12px; border: 1px solid #cddbd2; border-radius: var(--ui-radius); background: #fffefa; color: #24473f; font-size: var(--ui-small-size); font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+.module-action-secondary > span { min-width: 0; }
+.module-action-secondary > span:first-child:has(svg) { flex-shrink: 0; }
+.module-action-secondary:hover:not(:disabled) { background: #edf5ef; }
 .module-action-secondary.is-active { background: #24473f; border-color: #24473f; color: #fff; }
 .module-action-secondary svg { flex-shrink: 0; }
-.module-action-primary:focus-visible, .module-action-secondary:focus-visible { outline: 3px solid #34745f; outline-offset: 2px; }
+.module-action-primary:disabled, .module-action-secondary:disabled, .module-action-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+.module-action-primary:focus-visible, .module-action-secondary:focus-visible, .module-action-dialog :is(button,a,textarea):focus-visible { outline: 3px solid #34745f; outline-offset: 2px; }
+.module-action-overflow { display: none; }
 .module-action-bar > .ledger-focused-practice-panel { margin: 0; }
+.module-action-dialog { width: min(32rem, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid #e7ddd4; border-radius: var(--ui-radius); background: #fffefa; color: var(--ledger-ink); box-shadow: 0 12px 40px #30302d18; }
+.module-action-dialog[open] { display: flex; flex-direction: column; }
+.module-action-dialog::backdrop { background: #1c30284d; }
+.module-action-dialog-header { display: flex; flex: 0 0 auto; align-items: center; gap: var(--ui-space-2); padding: var(--ui-space-3); border-bottom: 1px solid var(--ledger-line); }
+.module-action-dialog-header h2 { flex: 1; min-width: 0; margin: 0; font-size: var(--ui-body-size); font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.module-action-dialog-header button { display: grid; place-items: center; flex: 0 0 var(--ui-target-size); width: var(--ui-target-size); min-height: var(--ui-target-size); border-radius: var(--ui-radius); }
+.module-action-dialog-header button:hover { background: #f3ebe3; }
+.module-action-dialog-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: var(--ui-space-3); }
+.module-action-options { display: grid; gap: var(--ui-space-2); }
+.module-action-options > button { display: flex; align-items: center; gap: var(--ui-space-3); width: 100%; min-height: var(--ui-target-size); padding: var(--ui-space-3); border: 0; border-radius: var(--ui-radius); background: transparent; text-align: left; font-size: var(--ui-body-size); line-height: 1.5; overflow-wrap: anywhere; }
+.module-action-options > button > svg { flex-shrink: 0; }
+.module-action-options > button > span { min-width: 0; }
+.module-action-options > button:hover:not(:disabled) { background: #f3ebe3; }
+.module-action-options > button.is-active { background: #24473f; color: #fff; }
+.module-question-composer { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-2); font-size: var(--ui-body-size); line-height: 1.6; overflow-wrap: anywhere; }
+.module-question-composer textarea { width: 100%; min-height: 8rem; padding: var(--ui-space-3); border: 1px solid #cddbd2; border-radius: var(--ui-radius); font-size: max(16px, var(--ui-body-size)); resize: vertical; }
+.module-question-hint { margin: 0; color: #68776e; font-size: var(--ui-small-size); }
+.module-question-submit { min-height: var(--ui-target-size); border-radius: var(--ui-radius); padding: var(--ui-space-3); background: #306449; color: #fff; }
+.module-question-composer a { display: flex; align-items: center; min-height: var(--ui-target-size); color: #306449; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 767px) {
- .ledger-module-page > .module-action-bar { padding: 16px; gap: 12px; }
- .module-action-bar-heading h2 { font-size: 21px; }
- .module-action-primary { width: 100%; min-height: 52px; }
- .module-action-secondary { flex: 1 1 calc(50% - 5px); justify-content: center; min-height: 42px; padding: 6px 10px; font-size: 13px; }
- .module-action-bar > .ledger-focused-practice-panel { grid-template-columns: 1fr; }
+ .module-action-bar { padding: var(--ui-space-3) var(--ui-page-gutter); }
+ .module-action-bar-actions { align-items: stretch; }
+ .module-action-primary { flex: 1 1 160px; }
+ .module-action-desktop-actions { display: none; }
+ .module-action-overflow { display: inline-flex; flex: 0 1 auto; justify-content: center; }
+ .module-action-bar > .ledger-focused-practice-panel { grid-template-columns: minmax(0,1fr); }
+ .module-action-dialog { width: 100%; max-width: none; max-height: calc(100dvh - max(16px, env(safe-area-inset-top))); margin: auto 0 0; border-radius: 12px 12px 0 0; border-bottom: 0; }
+ .module-action-dialog-body { padding-bottom: max(var(--ui-space-3), env(safe-area-inset-bottom)); padding-left: max(var(--ui-space-3), env(safe-area-inset-left)); padding-right: max(var(--ui-space-3), env(safe-area-inset-right)); }
 }

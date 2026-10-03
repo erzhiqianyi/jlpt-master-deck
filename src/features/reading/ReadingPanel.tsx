@@ -131,6 +131,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   return (
     <section className="ledger-word-index ledger-module-page min-w-0">
       {showForm || showAiForm ? null : <ModuleActionBar
+        locale={locale}
         label="阅读"
         primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: () => { const group = filteredGroups[Math.floor(Math.random() * filteredGroups.length)]; if (group) window.location.hash = `#/reading/words/${encodeURIComponent(group[0].id)}`; } } : undefined}
         onAsk={onAsk}
@@ -223,7 +224,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
 
       {showLibrary ? <>
         <div className="flex flex-wrap gap-2 border-b border-[#e1e7df] bg-white px-4 py-4 md:px-6">
-          {['全部', ...availableTags].map((tag) => <button key={tag} type="button" onClick={() => { setActiveTag(tag); }} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
+          {['全部', ...availableTags].map((tag) => <button key={tag} type="button" aria-pressed={activeTag === tag} onClick={() => { setActiveTag(tag); }} className={`min-h-11 rounded-full border px-3 py-1.5 text-sm font-semibold ${activeTag === tag ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#c8d1c8] bg-white text-[#53605a]'}`}>{tag}</button>)}
         </div>
         <LearningCatalog columns={<LearningListColumns locale={locale} mobileReview={false} practiceCount practiceCountLabel={locale === 'zh-CN' ? '累计作答' : locale === 'ja' ? '累計解答' : 'Answers'}
           title={locale === 'ja' ? '文章' : locale === 'en' ? 'Passage' : '文章'}
@@ -264,7 +265,7 @@ function ReadingPracticePanel({ labels, locale, questions, onRecordPractice, onO
         <h2 className="text-2xl font-black text-[#3d3036]">{labels.readingPracticeTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-[#74646b]">{labels.readingPracticeEmpty}</p>
         {onOpenLibrary ? (
-          <button type="button" onClick={onOpenLibrary} className="cute-button-primary mt-5 h-10 rounded-full px-4 text-sm font-bold text-white">
+          <button type="button" onClick={onOpenLibrary} className="cute-button-primary mt-5 h-11 rounded-full px-4 text-sm font-bold text-white">
             {labels.questionBankPage}
           </button>
         ) : null}
@@ -277,11 +278,11 @@ function ReadingPracticePanel({ labels, locale, questions, onRecordPractice, onO
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-5">
         <p className="text-sm font-bold text-[#a84269]">{labels.readingPracticeTitle}</p>
         <div className="flex items-center gap-2">
-          <button type="button" aria-label={labels.prev} title={labels.prev} disabled={activeIndex === 0} onClick={() => setActiveIndex((index) => Math.max(0, index - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" aria-label={labels.prev} title={labels.prev} disabled={activeIndex === 0} onClick={() => setActiveIndex((index) => Math.max(0, index - 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
             <ChevronLeft size={18} />
           </button>
           <span className="min-w-16 rounded-full bg-[#fff0f5] px-3 py-1 text-center text-sm font-bold text-[#a84269]">{activeIndex + 1} / {groups.length}</span>
-          <button type="button" aria-label={labels.next} title={labels.next} disabled={activeIndex >= groups.length - 1} onClick={() => setActiveIndex((index) => Math.min(groups.length - 1, index + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" aria-label={labels.next} title={labels.next} disabled={activeIndex >= groups.length - 1} onClick={() => setActiveIndex((index) => Math.min(groups.length - 1, index + 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-not-allowed disabled:opacity-40">
             <ChevronRight size={18} />
           </button>
         </div>
@@ -358,7 +359,7 @@ function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPrac
       {(item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
       <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8"><ReadingText text={item.question} /></p>
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
-      <ChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
+      <ReadingChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" disabled={saving} onClick={async () => {
           if (selected === null) { setAnswerNotice(labels.readingSelectAnswer); return; }
@@ -373,7 +374,7 @@ function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPrac
           } finally {
             setSaving(false);
           }
-        }} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
+        }} className="h-11 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
@@ -390,7 +391,7 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
   );
 }
 
-function ChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: ReadingQuestion; segmented: boolean; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
+export function ReadingChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: ReadingQuestion; segmented: boolean; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
   return (
     <div className="reading-choices mt-4">
       {item.choices.map((choice, index) => {

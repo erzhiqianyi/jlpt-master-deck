@@ -1,6 +1,17 @@
 @import 'tailwindcss';
 
 :root {
+  /* Shared controls and responsive page rhythm; compact changes never shrink targets. */
+  --ui-target-size: 44px;
+  --ui-page-gutter: 32px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 20px;
+  --ui-radius: 8px;
+  --ui-font-scale: 1;
+  --ui-body-size: calc(1rem * var(--ui-font-scale));
+  --ui-small-size: calc(.875rem * var(--ui-font-scale));
+  --ui-heading-size: calc(1.5rem * var(--ui-font-scale));
   --background: #fff7fb;
   --foreground: #28312d;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -201,7 +212,7 @@ body, .cute-shell {
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   background:
     radial-gradient(circle at 15% 8%, rgba(255, 217, 227, 0.7), transparent 28%),
@@ -209,6 +220,10 @@ body {
     linear-gradient(135deg, #fffaf6 0%, #fff7fb 46%, #f8fff9 100%);
   overflow-x: clip;
 }
+
+html[data-font-size='small'] { --ui-font-scale: .9375; }
+html[data-font-size='large'] { --ui-font-scale: 1.125; }
+@media (max-width: 767px) { :root { --ui-page-gutter: 16px; --ui-space-4: 16px; --ui-heading-size: calc(1.25rem * var(--ui-font-scale)); } }
 
 html[data-font-size='small'] body {
   font-size: 15px;
@@ -248,8 +263,14 @@ a {
 }
 
 button {
+  min-height: var(--ui-target-size);
   font: inherit;
 }
+
+input, select, textarea { min-width: 0; max-width: 100%; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #34745f; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; }
+
 
 rt {
   color: #8c5a3d;
@@ -1397,13 +1418,16 @@ rt {
 }
 
 @media (max-width: 767px) {
+  [data-bottom-navigation='visible'] { --mobile-navigation-space: 5.7rem; }
+  [data-bottom-navigation='hidden'] { --mobile-navigation-space: 0px; }
+
   .mobile-app-header {
     z-index: 50;
   }
 
   .app-content {
     width: 100%;
-    padding-bottom: calc(5.7rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-navigation-space, 0px) + env(safe-area-inset-bottom));
   }
 
   .app-frame {
@@ -5153,12 +5177,12 @@ html[data-font-size='large'] .ledger-focus-review {
 }
 
 /* Shared confirmation dialog for generation and deletion. */
-dialog.app-confirmation { margin: auto; padding: 0; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid #d4e2d8; border-radius: 18px; color: #263f32; background: #fffefa; box-shadow: 0 20px 70px #18362930; }
+dialog.app-confirmation { margin: auto; padding: 0; width: min(440px, calc(100% - 32px)); max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom))); overflow: auto; overscroll-behavior: contain; border: 1px solid #d4e2d8; border-radius: 18px; color: #263f32; background: #fffefa; box-shadow: 0 20px 70px #18362930; }
 dialog.app-confirmation::backdrop { background: #1c30284d; backdrop-filter: blur(3px); }
 .app-confirmation .app-confirmation-body { padding: 28px 28px 24px; }
-.app-confirmation h2 { margin: 0 0 12px; font-size: 23px; font-weight: 700; line-height: 1.4; }
+.app-confirmation h2 { margin: 0 0 12px; overflow-wrap: anywhere; font-size: var(--ui-heading-size); font-weight: 700; line-height: 1.4; }
 .app-confirmation p { margin: 0; color: #52665a; font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
-.app-confirmation footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 18px 24px; background: #f0f5ef; border-top: 1px solid #e0e8df; }
+.app-confirmation footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 18px 24px max(18px, env(safe-area-inset-bottom)); background: #f0f5ef; border-top: 1px solid #e0e8df; }
 .app-confirmation button { min-height: 46px; padding: 10px 20px; border: 1px solid #b8cbbd; border-radius: 10px; background: #fffefa; color: #385642; font-size: 16px; font-weight: 650; }
 .app-confirmation button.is-primary { background: #285941; border-color: #285941; color: white; }
 .app-confirmation button.is-danger { background: #a83d33; border-color: #a83d33; color: white; }
@@ -5166,7 +5190,7 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .app-notice-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .app-notice footer { flex-shrink: 0; }
 .app-notice-details { margin-top: 20px; border-top: 1px solid #e0e8df; padding-top: 16px; }
-.app-notice-details summary { cursor: pointer; padding: 8px 0; font-weight: 650; color: #385642; }
+.app-notice-details summary { min-height: var(--ui-target-size); cursor: pointer; padding: 8px 0; font-weight: 650; color: #385642; }
 .app-notice-details summary:focus-visible { outline: 3px solid #52826a; outline-offset: 3px; border-radius: 4px; }
 .app-notice-details section { margin-top: 16px; }
 .app-notice-details h3 { font-weight: 700; margin-bottom: 6px; }
@@ -5174,7 +5198,13 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .app-notice #app-notice-description { white-space: pre-wrap; }
 .app-confirmation button:hover { filter: brightness(.95); }
 .app-confirmation button:focus-visible { outline: 3px solid #52826a; outline-offset: 3px; }
-@media (max-width: 480px) { .app-confirmation .app-confirmation-body { padding: 24px 20px; } .app-confirmation footer { padding: 16px 20px; } .app-confirmation button { flex: 1; } }
+.share-trigger { min-width: var(--ui-target-size); }
+.share-trigger[aria-disabled='true'] { opacity: .55; cursor: default; }
+.share-dialog form { min-width: 0; }
+.share-dialog label { display: grid; gap: 8px; margin-top: 20px; font-size: var(--ui-body-size); }
+.share-dialog textarea { width: 100%; min-height: 8rem; padding: 12px; border: 1px solid #b8cbbd; border-radius: var(--ui-radius); font-size: max(16px, var(--ui-body-size)); resize: vertical; }
+.share-dialog .share-error { margin-top: 12px; color: #a83d33; }
+@media (max-width: 480px) { .app-confirmation .app-confirmation-body { padding: 24px 20px; } .app-confirmation footer { padding: 16px 20px max(16px, env(safe-area-inset-bottom)); } .app-confirmation button { flex: 1; } }
 
 /* Practice choices: keep unanswered options neutral; reserve green for revealed correctness. */
 .practice-swipe-surface .cute-choice[data-answer-state="unanswered"] {

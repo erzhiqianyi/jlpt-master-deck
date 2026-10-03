@@ -1,4 +1,6 @@
 import { RecordReference } from '../../components/RecordReference';
+import './listening.css';
+import { listeningShareCopy, requestListeningShare } from './listeningShare';
 import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey } from '../../domain/listeningPractice';
 import { listeningEditorContent, splitListeningExplanation } from '../../domain/listeningExplanation';
 import { colorReadAlongTokens, listeningTranscriptForPractice, mergeReadAlongClips, splitReadAlongLines } from '../../domain/listeningReadAlong';
@@ -138,7 +140,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   if (activeLibraryQuestion) {
     if (readAlongOpen) return <ListeningReadAlongWorkspace key={activeLibraryQuestion.audioAssetId ?? activeLibraryQuestion.id} item={activeLibraryQuestion} labels={labels} locale={locale} token={token} onBack={() => setReadAlongOpen(false)} />;
     return (
-      <section className="cute-practice-card min-w-0 overflow-hidden border">
+      <section className="listening-workspace cute-practice-card min-w-0 overflow-hidden border">
         <div className="flex items-center gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-6">
           <button type="button" onClick={onBackToLibrary} aria-label={labels.listeningBackToList} title={labels.listeningBackToList} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5]">
             <ChevronLeft size={18} />
@@ -146,7 +148,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           <div className="min-w-0">
             <h2 className="truncate text-lg font-black text-[#3d3036]"><span className="md:hidden">{activeLibraryQuestion.audioReference || labels.listeningPracticeTitle} · {activeGroup.length} {locale === 'ja' ? '問' : locale === 'en' ? 'questions' : '题'}</span><span className="hidden md:inline">{activeLibraryQuestion.audioReference ? `${activeLibraryQuestion.audioReference} · ` : ''}{activeLibraryQuestion.audioFileName}</span></h2>
           </div>
-          <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} />
+          <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} locale={locale} questionCount={activeLibraryQuestion.audioAssetId ? activeGroup.length : 1} />
         </div>
         <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_minmax(440px,42%)]">
         <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
@@ -287,13 +289,14 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   }
 
   return (
-    <section className="ledger-word-index ledger-module-page min-w-0">
+    <section className="listening-workspace ledger-word-index ledger-module-page min-w-0">
       {showForm ? <div className="sticky top-0 z-20 flex flex-wrap items-center justify-end gap-3 border-b border-[#dce9df] bg-white px-4 py-4 md:px-6">
         <div className="flex items-center gap-2">
           <button type="button" onClick={addDraft} disabled={submitting || matchingAudio || !audioFile} className="h-10 rounded-md border border-[#31564c] bg-white px-4 text-sm font-bold text-[#31564c] disabled:opacity-50">添加下一题</button>
           <button type="submit" form="listening-authoring-form" disabled={submitting || matchingAudio || !audioFile} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-bold text-white disabled:opacity-50">{submitting ? labels.listeningSubmitting : '保存并完成添加'}</button>
         </div>
       </div> : <ModuleActionBar
+        locale={locale}
         label="听力"
         primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: () => { const group = audioGroups[Math.floor(Math.random() * audioGroups.length)]; if (group) onOpenQuestion?.(listeningAudioRouteId(group.representative)); } } : undefined}
         onAsk={onAsk}
@@ -445,25 +448,33 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   );
 }
 
-function ListeningShareButton({ item, token }: { item: ListeningQuestion; token: string }) {
+function ListeningShareButton({ item, token, locale, questionCount }: { item: ListeningQuestion; token: string; locale: Locale; questionCount: number }) {
+  const confirm = useConfirmation();
+  const copy = listeningShareCopy[locale];
+  const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
   async function share() {
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true); setError('');
     try {
-      const result = await apiRequest<{ id: string }>('/api/market/listening', { token, method: 'POST', body: { sourceId: item.id } });
+      const result = await requestListeningShare({ filename: item.audioFileName, questionCount, locale, confirm,
+        publish: () => apiRequest<{ id: string }>('/api/market/listening', { token, method: 'POST', body: { sourceId: item.id } }),
+      });
+      if (!result) return;
       const url = `${window.location.origin}/#/market/${encodeURIComponent(result.id)}`;
       setLink(url);
       try { await navigator.clipboard.writeText(url); } catch { /* Link remains visible for manual copying. */ }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '分享失败');
-    } finally { setBusy(false); }
+      setError(cause instanceof Error ? cause.message : copy.failed);
+    } finally { pending.current = false; setBusy(false); }
   }
-  return <div className="ml-auto flex min-w-0 items-center gap-2">
-    {link ? <input aria-label="听力分享链接" className="min-w-0 max-w-40 rounded border px-2 py-1 text-xs md:max-w-52" readOnly value={link} onFocus={(event) => event.currentTarget.select()} /> : null}
-    <button type="button" onClick={() => void (link ? navigator.clipboard.writeText(link).catch(() => {}) : share())} disabled={busy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#d6e6df] bg-white px-2.5 py-1.5 text-sm font-bold text-[#31564c]" aria-label={link ? '复制听力分享链接' : '分享听力题'}>
-      <Share2 size={16} aria-hidden="true" />{busy ? '分享中…' : link ? '复制链接' : '分享'}
+  return <div className="ml-auto flex min-w-0 flex-wrap justify-end gap-2">
+    {link ? <input aria-label={copy.link} className="min-h-11 min-w-0 max-w-40 rounded border px-2 py-1 text-xs md:max-w-52" readOnly value={link} onFocus={(event) => event.currentTarget.select()} /> : null}
+    <button type="button" onClick={() => void (link ? navigator.clipboard.writeText(link).catch(() => {}) : share())} disabled={busy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#d6e6df] bg-white px-2.5 py-1.5 text-sm font-bold text-[#31564c]" aria-label={link ? copy.copy : copy.publish}>
+      <Share2 size={16} aria-hidden="true" />{busy ? copy.busy : link ? copy.copy : copy.publish}
     </button>
     {error ? <span role="alert" className="text-xs text-red-600">{error}</span> : null}
   </div>;
@@ -480,7 +491,7 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
 
   if (!questions.length || !activeQuestion) {
     return (
-      <section className="cute-practice-card mobile-page-surface min-w-0 border p-5 md:p-6">
+      <section className="listening-workspace cute-practice-card mobile-page-surface min-w-0 border p-5 md:p-6">
         <h2 className="text-2xl font-black text-[#3d3036]">{labels.listeningPracticeTitle}</h2>
         <p className="mt-3 text-sm leading-6 text-[#74646b]">{labels.listeningPracticeEmpty}</p>
         {onOpenLibrary ? (
@@ -493,7 +504,7 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
   }
 
   return (
-    <section className="cute-practice-card mobile-page-surface min-w-0 border">
+    <section className="listening-workspace cute-practice-card mobile-page-surface min-w-0 border">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-5">
         <p className="text-sm font-bold text-[#a84269]">{labels.listeningPracticeTitle}</p>
         <div className="flex items-center gap-2">
@@ -611,7 +622,7 @@ function ListeningReadAlongWorkspace({ item, labels, locale, token, onBack }: { 
   const transcript = listeningTranscriptForPractice(item);
   const lines = useMemo(() => splitReadAlongLines(transcript), [transcript]);
   const [selectedLine, setSelectedLine] = useState(0);
-  return <section className="cute-practice-card min-w-0 overflow-hidden border">
+  return <section className="listening-workspace cute-practice-card min-w-0 overflow-hidden border">
     <div className="flex flex-wrap items-center gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-6">
       <button type="button" onClick={onBack} className="inline-flex h-9 items-center gap-1 rounded-full border border-[#ead1dc] bg-white px-3 text-sm font-bold text-[#31564c]"><ChevronLeft size={17} />返回题目</button>
       <div className="min-w-0"><h2 className="text-lg font-black text-[#3d3036]">跟读练习</h2><p className="truncate text-xs text-[#778079]">{item.audioReference} · {item.audioFileName}</p></div>
@@ -823,7 +834,7 @@ function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detai
       </div>
       {editing ? <ListeningQuestionEditor key={item.id} item={item} labels={labels} onUpdate={onUpdate} onCancel={() => onEditingChange(false)} onSaved={() => onEditingChange(false)} /> : null}
       {!editing ? <>
-      {!detail && hasDistinctListeningQuestion(item) ? <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p> : null}
+      {hasDistinctListeningQuestion(item) ? <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p> : null}
       {isFreeResponse(item) ? <textarea value={freeResponse} onChange={(event) => onAnswerChange({ ...answer, freeResponse: event.target.value })} placeholder="写下你的回答" className="mt-3 min-h-24 w-full rounded-md border border-[#d8e0d7] bg-white p-3 text-sm leading-6" /> : null}
       {!isFreeResponse(item) ? <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {item.choices.map((choice, index) => {
@@ -1180,7 +1191,7 @@ function ListeningRecordingHistoryItem({ recording, index, labels, locale, token
         : labels.listeningRecordingStatusPending;
 
   return <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)} className="relative min-w-0 rounded-lg border border-[#ead1dc] bg-white p-3">
-    <summary className="min-w-0 cursor-pointer pr-9 text-sm font-semibold text-[#3d3036]">
+    <summary className="listening-recording-summary min-w-0 cursor-pointer pr-9 text-sm font-semibold text-[#3d3036]">
       <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 align-middle">
         <span>{labels.listeningRecordingTake} {index + 1}</span>
         <span className="text-xs font-normal text-[#778079]">{formatDateTime(recording.createdAt, locale)}</span>

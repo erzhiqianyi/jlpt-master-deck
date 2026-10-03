@@ -1,3 +1,5 @@
+import './practice-layout.css';
+import { conciseEvidence, practiceReviewModel } from './practicePresentation';
 import { itemPracticeCounts } from '../../domain/itemPracticeCounts.mjs';
 import { PracticeTimer } from '../../components/PracticeTimer';
 import { conjugationReading } from '../../domain/conjugationReading';
@@ -76,11 +78,6 @@ function isTextEntryTarget(target: EventTarget | null) {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 }
 
-function shouldAutoAdvanceAfterBatchAnswer() {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
-}
-
 /** Both libraries share the wordbook UI; the grammar library only swaps the wording. */
 function bookLabels(labels: Record<string, string>, family: WordbookFamily) {
   if (family === 'vocabulary') return labels;
@@ -127,18 +124,8 @@ function questionKindLabel(kind: QuestionKind, labels: Record<string, string>) {
 }
 
 export function PracticeReviewPanel({
-  token,
-  attempt,
-  questions,
-  answers,
-  items,
-  labels,
-  practiceTitle,
-  practiceReference,
-  locale,
-  showRuby,
-  onRestart,
-  onBackToPractice,
+  token, attempt, questions, answers, items, labels, practiceTitle, practiceReference,
+  locale, showRuby, onRestart, onBackToPractice,
 }: {
   token?: string;
   attempt?: PracticeAttempt;
@@ -150,133 +137,80 @@ export function PracticeReviewPanel({
   practiceReference?: string;
   locale: Locale;
   showRuby: boolean;
-  onRestart: () => void;
+  onRestart?: () => void;
   onBackToPractice: () => void;
 }) {
-  const [reviewIndex, setReviewIndex] = useState(0);
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-  const questionDialogRef = useRef<HTMLDialogElement>(null);
-  const questionMap = new Map(questions.map((question) => [question.id, question]));
-  const storedReviewAnswers = attempt?.answers.length
-    ? attempt.answers
-    : questions
-      .filter((question) => answers[question.id])
-      .map((question) => ({
-        questionId: question.id,
-        itemId: question.itemId,
-        kind: question.kind,
-        selected: answers[question.id].selected,
-        correct: answers[question.id].correct,
-        startedAt: answers[question.id].startedAt,
-        answeredAt: answers[question.id].answeredAt ?? '',
-        elapsedMs: answers[question.id].elapsedMs ?? 0,
-      }));
-  const reviewAnswers = storedReviewAnswers.map((answer) => {
-    const question = questionMap.get(answer.questionId);
-    return question ? { ...answer, correct: answer.selected === question.answer } : answer;
-  });
-  const reviewCorrectCount = reviewAnswers.filter((answer) => answer.correct).length;
-  const summary = {
-    total: attempt?.summary?.total ?? questions.length,
-    correct: reviewCorrectCount,
-    wrong: reviewAnswers.length - reviewCorrectCount,
-    accuracy: reviewAnswers.length ? reviewCorrectCount / reviewAnswers.length : 0,
-    elapsedMs: attempt?.summary?.elapsedMs ?? reviewAnswers.reduce((sum, answer) => sum + (answer.elapsedMs ?? 0), 0),
-  };
-  const orderedAnswers = questions.flatMap((question) => {
-    const answer = reviewAnswers.find((entry) => entry.questionId === question.id);
-    return answer ? [answer] : [];
-  });
-  const activeIndex = Math.min(reviewIndex, Math.max(0, orderedAnswers.length - 1));
-  const activeAnswer = orderedAnswers[activeIndex];
-  const activeQuestion = activeAnswer ? questionMap.get(activeAnswer.questionId) : undefined;
-  const activeAnswerCorrect = activeQuestion && activeAnswer ? activeAnswer.selected === activeQuestion.answer : false;
+  const model = practiceReviewModel(questions, answers, attempt);
+  const [reviewIndex, setReviewIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<'all' | 'wrong' | 'unanswered'>(() => model.wrong ? 'wrong' : 'all');
+  const questionRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const activeRow = reviewIndex === null ? undefined : model.rows[reviewIndex];
+  const activeQuestion = activeRow?.question;
+  const activeAnswer = activeRow?.answer;
   const reviewTitle = attempt?.title ?? practiceTitle ?? labels.reviewSummaryTitle;
-  const answeredCount = orderedAnswers.length;
   const copy = locale === 'zh-CN'
-    ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习' }
+    ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习', back: '返回练习', results: '练习结果', returnResults: '返回结果', all: '全部题目', wrong: '错题', unanswered: '未答', accuracy: '整组正确率', scoreNote: '按整组题目计分，未答计入总题数。', emptyWrong: '没有错题。可以查看全部题目。', emptyUnanswered: '所有题目都已作答。', allCorrect: '全部答对了！', evidence: '查看答案与解析', unansweredBody: '这道题尚未作答；以下是正确答案与解析。', missing: '部分原题当前不可用；历史成绩已保留，缺失题目不会计为未答。', historicalScore: '成绩按当时保存的记录展示。', currentVersion: '以下答案与解析来自当前题目版本，可能与作答时不同。', currentAnswer: '当前题目答案' }
     : locale === 'ja'
-      ? { list: '問題一覧', previous: '前の問題', next: '次の問題', restart: 'もう一度練習' }
-      : { list: 'Questions', previous: 'Previous', next: 'Next', restart: 'Restart practice' };
+      ? { list: '問題一覧', previous: '前の問題', next: '次の問題', restart: 'もう一度練習', back: '練習に戻る', results: '練習結果', returnResults: '結果に戻る', all: 'すべて', wrong: '不正解', unanswered: '未解答', accuracy: '全問の正答率', scoreNote: '未解答を含む全問題数で計算しています。', emptyWrong: '不正解はありません。すべての問題を確認できます。', emptyUnanswered: 'すべて解答済みです。', allCorrect: '全問正解です！', evidence: '答えと解説を見る', unansweredBody: '未解答の問題です。正解と解説を確認できます。', missing: '元の問題の一部が利用できません。保存済みの成績は保持し、欠落した問題を未解答には数えません。', historicalScore: '当時保存された成績を表示しています。', currentVersion: '以下の正解と解説は現在の問題版です。解答時と異なる場合があります。', currentAnswer: '現在の問題の正解' }
+      : { list: 'Questions', previous: 'Previous', next: 'Next', restart: 'Restart practice', back: 'Back to practice', results: 'Practice results', returnResults: 'Back to results', all: 'All questions', wrong: 'Incorrect', unanswered: 'Unanswered', accuracy: 'Whole-set accuracy', scoreNote: 'Accuracy includes every question, including unanswered ones.', emptyWrong: 'No incorrect answers. You can review all questions.', emptyUnanswered: 'Every question has been answered.', allCorrect: 'Every answer is correct!', evidence: 'View answer and explanation', unansweredBody: 'This question was not answered. Review the correct answer and explanation below.', missing: 'Some original questions are unavailable. Saved results are preserved; missing questions are not counted as unanswered.', historicalScore: 'Showing the result saved at the time of this attempt.', currentVersion: 'Answers and explanations below use the current question version and may differ from the original.', currentAnswer: 'Current question answer' };
+  const rows = model.rows.filter((row) => filter === 'all' || row.status === filter);
 
-  function openQuestionDialog() {
-    setQuestionDialogOpen(true);
-    window.requestAnimationFrame(() => questionDialogRef.current?.showModal());
+  function openQuestion(index: number) {
+    setReviewIndex(index);
+    window.requestAnimationFrame(() => {
+      questionRef.current?.focus();
+      questionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
   }
 
-  function closeQuestionDialog() {
-    setQuestionDialogOpen(false);
-    questionDialogRef.current?.close();
+  function showResults() {
+    setReviewIndex(null);
+    window.requestAnimationFrame(() => listRef.current?.focus());
   }
 
   return (
-    <section className="cute-practice-card practice-swipe-surface attempt-review-card min-w-0 border px-4 pb-6 pt-4 md:p-5">
-      {activeQuestion && activeAnswer ? <>
-        <div className="practice-question-section">
-          <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-            <p className="text-sm font-bold text-[#a84269]">{reviewTitle}</p>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-              {orderedAnswers.length > 1 ? <ArrowButton label={copy.previous} direction="left" onClick={() => setReviewIndex(safeIndex(activeIndex - 1, orderedAnswers.length))} /> : null}
-              <button
-                type="button"
-                onClick={openQuestionDialog}
-                aria-haspopup="dialog"
-                aria-expanded={questionDialogOpen}
-                aria-label={`${copy.list}: ${activeIndex + 1} / ${orderedAnswers.length}`}
-                className="attempt-review-progress practice-progress-button flex min-h-10 min-w-32 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-3 py-1 text-[#a84269]"
-              >
-                <span className="journal-number text-sm font-black">{activeIndex + 1} / {orderedAnswers.length}</span>
-              </button>
-              <button type="button" onClick={onRestart} aria-label={copy.restart} title={copy.restart} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
-                <RotateCcw size={17} />
-              </button>
-              {orderedAnswers.length > 1 ? <ArrowButton label={copy.next} direction="right" onClick={() => setReviewIndex(safeIndex(activeIndex + 1, orderedAnswers.length))} /> : null}
-            </div>
+    <section className="practice-review-results">
+      <header className="practice-results-heading">
+        <button type="button" className="practice-text-action" onClick={onBackToPractice}><ChevronLeft size={18} aria-hidden="true" />{copy.back}</button>
+        <div><p>{copy.results}</p><h1>{reviewTitle}</h1></div>
+        {onRestart ? <button type="button" className="practice-text-action" onClick={onRestart}><RotateCcw size={17} aria-hidden="true" />{copy.restart}</button> : null}
+      </header>
+      <section className="practice-result-summary" aria-label={copy.results}>
+        <div className="practice-result-score"><strong>{Math.round(model.accuracy * 100)}<small>%</small></strong><span>{copy.accuracy}</span></div>
+        <dl><div><dt>{labels.correct}</dt><dd>{model.correct} / {model.total}</dd></div><div><dt>{copy.wrong}</dt><dd>{model.wrong}</dd></div><div><dt>{copy.unanswered}</dt><dd>{model.unanswered}</dd></div><div><dt>{labels.elapsed}</dt><dd>{formatDuration(model.elapsedMs)}</dd></div></dl>
+        <p>{attempt ? copy.historicalScore : model.total > 0 && model.correct === model.total ? copy.allCorrect : copy.scoreNote}</p>
+        {model.missingOriginals > 0 ? <p role="status">{copy.missing} ({model.missingOriginals})</p> : null}
+      </section>
+      <div className={`practice-review-workspace${activeQuestion ? ' has-question' : ''}`}>
+        <section className="practice-result-list" ref={listRef} tabIndex={-1} aria-label={copy.list}>
+          <div className="practice-result-filters" role="group" aria-label={copy.list}>
+            {([['wrong', copy.wrong, model.wrong], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setReviewIndex(null); }}>{title} <span>{count}</span></button>)}
           </div>
-          <article key={activeQuestion.id} className="attempt-review-question">
-            {activeQuestion.instruction ? <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p> : null}
-            <p className="mt-4 break-words text-lg leading-8 text-[#3d3036]"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {activeQuestion.choices.map((choice, index) => {
-                const correct = choice === activeQuestion.answer;
-                const selected = choice === activeAnswer.selected;
-                return <div key={`${index}-${choice}`} data-answer-state={correct ? 'correct' : selected ? 'incorrect-selected' : 'answered-muted'} className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words ${correct ? 'border-[#65a37c] bg-[#f0fff5]' : selected ? 'border-[#d95f8a] bg-[#fff0f5]' : 'border-[#f0d4dd] bg-white'}`}>
-                  <span className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
-                  <span className="min-w-0 pt-0.5">{choice}</span>
-                  {correct || selected ? <span className="review-choice-badges">
-                    {correct ? <small>{activeAnswerCorrect ? labels.correct : labels.rightAnswer}</small> : null}
-                    {selected && !activeAnswerCorrect ? <small>{labels.yourAnswer}</small> : null}
-                  </span> : null}
-                </div>;
-              })}
-            </div>
-          </article>
-          <div className="practice-question-reference">
-            {!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}
-            <QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} />
+          {rows.length ? <ol className="practice-result-rows">{rows.map(({ question, index, status }) => <li key={question.id}><button type="button" aria-current={reviewIndex === index ? 'true' : undefined} onClick={() => openQuestion(index)}>
+            <span className={`practice-result-number is-${status}`}>{index + 1}</span><span><strong>{question.prompt || question.title}</strong><small>{status === 'unanswered' ? copy.unanswered : status === 'correct' ? labels.correct : labels.wrong} · {copy.evidence}</small></span><ChevronRight size={18} aria-hidden="true" />
+          </button></li>)}</ol> : <p className="practice-results-empty" role="status">{model.missingOriginals > 0 ? copy.missing : !model.rows.length ? labels.noAttemptHistory : filter === 'wrong' ? copy.emptyWrong : copy.emptyUnanswered}</p>}
+        </section>
+        {activeQuestion && activeRow ? <article key={activeQuestion.id} ref={questionRef} tabIndex={-1} className="practice-review-detail" aria-label={`${copy.list} ${activeRow.index + 1}`}>
+          <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{activeRow.index + 1} / {model.rows.length}</span></div>
+          {activeQuestion.instruction ? <p className="practice-question-instruction">{activeQuestion.instruction}</p> : null}
+          <p className="practice-review-prompt"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
+          {attempt ? <p className="practice-historical-version" role="note">{copy.currentVersion}</p> : null}
+          <div className="practice-review-options">
+            {activeQuestion.choices.map((choice, index) => {
+              const correct = choice === activeQuestion.answer;
+              const selected = choice === activeAnswer?.selected;
+              return <div key={`${index}-${choice}`} data-answer-state={correct ? 'correct' : selected ? 'incorrect-selected' : 'answered-muted'} className="practice-review-option">
+                <span>{index + 1}</span><span>{choice}</span>{correct ? <small>{attempt ? copy.currentAnswer : labels.rightAnswer}</small> : selected ? <small>{labels.yourAnswer}</small> : null}
+              </div>;
+            })}
           </div>
-        </div>
-        <AnswerPanel
-          question={activeQuestion}
-          answer={activeAnswer}
-          items={items}
-          showRuby={showRuby}
-          labels={labels}
-          locale={locale}
-        />
-      </> : <p>{labels.noAttemptHistory}</p>}
-
-      <dialog ref={questionDialogRef} className="attempt-question-dialog" aria-labelledby="attempt-question-dialog-title" onClose={() => setQuestionDialogOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) closeQuestionDialog(); }}>
-        <div className="attempt-question-dialog-content">
-          <header><h2 id="attempt-question-dialog-title">{copy.list}</h2><button type="button" autoFocus aria-label={locale === 'zh-CN' ? '关闭' : locale === 'ja' ? '閉じる' : 'Close'} onClick={closeQuestionDialog}><X size={20} /></button></header>
-          <p className="attempt-question-legend"><span className="is-correct">✓ {labels.correct} {summary.correct}</span><span className="is-wrong">× {labels.wrong} {summary.wrong}</span><span>{labels.elapsed} {formatDuration(summary.elapsedMs)}</span></p>
-          <nav aria-label={copy.list}>
-            {orderedAnswers.map((answer, index) => <button type="button" key={answer.questionId} className={answer.correct ? 'is-correct' : 'is-wrong'} aria-current={index === activeIndex ? 'true' : undefined} aria-label={`${index + 1}: ${answer.correct ? labels.correct : labels.wrong}`} onClick={() => { setReviewIndex(index); closeQuestionDialog(); }}><span>{index + 1}</span><small>{answer.correct ? '✓' : '×'}</small></button>)}
-          </nav>
-          <p className="attempt-question-dialog-summary">{labels.completed} {answeredCount} / {summary.total}</p>
-        </div>
-      </dialog>
-
+          {!activeAnswer ? <p className="practice-unanswered-explanation">{copy.unansweredBody}</p> : null}
+          <AnswerPanel question={activeQuestion} answer={activeAnswer} historical={Boolean(attempt)} items={items} showRuby={showRuby} labels={labels} locale={locale} />
+          <div className="practice-question-reference">{!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
+          {model.rows.length > 1 ? <nav className="practice-review-footer" aria-label={copy.list}><button type="button" onClick={() => openQuestion(safeIndex(activeRow.index - 1, model.rows.length))}><ChevronLeft size={18} aria-hidden="true" />{copy.previous}</button><button type="button" onClick={() => openQuestion(safeIndex(activeRow.index + 1, model.rows.length))}>{copy.next}<ChevronRight size={18} aria-hidden="true" /></button></nav> : null}
+        </article> : null}
+      </div>
     </section>
   );
 }
@@ -336,12 +270,41 @@ export function PracticePanel({
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const [answerSheetPage, setAnswerSheetPage] = useState(0);
   const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const answerSheetRef = useRef<HTMLDialogElement>(null);
   const [reviewPreparing, setReviewPreparing] = useState(false);
+  const reviewPreparingRef = useRef(false);
+  const reviewMountedRef = useRef(true);
+  const reviewGenerationRef = useRef(0);
+  const reviewSessionKey = JSON.stringify([practiceReference, questionTypeLabel, questions.map((question) => question.id)]);
+  const reviewSessionKeyRef = useRef(reviewSessionKey);
+  if (reviewSessionKeyRef.current !== reviewSessionKey) {
+    reviewSessionKeyRef.current = reviewSessionKey;
+    reviewGenerationRef.current += 1;
+    reviewPreparingRef.current = false;
+  }
+  useEffect(() => {
+    reviewMountedRef.current = true;
+    return () => { reviewMountedRef.current = false; reviewGenerationRef.current += 1; };
+  }, []);
+  useEffect(() => { setReviewPreparing(false); setReviewError(''); }, [reviewSessionKey]);
   const practiceCardRef = useRef<HTMLElement | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
+  function invalidatePendingReview() {
+    reviewGenerationRef.current += 1;
+    reviewPreparingRef.current = false;
+    setReviewPreparing(false);
+    setReviewError('');
+  }
+
+  function leavePractice() {
+    invalidatePendingReview();
+    onPracticeHome();
+  }
+
   function restartTimedPractice() {
+    invalidatePendingReview();
     setTimerSession((session) => session + 1);
     onRestart();
   }
@@ -383,53 +346,29 @@ export function PracticePanel({
   }
 
   async function requestReview() {
-    if (reviewPreparing) return;
-    setReviewDialogOpen(true);
-    if (analysisStatus === 'completed') return;
+    if (reviewPreparingRef.current) return;
+    reviewPreparingRef.current = true;
+    const generation = reviewGenerationRef.current;
+    const isCurrent = () => reviewMountedRef.current && reviewGenerationRef.current === generation;
+    setReviewError('');
+    if (analysisStatus === 'completed') { onReview(); reviewPreparingRef.current = false; return; }
     setReviewPreparing(true);
     try {
       await onPrepareReview();
+      if (isCurrent()) onReview();
+    } catch (error) {
+      if (isCurrent()) setReviewError(error instanceof Error ? error.message : labels.reviewRetryNotice);
     } finally {
-      setReviewPreparing(false);
-    }
-  }
-
-  function runReviewDialogAction(action: () => void) {
-    setReviewDialogOpen(false);
-    action();
-  }
-
-  function answerOnMobile(question: Question, choice: string) {
-    const alreadyAnswered = Boolean(answers[question.id]);
-    if (feedbackMode === 'immediate' && alreadyAnswered) return;
-
-    onAnswer(question, choice);
-
-    const nextAnsweredCount = answeredCount + (alreadyAnswered ? 0 : 1);
-    const currentQuestionIndex = questions.findIndex((candidate) => candidate.id === question.id);
-    const baseIndex = currentQuestionIndex >= 0 ? currentQuestionIndex : activeIndex;
-    let nextUnansweredIndex = -1;
-    for (let offset = 1; offset <= questions.length; offset += 1) {
-      const candidateIndex = (baseIndex + offset) % questions.length;
-      const candidate = questions[candidateIndex];
-      if (candidate.id !== question.id && !answers[candidate.id]) {
-        nextUnansweredIndex = candidateIndex;
-        break;
+      if (isCurrent()) {
+        reviewPreparingRef.current = false;
+        setReviewPreparing(false);
       }
     }
-    const shouldAutoAdvance = typeof window !== 'undefined'
-      && feedbackMode === 'batch'
-      && shouldAutoAdvanceAfterBatchAnswer()
-      && questionsLength > 1
-      && nextAnsweredCount < questionsLength
-      && nextUnansweredIndex >= 0;
+  }
 
-    if (shouldAutoAdvance) {
-      window.setTimeout(() => {
-        onJump(nextUnansweredIndex);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, feedbackMode === 'immediate' ? 550 : 180);
-    }
+  function chooseAnswer(question: Question, choice: string) {
+    if (feedbackMode === 'immediate' && answers[question.id]) return;
+    onAnswer(question, choice);
   }
 
   const displayPracticeTitle = questionTypeLabel;
@@ -457,10 +396,10 @@ export function PracticePanel({
     });
 
   useEffect(() => {
-    if (!activeQuestion) return;
+    if (!activeQuestion || answerSheetOpen || reviewPreparing) return;
     const currentQuestion = activeQuestion;
 
-    function handleKeyDown(event: KeyboardEvent) {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (isTextEntryTarget(event.target)) return;
 
@@ -487,21 +426,18 @@ export function PracticePanel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeQuestion, answers, feedbackMode, onAnswer, onNext, onPrev, questionsLength]);
+  }, [activeQuestion, answers, answerSheetOpen, reviewPreparing, feedbackMode, onAnswer, onNext, onPrev, questionsLength]);
 
   useEffect(() => {
-    if (!reviewDialogOpen) return;
-    function handleDialogKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') setReviewDialogOpen(false);
-    }
-    window.addEventListener('keydown', handleDialogKeyDown);
-    return () => window.removeEventListener('keydown', handleDialogKeyDown);
-  }, [reviewDialogOpen]);
+    const dialog = answerSheetRef.current;
+    if (answerSheetOpen && !dialog?.open) dialog?.showModal();
+    if (!answerSheetOpen && dialog?.open) dialog.close();
+  }, [answerSheetOpen]);
 
   return (
     <section
       ref={practiceCardRef}
-      className="cute-practice-card practice-swipe-surface min-w-0 border px-4 pb-6 pt-4 md:p-5"
+      className="cute-practice-card practice-swipe-surface practice-session min-w-0 border px-4 pb-6 pt-4 md:p-5"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={() => { touchStartRef.current = null; }}
@@ -517,6 +453,9 @@ export function PracticePanel({
             {questionsLength > 1 ? <ArrowButton label={labels.prev} direction="left" shortcut="ArrowLeft" onClick={onPrev} /> : null}
             <button
               type="button"
+              disabled={questionsLength === 0}
+              aria-haspopup="dialog"
+              aria-expanded={answerSheetOpen}
               onClick={() => { setAnswerSheetFilter('all'); setAnswerSheetPage(Math.floor(activeIndex / 100)); setAnswerSheetOpen(true); }}
               aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`}
               className="practice-progress-button flex min-h-10 min-w-24 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-2 py-1 text-[#a84269] transition hover:bg-[#ffe6ef] md:min-w-32 md:px-3"
@@ -528,9 +467,7 @@ export function PracticePanel({
                 <RotateCcw size={17} />
               </button>
             ) : null}
-            {questionsLength > 1 ? (
-              <ArrowButton label={labels.next} direction="right" shortcut="ArrowRight" onClick={onNext} />
-            ) : null}
+
           </div>
         </div>
 
@@ -580,8 +517,9 @@ export function PracticePanel({
                       key={choice}
                       disabled={feedbackMode === 'immediate' && Boolean(answered)}
                       aria-keyshortcuts={String(choiceIndex + 1)}
+                      aria-pressed={isSelected}
                       data-answer-state={answerState}
-                      onClick={() => answerOnMobile(activeQuestion, choice)}
+                      onClick={() => chooseAnswer(activeQuestion, choice)}
                       className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words disabled:cursor-default ${color}`}
                     >
                       <span aria-hidden="true" className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">
@@ -591,13 +529,6 @@ export function PracticePanel({
                     </button>
                   );
                 })}
-              </div>
-            ) : null}
-            {feedbackMode === 'batch' && complete && analysisStatus !== 'completed' ? (
-              <div className="mt-5 flex items-center justify-end gap-3 border-t border-[#f0d4dd] pt-4">
-                <button type="button" onClick={requestReview} disabled={reviewPreparing} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70">
-                  {reviewPreparing ? labels.reviewPreparing : analysisStatus === 'processing' ? labels.analysisProcessing : labels.reviewPage}
-                </button>
               </div>
             ) : null}
           </>
@@ -610,6 +541,7 @@ export function PracticePanel({
 
       {activeQuestion && answers[activeQuestion.id] && (feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed')) ? (
             <AnswerPanel
+              key={activeQuestion.id}
               question={activeQuestion}
               answer={answers[activeQuestion.id]}
               items={items}
@@ -618,16 +550,19 @@ export function PracticePanel({
               locale={settings.locale}
             />
       ) : null}
-      {answerSheetOpen ? (
-        <div className="practice-answer-sheet-backdrop fixed inset-0 z-50 bg-[#2d2328]/30 px-4 py-5" role="dialog" aria-modal="true" aria-labelledby="practice-answer-sheet-title">
-          <button type="button" className="absolute inset-0 h-full w-full cursor-default" aria-label={labels.close} onClick={() => setAnswerSheetOpen(false)} />
-          <div className="practice-answer-sheet-panel absolute inset-x-0 bottom-0 max-h-[78vh] rounded-t-3xl border border-[#f0d4dd] bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-5 shadow-2xl">
+      {activeQuestion ? <footer className="practice-session-actions">
+        {reviewError ? <div className="practice-save-error" role="alert"><p>{reviewError}</p><button type="button" onClick={onReview}>{labels.reviewViewHistory}</button></div> : null}
+        <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button>
+        {complete ? <button type="button" className="practice-primary-action" onClick={requestReview} disabled={reviewPreparing}>{reviewPreparing ? <><LoaderCircle size={18} className="animate-spin" aria-hidden="true" />{labels.reviewPreparing}</> : reviewError ? labels.reviewRetry : labels.reviewPage}<ChevronRight size={19} aria-hidden="true" /></button> : questionsLength > 1 ? <button type="button" className="practice-primary-action" onClick={onNext}>{labels.next}<ChevronRight size={19} aria-hidden="true" /></button> : null}
+      </footer> : !loading ? <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button> : null}
+      <dialog ref={answerSheetRef} className="practice-native-answer-sheet" aria-labelledby="practice-answer-sheet-title" onClose={() => setAnswerSheetOpen(false)} onCancel={() => setAnswerSheetOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setAnswerSheetOpen(false); }}>
+          <div className="practice-native-answer-sheet-content">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <h3 id="practice-answer-sheet-title" className="text-lg font-black text-[#3d3036]">{labels.practiceAnswerSheet}</h3>
                 <p className="mt-1 text-xs font-semibold text-[#74646b]">{labels.completed} {answeredCount} / {questionsLength}</p>
               </div>
-              <button type="button" onClick={() => setAnswerSheetOpen(false)} aria-label={labels.close} title={labels.close} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
+              <button type="button" autoFocus onClick={() => setAnswerSheetOpen(false)} aria-label={labels.close} title={labels.close} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
                 <X size={18} />
               </button>
             </div>
@@ -703,147 +638,58 @@ export function PracticePanel({
               <p className="mt-4 rounded-2xl bg-[#fff7fb] px-4 py-3 text-sm font-semibold text-[#74646b]">{labels.noQuestion}</p>
             ) : null}
           </div>
-        </div>
-      ) : null}
-      {reviewDialogOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[#2d2328]/45 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-6 sm:items-center sm:pb-6" role="dialog" aria-modal="true" aria-labelledby="review-processing-title" aria-describedby="review-processing-description">
-          <button type="button" className="absolute inset-0 h-full w-full cursor-default" aria-label={labels.close} onClick={() => setReviewDialogOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[28px] border border-[#f0d4dd] bg-white p-5 shadow-2xl sm:p-6">
-            <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#fff0f5] text-[#a84269]">
-                <ScrollText size={22} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 id="review-processing-title" className="text-lg font-black text-[#3d3036]">{labels.reviewProcessingTitle}</h2>
-                <p id="review-processing-description" className="mt-2 text-sm leading-6 text-[#74646b]">{analysisStatus === 'completed' ? labels.analysisCompleted : reviewPreparing || analysisStatus === 'processing' ? labels.reviewProcessingNotice : labels.reviewRetryNotice}</p>
-              </div>
-              <button type="button" onClick={() => setReviewDialogOpen(false)} aria-label={labels.close} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#8f6f7b] hover:bg-[#fff0f5]">
-                <X size={19} />
-              </button>
-            </div>
-            {reviewPreparing || analysisStatus === 'processing' ? (
-              <p role="status" className="mt-4 flex items-center gap-2 rounded-2xl bg-[#fff7fb] px-4 py-3 text-xs font-bold text-[#a84269]">
-                <LoaderCircle size={16} className="animate-spin" /> {labels.analysisProcessing}
-              </p>
-            ) : analysisStatus === 'completed' ? <p role="status" className="mt-4 rounded-2xl bg-[#f2fff6] px-4 py-3 text-xs font-bold text-[#285d47]">{labels.analysisCompleted}</p> : null}
-            <div className="mt-5 grid gap-2.5">
-              {!reviewPreparing && analysisStatus !== 'processing' && analysisStatus !== 'completed' ? <button type="button" onClick={requestReview} className="cute-button-secondary min-h-12 rounded-2xl border px-4 text-sm font-bold">{labels.reviewRetry}</button> : null}
-              <button type="button" onClick={() => runReviewDialogAction(onReview)} className="cute-button-primary flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-white">
-                <ScrollText size={18} /> {labels.reviewViewHistory}
-              </button>
-              <button type="button" onClick={() => runReviewDialogAction(onPracticeHome)} className="cute-button-secondary flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold">
-                <House size={18} /> {labels.reviewBackToPracticeHome}
-              </button>
-              <button type="button" onClick={() => runReviewDialogAction(restartTimedPractice)} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-[#a84269] hover:bg-[#fff7fb]">
-                <RotateCcw size={17} /> {labels.restartPractice}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </dialog>
+
     </section>
   );
 }
 
-function AnswerPanel({
-  question,
-  answer,
-  items,
-  showRuby,
-  labels,
-  locale,
-  compact = false,
-}: {
+function AnswerPanel({ question, answer, historical = false, items, showRuby, labels, locale }: {
   question: Question;
   answer?: { selected: string; correct: boolean };
+  historical?: boolean;
   items: VocabItem[];
   showRuby: boolean;
   labels: Record<string, string>;
   locale: Locale;
-  compact?: boolean;
 }) {
-  if (!answer) {
-    return null;
-  }
-
   const explanationDetails = normalizePracticeExplanations(question);
   const sourceItem = items.find((item) => item.id === question.itemId);
   const needsHumanReview = sourceItem?.content_origin === 'ai_generated' && sourceItem.verification_status !== 'verified';
-  const isCorrect = answer.selected === question.answer;
-  const statusStyle = isCorrect ? 'is-correct' : 'is-wrong';
+  const isCorrect = historical ? Boolean(answer?.correct) : answer?.selected === question.answer;
+  const currentAnswerLabel = locale === 'zh-CN' ? '当前题目答案' : locale === 'ja' ? '現在の問題の正解' : 'Current question answer';
+  const evidence = conciseEvidence(explanationDetails.correctReason);
+  const memory = conciseEvidence(question.memoryPoint, 120);
+  const fullReason = locale === 'zh-CN' ? '完整解题依据' : locale === 'ja' ? '詳しい解説' : 'Full explanation';
+  const memoryDetails = locale === 'zh-CN' ? '展开记忆点' : locale === 'ja' ? 'ポイントを詳しく見る' : 'More memory notes';
+  const answerNumber = question.choices.indexOf(question.answer) + 1;
 
-  return (
-    <div className={`cute-answer-note practice-answer-panel mt-6 ${statusStyle}`}>
-      <div className="answer-note-summary flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="answer-note-kicker text-xs font-black tracking-[0.08em] uppercase text-current/70">{labels.reviewPage}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="answer-status-pill text-sm font-black">{isCorrect ? labels.correct : labels.wrong}</span>
-            {!isCorrect ? <>
-              <span className="answer-inline-fact min-w-0 text-sm font-semibold">{labels.yourAnswer}: {answer.selected}</span>
-              <span className="answer-inline-fact min-w-0 text-sm font-semibold">{labels.rightAnswer}: {question.answer}</span>
-            </> : null}
-          </div>
-        </div>
-        {sourceItem ? (
-          <EntryLink item={sourceItem} label={`${labels.viewEntry}: ${sourceItem.original}`} />
-        ) : null}
-      </div>
-
-      <div className="answer-note-sections mt-4 grid gap-3">
-        {question.translationZh ? (
-          <div className="answer-note-block">
-            <p className="text-xs font-bold text-current/70">{labels.fullChineseTranslation ?? '完整中文翻译'}</p>
-            <p className="mt-1 text-sm leading-6 text-[#3f4944]">{question.translationZh}</p>
-          </div>
-        ) : null}
-
-        <div className="answer-note-block">
-          <p className="text-sm font-black text-[#27312c]">{labels.correctReasonLabel}</p>
-          <StudyText className="mt-2 text-sm text-[#3f4944]" text={explanationDetails.correctReason} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
-        </div>
-
-        <details open={compact ? undefined : true} className="answer-note-block">
-          <summary className="cursor-pointer text-sm font-bold text-[#27312c]">{labels.choiceAnalysisLabel}</summary>
-          <div className="answer-choice-analysis mt-3 grid gap-2">
-            {explanationDetails.choiceAnalysis.map((choice) => {
-              const linkedItem = choice.correct ? sourceItem : itemForChoice(choice.choice, question.kind, items);
-              const selected = choice.choice === answer.selected;
-              return (
-                <div
-                  key={choice.choice}
-                  className={`answer-choice-row ${choice.correct ? 'is-correct' : selected ? 'is-selected' : ''}`}
-                >
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    {linkedItem ? (
-                      <EntryLink item={linkedItem} label={choice.choice} compact />
-                    ) : (
-                      <span className="min-w-0 font-semibold text-[#27312c]">{choice.choice}</span>
-                    )}
-                    <span className={`answer-choice-tag px-2 py-0.5 text-xs font-bold ${choice.correct ? 'is-correct' : selected ? 'is-selected' : ''}`}>
-                      {choice.correct ? labels.choiceFits : selected ? labels.yourAnswer : labels.choiceDoesNotFit}
-                    </span>
-                  </div>
-                  <StudyText className="mt-2 text-sm text-[#4b534e]" text={choice.explanation} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
-                </div>
-              );
-            })}
-          </div>
-        </details>
-
-        <div className="answer-note-block">
-          <p className="text-sm font-black text-[#27312c]">{labels.memoryPointLabel}</p>
-          <StudyText className="mt-2 text-sm text-[#3f4944]" text={question.memoryPoint} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
-        </div>
-      </div>
-
-      {needsHumanReview ? (
-        <p className="mt-3 rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-sm leading-6 text-[#775516]">
-          {labels.unverifiedContentNotice}
-        </p>
-      ) : null}
+  return <section className={`practice-feedback ${!answer ? 'is-unanswered' : isCorrect ? 'is-correct' : 'is-wrong'}`} aria-label={labels.reviewPage}>
+    <div className="practice-feedback-outcome" role="status" aria-live="polite">
+      <p className="practice-feedback-status"><span aria-hidden="true">{!answer ? '–' : isCorrect ? '✓' : '×'}</span><strong>{!answer ? labels.practiceUnanswered : isCorrect ? labels.correct : labels.wrong}</strong></p>
+      {answer ? <p className="practice-feedback-selected">{labels.yourAnswer}: {answer.selected}</p> : null}
+      <div className="practice-feedback-answer"><span>{historical ? currentAnswerLabel : labels.rightAnswer}</span><strong>{answerNumber > 0 ? `${answerNumber}. ` : ''}{question.answer}</strong></div>
     </div>
-  );
+    {evidence.summary ? <div className="practice-feedback-evidence"><h3>{labels.correctReasonLabel}</h3><StudyText text={evidence.summary} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} /></div> : null}
+    {memory.summary ? <aside className="practice-feedback-memory"><h3>{labels.memoryPointLabel}</h3><StudyText text={memory.summary} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} /></aside> : null}
+    <div className="practice-feedback-disclosures">
+      {evidence.hasMore ? <details><summary>{fullReason}</summary><StudyText text={explanationDetails.correctReason} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} /></details> : null}
+      <details><summary>{labels.choiceAnalysisLabel}<span>{explanationDetails.choiceAnalysis.length}</span></summary><div className="practice-feedback-choices">
+        {explanationDetails.choiceAnalysis.map((choice) => {
+          const linkedItem = choice.correct ? sourceItem : itemForChoice(choice.choice, question.kind, items);
+          const selected = choice.choice === answer?.selected;
+          return <div key={choice.choice} className={`practice-feedback-choice ${choice.correct ? 'is-correct' : selected ? 'is-selected' : ''}`}>
+            <div>{linkedItem ? <EntryLink item={linkedItem} label={choice.choice} compact /> : <strong>{choice.choice}</strong>}<span>{choice.correct ? labels.choiceFits : selected ? labels.yourAnswer : labels.choiceDoesNotFit}</span></div>
+            <StudyText text={choice.explanation} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} />
+          </div>;
+        })}
+      </div></details>
+      {memory.hasMore ? <details><summary>{memoryDetails}</summary><StudyText text={question.memoryPoint} renderText={(text) => <RubyText text={text} items={items} enabled={showRuby} />} /></details> : null}
+      {question.translationZh ? <details><summary>{labels.fullChineseTranslation ?? '完整中文翻译'}</summary><p lang="zh-CN">{question.translationZh}</p></details> : null}
+      {sourceItem ? <details><summary>{labels.viewEntry}: {sourceItem.original}</summary><EntryLink item={sourceItem} label={`${labels.viewEntry}: ${sourceItem.original}`} /></details> : null}
+    </div>
+    {needsHumanReview ? <p className="practice-verification-notice">{labels.unverifiedContentNotice}</p> : null}
+  </section>;
 }
 
 function itemForChoice(choice: string, kind: QuestionKind, items: VocabItem[]) {
@@ -1079,6 +925,7 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
     <LearningListFrame locale={locale} className={showEntryHub ? 'ledger-word-index ledger-module-page min-w-0' : 'ledger-word-index min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm'}>
       {showEntryHub && !showCaptureForm ? (
         <ModuleActionBar
+          locale={locale}
           label={isGrammarLibrary ? '语法' : '单词'}
           primary={onPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
           onAsk={onSaveCapture ? (body) => onSaveCapture({ body, category: captureCategory ?? 'unsure', context: `学习模块：${isGrammarLibrary ? '语法' : '词汇'} · 用户提问`, targetDeck: defaultTargetDeck, ...(selectedWordbookId !== 'all' ? { targetWordbookId: selectedWordbookId } : {}) }) : undefined}

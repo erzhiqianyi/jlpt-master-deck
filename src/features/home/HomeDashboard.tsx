@@ -41,7 +41,6 @@ export function HomeDashboard({ username, locale, dueItems, onOpenReviewItem, pl
         {error && <p role="alert">{error}</p>}
       </section>
       <section className="light-panel light-practice-feature"><span className="light-eyebrow">{text.practice}</span><h2>{practice?.title ?? text.prepare}</h2>{practice && <p>{practice.questionCount} {zh ? '题' : ja ? '問' : 'questions'} · {practice.minutes} {text.minutes}</p>}<button className="light-primary" onClick={() => practice ? onStartDailyPractice(practice.id) : latestDraft ? onOpenDraft(latestDraft.id) : onCreateDailyPractice()}>{practice ? text.start : latestDraft ? text.reviewDraft : text.prepare}<ArrowRight size={17}/></button></section>
-      <button className="light-more-row" onClick={() => onNavigate('mixed')}><span><strong>{text.more}</strong><small>{text.moreBody}</small></span><ArrowRight size={20}/></button>
     </div><aside className="light-aside-column">
       <section className="light-panel light-review-panel">
         <div className="light-section-head"><h2>{text.review}</h2><button onClick={() => onNavigate('memory')}>{text.reviewAll}<ArrowRight size={16}/></button></div>
@@ -51,6 +50,7 @@ export function HomeDashboard({ username, locale, dueItems, onOpenReviewItem, pl
         </li>)}</ul> : <p>{text.reviewDone}</p>}
         {dueItems.length > 0 && <button className="light-primary" onClick={() => onNavigate('memory-review')}>{text.reviewStart}<ArrowRight size={17}/></button>}
       </section>
+      <button className="light-more-row" onClick={() => onNavigate('mixed')}><span><strong>{text.more}</strong><small>{text.moreBody}</small></span><ArrowRight size={20}/></button>
       <section className="light-panel light-week"><div className="light-section-head"><h2>{text.recent}</h2><button aria-label={text.full} onClick={() => onNavigate('history')}><ArrowRight size={16}/></button></div><div className="light-bars">{days.map(day => <div key={day.day}><div className="light-bar-track"><span style={{height:`${day.minutes / max * 100}%`}} title={`${day.day}: ${day.minutes} ${text.minutes}`}/></div><small>{day.label}</small></div>)}</div><p>{total ? `${text.study} ${total} ${text.minutes}` : text.noActivity}</p></section>
       <button className="light-goal" onClick={() => onNavigate('plan')}><CalendarDays size={22}/><span><small>{text.goal} · JLPT {plan.profile.level}</small><strong>{Number.isFinite(countdown) && countdown > 0 ? `${countdown} ${text.days}` : plan.profile.examDate}</strong></span><ChevronRight size={18}/></button>
     </aside></div>

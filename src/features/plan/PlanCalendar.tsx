@@ -1,7 +1,7 @@
 import { LearningList, LearningListRow } from '../../components/LearningList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { Undo2, SkipForward, BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { calendarDays, localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { Locale, StudyDailySummary, StudyPlanDayEvidence, StudyPlanTask, StudyPlanTaskStatus } from '../../types';
 
@@ -24,6 +24,9 @@ export function PlanCalendar({
   const [selectedDate, setSelectedDate] = useState(today);
   const [month, setMonth] = useState(() => new Date(`${today.slice(0, 7)}-01T00:00:00`));
   const [updatingId, setUpdatingId] = useState('');
+  const pending = useRef(false);
+  const [updateError, setUpdateError] = useState('');
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const days = useMemo(() => calendarDays(month), [month]);
   const selectedTasks = tasksForDate(tasks, selectedDate);
   const selectedSummary = summaries.find((summary) => summary.date === selectedDate);
@@ -31,17 +34,26 @@ export function PlanCalendar({
   const weekdays = Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(2026, 7, 23 + index)));
 
   async function update(id: string, status: StudyPlanTaskStatus) {
+    if (pending.current) throw new Error(labels.processing);
+    pending.current = true;
     setUpdatingId(id);
+    setUpdateError('');
     try {
       await onTaskStatus(id, status);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : labels.planSaveFailed);
+      throw error;
     } finally {
+      pending.current = false;
       setUpdatingId('');
     }
   }
 
   return (
     <div className="plan-agenda-layout">
-      <aside className="plan-month"><div>
+      <aside className="plan-month">
+        <button type="button" className="plan-month-toggle" aria-expanded={calendarOpen} aria-controls="plan-month-picker" onClick={() => setCalendarOpen(!calendarOpen)}>{formatFullDate(selectedDate, locale)}<span>{locale === 'zh-CN' ? (calendarOpen ? '收起月历' : '选择日期') : locale === 'ja' ? (calendarOpen ? '閉じる' : '日付を選択') : (calendarOpen ? 'Hide calendar' : 'Choose date')}</span></button>
+        <div id="plan-month-picker" className={`plan-month-picker ${calendarOpen ? 'is-open' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <button type="button" aria-label={labels.planPreviousMonth} title={labels.planPreviousMonth} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className={iconButtonClass}>
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -79,6 +91,7 @@ export function PlanCalendar({
       <div className="plan-calendar-key"><span><i />{locale === 'zh-CN' ? '有安排' : locale === 'ja' ? '予定あり' : 'Planned'}</span><span><Check size={13} />{locale === 'zh-CN' ? '已完成' : locale === 'ja' ? '完了' : 'Done'}</span></div>
       </div></aside>
       <section className="min-w-0 space-y-5">
+        {updateError && <p className="plan-update-error" role="alert">{updateError} {locale === 'zh-CN' ? '原任务已保留，请重试。' : locale === 'ja' ? 'タスクは保持されています。もう一度お試しください。' : 'Your task is unchanged. Please retry.'}</p>}
         <DayFocus
           labels={labels}
           locale={locale}
@@ -161,8 +174,8 @@ function TaskList({ labels, locale, tasks, updatingId, onTaskStatus }: {
     title={task.title} description={`${labels[`planModule_${task.module}`]} · ${task.minutes} ${labels.minutes}`}
     statusKind={task.status} status={(locale === 'ja' ? { completed: '完了', skipped: 'スキップ', pending: 'これから', missed: '未完了' } : locale === 'en' ? { completed: 'Done', skipped: 'Skipped', pending: 'To do', missed: 'Missed' } : { completed: '已完成', skipped: '已跳过', pending: '待完成', missed: '未完成' })[task.status]} expanded={expandedId === task.id} locale={locale}
     onOpen={() => setExpandedId(expandedId === task.id ? null : task.id)}
-    trailing={<label className="learning-list-task-check"><input type="checkbox" aria-label={`${labels.planCompletedTasks}: ${task.title}`} title={labels.planCompletedTasks} checked={task.status === 'completed'} disabled={updatingId === task.id} onChange={(event) => onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending')}/></label>}
-    secondary={expandedId === task.id ? <div className="learning-list-task-detail">{task.detail ? <p>{task.detail}</p> : null}<button type="button" aria-label={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} title={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} disabled={updatingId === task.id} onClick={() => onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped')}>{task.status === 'skipped' ? <Undo2 size={20}/> : <SkipForward size={20}/>}</button></div> : null}/>)}</LearningList></div>;
+    trailing={<label className="learning-list-task-check"><input type="checkbox" aria-label={`${labels.planCompletedTasks}: ${task.title}`} title={labels.planCompletedTasks} checked={task.status === 'completed'} disabled={Boolean(updatingId)} onChange={(event) => { void onTaskStatus(task.id, event.target.checked ? 'completed' : 'pending').catch(() => {}); }}/></label>}
+    secondary={expandedId === task.id ? <div className="learning-list-task-detail">{task.detail ? <p>{task.detail}</p> : null}<button type="button" aria-label={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} title={task.status === 'skipped' ? labels.planRestoreTask : labels.planSkipTask} disabled={Boolean(updatingId)} onClick={() => { void onTaskStatus(task.id, task.status === 'skipped' ? 'pending' : 'skipped').catch(() => {}); }}>{task.status === 'skipped' ? <Undo2 size={20}/> : <SkipForward size={20}/>}</button></div> : null}/>)}</LearningList></div>;
 
 }
 
@@ -264,4 +277,4 @@ function formatFullDate(value: string, locale: Locale) {
   return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(`${value}T00:00:00`));
 }
 
-const iconButtonClass = 'inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#c8d1c8] bg-white text-[#31564c] hover:bg-[#f3f6f1]';
+const iconButtonClass = 'inline-flex h-11 w-11 items-center justify-center rounded-md border border-[#c8d1c8] bg-white text-[#31564c] hover:bg-[#f3f6f1]';

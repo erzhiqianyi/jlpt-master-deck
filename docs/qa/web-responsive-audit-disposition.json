@@ -1,0 +1,2451 @@
+{
+  "baseline": "213d858b23f57fa70de07b8a276d878cd0924d6c",
+  "scope": "Web mobile + desktop only; no native changes, publication, merge or deployment",
+  "rows": [
+    {
+      "id": "G01",
+      "name": "全局导航和页面外壳",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "统一五区导航顺序、区域选中及浏览/沉浸底栏规则；词条前后移动同步URL。",
+      "remaining": "待浏览器与原生对照验收。",
+      "requested_mobile_direction": "统一今日、练习、发现、记录、题库；普通浏览详情保留区域上下文，沉浸答题作为明确的独立任务",
+      "requested_regular_direction": "同序侧栏，题库下展开四模块；按窗口可用宽度收起，保持选中状态",
+      "files": [
+        "src/domain/appNavigation.ts",
+        "src/domain/appRoutes.ts",
+        "src/features/navigation/MobileNavigation.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "H01",
+      "name": "今日学习首页",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "首页主任务/练习/待复习顺序、44px任务目标；手机题库紧凑行并移除重复设置入口。",
+      "remaining": "待响应式视觉验收。",
+      "requested_mobile_direction": "依次呈现今日任务、今日练习、待复习；扩大点击区，次要统计后置",
+      "requested_regular_direction": "主栏任务与练习，辅栏复习和统计；按内容宽度统一分栏",
+      "files": [
+        "src/features/home/HomeDashboard.tsx",
+        "src/features/home/LightWorkspace.css",
+        "src/features/home/StudyModulesHub.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "H02",
+      "name": "题库模块入口",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "首页主任务/练习/待复习顺序、44px任务目标；手机题库紧凑行并移除重复设置入口。",
+      "remaining": "待响应式视觉验收。",
+      "requested_mobile_direction": "可改紧凑行列表；更多工具保留内容相关项，设置统一账户入口",
+      "requested_regular_direction": "侧栏已列四模块时此页作为总览可保留，避免强迫再点一次",
+      "files": [
+        "src/features/home/HomeDashboard.tsx",
+        "src/features/home/LightWorkspace.css",
+        "src/features/home/StudyModulesHub.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "P01",
+      "name": "学习计划与每日安排",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "任务更新错误可见、保留状态、避免重复提交；手机月历可展开。",
+      "remaining": "完整目标编辑独立任务界面另行实现；浏览器布局待验收。",
+      "requested_mobile_direction": "默认当天任务，月历可收起；编辑目标进入单独任务界面；失败保留内容并提供重试",
+      "requested_regular_direction": "月历与当日清单双栏；备考路线和目标信息作为次级面板",
+      "files": [
+        "src/features/plan/PlanCalendar.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "P02",
+      "name": "备考安排与阶段路线",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "先显示当前阶段与下一步，完整路线按需展开",
+      "requested_regular_direction": "当前阶段与路线可并排，避免超长卡片列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "P03",
+      "name": "目标与时间设置",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "分组表单，先基本目标后可选约束；编辑用独立页或sheet，保存取消清晰",
+      "requested_regular_direction": "限宽分组表单；教材一行一项，长文本不挤进多列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "P04",
+      "name": "教材计划筛选",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "计划内教材筛选，保留筛选状态和一键清除",
+      "requested_regular_direction": "同一计划页面应用教材范围，无需第二套布局",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "P05",
+      "name": "旧计划子路由",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "保留已有兼容路由/迁移语义，新增路由回归测试覆盖主路径。",
+      "remaining": "不重复建立旧概念页面；兼容路由不可贸然移除。",
+      "requested_mobile_direction": "旧链接定位到计划相应区域并说明当前视图",
+      "requested_regular_direction": "同一页内容区定位，避免新增重复侧栏项",
+      "files": [
+        "src/domain/appRoutes.ts"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "G02",
+      "name": "全局搜索弹窗",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "搜索名称明确为学习资料；关闭/清除44px，保留原生dialog。",
+      "remaining": "真实键盘/安全区验证待完成。",
+      "requested_mobile_direction": "全屏或高位sheet，键盘出现后结果仍可见；关闭回原位置，范围明确",
+      "requested_regular_direction": "限宽浮层或搜索栏+结果面板，不铺满大屏",
+      "files": [
+        "src/features/search/GlobalSearch.tsx",
+        "src/i18n/translations.ts"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "H03",
+      "name": "旧首页概览组件",
+      "priority": "P3",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "不新增入口",
+      "requested_regular_direction": "不纳入当前截图验收",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "G03",
+      "name": "未知路径处理",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "使用就地错误、清晰重试和保留输入；返回可预期",
+      "requested_regular_direction": "保留侧栏和当前位置，只替换失败内容区",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L01",
+      "name": "学习模块悬浮启动器",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "主按钮带文字；菜单做底部操作表；关闭和返回明确",
+      "requested_regular_direction": "工具栏按钮与 anchored popover；可保留角色，但不遮挡列表",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L02",
+      "name": "按内容练习子菜单",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "短操作表；长列表进入资料选择页",
+      "requested_regular_direction": "popover 内搜索/限制高度；与侧栏选中项同步",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L03",
+      "name": "模块提问编辑器",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "底部 sheet，键盘避让，44pt 提交/关闭",
+      "requested_regular_direction": "居中 sheet 或宽 popover，保留上下文",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L04",
+      "name": "词汇资料列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "单列系统 List；搜索置顶；筛选 sheet；批量操作在编辑模式；返回保留滚动位置",
+      "requested_regular_direction": "NavigationSplitView 式列表+详情；宽度而非设备名决定列数；窄窗口回单列",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L06",
+      "name": "词汇条目详情",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "前后词条移动同步hash身份，避免分享/刷新指向旧条目。",
+      "remaining": "详情正文与管理操作的全面重组待后续独立设计验收。",
+      "requested_mobile_direction": "单列内容、简洁导航栏；管理放更多；动态字体下不截断；避免只靠横扫",
+      "requested_regular_direction": "左列表右详情；正文限制阅读宽度，辅助元数据右侧 inspector",
+      "files": [
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L05",
+      "name": "语法资料列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "单列系统 List；搜索置顶；筛选 sheet；批量操作在编辑模式；返回保留滚动位置",
+      "requested_regular_direction": "NavigationSplitView 式列表+详情；宽度而非设备名决定列数；窄窗口回单列",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L07",
+      "name": "语法条目详情",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "前后词条移动同步hash身份，避免分享/刷新指向旧条目。",
+      "remaining": "详情正文与管理操作的全面重组待后续独立设计验收。",
+      "requested_mobile_direction": "单列内容、简洁导航栏；管理放更多；动态字体下不截断；避免只靠横扫",
+      "requested_regular_direction": "左列表右详情；正文限制阅读宽度，辅助元数据右侧 inspector",
+      "files": [
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L08",
+      "name": "条目编号导航",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "底部 sheet；大行点击区，分页替换为连续列表",
+      "requested_regular_direction": "anchored popover 或左列表直接选择",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L09",
+      "name": "条目整理编辑",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "分组表单，44pt 删除/添加；避免标签旁小叉误触",
+      "requested_regular_direction": "详情 inspector 或 sheet；批量整理留在列表编辑模式",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L10",
+      "name": "记忆图片编辑",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "系统照片/文件选择；可放大查看图片与文字；删除目标≥44pt",
+      "requested_regular_direction": "附件网格+预览；支持键盘选择与删除确认",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L11",
+      "name": "单词本管理",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "导航标题区＋；名称编辑 sheet；新建后定位并可打开",
+      "requested_regular_direction": "左本列表+右本内容；重命名 popover/sheet",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L12",
+      "name": "语法本管理",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "导航标题区＋；名称编辑 sheet；新建后定位并可打开",
+      "requested_regular_direction": "左本列表+右本内容；重命名 popover/sheet",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L13",
+      "name": "本新建/重命名表单",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "键盘上方固定完成，取消保留原名",
+      "requested_regular_direction": "紧凑 modal/popover，可 Enter 保存 Escape 取消",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L14",
+      "name": "本分享确认框",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "分享使用原生dialog和焦点返回，明确公开受众，保留提交/取消。",
+      "remaining": "真实浏览器焦点与辅助技术验收待完成。",
+      "requested_mobile_direction": "底部 sheet，标题“分享这个本”，说明对象与受众",
+      "requested_regular_direction": "居中 sheet，焦点锁定并返回触发按钮",
+      "files": [
+        "src/components/ShareButton.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L15",
+      "name": "按题型/标签练习面板",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "一个 sheet：题型/范围/题数；主动作“开始”",
+      "requested_regular_direction": "popover/侧栏配置，保持列表选择",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L16",
+      "name": "记单词/句型表单",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "导航栏＋→捕捉 sheet；键盘友好；成功后查看队列",
+      "requested_regular_direction": "紧凑新建 sheet；高级本管理不要嵌套在快速捕捉中",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L17",
+      "name": "语法/每日练习题库浏览",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "短行列表→独立题目详情；不在列表上展开四选项+答案",
+      "requested_regular_direction": "列表/详情分栏；来源/集合为过滤器",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L18",
+      "name": "题库题目展开",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "点行进入详情，返回保留搜索位置",
+      "requested_regular_direction": "右详情 pane；深链到具体 question id",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L19",
+      "name": "题型学习方法总览",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "四分类以简短分段/筛选呈现，搜索+列表；方法全文不放行中",
+      "requested_regular_direction": "左分类列表，右方法详情，支持窄窗口回栈式",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L20",
+      "name": "词汇学习方法列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "资料更多菜单/练习解析中“学习方法”进入",
+      "requested_regular_direction": "复用同一 split view 和当前模块筛选",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L21",
+      "name": "语法学习方法列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "资料更多菜单/练习解析中“学习方法”进入",
+      "requested_regular_direction": "复用同一 split view 和当前模块筛选",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L22",
+      "name": "阅读学习方法列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "资料更多菜单/练习解析中“学习方法”进入",
+      "requested_regular_direction": "复用同一 split view 和当前模块筛选",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L23",
+      "name": "听力学习方法列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "资料更多菜单/练习解析中“学习方法”进入",
+      "requested_regular_direction": "复用同一 split view 和当前模块筛选",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L24",
+      "name": "新增自定义学习方法",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "全高 sheet，导航栏取消/完成；动态键盘避让",
+      "requested_regular_direction": "适中宽度 sheet，不能把列表推到屏外",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L25",
+      "name": "官方题型方法详情",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "单列阅读；编辑放导航栏；长方法分段",
+      "requested_regular_direction": "列表+详情；正文最大宽度控制；参考链接次级",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L26",
+      "name": "自定义方法详情与编辑",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "详情+编辑 sheet，破坏性操作收进更多",
+      "requested_regular_direction": "详情 pane + sheet，键盘保存/取消",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L27",
+      "name": "语法样题目录",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "方法→样例→作答短路径；目录行明确来源标签",
+      "requested_regular_direction": "题型列表/样例详情分栏，外链用次级操作",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L28",
+      "name": "阅读样题目录",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "方法→样例→作答短路径；目录行明确来源标签",
+      "requested_regular_direction": "题型列表/样例详情分栏，外链用次级操作",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L29",
+      "name": "听力样题目录",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "方法→样例→作答短路径；目录行明确来源标签",
+      "requested_regular_direction": "题型列表/样例详情分栏，外链用次级操作",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L30",
+      "name": "语法样题作答与解析",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "一题一个焦点；听力播放器紧贴题目；解释按需展开",
+      "requested_regular_direction": "阅读原文/题目双栏；音频与题号在辅助栏",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L31",
+      "name": "阅读样题作答与解析",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "一题一个焦点；听力播放器紧贴题目；解释按需展开",
+      "requested_regular_direction": "阅读原文/题目双栏；音频与题号在辅助栏",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L32",
+      "name": "听力样题作答与解析",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "一题一个焦点；听力播放器紧贴题目；解释按需展开",
+      "requested_regular_direction": "阅读原文/题目双栏；音频与题号在辅助栏",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L33",
+      "name": "阅读资料库",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "搜索+简洁单列，标签 sheet，滑动删除有撤销；进入文章保留列表位置",
+      "requested_regular_direction": "左文章目录+右阅读工作区；按当前窗口宽度调整",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L34",
+      "name": "阅读文章详情/多题作答",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "查词模式答题编号44×44，普通模式整行选择保留；原文折叠与导航扩大目标。",
+      "remaining": "多题单题化与原文悬浮阅读重新架构暂缓。",
+      "requested_mobile_direction": "原文可快速返回/浮层；单题导航；底部检查答案≥44pt；分词不缩小选项命中区",
+      "requested_regular_direction": "≥合适宽度双栏，原文与题目分别滚动、明确焦点；窄分屏回单列",
+      "files": [
+        "src/features/reading/ReadingPanel.tsx",
+        "src/features/reading/reading.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L35",
+      "name": "阅读顺序练习",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "同一阅读练习栈，避免并行导航概念",
+      "requested_regular_direction": "同一两栏工作区，文章目录/进度统一",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L36",
+      "name": "阅读答案解析",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "紧跟当前题，展开后保留题号；一层折叠为宜",
+      "requested_regular_direction": "答案与证据相邻，支持定位左侧原文句子",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L37",
+      "name": "新增阅读材料表单",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "全屏编辑 sheet，自动草稿、分步输入、清晰完成/取消",
+      "requested_regular_direction": "文章/题目双栏编辑，保留音/文本预览",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L38",
+      "name": "阅读链接生成提示词",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "简短 sheet，复制后给去向而非假完成",
+      "requested_regular_direction": "同一 sheet；若将来内建生成，提供真实进度与校验",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L39",
+      "name": "阅读复盘空路由",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "空复盘路由改为真实已保存进度与资料回跳，明确未保存逐次答案；不编造历史。",
+      "remaining": "浏览器路由交互验收待完成。",
+      "requested_mobile_direction": "返回/重新进入不得空白；空状态明确下一步",
+      "requested_regular_direction": "同一统一结果视图，列表与原文关联",
+      "files": [
+        "src/features/history/ModuleReviewPanel.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L40",
+      "name": "听力音频库",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "恢复被丢弃的新增/方法/题库/导入入口，共享列表触达/溢出/动态文字修正。",
+      "remaining": "完整列表信息架构、筛选sheet/独立题目详情仍保留现有方式；不删除功能。",
+      "requested_mobile_direction": "单列音频标题+时长/题数/最近练习；过滤 sheet",
+      "requested_regular_direction": "音频目录+题组详情；metadata 按宽度缩减",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/LearningList.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L41",
+      "name": "听力音频题组详情",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "听力题组详情恢复独立题干；播放/长文本/触控容器修正。",
+      "remaining": "完整题组内单题分页与设备音频体验待验证。",
+      "requested_mobile_direction": "底部迷你播放器+单题导航；检查全部答案文案清楚；编辑进 sheet",
+      "requested_regular_direction": "宽度足够时题目/播放器两栏；避免硬等 1280px；窄分屏一题模式",
+      "files": [
+        "src/features/listening/ListeningPanel.tsx",
+        "src/features/listening/listening.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L42",
+      "name": "听力单题顺序练习",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "统一播放器持续播放，切题不重启音频",
+      "requested_regular_direction": "同一题组工作区，题号导航与键盘操作",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L43",
+      "name": "听力题编辑",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "全屏分组编辑，固定取消/保存，离开未保存确认",
+      "requested_regular_direction": "宽 sheet，左题目/右共享原文预览",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L44",
+      "name": "听力上传/批量组题编辑",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "分步骤全屏编辑，附件先行；避免一次显示所有字段",
+      "requested_regular_direction": "题目列表+编辑器+音频辅助区，但紧凑窗口减为两区",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L45",
+      "name": "听力链接生成提示词",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "恢复原有声明但未渲染操作；主操作带文字，按内容/提问/更多统一原生dialog、焦点返回、禁用门槛与重复提交保护；成功可跳输入队列。",
+      "remaining": "浏览器视觉和真实上传设备检查待完成。",
+      "requested_mobile_direction": "简短 sheet 与明确复制后步骤",
+      "requested_regular_direction": "统一 sheet；不要复制整套表单视觉",
+      "files": [
+        "src/components/ModuleActionBar.tsx",
+        "src/components/EntryNavigation.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L46",
+      "name": "听力跟读工作区",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "当前句突出，底部录音控制；全文作为可展开目录",
+      "requested_regular_direction": "原文/录音工作区双栏，当前句联动；适配 Stage Manager 窄宽",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L47",
+      "name": "跟读录音/草稿状态",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "大录音键、倒计时/波形、返回时保护草稿；句选择用44pt",
+      "requested_regular_direction": "当前句+录音控制同列，键盘快捷键仅辅助",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L48",
+      "name": "跟读录音历史与分析",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "历史简短列表→分析 sheet；不要让历史挤走录音键",
+      "requested_regular_direction": "历史列表+分析详情，当前录音保持固定区",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L49",
+      "name": "听力分享链接状态",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "发布听力前确认发现页公开受众及分享的音频/题目/答案/解析/原文/译文；取消不发请求。",
+      "remaining": "真实发布未执行；复制/撤回体系本轮未新增。",
+      "requested_mobile_direction": "系统式分享 sheet +发布说明，不把复制与发布混在一个按钮",
+      "requested_regular_direction": "anchored share popover/sheet，明确对象与受众",
+      "files": [
+        "src/features/listening/ListeningPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L50",
+      "name": "听力复盘空路由",
+      "priority": "P0",
+      "status": "implemented",
+      "implemented": "空复盘路由改为真实已保存进度与资料回跳，明确未保存逐次答案；不编造历史。",
+      "remaining": "浏览器路由交互验收待完成。",
+      "requested_mobile_direction": "必须提供有效返回/重试/上次练习去向",
+      "requested_regular_direction": "统一结果模板，保留音频上下文",
+      "files": [
+        "src/features/history/ModuleReviewPanel.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L51",
+      "name": "记忆卡复习正面",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "安全区底部主动作，动态字大；翻卡动画遵守减少动态效果",
+      "requested_regular_direction": "中心限宽卡片，不铺满；外接键盘操作/焦点明确",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L52",
+      "name": "记忆卡答案与评分",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "4档大热区且字号不硬压缩；无障碍大字时2×2；固定区不挡最后正文",
+      "requested_regular_direction": "卡片中心限宽，键盘1–4评分并显示提示；与浮层焦点隔离",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L53",
+      "name": "记忆卡完成/无待复习",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "完成反馈无需复杂图表；按钮可达",
+      "requested_regular_direction": "居中紧凑成功状态",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L54",
+      "name": "点词查询弹层",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "底部 sheet+安全区、键盘不挡保存；语义/发音优先",
+      "requested_regular_direction": "靠选词 anchored popover 或稳定侧 inspector，读文焦点不丢失",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L55",
+      "name": "词汇选择题练习",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "题干/选项单列；题号+计时精简；下一题在底部；答题卡 sheet；明确自动跳题规则并可关闭；重做确认",
+      "requested_regular_direction": "主问题区域限宽，答题卡可为侧栏/popover；长语法题不强制双列选项；键盘与窄分屏适配",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L56",
+      "name": "语法选择题练习",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "题干/选项单列；题号+计时精简；下一题在底部；答题卡 sheet；明确自动跳题规则并可关闭；重做确认",
+      "requested_regular_direction": "主问题区域限宽，答题卡可为侧栏/popover；长语法题不强制双列选项；键盘与窄分屏适配",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L57",
+      "name": "词汇练习复盘",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "简短总结+错题优先列表；单题解析按结论→依据→其他选项层次展开；题号 sheet",
+      "requested_regular_direction": "左题目列表/正误，右题目解析；汇总常驻但不挤压阅读正文；窄窗口回单列",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "L58",
+      "name": "语法练习复盘",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "简短总结+错题优先列表；单题解析按结论→依据→其他选项层次展开；题号 sheet",
+      "requested_regular_direction": "左题目列表/正误，右题目解析；汇总常驻但不挤压阅读正文；窄窗口回单列",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-hub",
+      "name": "练习首页",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：单列紧凑导航行，继续练习为主按钮，其他三项为次级行",
+      "requested_regular_direction": "建议：列表与选中方式详情分栏；保留相同层级，不填满大卡片",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "topic-practice-list",
+      "name": "专项练习列表",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：默认标题、题数、就绪状态；筛选放单个按钮；分享进入详情；加载失败就地重试",
+      "requested_regular_direction": "建议：左侧可筛选列表、右侧练习简介与开始；窄分屏退回单列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "daily-practice-entry",
+      "name": "今日练习入口（无独立列表）",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：入口显示题数、预计时间与进度；点击后直接答题",
+      "requested_regular_direction": "建议：今日摘要与开始并排；历史仍在记录区，不重复今日列表",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mixed-practice-run",
+      "name": "综合练习答题",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "完整多模块统一答题器仍保留既有结构；响应式/大字/设备验收待完成。",
+      "requested_mobile_direction": "建议：单列选项、底部下一题、题号打开答题卡；重做放更多并确认",
+      "requested_regular_direction": "建议：限宽单题；宽屏可加答题卡侧栏；触屏与键盘行为一致",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "daily-topic-practice-run",
+      "name": "今日/专项答题",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "完整多模块统一答题器仍保留既有结构；响应式/大字/设备验收待完成。",
+      "requested_mobile_direction": "建议：每屏一题、结果短条、解析入口；退出保存并回实际来源列表",
+      "requested_regular_direction": "建议：宽屏题干/解析可并列但作答前不显示解析；分屏保持单列",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-answer-feedback",
+      "name": "作答即时反馈与展开解析",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：结果贴近选项，短摘要与“查看解析”；下一题固定可达",
+      "requested_regular_direction": "建议：解释面板可按需在右侧出现；保留题干上下文，不强制双列",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-answer-sheet",
+      "name": "练习答题卡",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：底部sheet保持44pt题号与安全区；焦点和返回行为完整",
+      "requested_regular_direction": "建议：popover或侧栏；仅在空间足够时持久显示，窄分屏仍sheet",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-review-processing",
+      "name": "完成/保存解析状态弹层",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "补即时模式完成入口及保存失败保留状态，失败不伪报完成。",
+      "remaining": "整套后端错误文案/重试统一仍保留现有API边界。",
+      "requested_mobile_direction": "建议：完成先给总结果与错题主按钮，保存失败横幅；避免阻塞式选择弹层",
+      "requested_regular_direction": "建议：统一结果面板，保存状态不抢占焦点",
+      "files": [
+        "src/features/practice/StudyPanels.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-review-detail",
+      "name": "练习复盘主屏",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：总分/耗时/错题数在首屏；点一条错题展开解析；返回结果显式",
+      "requested_regular_direction": "建议：左侧错题/全部列表，右侧单题解析，宽屏才显示",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-review-picker",
+      "name": "复盘题号列表与统计弹窗",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "练习首页稳定今日主入口及紧凑次入口；答题结果先给结论/正确答案/简短依据，详细解析展开；结果摘要含未作答/缺失题；原生题号dialog和可见下一步。",
+      "remaining": "真实响应式、动态大字与音频设备视觉验收待完成。",
+      "requested_mobile_direction": "建议：结果列表直接可扫读；题号sheet作为辅助",
+      "requested_regular_direction": "建议：题号与错题列表可常驻左栏",
+      "files": [
+        "src/features/practice/MixedPracticeHub.tsx",
+        "src/features/practice/StudyPanels.tsx",
+        "src/features/practice/practicePresentation.ts",
+        "src/features/practice/practice-layout.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "practice-failure-state",
+      "name": "题组加载失败/无题状态",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "补即时模式完成入口及保存失败保留状态，失败不伪报完成。",
+      "remaining": "整套后端错误文案/重试统一仍保留现有API边界。",
+      "requested_mobile_direction": "建议：明确单一恢复按钮，避免只剩空壳",
+      "requested_regular_direction": "建议：居中小型错误说明；保留来源列表用于换题组",
+      "files": [
+        "src/features/practice/StudyPanels.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mixed-entry-index",
+      "name": "综合条目索引（遗留）",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "建议：不增设独立综合资料列表",
+      "requested_regular_direction": "建议：需要跨模块查找时统一搜索结果，不保留重复大列表",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mock-catalog",
+      "name": "模拟考试目录",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：每行考试名+时长+进度；继续考试明确；错误说明可重试",
+      "requested_regular_direction": "建议：左目录右考试介绍/场次；筛选置工具栏",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mock-design-capability",
+      "name": "自定义考试创建能力（当前无页面）",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：用简短说明sheet引导，不新增大表单",
+      "requested_regular_direction": "建议：创作作为单独流程或助手面板；考试目录保持参加考试任务",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "designed-exam-sessions",
+      "name": "自定义/新闻改编考试场次列表",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：默认突出未完成下一场；其余折叠为所有场次",
+      "requested_regular_direction": "建议：主从列表，右侧场次说明；分屏窄宽退单列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "designed-exam-start",
+      "name": "分场考试开始/不可判分状态",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "保留并测试不可判分能力门槛；无有效题目不能开始；加载可重试。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：开始按钮触达44pt以上，说明只留三项",
+      "requested_regular_direction": "建议：可在场次列表右侧直接预览开始摘要",
+      "files": [
+        "src/features/practice/DesignedExamPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "designed-exam-run",
+      "name": "分场考试答题",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "保留能力门槛，存储读取保护；主动作与详情渐进展示。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：题号收进sheet，底部上一题/下一题；离开时明示继续计时",
+      "requested_regular_direction": "建议：题干与材料按宽度分栏，答题卡可侧栏；窄分屏不挤两列",
+      "files": [
+        "src/features/practice/DesignedExamPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "designed-exam-submit",
+      "name": "分场考试提交/重做确认",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：底部确认sheet；主动作说明“交卷并查看结果”",
+      "requested_regular_direction": "建议：适中居中确认dialog；键盘焦点回原按钮",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "designed-exam-results",
+      "name": "分场考试结果/逐题解析",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "结果解释折叠、清楚主动作；跨旧卷统一结果架构未实施。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：结果首屏汇总+错题列表；详情逐题，解释折叠",
+      "requested_regular_direction": "建议：左结果列表右解释；来源和原文置辅助区域",
+      "files": [
+        "src/features/practice/DesignedExamPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "legacy-mock-intro",
+      "name": "旧整卷模拟考试介绍",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：简洁标题、题量时长、质量提示、一主按钮",
+      "requested_regular_direction": "建议：介绍限宽；目录与介绍主从布局",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "legacy-mock-active",
+      "name": "旧整卷模拟考试作答",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "按用户/试卷版本隔离浏览器保存；配额/存储失败可见，答案留在当前页；加载可重试；答案选中aria语义和触控网格修正；全对结果说明。",
+      "remaining": "统一新旧考试答题器/结果模板仍待专项迁移；真实计时/音频/浏览器存储验收待完成。",
+      "requested_mobile_direction": "建议：简短计时工具栏、底部下一题；答题卡sheet每格至少44pt；退出说明计时",
+      "requested_regular_direction": "建议：≥宽阈值侧栏答题卡，Split View退回sheet；保留键盘支持",
+      "files": [
+        "src/features/practice/MockExamPanel.tsx",
+        "src/features/practice/legacyMockState.ts",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "legacy-mock-results",
+      "name": "旧整卷结果及错题列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "按用户/试卷版本隔离浏览器保存；配额/存储失败可见，答案留在当前页；加载可重试；答案选中aria语义和触控网格修正；全对结果说明。",
+      "remaining": "统一新旧考试答题器/结果模板仍待专项迁移；真实计时/音频/浏览器存储验收待完成。",
+      "requested_mobile_direction": "建议：三项摘要合并成一块，错题列表主区，重做放次级",
+      "requested_regular_direction": "建议：左错题列表右解释；总指标压缩为一条，不放大卡堆",
+      "files": [
+        "src/features/practice/MockExamPanel.tsx",
+        "src/features/practice/legacyMockState.ts",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mock-load-errors",
+      "name": "模拟考试/音频加载失败",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "按用户/试卷版本隔离浏览器保存；配额/存储失败可见，答案留在当前页；加载可重试；答案选中aria语义和触控网格修正；全对结果说明。",
+      "remaining": "统一新旧考试答题器/结果模板仍待专项迁移；真实计时/音频/浏览器存储验收待完成。",
+      "requested_mobile_direction": "建议：单一重试按钮，已答不清空，音频错误不挤出题目",
+      "requested_regular_direction": "建议：列表仍可用，详情错误局部重试；不要整个工作区空白",
+      "files": [
+        "src/features/practice/MockExamPanel.tsx",
+        "src/features/practice/legacyMockState.ts",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mixed-mock-legacy",
+      "name": "综合练习内硬编码模拟卷（遗留）",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "建议：无额外界面",
+      "requested_regular_direction": "建议：无额外界面",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "news-legacy-alias",
+      "name": "新闻练习旧链接迁移",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "保留已有兼容路由/迁移语义，新增路由回归测试覆盖主路径。",
+      "remaining": "不重复建立旧概念页面；兼容路由不可贸然移除。",
+      "requested_mobile_direction": "建议：跳转保留上下文，回目录行为一致",
+      "requested_regular_direction": "建议：沿用统一考试主从布局",
+      "files": [
+        "src/domain/appRoutes.ts"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "dialogue-list",
+      "name": "对话场景列表（隐藏入口）",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：紧凑场景行，详情独立push与返回",
+      "requested_regular_direction": "建议：左场景列表右练习；分屏窄时单列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "dialogue-study",
+      "name": "对话场景说明与参考",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：任务在首屏，开始为主按钮，参考折叠",
+      "requested_regular_direction": "建议：场景任务与参考可并列但默认隐藏答案，阅读限宽",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "dialogue-role-play",
+      "name": "分角色模拟对话",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：聊天区域高度随视口，底部主动作常达；提示次级，避免嵌套滚动夺取整页",
+      "requested_regular_direction": "建议：角色/关键词侧栏+对话主区，保留稳定阅读宽度；键盘可推进",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "opinion-list",
+      "name": "意见表达主题列表（隐藏入口）",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：主题一行式列表",
+      "requested_regular_direction": "建议：主题列表+预览主从",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "opinion-detail",
+      "name": "意见表达题目/提纲/参考",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "建议：默认单列，提纲可收起，参考继续折叠；提供简单开始/完成状态",
+      "requested_regular_direction": "建议：宽屏题目与提纲两列，参考下方；900px以下自动单列",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-list",
+      "name": "发现分享列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "试做可完成到结果并返回/重试；明确不写学习历史；加载结果防过时请求覆盖；导入去重/pending/已加入反馈。",
+      "remaining": "分享完整信息结构、词本分页/作者可信度与统一详情重组暂缓；浏览器验收待完成。",
+      "requested_mobile_direction": "建议：标题+简介+来源+单一打开；加入在详情为主；筛选sheet",
+      "requested_regular_direction": "建议：左筛选/列表右预览；行末动作按需出现但不用hover唯一触发",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-manage-shares",
+      "name": "我的分享与批量管理",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "单项撤回确认、本人不显示导入、批量导入去重；管理视觉重组未实施。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：更多菜单进入管理，批量底栏显示选中数；危险操作二次确认",
+      "requested_regular_direction": "建议：工具栏管理模式+行多选；预览与选择模式明显区分",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-wordbook-preview",
+      "name": "分享单词本预览",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "公开来源说明/返回与加入状态改进；长词表分页/搜索未实施。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：摘要+少量预览+展开全部；底部加入按钮，已加入变打开词本",
+      "requested_regular_direction": "建议：列表与词义详情两栏；加入在固定工具栏",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-practice-preview",
+      "name": "分享专项练习试做",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "试做可完成到结果并返回/重试；明确不写学习历史；加载结果防过时请求覆盖；导入去重/pending/已加入反馈。",
+      "remaining": "分享完整信息结构、词本分页/作者可信度与统一详情重组暂缓；浏览器验收待完成。",
+      "requested_mobile_direction": "建议：预览先介绍与试做；试做专注全屏；退出回分享详情",
+      "requested_regular_direction": "建议：预览信息侧栏+限宽试做主区；可收起介绍",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-practice-unreachable-result",
+      "name": "分享练习结果分支（不可达）",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "试做可完成到结果并返回/重试；明确不写学习历史；加载结果防过时请求覆盖；导入去重/pending/已加入反馈。",
+      "remaining": "分享完整信息结构、词本分页/作者可信度与统一详情重组暂缓；浏览器验收待完成。",
+      "requested_mobile_direction": "建议：最后一题出现完成/结果主动作",
+      "requested_regular_direction": "建议：沿用统一结果模板",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-listening-preview",
+      "name": "分享听力预览",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享预览外壳和状态改进；音频重试和单题导航未实施。",
+      "remaining": "保持现有功能与数据，剩余独立信息架构/设备视觉验收另行处理。",
+      "requested_mobile_direction": "建议：播放器可固定，题目单个浏览；原文折叠",
+      "requested_regular_direction": "建议：左题目索引右试听/内容；注意原文与答案不抢占主要任务",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "discover-loading-errors",
+      "name": "发现加载/添加成功与失败状态",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "试做可完成到结果并返回/重试；明确不写学习历史；加载结果防过时请求覆盖；导入去重/pending/已加入反馈。",
+      "remaining": "分享完整信息结构、词本分页/作者可信度与统一详情重组暂缓；浏览器验收待完成。",
+      "requested_mobile_direction": "建议：局部进度与不遮挡错误条，保留返回/重试",
+      "requested_regular_direction": "建议：主从布局保持列表可用，右侧局部加载/失败",
+      "files": [
+        "src/features/market/MarketPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-home",
+      "name": "学习记录首页",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "单列分组列表；只保留一组关键数字，异常与空状态内联",
+      "requested_regular_direction": "侧栏保留记录入口，主区显示摘要与历史列表，避免重复统计卡片",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-today",
+      "name": "今日结果",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "今天/全部切换，单列记录；返回保留筛选和滚动位置",
+      "requested_regular_direction": "历史同页日期过滤和摘要，不再开一个布局几乎相同的页",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-history",
+      "name": "全部练习历史",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "筛选收进单一筛选面板，当前条件用摘要展示；返回保留位置",
+      "requested_regular_direction": "列表与复盘双栏，筛选置列表上方；窄分屏退化为 push",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-daily-summary",
+      "name": "每日学习总结",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "概览只展示一句结论和“查看总结”，详细数据纵向展开",
+      "requested_regular_direction": "摘要可侧栏显示，长报告限制阅读宽度；独立日期状态可深链",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-attempt-review",
+      "name": "历史练习复盘",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "历史重做基于原题ID创建独立新attempt；保留历史正确性与缺失题说明，持久化新答案，复盘入口连通。",
+      "remaining": "历史旧数据无快照时无法恢复已删除原题；明确限制。 服务端既有50条attempt保留上限未更改；不声称无限历史保留。",
+      "requested_mobile_direction": "push 到一题复盘，顶部可回记录；按钮≥44，题目列表作为 sheet",
+      "requested_regular_direction": "左侧题号/结果列表，右侧固定阅读宽度复盘；支持键盘跳题",
+      "files": [
+        "src/domain/attemptReplay.ts",
+        "src/features/history/HistoryReplayPanel.tsx",
+        "src/features/insights/DataManagementPanel.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-attempt-picker",
+      "name": "复盘题目列表弹窗",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "历史重做基于原题ID创建独立新attempt；保留历史正确性与缺失题说明，持久化新答案，复盘入口连通。",
+      "remaining": "历史旧数据无快照时无法恢复已删除原题；明确限制。",
+      "requested_mobile_direction": "底部 sheet，44pt题号格；关闭后焦点回题号",
+      "requested_regular_direction": "popover 或题目侧栏，避免在宽屏反复开弹窗",
+      "files": [
+        "src/domain/attemptReplay.ts",
+        "src/features/history/HistoryReplayPanel.tsx",
+        "src/features/insights/DataManagementPanel.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "records-legacy-attempt",
+      "name": "旧版练习报告与逐题详情",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "不再新增旧报告页；在正式复盘详情展开时间信息",
+      "requested_regular_direction": "统一列表-详情布局，避免维护两套报告设计",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "captures-create",
+      "name": "新增输入记录",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "保存/建词本失败可见、内容保留、处理中禁用、重复提交保护。",
+      "remaining": "视觉/屏幕键盘验收待完成。",
+      "requested_mobile_direction": "紧凑 composer，键盘上方固定保存；不要无条件 autofocus 挤掉上下文",
+      "requested_regular_direction": "居中表单或右侧新增 sheet，保留输入列表上下文",
+      "files": [
+        "src/features/capture/CapturePanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "captures-create-wordbook",
+      "name": "记录时新建词本",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "保存/建词本失败可见、内容保留、处理中禁用、重复提交保护。",
+      "remaining": "视觉/屏幕键盘验收待完成。",
+      "requested_mobile_direction": "词本选择 sheet 内继续新建，完成回到正文",
+      "requested_regular_direction": "小型 popover/sheet，显示新建后将选中的词本",
+      "files": [
+        "src/features/capture/CapturePanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "captures-list",
+      "name": "输入记录列表",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "增加正文/上下文搜索与状态筛选；状态更新错误和pending可见；批量仍沿用已有失败保留选择机制。",
+      "remaining": "详情深链接、正文编辑/归档管理重组暂缓。",
+      "requested_mobile_direction": "单列系统式列表，支持状态筛选和安全的滑动归档",
+      "requested_regular_direction": "列表-详情双栏，工具栏搜索与状态过滤",
+      "files": [
+        "src/features/history/HistoryPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "captures-detail",
+      "name": "输入记录详情",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "增加正文/上下文搜索与状态筛选；状态更新错误和pending可见；批量仍沿用已有失败保留选择机制。",
+      "remaining": "详情深链接、正文编辑/归档管理重组暂缓。",
+      "requested_mobile_direction": "push 详情，右上角更多管理，底部状态动作；返回保留列表",
+      "requested_regular_direction": "split view 选中记录，正文阅读宽度；状态变化不打断阅读",
+      "files": [
+        "src/features/history/HistoryPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "captures-bulk",
+      "name": "输入记录批量管理",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "增加正文/上下文搜索与状态筛选；状态更新错误和pending可见；批量仍沿用已有失败保留选择机制。",
+      "remaining": "详情深链接、正文编辑/归档管理重组暂缓。",
+      "requested_mobile_direction": "底部批量操作栏避开安全区/键盘；归档可撤销",
+      "requested_regular_direction": "列表顶部工具栏，保留选中计数；不会挤压详情",
+      "files": [
+        "src/features/history/HistoryPanel.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-list",
+      "name": "练习草稿列表",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "按待审核/已发布筛选，列表标题+来源+状态即可",
+      "requested_regular_direction": "列表-预览双栏，批量工具在选中后显示",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-detail",
+      "name": "草稿阅读/整份审核",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "更多→编辑立即关闭弹窗；错误可见；归档不再显示重复发布；编辑后去除过时已确认提示。",
+      "remaining": "结构化编辑替代JSON与完整未保存离开保护仍待专项实现。",
+      "requested_mobile_direction": "阅读为主，审核/发布固定底部；备注用 sheet，不把所有卡片堆满",
+      "requested_regular_direction": "正文主栏、审核批注辅栏；充分空间才并列",
+      "files": [
+        "src/features/drafts/DraftsPanel.tsx",
+        "src/features/drafts/QuestionReviewWorkspace.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-question-review",
+      "name": "草稿逐题审核",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "未审核题默认未确认；按最新注释且严格true校验；修改题目或备注会失效确认；发布端同一helper复核。",
+      "remaining": "原生对照与浏览器验收待完成。",
+      "requested_mobile_direction": "一题一屏，批注与确认紧邻题目；离开未保存时提醒",
+      "requested_regular_direction": "宽度足够时题目+批注侧栏，窄分屏单列；有题目目录",
+      "files": [
+        "src/features/drafts/questionReviewState.ts",
+        "src/features/drafts/QuestionReviewWorkspace.tsx",
+        "src/App.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-editor",
+      "name": "草稿内容编辑",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "更多→编辑立即关闭弹窗；错误可见；归档不再显示重复发布；编辑后去除过时已确认提示。",
+      "remaining": "结构化编辑替代JSON与完整未保存离开保护仍待专项实现。",
+      "requested_mobile_direction": "全屏表单编辑、分段字段和明确保存；键盘避让及离开确认",
+      "requested_regular_direction": "表单与预览并列，高级 JSON 可选；支持撤销与验证定位",
+      "files": [
+        "src/features/drafts/DraftsPanel.tsx",
+        "src/features/drafts/QuestionReviewWorkspace.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-more",
+      "name": "草稿更多操作弹窗",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "更多→编辑立即关闭弹窗；错误可见；归档不再显示重复发布；编辑后去除过时已确认提示。",
+      "remaining": "结构化编辑替代JSON与完整未保存离开保护仍待专项实现。",
+      "requested_mobile_direction": "动作 sheet，破坏性删除单独分组",
+      "requested_regular_direction": "锚定更多按钮的 menu/popover，不用大空白对话框",
+      "files": [
+        "src/features/drafts/DraftsPanel.tsx",
+        "src/features/drafts/QuestionReviewWorkspace.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-annotations",
+      "name": "生词与修改建议弹窗",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "更多→编辑立即关闭弹窗；错误可见；归档不再显示重复发布；编辑后去除过时已确认提示。",
+      "remaining": "结构化编辑替代JSON与完整未保存离开保护仍待专项实现。",
+      "requested_mobile_direction": "sheet 内单一保存动作；未保存离开提示",
+      "requested_regular_direction": "侧栏内编辑、可靠保存反馈；不用弹窗割裂材料与批注",
+      "files": [
+        "src/features/drafts/DraftsPanel.tsx",
+        "src/features/drafts/QuestionReviewWorkspace.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "drafts-preview-disclosures",
+      "name": "草稿学习安排/诊断/回忆弹窗",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "原位展开并保留阅读位置",
+      "requested_regular_direction": "相关资料可放辅助栏，按需展开",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mistakes-list",
+      "name": "错题集",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "单列知识点，一个主动作“复习错题”，筛选收起",
+      "requested_regular_direction": "左侧错题集、右侧详情/复习，宽屏批量选择",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mistakes-detail",
+      "name": "错题知识点详情",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "push 详情，最近错误优先，更多历史折叠",
+      "requested_regular_direction": "split view 详情，顶部摘要固定，历史时间线",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "memory-overview",
+      "name": "学习记忆到期列表",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "复习首页“查看到期项目”，点击进入词条",
+      "requested_regular_direction": "到期列表+词条详情双栏，启动复习一个主动作",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "data-overview",
+      "name": "数据统计占位页",
+      "priority": "P2",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "设置下简短数据摘要",
+      "requested_regular_direction": "设置详情中显示，不占独立导航",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "mcp-overview",
+      "name": "MCP 数据层状态页",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "连接设置中的简明说明",
+      "requested_regular_direction": "连接详情内说明及诊断，不单独页面",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "insights-alias",
+      "name": "统计/我的旧入口",
+      "priority": "P1",
+      "status": "not-needed",
+      "implemented": "保留已有兼容路由/迁移语义，新增路由回归测试覆盖主路径。",
+      "remaining": "不重复建立旧概念页面；兼容路由不可贸然移除。",
+      "requested_mobile_direction": "与学习记录同一导航，取消旧名",
+      "requested_regular_direction": "同一记录根页面，不创建重复侧栏项",
+      "files": [
+        "src/domain/appRoutes.ts"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "insights-legacy",
+      "name": "旧版 InsightsPanel",
+      "priority": "P3",
+      "status": "not-needed",
+      "implemented": "本轮不删除遗留实现，避免无验证移除兼容入口或有用能力。",
+      "remaining": "待使用证据充分后再清理；本轮修复无需清理此实现。",
+      "requested_mobile_direction": "不为此另开页面",
+      "requested_regular_direction": "趋势作为记录页模块",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "profile",
+      "name": "个人学习档案",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "我的入口仅身份+设置导航；记录页前三关键统计，其余展开",
+      "requested_regular_direction": "记录仪表区可容纳图表；账号详情独立且窄宽度",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-home",
+      "name": "设置首页",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "各窗口宽度遵循同一section路由/层级；移除不可点击头像卡箭头；显示实际界面语言；账号退出放在账号详情。",
+      "remaining": "视觉/大字测试待完成。",
+      "requested_mobile_direction": "系统式分组列表，每行当前值；账号置顶，关于置底",
+      "requested_regular_direction": "regular宽度设置列表+详情；compact分屏用同手机push，不全量堆叠",
+      "files": [
+        "src/features/settings/SettingsView.tsx",
+        "src/features/settings/SettingsView.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-display",
+      "name": "显示与阅读",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "各窗口宽度遵循同一section路由/层级；移除不可点击头像卡箭头；显示实际界面语言；账号退出放在账号详情。",
+      "remaining": "视觉/大字测试待完成。",
+      "requested_mobile_direction": "单列系统开关和选择行，44pt点击区域",
+      "requested_regular_direction": "设置详情预览旁置或下置，服从可用宽度",
+      "files": [
+        "src/features/settings/SettingsView.tsx",
+        "src/features/settings/SettingsView.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-practice",
+      "name": "练习体验",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "各窗口宽度遵循同一section路由/层级；移除不可点击头像卡箭头；显示实际界面语言；账号退出放在账号详情。",
+      "remaining": "视觉/大字测试待完成。",
+      "requested_mobile_direction": "系统选择列表，显示当前模式和说明",
+      "requested_regular_direction": "设置详情一组radio；无需大空白独立页",
+      "files": [
+        "src/features/settings/SettingsView.tsx",
+        "src/features/settings/SettingsView.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-memory",
+      "name": "记忆卡内容",
+      "priority": "P2",
+      "status": "implemented",
+      "implemented": "各窗口宽度遵循同一section路由/层级；移除不可点击头像卡箭头；显示实际界面语言；账号退出放在账号详情。",
+      "remaining": "视觉/大字测试待完成。",
+      "requested_mobile_direction": "正面/背面分段，预览在上，选项44pt可点",
+      "requested_regular_direction": "真实卡片预览+字段列表双栏，窄窗口上下排",
+      "files": [
+        "src/features/settings/SettingsView.tsx",
+        "src/features/settings/SettingsView.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-pronunciation",
+      "name": "发音朗读",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "只显示所选供应商配置；浏览器发音无需无关表单；清除前确认。",
+      "remaining": "试听与供应商成本/保存位置说明尚需产品核准。",
+      "requested_mobile_direction": "供应商选择→单一配置详情，键盘适配和44pt操作",
+      "requested_regular_direction": "设置详情中单供应商表单+状态/试听，避免长串密钥框",
+      "files": [
+        "src/features/settings/SettingsView.tsx"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-account",
+      "name": "账号",
+      "priority": "P1",
+      "status": "implemented",
+      "implemented": "各窗口宽度遵循同一section路由/层级；移除不可点击头像卡箭头；显示实际界面语言；账号退出放在账号详情。",
+      "remaining": "视觉/大字测试待完成。",
+      "requested_mobile_direction": "账号一组行，绑定与退出明确分区",
+      "requested_regular_direction": "与手机相同字段，窄宽度账号详情",
+      "files": [
+        "src/features/settings/SettingsView.tsx",
+        "src/features/settings/SettingsView.css"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "settings-dev-inspector",
+      "name": "MCP Inspector 开发入口",
+      "priority": "P3",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "正常产品页不显示",
+      "requested_regular_direction": "开发模式链接可保留；实际工具按桌面调试场景",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-home",
+      "name": "AI助手/关于",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "顶部接入状态+一个主动作，教程列表后置",
+      "requested_regular_direction": "状态与操作在上，帮助导航左列或分组列表",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "agents-connected",
+      "name": "已接入的AI",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "可点客户端行进入权限详情，断开在底部单独危险区",
+      "requested_regular_direction": "列表+客户端详情；保留操作后状态刷新",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "oauth-consent",
+      "name": "OAuth授权确认",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "系统式独立授权sheet/fullscreen，内容可滚动，允许/拒绝始终清晰",
+      "requested_regular_direction": "居中440px授权卡，键盘焦点和足够阅读宽度",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-mcp",
+      "name": "认识MCP",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "可折叠目录+顺序阅读，缩短重复说明",
+      "requested_regular_direction": "目录+阅读栏，限制正文宽度，分屏时目录折叠",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-connect",
+      "name": "接入与验证",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "客户端选择sheet，一步一步引导；复制后提示下一步",
+      "requested_regular_direction": "客户端侧栏+步骤主体；步骤验证状态明确",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide",
+      "name": "图解使用指南/整理笔记",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "场景列表→文章，返回场景清单；文章简短分节",
+      "requested_regular_direction": "目录列表+文章，保持章节/场景当前位置",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-wordbooks",
+      "name": "管理词本指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-analyze",
+      "name": "错题分析指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-practice",
+      "name": "生成练习指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-plan",
+      "name": "制定计划指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-drafts",
+      "name": "草稿审核指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-media",
+      "name": "听读材料指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-guide-schedule",
+      "name": "定时流程场景指南",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "帮助列表进入精简文章，复制按钮44pt；更多提示词折叠",
+      "requested_regular_direction": "目录与正文双栏，窄分屏折叠目录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-results",
+      "name": "查看学习成果",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "轻量目的地列表与折叠排查",
+      "requested_regular_direction": "帮助目录内一页，不增加学习主导航",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "about-automation",
+      "name": "定时任务说明",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "短帮助文档，首屏明确在哪里设定时",
+      "requested_regular_direction": "宽度受控文章，示例可复制；保持当前学习上下文",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-intro",
+      "name": "未登录公开介绍",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "一个主要登录按钮+简短预览；避免82vh大海报占满首屏",
+      "requested_regular_direction": "介绍+登录双列，内容宽度适中；不要伪装成真实学习数据",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "login-google",
+      "name": "Google登录与学习示例",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "登录按钮在首屏，示例可折叠，语言触控≥44",
+      "requested_regular_direction": "普通首次进入双列；OAuth用简短居中登录",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "login-local",
+      "name": "本地登录/注册",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "48pt输入，键盘设置与自动填充，错误贴近字段",
+      "requested_regular_direction": "窄宽居中表单即可，无需大屏放大",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "app-session-error",
+      "name": "学习数据加载失败",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "系统式内容不可用状态，单一重试按钮",
+      "requested_regular_direction": "居中状态并保留导航壳（可行时），不要空白大页面",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "app-loading",
+      "name": "全局与页面加载",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "保留将去页面标题，内容骨架和可访问状态",
+      "requested_regular_direction": "使用与目标布局一致骨架，不闪全屏遮罩",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "app-confirmation",
+      "name": "通用确认弹窗",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "紧凑alert，操作至少46px，内容过长可滚动",
+      "requested_regular_direction": "居中有限宽alert，键盘Esc取消/焦点返回验证",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "app-notice",
+      "name": "提示/解析质量问题弹窗",
+      "priority": "P1",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "仅重要错误alert；小成功轻提示不打断",
+      "requested_regular_direction": "同一反馈层级，技术详情按需展开",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-guide-redirect",
+      "name": "未登录帮助跳转",
+      "priority": "P2",
+      "status": "deferred",
+      "implemented": "保留现有能力/深链接/数据；共享控件tokens随整体修复生效。",
+      "remaining": "该条需要独立交互/内容重组，未在本轮声称完成；依据原审查要求列为后续。",
+      "requested_mobile_direction": "重定向后保留文章标题与返回学习入口",
+      "requested_regular_direction": "同样映射，不能仅靠桌面侧栏补救",
+      "files": [],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-community",
+      "name": "学习社区首页",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "放在设置/帮助中的学习指南；单列紧凑列表，保留明确返回/开始学习与可用语言菜单，取消大 hero 和重复推荐区。",
+      "requested_regular_direction": "帮助入口用侧栏列表＋文章详情；公共网页可保留适量品牌图，但正文宽度有上限，与手机同一内容模型。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-topic",
+      "name": "AI 协作专题",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "在指南页直接看到可开始的第一篇与后续清单，进入文章只需一次导航。",
+      "requested_regular_direction": "同一指南侧栏以 AI 协作分组显示9篇，右侧打开文章，不再切换到单独大 hero 专题页。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-articles",
+      "name": "全部文章目录",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "一个指南列表即可，分类以分组标题或轻量筛选呈现，不在社区/专题/全部文章之间跳转。",
+      "requested_regular_direction": "复用文章清单与阅读详情两栏；清单不另占工作区主导航。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-integration",
+      "name": "如何把 AI 接入 JLPT Master",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "紧凑标题→3/4步列表→可复制地址/请求→检查连接按钮；目录折叠在开头，不堆大型hero、长面包屑。",
+      "requested_regular_direction": "内容宽度约阅读栏，右侧可保留当前目录/连接核对清单；与手机共享正文与语言，不另写一套教程。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-vocabulary",
+      "name": "把遇到的生词整理成可复习的词条",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "短标题/预计步骤、可折叠示例与复制请求；在词条或输入记录帮助中深链此页，不新增一级入口。",
+      "requested_regular_direction": "主阅读栏＋侧边步骤/核对清单，复用同一文章；如应用内帮助可与词汇详情并排。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-grammar",
+      "name": "用一个易混点建立语法记录",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "四个短分组纵向呈现，单列对比；正文前提供目录折叠与复制请求。",
+      "requested_regular_direction": "两表达可并排比较，仍复用词条/语法详情的信息顺序；阅读栏保留合理宽度。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-reading",
+      "name": "读文章时，把不认识的词带着上下文留下来",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "上下文片段与三步流转纵向排列，跳转保留原文章上下文；从阅读选词后的帮助入口打开。",
+      "requested_regular_direction": "左侧原文/右侧词条或输入记录的布局可复用；教程作为窄侧栏说明，避免把整篇阅读切走。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-listening",
+      "name": "用跟读录音找出没有听清的地方",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "三份材料纵向卡片或轻量切换，保持一处播放控制/录音状态，避免手机横向表格。",
+      "requested_regular_direction": "允许原文与录音分析并排，复用听力详情的时间/片段信息；帮助内容可侧边展开。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-daily-practice",
+      "name": "根据昨天的错题准备今天的一组练习",
+      "priority": "P1",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "按证据摘要→生成→审阅→进入练习的单列步骤呈现，显式标记草稿/正式状态。",
+      "requested_regular_direction": "左侧依据与题目列表、右侧题目核对适合宽屏；文章内容共用，不另外维护一套手机说明。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-ai-study-plan",
+      "name": "把考试目标拆成做得完的每日任务",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "四项前提清单＋一天实例，日历说明改为按天任务列表优先，避免宽屏表格缩小。",
+      "requested_regular_direction": "同一任务内容可用日历＋当天详情，教程在辅助栏展示约束与示例。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-dots-connection",
+      "name": "接入 Dots，让它持续跟进你的 JLPT 弱点",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "从已连接AI的帮助进入；先显示一个目标与何时需要用户决定，再展开背景说明。",
+      "requested_regular_direction": "目标状态卡与证据/练习记录并排可复用，但不把外部产品 Activity 硬搬为本应用新导航。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-dots-scheduled",
+      "name": "定时任务：每天7点准备练习草稿",
+      "priority": "P2",
+      "status": "partial",
+      "implemented": "共享页头保留开始学习和三语切换，44px目标、紧凑hero、长文目录与模块CTA。",
+      "remaining": "专题/目录兼容URL保留；内容跨语言语义核对、特定文章教学视图及应用内整合待后续。",
+      "requested_mobile_direction": "摘要四行＋复制请求＋查看练习草稿，完整说明折叠；外部日程管理链接明确标记离开应用。",
+      "requested_regular_direction": "摘要与示例输出并列，继续使用共用文章模板；无需新增JLPT工作区日程菜单。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-privacy",
+      "name": "隐私政策（发布前草案）",
+      "priority": "P0",
+      "status": "partial",
+      "implemented": "共享样式统一品牌、换行与触控目标；法律/支持正文保持原样。",
+      "remaining": "需发布者提供并核准正式隐私/条款、私密支持联系与身份核验流程；不能编造。",
+      "requested_mobile_direction": "设置→隐私与条款，系统式标题、正文与分组目录，易找联系/删除路径，维持可读字号。",
+      "requested_regular_direction": "同一文本，限制正文宽度，目录可作辅助侧栏；需中/英/日可理解入口与一致品牌。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-support",
+      "name": "帮助与支持",
+      "priority": "P0",
+      "status": "partial",
+      "implemented": "共享样式统一品牌、换行与触控目标；法律/支持正文保持原样。",
+      "remaining": "需发布者提供并核准正式隐私/条款、私密支持联系与身份核验流程；不能编造。",
+      "requested_mobile_direction": "设置→帮助与支持；按问题类型的分组列表，优先给用户能完成的动作；明确何时跳公开GitHub。",
+      "requested_regular_direction": "左问题分类右详情，复用手机同样内容；统一字体、色彩和品牌，不另造绿色微站。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    },
+    {
+      "id": "public-terms",
+      "name": "使用条款（发布前草案）",
+      "priority": "P0",
+      "status": "partial",
+      "implemented": "共享样式统一品牌、换行与触控目标；法律/支持正文保持原样。",
+      "remaining": "需发布者提供并核准正式隐私/条款、私密支持联系与身份核验流程；不能编造。",
+      "requested_mobile_direction": "设置→隐私与条款，同一正文阅读组件；保留草案标识直到正式核准。",
+      "requested_regular_direction": "复用相同文本和阅读上限，辅助目录可选；三语言入口和文件版本应统一维护。",
+      "files": [
+        "public/articles/articles.css",
+        "scripts/build-community-locales.mjs",
+        "public/community/index.html"
+      ],
+      "visual_qa": "blocked: cloud browser rejects localhost with ERR_BLOCKED_BY_CLIENT; no native pixel parity asserted"
+    }
+  ]
+}

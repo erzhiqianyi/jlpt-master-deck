@@ -1,9 +1,9 @@
 import { useConfirmation } from '../../components/confirmation';
 import { questionSelectionReason } from './questionSelectionReason';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { ReviewPackDraft } from '../../types';
+import { getQuestionReviews, isQuestionConfirmed, questionReviewKey, type QuestionReview } from './questionReviewState';
 
-type Review = { kind: 'question_review'; key: string; number: number; note: string; confirmed: boolean };
 export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSave, onFinalize }: {
   draft: ReviewPackDraft; questions: unknown[];
   renderQuestion: (index: number) => ReactNode;
@@ -16,46 +16,47 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const reviews = new Map<string, Review>();
+  const actionPending = useRef(false);
   // An append-only annotation log keeps confirmations with the saved draft.
-  for (const annotation of [...draft.annotations].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    try {
-      const review = JSON.parse(annotation.body) as Review;
-      if (review.kind === 'question_review' && typeof review.key === 'string') reviews.set(review.key, review);
-    } catch { /* Older free-text annotations remain available below. */ }
-  }
-  const keys = questions.map((question, i) => JSON.stringify([i, question]));
+  const reviews = getQuestionReviews(draft.annotations);
+  const keys = questions.map(questionReviewKey);
   const current = Math.min(index, keys.length - 1);
   const key = keys[current];
   const selectionReason = questionSelectionReason(questions[current], draft.content);
   const review = reviews.get(key);
   const note = notes[key] ?? review?.note ?? '';
   const dirty = note !== (review?.note ?? '');
-  const confirmed = (review?.confirmed ?? true) && !dirty;
-  const count = keys.filter((entry) => (reviews.get(entry)?.confirmed ?? true) && (notes[entry] === undefined || notes[entry] === (reviews.get(entry)?.note ?? ''))).length;
+  const confirmed = isQuestionConfirmed(key, reviews, notes);
+  const count = keys.filter((entry) => isQuestionConfirmed(entry, reviews, notes)).length;
   const archived = draft.status === 'archived';
   async function save(confirm: boolean) {
+    if (actionPending.current || archived || !keys.length) return;
+    actionPending.current = true;
     setBusy(true); setError(''); setNotice('');
     try {
-      await onSave(draft.id, JSON.stringify({ kind: 'question_review', key, number: current + 1, note, confirmed: confirm } satisfies Review));
+      await onSave(draft.id, JSON.stringify({ kind: 'question_review', key, number: current + 1, note, confirmed: confirm } satisfies QuestionReview));
       setNotice(confirm ? '这题已确认' : '已保存，这题暂不确认');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '保存失败，请再试一次'); }
-    finally { setBusy(false); }
+    finally { actionPending.current = false; setBusy(false); }
   }
   async function finalize() {
-    if (count !== questions.length || busy) return;
-    if (!(await confirm({ title: '生成最终版？', description: `已确认 ${questions.length} 题，生成后加入今日练习。`, confirmLabel: '生成最终版', cancelLabel: '再看看' }))) return;
+    if (!questions.length || count !== questions.length || actionPending.current || archived) return;
+    actionPending.current = true;
     setBusy(true); setError('');
-    try { await onFinalize(draft.id); }
+    try {
+      if (!(await confirm({ title: '生成最终版？', description: `已确认 ${questions.length} 题，生成后加入今日练习。`, confirmLabel: '生成最终版', cancelLabel: '再看看' }))) return;
+      await onFinalize(draft.id);
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : '生成失败，请再试一次'); }
-    finally { setBusy(false); }
+    finally { actionPending.current = false; setBusy(false); }
   }
+  if (!questions.length) return <p role="status">暂无可审核的题目。</p>;
   return <div className="question-review-workspace">
     <section className="question-review-main" aria-label="逐题审核">
       <nav className="gentle-question-pager" aria-label="预览题目翻页">
-        <button type="button" disabled={current === 0 || busy} onClick={() => {setIndex(current - 1); setNotice('');}}>上一题</button>
+        <button type="button" disabled={current === 0 || busy} onClick={() => {setIndex(current - 1); setNotice(''); setError('');}}>上一题</button>
         <span aria-live="polite">第 {current + 1} / {questions.length} 题</span>
-        <button type="button" disabled={current === questions.length - 1 || busy} onClick={() => {setIndex(current + 1); setNotice('');}}>下一题</button>
+        <button type="button" disabled={current === questions.length - 1 || busy} onClick={() => {setIndex(current + 1); setNotice(''); setError('');}}>下一题</button>
       </nav>
       <div className="question-review-section-heading"><h2>看题目</h2>
       <label className="question-review-check">
@@ -73,9 +74,9 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
       <section className="question-review-annotation" aria-label="本题批注">
       <header><h3>写批注</h3><span>第 {current + 1} 题</span></header>
       <label htmlFor="question-review-note">这题哪里需要调整？</label>
-      <textarea id="question-review-note" value={note} disabled={busy || archived} onChange={(event) => setNotes({...notes, [key]: event.target.value})} placeholder="例如：解释再详细一些，或选项不太自然。" />
+      <textarea id="question-review-note" value={note} disabled={busy || archived} onChange={(event) => { const value = event.target.value; setNotes((currentNotes) => ({ ...currentNotes, [key]: value })); setNotice(''); setError(''); }} placeholder="例如：解释再详细一些，或选项不太自然。" />
       <button type="button" className="preview-disclosure-trigger" disabled={busy || !dirty || archived} onClick={() => save(false)}>保存批注</button>
-      <p role="status">{notice || (dirty ? '还没保存，记得保存批注。' : '修改后，请重新勾选这题。')}</p>
+      <p role="status">{notice || (dirty ? '还没保存，记得保存批注。' : confirmed ? '这题已确认。修改后请重新确认。' : '阅读后，请勾选确认这题。')}</p>
       {error ? <p role="alert">{error}</p> : null}
       </section>
       <div className="question-review-final">

@@ -1,8 +1,8 @@
 import type { PracticeModule } from '../../domain/practiceModules.mjs';
-import { NavigationCard } from '../../components/NavigationCard';
+import './practice-layout.css';
 import { ShareButton } from '../../components/ShareButton';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
-import { Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, RotateCcw, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CalendarDays, Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, RotateCcw, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -10,7 +10,7 @@ import { opinionPractices } from '../../data/opinionPractice';
 import { dialoguePractices } from '../../data/dialoguePractice';
 import { useMobileList } from '../../hooks/useMobileList';
 import { buildQuestionIndex, questionKindsForItem } from '../../domain/questions';
-import type { AppView, DraftSummary, LearningCapture, ListeningQuestion, Locale, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
+import type { AnswerState, AppView, DailyPractice, DraftSummary, LearningCapture, ListeningQuestion, Locale, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
 type PracticeEntry = { completedCount?: number; modules?: PracticeModule[]; reference?: string; description?: string; sourceSummary?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
@@ -19,6 +19,8 @@ const MIXED_ENTRY_PAGE_SIZE = 8;
 
 export function MixedPracticeHub({
   topicEntries = [],
+  dailyPractice,
+  dailyAnswers = {},
   groupKey,
   labels,
   locale,
@@ -37,6 +39,8 @@ export function MixedPracticeHub({
   onStartModule,
 }: {
   topicEntries?: PracticeEntry[];
+  dailyPractice?: DailyPractice;
+  dailyAnswers?: AnswerState;
   groupKey?: string;
   labels: Record<string, string>;
   locale: Locale;
@@ -66,6 +70,10 @@ export function MixedPracticeHub({
   const opinionTopic = opinionPractices.find((item) => item.id === opinionTopicId);
   const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
   const copy = practiceCopy(locale);
+  const dailyAnswered = dailyPractice?.questions.filter((question) => dailyAnswers[question.id]).length ?? 0;
+  const dailyTotal = dailyPractice?.questions.length ?? 0;
+  const dailyStarted = dailyAnswered > 0 && dailyAnswered < dailyTotal;
+  const dailyComplete = dailyTotal > 0 && dailyAnswered === dailyTotal;
   const moreEntries: PracticeEntry[] = [
     { key: 'mixed', title: copy.mixed, body: copy.mixedBody, count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
     { key: 'topics', title: copy.topics, body: copy.topicsBody, count: topicEntries.length, icon: BookOpenText, tone: 'mint', action: () => setActiveGroupKey('topics') },
@@ -95,13 +103,22 @@ export function MixedPracticeHub({
       {activeGroup ? (
         activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} />
       ) : (
-        <>
-          <section className="navigation-section" aria-label={copy.practice}>
-            <div className="navigation-grid">
-              {moreEntries.filter(entry => ['topics', 'mixed', 'daily', 'mock'].includes(entry.key)).sort((a,b) => ['topics','mixed','daily','mock'].indexOf(a.key) - ['topics','mixed','daily','mock'].indexOf(b.key)).map(entry => <PracticeModuleCard key={entry.key} entry={entry} unit={copy.items} />)}
-            </div>
-          </section>
-        </>
+        <div className="practice-hub-content">
+          <div className="practice-hub-layout">
+            <section className="practice-today" aria-labelledby="practice-today-title">
+              <p className="practice-today-eyebrow"><CalendarDays size={20} aria-hidden="true" />{copy.daily}</p>
+              <h2 id="practice-today-title">{dailyPractice?.title ?? copy.prepareToday}</h2>
+              <p className="practice-today-meta">{dailyPractice ? `${dailyTotal} ${copy.questions} · ${copy.about} ${dailyPractice.minutes} ${copy.minutes}` : copy.newTodayBody}</p>
+              {dailyPractice && dailyTotal > 0 ? <div className="practice-today-progress"><span>{copy.completed} <strong>{dailyAnswered} / {dailyTotal}</strong></span><progress value={dailyAnswered} max={dailyTotal} aria-label={`${copy.completed} ${dailyAnswered} / ${dailyTotal}`} /></div> : null}
+              <button type="button" className="practice-primary-action" onClick={() => onNavigate('daily-practice')}>{dailyStarted ? copy.continuePractice : dailyComplete ? copy.openPractice : dailyPractice ? copy.startPractice : copy.prepareToday}<ArrowRight size={20} aria-hidden="true" /></button>
+            </section>
+            <section className="practice-other-entries" aria-label={copy.morePractice}>
+              <div className="practice-entry-list">
+                {['topics', 'mixed', 'mock'].map((key) => moreEntries.find((entry) => entry.key === key)!).map(entry => <PracticeModuleCard key={entry.key} entry={entry} unit={entry.key === 'topics' ? copy.sets : copy.questions} />)}
+              </div>
+            </section>
+          </div>
+        </div>
       )}
 
     </main>
@@ -148,31 +165,37 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
   );
 }
 
-function PracticeModuleCard({ entry }: { entry: PracticeEntry; unit: string }) {
+function PracticeModuleCard({ entry, unit }: { entry: PracticeEntry; unit: string }) {
   const Icon = entry.icon;
-  return <NavigationCard icon={<Icon size={24} />} title={entry.title}
-    onOpen={entry.action} onStart={entry.start} />;
+  return <button type="button" className="practice-entry-row" onClick={entry.action}>
+    <Icon size={24} aria-hidden="true" />
+    <span><strong>{entry.title}</strong><small>{entry.body}{entry.count > 0 ? ` · ${entry.count} ${unit}` : ''}</small></span>
+    <ChevronRight size={20} aria-hidden="true" />
+  </button>;
 }
 
 function practiceCopy(locale: Locale) {
   if (locale === 'ja') return {
+    prepareToday: '今日の練習を準備', newTodayBody: '新しいセットの目安は約30分です。', about: '約', minutes: '分', completed: '解答済み', continuePractice: '練習を続ける', startPractice: '練習を始める', openPractice: '練習を開く',
     completedCount: '練習回数', questionType: '問題分野', grammar: '文法', listening: '聴解', vocabulary: '単語', reading: '読解',
     vocabularyBody: '単語・漢字・読み方', grammarBody: '文の組み立て方を学ぶ', listeningBody: '聞いて答えを選ぶ', readingBody: '読んで問いに答える',
-    mixed: '総合練習', mixedBody: '単語と文を一緒に練習', topics: '分野別練習', topicsBody: '教材・漢字・文法のテーマで練習', daily: '今日の練習', dailyBody: '今日の問題を始める', dialogue: '会話練習', dialogueBody: '場面に合わせて会話を練習', opinion: '意見を述べる練習', opinionBody: '約2分で意見と理由を伝える', mock: '模擬試験', mockBody: '自分の内容と予定で取り組む', drafts: '練習の下書き', draftsBody: '準備された問題を確認',
+    mixed: '総合練習', mixedBody: '単語と文法の項目を復習', topics: '分野別練習', topicsBody: '教材・漢字・文法のテーマで練習', daily: '今日の練習', dailyBody: '今日の問題を始める', dialogue: '会話練習', dialogueBody: '場面に合わせて会話を練習', opinion: '意見を述べる練習', opinionBody: '約2分で意見と理由を伝える', mock: '模擬試験', mockBody: '自分の内容と予定で取り組む', drafts: '練習の下書き', draftsBody: '準備された問題を確認',
     backOpinion: '意見を述べる練習に戻る', backPractice: '練習に戻る', practice: '練習', whatToPractice: '何を練習しますか？', choose: '練習方法を選んでください。', modules: '学習分野', morePractice: 'ほかの練習', items: '件',
     topicList: '分野別練習の一覧', sets: 'セット', searchTopics: '分野別練習を検索', practiceStatus: '練習の状態', all: 'すべて', ready: '練習できる', pending: '確認待ち', sort: '並び替え', recent: '更新順', titleOrder: 'タイトル順', results: (count: number) => `${count} セット見つかりました`, reset: '絞り込みを解除', countAndSource: '問題数・出典', status: '状態', questions: '問', sourcePending: '出典を確認中', confirm: '確認', endOfList: '最後まで表示しました', previous: '前のページ', next: '次のページ',
   };
   if (locale === 'en') return {
+    prepareToday: 'Prepare today’s practice', newTodayBody: 'New sets are prepared for about 30 minutes.', about: 'about', minutes: 'min', completed: 'Answered', continuePractice: 'Continue practice', startPractice: 'Start practice', openPractice: 'Open practice',
     completedCount: 'Practice count', questionType: 'Question category', grammar: 'Grammar', listening: 'Listening', vocabulary: 'Vocabulary', reading: 'Reading',
     vocabularyBody: 'Words, kanji and readings', grammarBody: 'Learn how sentences work', listeningBody: 'Listen and choose an answer', readingBody: 'Read and answer questions',
-    mixed: 'Mixed practice', mixedBody: 'Practice words and sentences together', topics: 'Topic practice', topicsBody: 'Practice by textbook, kanji or grammar topic', daily: "Today's practice", dailyBody: 'Start the questions prepared for today', dialogue: 'Dialogue practice', dialogueBody: 'Practice openings, responses and endings', opinion: 'Opinion practice', opinionBody: 'Explain your view and reasons in about 2 minutes', mock: 'Mock exam', mockBody: 'Use your own content and schedule', drafts: 'Practice drafts', draftsBody: 'Review prepared questions',
+    mixed: 'Mixed practice', mixedBody: 'Review vocabulary and grammar entries', topics: 'Topic practice', topicsBody: 'Practice by textbook, kanji or grammar topic', daily: "Today's practice", dailyBody: 'Start the questions prepared for today', dialogue: 'Dialogue practice', dialogueBody: 'Practice openings, responses and endings', opinion: 'Opinion practice', opinionBody: 'Explain your view and reasons in about 2 minutes', mock: 'Mock exam', mockBody: 'Use your own content and schedule', drafts: 'Practice drafts', draftsBody: 'Review prepared questions',
     backOpinion: 'Back to opinion practice', backPractice: 'Back to practice', practice: 'Practice', whatToPractice: 'What would you like to practice?', choose: 'Choose a way to begin.', modules: 'Study modules', morePractice: 'More practice', items: 'items',
     topicList: 'Topic practice list', sets: 'sets', searchTopics: 'Search topic practice', practiceStatus: 'Practice status', all: 'All', ready: 'Ready', pending: 'Pending review', sort: 'Sort', recent: 'Recently updated', titleOrder: 'Title order', results: (count: number) => `${count} sets found`, reset: 'Reset filters', countAndSource: 'Questions and source', status: 'Status', questions: 'questions', sourcePending: 'Source pending', confirm: 'Confirm', endOfList: 'End of list', previous: 'Previous page', next: 'Next page',
   };
   return {
+    prepareToday: '准备今日练习', newTodayBody: '新题组按约 30 分钟准备。', about: '约', minutes: '分钟', completed: '已完成', continuePractice: '继续练习', startPractice: '开始练习', openPractice: '查看练习',
     completedCount: '练习次数', questionType: '题型', grammar: '语法', listening: '听力', vocabulary: '单词', reading: '阅读',
     vocabularyBody: '单词、汉字、读音', grammarBody: '学习句子怎么说', listeningBody: '听一听，选出答案', readingBody: '读一读，回答问题',
-    mixed: '综合练习', mixedBody: '单词和句子一起练', topics: '专项练习', topicsBody: '按教材、汉字或语法主题练一套', daily: '今日练习', dailyBody: '开始今天准备好的题目', dialogue: '对话练习', dialogueBody: '按人物关系练习开场、回应和收尾', opinion: '意见表达', opinionBody: '用约 2 分钟说清立场、理由和例子', mock: '模拟考试', mockBody: '按自己的内容和安排作答', drafts: '练习草稿', draftsBody: '查看和确认准备好的题目',
+    mixed: '综合练习', mixedBody: '复习单词与语法条目', topics: '专项练习', topicsBody: '按教材、汉字或语法主题练一套', daily: '今日练习', dailyBody: '开始今天准备好的题目', dialogue: '对话练习', dialogueBody: '按人物关系练习开场、回应和收尾', opinion: '意见表达', opinionBody: '用约 2 分钟说清立场、理由和例子', mock: '模拟考试', mockBody: '按自己的内容和安排作答', drafts: '练习草稿', draftsBody: '查看和确认准备好的题目',
     backOpinion: '返回意见表达', backPractice: '返回练习', practice: '练习', whatToPractice: '你想练什么？', choose: '选一种方式开始。', modules: '分项学习', morePractice: '更多练习', items: '项',
     topicList: '专项练习列表', sets: '套', searchTopics: '搜索专项练习', practiceStatus: '练习状态', all: '全部', ready: '可练习', pending: '待确认', sort: '排序', recent: '最近更新', titleOrder: '标题顺序', results: (count: number) => `找到 ${count} 套练习`, reset: '重置筛选', countAndSource: '题数与来源', status: '状态', questions: '题', sourcePending: '来源待确认', confirm: '确认', endOfList: '已经到底了', previous: '上一页', next: '下一页',
   };

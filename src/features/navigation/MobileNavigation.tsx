@@ -1,3 +1,4 @@
+import { primaryNavigationView, primaryNavigationViews } from '../../domain/appNavigation';
 import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
@@ -338,7 +339,8 @@ export function DesktopSidebarNavigation({ brand, items, route, labels, username
 
         <nav className="desktop-sidebar-nav" aria-label={labels.mobileNavigation}>
           {items.map((item) => {
-            const active = isRouteItemActive(item, route);
+            const active = (primaryNavigationViews as readonly string[]).includes(item.view)
+              ? item.view === primaryNavigationView(route) : isRouteItemActive(item, route);
             const Icon = mobileNavIcon(item.view);
             const showGroupLabel = item.group && item.group !== previousGroup;
             const hasChildren = Boolean(item.children?.length);

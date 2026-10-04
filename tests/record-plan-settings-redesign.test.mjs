@@ -53,28 +53,32 @@ test('records lead with actual today result and count only completed history and
   await render(HistoryPanel, { locale: 'zh-CN', captures: [], attempts, questions: [], embedded: true, mode: 'practice', recordSection: 'home', draftCount: 4, summaryToken: 'unused-home-token', onCaptureStatus: async () => {} });
   assert.equal(document.querySelector('.history-panel').firstElementChild.className, 'record-home');
   assert.equal(document.querySelector('.daily-summary-panel'), null);
-  assert.deepEqual([...document.querySelectorAll('.record-home-stats dd')].map(el => el.textContent), ['2', '3', '33%']);
+  assert.deepEqual([...document.querySelectorAll('.record-home-today .record-home-stats dd')].map(el => el.textContent), ['2', '3', '33%']);
+  assert.deepEqual([...document.querySelectorAll('.record-dashboard-total dd')].map(el => el.textContent), ['3', '33%', '1 / 7']);
+  assert.match(document.querySelector('.record-module-metrics').textContent, /3 次作答 · 33%/);
+  assert.equal(document.querySelectorAll('.record-dashboard-recent li').length, 2);
   assert.match(document.querySelector('.record-home-review').textContent, /2 次练习/);
   assert.match(document.querySelector('.record-home-review').textContent, /1 个知识点/);
   assert.match(document.querySelector('a[href="#/drafts"]').textContent, /4 条记录/);
 });
 
-test('empty records use one compact status row with a practice CTA and full-width primary rows', async () => {
+test('empty statistics preserve metrics, seven calendar days and the practice CTA', async () => {
   await render(HistoryPanel, { locale: 'zh-CN', captures: [], attempts: [], questions: [], embedded: true, mode: 'practice', recordSection: 'home', draftCount: 0, onCaptureStatus: async () => {} });
-  const status = document.querySelector('.record-home-empty-status');
+  const status = document.querySelector('.record-home-empty-note');
   assert.ok(status);
   assert.match(status.textContent, /今天还没有完成练习/);
   assert.equal(status.querySelector('a').getAttribute('href'), '#/mixed/tips');
   assert.match(status.querySelector('a').textContent, /去练习/);
-  assert.equal(document.querySelector('.record-home-stats'), null);
+  assert.ok(document.querySelector('.record-home-stats'));
+  assert.equal(document.querySelectorAll('.record-week-day').length, 7);
+  assert.deepEqual([...document.querySelectorAll('.record-week-day strong')].map(node => node.textContent), Array(7).fill('0'));
+  assert.equal(document.querySelectorAll('.record-home-today button').length, 1);
   const rows = document.querySelector('.record-home-primary-links');
   assert.equal(rows.children.length, 2);
   assert.match(rows.children[0].textContent, /练习历史0 次练习 · 0 次作答/);
   assert.match(rows.children[1].textContent, /错题集0 个知识点/);
   assert.equal(document.querySelector('.record-home .navigation-grid'), null);
-  const css = await readFile('src/features/history/RecordHome.css', 'utf8');
-  assert.match(css, /\.record-home \.record-home-primary-links\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
-  assert.doesNotMatch(css, /record-home-review[^}]*repeat\(2/);
+
 });
 
 test('settings groups preferences and account links, and global search is an explicit requested entry', async () => {

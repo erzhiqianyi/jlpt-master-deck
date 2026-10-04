@@ -20,7 +20,8 @@ function moduleActionCopy(locale: string) {
 }
 
 /** One visible practice entry and the same module actions at every viewport size. */
-export function ModuleActionBar({ title, label, count, primary, actions = [], contentActions = [], onAsk, children, locale = 'zh-CN' }: {
+export function ModuleActionBar({ title, label, count, primary, actions = [], contentActions = [], onAsk, children, shortcuts = false, locale = 'zh-CN' }: {
+  shortcuts?: boolean;
   title?: string;
   locale?: string;
   label: string;
@@ -32,6 +33,7 @@ export function ModuleActionBar({ title, label, count, primary, actions = [], co
   children?: ReactNode;
 }) {
   const copy = moduleActionCopy(locale);
+  const companionLabel = locale === 'ja' ? '学習パートナー' : locale === 'en' ? 'Study companion' : '学习伙伴';
   const [panel, setPanel] = useState<Panel | null>(null);
   const [question, setQuestion] = useState('');
   const [status, setStatus] = useState<'saved' | 'error' | null>(null);
@@ -90,9 +92,9 @@ export function ModuleActionBar({ title, label, count, primary, actions = [], co
 
   return <div className="module-action-bar" role="group" aria-label={`${label} · ${copy.actions}`}>
     {title ? <div className="module-action-bar-heading"><h2>{title}</h2>{count ? <span>{count}</span> : null}</div> : null}
-    {primary ? <button type="button" className="module-practice-mascot" aria-label={copy.modes} title={copy.modes}
-      disabled={primary.disabled} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => show('modes')}>
-      <img src="/study-companion.png" alt="" width="72" height="72"/><span>{locale === 'ja' ? '練習' : locale === 'en' ? 'Practice' : '练习'}</span>
+    {primary || shortcuts ? <button type="button" className="module-practice-mascot" aria-label={shortcuts ? companionLabel : copy.modes} title={shortcuts ? companionLabel : copy.modes}
+      disabled={primary?.disabled} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => show(shortcuts ? 'actions' : 'modes')}>
+      <img src="/study-companion.png" alt="" width="72" height="72"/>
     </button> : actions.length ? <div className="module-context-actions">{actionButtons}</div> : null}
     {children}
     <dialog ref={dialog} id={id} className="module-action-dialog" data-panel={panel} aria-labelledby={`${id}-title`}

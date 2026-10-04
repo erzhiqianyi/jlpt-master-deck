@@ -1,3 +1,4 @@
+import { SpeechProvider } from './components/SpeechControls';
 import { allQuestionsConfirmed } from './features/drafts/questionReviewState';
 import { routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
 import { adjacentEntryId, contextualBackRoute, isPrimaryNavigationRoot, primaryNavigationView, primaryNavigationViews } from './domain/appNavigation';
@@ -102,8 +103,9 @@ import type {
 
 const MarketPanel = lazy(() => import('./features/market/MarketPanel').then((module) => ({ default: module.MarketPanel })));
 
-const STORAGE_TOKEN = 'jlpt-auth-token-v1';
-const DEV_AUTH_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_DEV_AUTH_TOKEN : undefined;
+const remoteApiOrigin = import.meta.env.DEV ? import.meta.env.VITE_API_ORIGIN : '';
+const STORAGE_TOKEN = remoteApiOrigin ? `jlpt-auth-token-v1:${remoteApiOrigin}` : 'jlpt-auth-token-v1';
+const DEV_AUTH_TOKEN = import.meta.env.DEV && !remoteApiOrigin ? import.meta.env.VITE_DEV_AUTH_TOKEN : undefined;
 const MEMORY_CARD_FRONT_COMPAT_KEY = '_memory_card_front_fields';
 const MEMORY_CARD_BACK_COMPAT_KEY = '_memory_card_back_fields';
 
@@ -211,6 +213,8 @@ export default function App() {
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
   const [settings, setSettings] = useState<DisplaySettings>(() => ({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale }));
+  const settingsSaveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const settingsSaveRevision = useRef(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const restoreLastPage = useRef(!window.location.hash || window.location.hash === '#/');
@@ -662,6 +666,11 @@ export default function App() {
       return {
         completedCount,
         modules: practice ? practiceModules(practice.questions, draft.title) : draft.modules ?? practiceModules([], draft.title),
+        remove: async () => {
+          await apiRequest(`/api/drafts/${encodeURIComponent(draft.id)}`, { method: 'DELETE', token: authToken });
+          setDrafts(current => current.filter(item => item.id !== draft.id));
+          if (activeDraft?.id === draft.id) setActiveDraft(null);
+        },
         key: draft.id, title: draft.title, reference: practice?.reference ?? draft.reference,
         sourceSummary: practice ? practiceSourceSummary(practice.questions) : draft.sourceSummary,
         share: practice ? (description: string) => shareLearningContent('practice', practice.id, description) : undefined,
@@ -676,7 +685,7 @@ export default function App() {
         },
       };
     });
-  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken, practiceCompletionCounts]);
+  }, [activeView, dailyPracticeDetails, drafts, route.itemId, studyPage, authToken, practiceCompletionCounts, activeDraft?.id]);
   const practiceEntryKey = `${activeView}:${studyPage}:${selectedDeck}:${selectedWordbookId}:${locale}:${activeDailyPractice?.id ?? ''}:${questions.length}:${JSON.stringify(practiceFocus)}:${activeView === 'vocabulary' ? questionShuffleSeed : activeView === 'mixed' ? mixedQuestionSeed : activeView === 'daily-practice' ? topicQuestionSeed : ''}`;
 
   useEffect(() => {
@@ -1041,6 +1050,7 @@ export default function App() {
   }
 
   function updateSettings(nextSettings: DisplaySettings) {
+    const revision = ++settingsSaveRevision.current;
     const normalized = normalizeSettings(nextSettings);
     setSettings(normalized);
     localStorage.setItem(LOGIN_LOCALE_STORAGE_KEY, normalized.locale);
@@ -1053,9 +1063,10 @@ export default function App() {
           [MEMORY_CARD_BACK_COMPAT_KEY]: normalized.memoryCardBackFields.join(','),
         },
       };
-      apiRequest<{ settings: DisplaySettings }>('/api/study-state/settings', { method: 'PUT', token: authToken, body: compatibleSettings })
-        .then((response) => setSettings(normalizeSettings(response.settings)))
-        .catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save settings'));
+      settingsSaveQueue.current = settingsSaveQueue.current.catch(() => undefined)
+        .then(() => apiRequest<{ settings: DisplaySettings }>('/api/study-state/settings', { method: 'PUT', token: authToken, body: compatibleSettings }))
+        .then((response) => { if (revision === settingsSaveRevision.current) setSettings(normalizeSettings(response.settings)); })
+        .catch((error) => { if (revision === settingsSaveRevision.current) setAuthError(error instanceof Error ? error.message : 'Failed to save settings'); });
     }
   }
 
@@ -1681,7 +1692,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} wordSpacing={settings.memoryCardWordSpacing} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider>;
+  if (activeView === 'memory-review') return <SpeechProvider settings={settings} token={authToken}><WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} wordSpacing={settings.memoryCardWordSpacing} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider></SpeechProvider>;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);
@@ -1783,7 +1794,7 @@ export default function App() {
         : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list');
 
   return (
-    <PageChromeProvider>
+    <SpeechProvider settings={settings} token={authToken}><PageChromeProvider>
     <AuthoringNavigationProvider onChange={setAuthoringLocation}>
     <main data-bottom-navigation={showMobileBottomNavigation ? 'visible' : 'hidden'} className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch locale={locale} open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
@@ -1884,6 +1895,9 @@ export default function App() {
               username={user.username}
               labels={labels}
               locale={locale}
+              items={data.items}
+              progress={progress}
+              readingQuestions={readingQuestions}
               dueItems={memoryReviewItems}
               onOpenReviewItem={(item) => navigateTo(item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary', 'words', item.id)}
               plan={studyPlan}
@@ -2312,7 +2326,7 @@ export default function App() {
 
     </main>
     </AuthoringNavigationProvider>
-    </PageChromeProvider>
+    </PageChromeProvider></SpeechProvider>
   );
 }
 
@@ -2617,8 +2631,8 @@ function navItems(labels: Record<string, string>) {
 }
 
 function primaryNavigationItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
-  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '记录', '题库']
-    : locale === 'ja' ? ['今日', '練習', '発見', '記録', '問題集'] : ['Today', 'Practice', 'Discover', 'History', 'Library'];
+  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '统计', '题库']
+    : locale === 'ja' ? ['今日', '練習', '発見', '統計', '問題集'] : ['Today', 'Practice', 'Discover', 'Statistics', 'Library'];
   return primaryNavigationViews.map((view, index) => ({ view, label: titles[index] }));
 }
 

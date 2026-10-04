@@ -92,6 +92,13 @@ export type DisplaySettings = {
   questionTypeTips: Record<string, string>;
   customQuestionTypeTips: CustomQuestionTypeTip[];
   ttsProvider: TtsProviderId;
+  speech?: {
+    voices?: Partial<Record<TtsProviderId, { voice?: string; style?: string; role?: string }>>;
+    rate?: number;
+    cardAuto?: 'off' | 'front' | 'back';
+    grammarAuto?: boolean;
+    includeExample?: boolean;
+  };
 };
 
 export type TtsProviderId = 'browser' | 'openai' | 'google-cloud' | 'azure';

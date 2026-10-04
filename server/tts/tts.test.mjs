@@ -84,3 +84,37 @@ test('POST /api/tts/speak uses the caller\'s stored key and refuses to speak wit
   const forbidden = await call('POST', '/api/tts/speak', { token: otherSession.token, body: { text: 'こんにちは', provider: 'openai' } });
   assert.equal(forbidden.status, 400, 'a different user must not see this user\'s stored key');
 });
+
+test('Azure lists only Japanese voices and sends escaped voice/style/role SSML', async (t) => {
+  const azure = await import('./providers/azure.mjs');
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/voices/list')) return Response.json([
+      { Locale: 'ja-JP', ShortName: 'ja-JP-NanamiNeural', LocalName: 'Nanami', Gender: 'Female', StyleList: ['chat'] },
+      { Locale: 'en-US', ShortName: 'en-US-JennyNeural' },
+    ]);
+    return new Response(new Uint8Array([1, 2, 3]));
+  });
+  const voices = await azure.listVoices({ region: 'eastasia', apiKey: 'test-key' });
+  assert.equal(voices.length, 1);
+  assert.deepEqual(voices[0].styles, ['chat']);
+  assert.deepEqual(voices[0].roles, []);
+  await azure.synthesize('日本語 <test>', { region: 'eastasia', apiKey: 'test-key', voice: "voice'", style: 'chat', role: 'Girl' });
+  assert.equal(calls[1].url, 'https://eastasia.tts.speech.microsoft.com/cognitiveservices/v1');
+  assert.match(calls[1].options.body, /name='voice&apos;'/);
+  assert.match(calls[1].options.body, /mstts:express-as style='chat' role='Girl'/);
+  assert.match(calls[1].options.body, /&lt;test&gt;/);
+  await assert.rejects(azure.listVoices({ region: 'https://example.com', apiKey: 'test-key' }), /Region/);
+});
+
+test('speech preferences survive settings normalization', () => {
+  const user = storage.createUser('speech-preferences', 'password-one');
+  const result = storage.saveSettings(user.id, { ttsProvider: 'azure', speech: {
+    voices: { azure: { voice: 'ja-JP-KeitaNeural', style: '', role: '' } }, rate: 0.8, cardAuto: 'back', grammarAuto: true, includeExample: true,
+  } });
+  assert.equal(result.speech.voices.azure.voice, 'ja-JP-KeitaNeural');
+  assert.equal(result.speech.rate, 0.8);
+  assert.equal(result.speech.cardAuto, 'back');
+  assert.equal(result.speech.grammarAuto, true);
+});

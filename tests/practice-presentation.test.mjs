@@ -13,6 +13,7 @@ window.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){
 window.requestAnimationFrame=(callback)=>{callback();return 0;};
 window.cancelAnimationFrame=()=>{};
 window.scrollTo=()=>{};
+window.confirm=()=>true;
 window.HTMLElement.prototype.scrollIntoView=()=>{};
 window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
 window.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new Event('close'));};
@@ -29,7 +30,7 @@ export {practiceReviewModel,conciseEvidence} from './src/features/practice/pract
 export {translations} from './src/i18n/translations';
 `},bundle:true,platform:'node',format:'esm',jsx:'automatic',packages:'external',loader:{'.css':'empty'},outfile:out});
 const {MockExamPanel,DesignedExamPanel,legacyMockStorageKey,legacyMockRevision,readLegacyMockState,PracticePanel,PracticeReviewPanel,MixedPracticeHub,practiceReviewModel,conciseEvidence,translations}=await import(pathToFileURL(out));
-const {createElement:h,act}=await import('react');
+const {createElement:h,act,useState}=await import('react');
 const {createRoot}=await import('react-dom/client');
 const root=createRoot(document.getElementById('root'));
 const labels=translations['zh-CN'];
@@ -74,7 +75,7 @@ test('answer feedback prioritizes result and correct answer; all extra content s
  assert.equal(document.querySelector('.cute-choice[aria-pressed="true"]').textContent.trim(),'2乙');
 });
 
-test('batch touch answers stay on current question; answer sheet pauses shortcuts and closes cleanly',async()=>{
+test('batch selection waits for stored answer; answer sheet pauses shortcuts and closes cleanly',async()=>{
  let answered=0,jumped=0,next=0;
  await render(PracticePanel,{...base,feedbackMode:'batch',answers:{},answeredCount:0,onAnswer:()=>answered++,onJump:()=>jumped++,onNext:()=>next++});
  await click(document.querySelector('.cute-choice'));
@@ -201,4 +202,40 @@ test('rejected completion after leaving cannot paint a stale-session error',asyn
  await click(button(labels.reviewBackToPracticeHome));
  await act(async()=>fail(new Error('Stale save failure')));
  assert.equal(reviewed,0);assert.ok(!document.body.textContent.includes('Stale save failure'));
+});
+
+for (const mode of ['batch', 'immediate']) {
+ test(`${mode} feedback controls automatic navigation and completion`, async()=>{
+  function Session() {
+   const [answers,setAnswers]=useState({q2:{selected:'乙',correct:true}});
+   const [index,setIndex]=useState(0);
+   return h(PracticePanel,{...base,feedbackMode:mode,activeIndex:index,activeQuestion:questions[index],answers,
+    answeredCount:Object.keys(answers).length,complete:Object.keys(answers).length===3,
+    onAnswer:(question,selected)=>setAnswers(previous=>({...previous,[question.id]:{selected,correct:selected===question.answer}})),
+    onJump:setIndex,onNext:()=>setIndex(index+1)});
+  }
+  await render(Session,{});
+  await click(document.querySelectorAll('.cute-choice')[1]);
+  await act(async()=>new Promise(resolve=>setTimeout(resolve,400)));
+  assert.equal(document.querySelector('.practice-top-navigation strong').textContent,mode==='batch'?'3 / 3':'1 / 3');
+  if(mode==='batch') {
+   assert.equal(document.querySelector('.practice-feedback'),null);
+   await act(async()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'2',bubbles:true})));
+   await act(async()=>new Promise(resolve=>setTimeout(resolve,400)));
+   assert.equal(document.querySelector('.practice-top-navigation strong').textContent,'3 / 3');
+   assert.ok(button(labels.reviewPage));
+  }
+ });
+}
+
+test('restart is secondary and cancellation preserves the current attempt',async()=>{
+ let restarted=0;
+ await render(PracticePanel,{...base,onRestart:()=>restarted++});
+ assert.equal(document.querySelector('.practice-more-actions').open,false);
+ window.confirm=()=>false;
+ await click(button(labels.restartPractice));
+ assert.equal(restarted,0);
+ window.confirm=()=>true;
+ await click(button(labels.restartPractice));
+ assert.equal(restarted,1);
 });

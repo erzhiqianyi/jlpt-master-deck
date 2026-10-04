@@ -49,7 +49,7 @@ async function render(feature, props = {}) { await act(async () => root.render(h
 async function click(element) { assert.ok(element, 'expected control exists'); await act(async () => element.click()); }
 async function fill(element, value) { assert.ok(element); await act(async () => { Object.getOwnPropertyDescriptor(element instanceof window.HTMLTextAreaElement ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value').set.call(element, value); element.dispatchEvent(new Event('input', { bubbles: true })); }); }
 const button = text => [...document.querySelectorAll('button')].find(element => element.textContent.trim() === text);
-async function openTools() { await click(document.querySelector('header .page-header-action')); }
+async function openTools() { if (!document.querySelector('.list-header-expanded')) await click(document.querySelector('header .page-header-action')); }
 after(async () => { await act(async () => root.unmount()); dom.window.close(); await rm(directory, { recursive: true, force: true }); });
 
 test('reading list stays concise, its add form groups every field, and cancel preserves the draft', async () => {
@@ -114,6 +114,8 @@ test('listening authoring retains choice translations, explanations, audio and t
   assert.equal(form.querySelectorAll('input[type="file"]').length, 1);
   assert.equal(form.querySelectorAll('textarea').length, 8, 'question, four choice explanations, overall explanation and both transcripts remain available');
   assert.equal(form.querySelector('.listening-audio-form-group').open, false);
+  assert.equal(form.querySelector('input[type="file"]').closest('details'), null, 'upload must be visible without opening a disclosure');
+  assert.equal(form.firstElementChild.className, 'listening-material-stage');
   await fill(form.querySelector('input:not([type])'), 'Keep listening draft');
   await click(button('Header back'));
   await openTools();
@@ -141,4 +143,35 @@ test('shadowing owns Back above a retained listening editor and restores its uns
   assert.ok(document.querySelector('header .page-header-action'), 'the foreground share action is restored');
   await click(button('Header back'));
   assert.equal(document.querySelector('#listening-question-group form'), null, 'the next Back exits editing only');
+});
+
+test('one uploaded material retains different question types and the final draft when editing an earlier question', async () => {
+  const created = [];
+  globalThis.FileReader = class {
+    readAsDataURL() { this.result = 'data:audio/mpeg;base64,YXVkaW8='; this.onload(); }
+  };
+  await render('listening', { onCreate: async input => created.push(input) });
+  await openTools();
+  await click(button(labels.listeningUploadTitle));
+  const form = document.querySelector('.listening-authoring-form');
+  const file = form.querySelector('input[type="file"]');
+  Object.defineProperty(file, 'files', { value: [{ name: 'shared.mp3', type: 'audio/mpeg', size: 5, arrayBuffer: async () => new TextEncoder().encode('audio').buffer }] });
+  await act(async () => { file.dispatchEvent(new Event('change', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 20)); });
+  form.reportValidity = () => true; // JSDOM has no native file chooser; field values are supplied above.
+  async function selectType(type) {
+    await act(async () => { const select = form.querySelector('.listening-type-answer select'); select.value = type; select.dispatchEvent(new Event('change', { bubbles: true })); });
+  }
+  await selectType('listening-basic-training');
+  await fill(form.querySelector('input:not([type])'), 'First question');
+  await click(button('Add next question'));
+  await selectType('listening-task');
+  await fill(form.querySelector('input:not([type])'), 'Second question');
+  for (const [index, field] of [...form.querySelectorAll('fieldset input:first-of-type')].entries()) await fill(field, `Choice ${index + 1}`);
+  await click(document.querySelector('.listening-draft-navigation button'));
+  assert.equal(form.querySelector('input:not([type])').value, 'First question');
+  await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  assert.equal(created.length, 2);
+  assert.deepEqual(created.map(q => q.title), ['First question', 'Second question']);
+  assert.deepEqual(created.map(q => q.questionTypeId), ['listening-basic-training', 'listening-task']);
+  assert.ok(created.every(q => q.audioFileName === 'shared.mp3' && q.audioBase64 === 'YXVkaW8='));
 });

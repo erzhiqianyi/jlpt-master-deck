@@ -21,7 +21,7 @@ export function saveTtsCredential(userId, provider, credential) {
   return ttsCredentialStatus(userId);
 }
 
-export async function synthesizeSpeech(userId, { provider, text, voice }) {
+export async function synthesizeSpeech(userId, { provider, text, voice, style, role }) {
   const descriptor = descriptorFor(provider);
   const trimmed = String(text ?? '').trim();
   if (!trimmed) throw new Error('缺少要朗读的文本');
@@ -32,5 +32,13 @@ export async function synthesizeSpeech(userId, { provider, text, voice }) {
     error.statusCode = 400;
     throw error;
   }
-  return descriptor.synthesize(trimmed, { ...credential, voice });
+  return descriptor.synthesize(trimmed, { ...credential, voice, style, role });
+}
+
+export async function listSpeechVoices(userId, provider) {
+  const descriptor = descriptorFor(provider);
+  if (!descriptor.listVoices) return descriptor.voices.map((id) => ({ id, name: id, styles: [], roles: [] }));
+  const credential = getTtsCredential(userId, provider);
+  if (!credential?.apiKey) throw new Error('请先保存语音配置，再加载音色');
+  return descriptor.listVoices(credential);
 }

@@ -5,7 +5,7 @@ import './RecordHome.css';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListSearch, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction, type ListSelection } from '../../components/ListBatch';
-import { Archive, ArrowLeft, ArrowRight, CircleAlert, Clock3, ChartNoAxesColumn, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
+import { Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -123,7 +123,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <>
 
           {recordSection === 'home' ? (
-            <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} draftCount={draftCount} mistakeCount={buildMistakeEntries(sortedAttempts, questions, []).length} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
+            <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} draftCount={draftCount} mistakeCount={buildMistakeEntries(sortedAttempts, questions, []).length} onSelectAttempt={setSelectedAttemptId} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
           ) : null}
           {recordSection === 'today' ? (
             <><label className="record-statistics-date"><span className="sr-only">{locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'}</span><input type="date" aria-label={locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'} value={statisticsDate} onChange={event => { if (event.target.value) setStatisticsDate(event.target.value); }} /></label><TodayPracticeSummary labels={labels} locale={locale} attempts={statisticsAttempts} onSelect={setSelectedAttemptId} />{summaryToken ? <details className="record-summary-disclosure"><summary>{locale === 'zh-CN' ? '学习总结' : locale === 'ja' ? '学習まとめ' : 'Learning summary'}</summary><DailySummaryPanel token={summaryToken} locale={locale} date={statisticsDate} hideDatePicker /></details> : null}</>
@@ -145,7 +145,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   );
 }
 
-function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCount, mistakeCount, onOpenToday, onOpenHistory }: {
+function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCount, mistakeCount, onOpenToday, onOpenHistory, onSelectAttempt }: {
   labels: Record<string, string>;
   locale: Locale;
   todayAttempts: PracticeAttempt[];
@@ -155,6 +155,7 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCo
   captures: LearningCapture[];
   onOpenToday: () => void;
   onOpenHistory: () => void;
+  onSelectAttempt: (id: string) => void;
 }) {
   const todayTotal = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
   const todayCorrect = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter((answer) => answer.correct).length), 0);
@@ -165,29 +166,83 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCo
       ? { today: '今日の積み重ね', detail: '統計を見る', practices: '完了した練習', questions: '解答数', accuracy: '正答率', review: '振り返りと復習', history: '練習履歴', historySub: '練習結果と解説を振り返る', mistakes: '間違いノート', mistakesSub: 'もう一度練習したい項目を確認', saved: '学習資料', captures: '入力履歴', drafts: '練習の下書き', draftsSub: '準備された問題を確認', empty: '今日はまだ練習していません', practice: '練習する', total: '回の練習', answers: '解答', entries: '件' }
       : { today: 'Today’s progress', detail: 'View statistics', practices: 'Practices', questions: 'Answers', accuracy: 'Accuracy', review: 'Review and improve', history: 'Practice history', historySub: 'Revisit results and explanations', mistakes: 'Mistake notebook', mistakesSub: 'Find learning points to practice again', saved: 'Study materials', captures: 'Input records', drafts: 'Practice drafts', draftsSub: 'Check prepared questions', empty: 'No completed practice today', practice: 'Practice', total: 'practices', answers: 'answers', entries: 'records' };
 
+  const week = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(`${tokyoDateKey(new Date().toISOString())}T12:00:00+09:00`);
+    date.setUTCDate(date.getUTCDate() - (6 - index));
+    const key = tokyoDateKey(date.toISOString());
+    const total = attempts.filter(attempt => tokyoDateKey(attempt.completedAt ?? attempt.startedAt) === key)
+      .reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
+    return { key, total };
+  });
+  const weekMax = Math.max(1, ...week.map(day => day.total));
+  const weekTitle = locale === 'zh-CN' ? '近七天作答' : locale === 'ja' ? '直近7日間の解答' : 'Answers over the last 7 days';
+
+  const t = (zh: string, ja: string, en: string) => locale === 'zh-CN' ? zh : locale === 'ja' ? ja : en;
+  const totalAnswers = attempts.reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
+  const totalCorrect = attempts.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter(answer => answer.correct).length), 0);
+  const moduleViews = [...new Set<AppView>(['vocabulary', 'grammar', 'reading', 'listening', ...attempts.map(attempt => attempt.view)])];
+  const modules = moduleViews.map(view => {
+    const records = attempts.filter(attempt => attempt.view === view);
+    const total = records.reduce((sum, attempt) => sum + (attempt.summary?.total ?? attempt.answers.length), 0);
+    const correct = records.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter(answer => answer.correct).length), 0);
+    return { view, total, accuracy: total ? Math.round(correct / total * 100) : null };
+  });
+
   return (
     <div className="record-home" aria-label={labels.navStatsHome}>
-      {todayAttempts.length ? <section className="record-home-today" aria-labelledby="record-today-title">
+      <section className="record-home-today" aria-labelledby="record-today-title">
         <header><div><span>{formatTodayLabel(locale)}</span><h2 id="record-today-title">{copy.today}</h2></div><button type="button" onClick={onOpenToday}>{copy.detail}<ArrowRight size={16} aria-hidden="true" /></button></header>
         <dl className="record-home-stats">
           <div><dt>{copy.practices}</dt><dd>{todayAttempts.length}</dd></div>
           <div><dt>{copy.questions}</dt><dd>{todayTotal}</dd></div>
           <div><dt>{copy.accuracy}</dt><dd>{todayTotal ? `${todayAccuracy}%` : '—'}</dd></div>
         </dl>
-      </section> : <section className="record-home-empty-status" aria-label={copy.today}><Clock3 size={24} aria-hidden="true" /><p>{copy.empty}</p><a href="#/mixed/tips">{copy.practice}<ArrowRight size={17} aria-hidden="true" /></a></section>}
+        {!todayAttempts.length ? <p className="record-home-empty-note">{copy.empty} · <a href="#/mixed/tips">{copy.practice}<ArrowRight size={14} aria-hidden="true" /></a></p> : null}
+      </section>
+      <section className="record-home-trend" aria-labelledby="record-trend-title">
+        <header><h2 id="record-trend-title">{weekTitle}</h2><span>{week.reduce((sum, day) => sum + day.total, 0)} {copy.answers}</span></header>
+        <div className="record-week-chart">
+          {week.map(day => <div key={day.key} className="record-week-day" aria-label={`${day.key}: ${day.total} ${copy.answers}`}>
+            <strong>{day.total}</strong><div className="record-week-track"><span style={{ height: `${day.total / weekMax * 100}%` }} /></div><time dateTime={day.key}>{day.key.slice(5).replace('-', '/')}</time>
+          </div>)}
+        </div>
+      </section>
+      <section className="record-dashboard-total" aria-labelledby="record-total-title">
+        <h2 id="record-total-title">{t('累计概况', '累計', 'Overall progress')}</h2>
+        <p className="record-dashboard-note">{t('基于当前保留的已完成练习', '保存されている完了済み練習の集計', 'Based on retained completed practices')}</p>
+        <dl className="record-home-stats">
+          <div><dt>{copy.questions}</dt><dd>{totalAnswers}</dd></div>
+          <div><dt>{copy.accuracy}</dt><dd>{totalAnswers ? `${Math.round(totalCorrect / totalAnswers * 100)}%` : '—'}</dd></div>
+          <div><dt>{t('七天活跃', '7日間の活動日', 'Active days / 7')}</dt><dd>{week.filter(day => day.total > 0).length}<small> / 7</small></dd></div>
+        </dl>
+      </section>
+      <section className="record-dashboard-modules" aria-labelledby="record-modules-title">
+        <h2 id="record-modules-title">{t('模块表现', '分野別の成績', 'Module performance')}</h2>
+        <p className="record-dashboard-note">{t('累计作答 · 正确率', '累計解答数・正答率', 'Total answers · accuracy')}</p>
+        <div className="record-module-metrics">{modules.map(module => <div key={module.view}>
+          <div><strong>{moduleLabel(labels, module.view)}</strong><span>{module.total} {copy.answers} · {module.accuracy === null ? '—' : `${module.accuracy}%`}</span></div>
+          <div className="record-module-track" aria-hidden="true"><span style={{ width: `${module.accuracy ?? 0}%` }} /></div>
+        </div>)}</div>
+      </section>
+      <section className="record-dashboard-recent" aria-labelledby="record-recent-title">
+        <header><h2 id="record-recent-title">{t('最近练习', '最近の練習', 'Recent practices')}</h2><button type="button" onClick={onOpenHistory}>{t('查看全部', 'すべて見る', 'View all')}<ArrowRight size={16} aria-hidden="true" /></button></header>
+        {attempts.length ? <ul>{attempts.slice(0, 4).map(attempt => <li key={attempt.id}><button type="button" onClick={() => onSelectAttempt(attempt.id)}>
+          <span><strong>{attempt.title?.trim() || moduleLabel(labels, attempt.view)}</strong><small>{tokyoDateKey(attempt.completedAt ?? attempt.startedAt)} · {attempt.summary?.total ?? attempt.answers.length} {copy.answers}</small></span><ChevronRight size={18} aria-hidden="true" />
+        </button></li>)}</ul> : <div className="record-dashboard-empty"><History size={28} aria-hidden="true" /><p>{t('完成一次练习后，在这里回顾结果。', '練習を完了すると、ここで結果を確認できます。', 'Complete a practice to review its results here.')}</p><a href="#/mixed/tips">{copy.practice}<ArrowRight size={16} aria-hidden="true" /></a></div>}
+      </section>
       <section className="record-home-review" aria-labelledby="record-review-title">
-        <h2 id="record-review-title" className="sr-only">{copy.review}</h2>
+        <h2 id="record-review-title">{copy.review}</h2>
         <div className="record-home-primary-links record-home-links">
           <button type="button" onClick={onOpenHistory}><History size={25} aria-hidden="true" /><span><strong>{copy.history}</strong><small>{attempts.length} {copy.total} · {attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)} {copy.answers}</small></span><ChevronRight size={18} aria-hidden="true" /></button>
           <a href="#/mistakes"><CircleAlert size={25} aria-hidden="true" /><span><strong>{copy.mistakes}</strong><small>{mistakeCount} {locale === 'zh-CN' ? '个知识点' : locale === 'ja' ? '項目' : 'learning points'}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
         </div>
       </section>
       <section className="record-home-materials" aria-labelledby="record-materials-title">
-        <h2 id="record-materials-title" className="sr-only">{copy.saved}</h2>
+        <h2 id="record-materials-title">{copy.saved}</h2>
         <div className="record-home-links">
           <a href="#/captures"><NotebookPen size={21} aria-hidden="true" /><span><strong>{copy.captures}</strong><small>{captures.length} {copy.entries}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
           <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{draftCount === undefined ? copy.draftsSub : `${draftCount} ${copy.entries}`}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
-          <button type="button" onClick={onOpenToday}><ChartNoAxesColumn size={21} aria-hidden="true" /><span><strong>{copy.detail}</strong><small>{formatTodayLabel(locale)}</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+
         </div>
       </section>
     </div>

@@ -104,7 +104,7 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
         {!scorable ? <p role="status">{t.noScore}</p> : null}
         <div className="grid gap-3">{question.choices.map((choice, i) => <button key={i} type="button" disabled={attempt.submitted || !scorable} aria-pressed={attempt.answers[question.id] === i}
           onClick={() => setAttempt(current => ({ ...current, answers: { ...current.answers, [question.id]: i } }))}
-          className={`rounded-lg border p-4 text-left ${attempt.submitted && scorable && question.answerIndex === i ? 'border-green-700 bg-green-50' : attempt.answers[question.id] === i ? 'border-[#a84269] bg-[#fff0f5]' : 'border-[#d8d1c8] bg-white'}`}>
+          className={`study-answer-option rounded-lg border p-4 text-left ${attempt.submitted && scorable && question.answerIndex === i ? 'border-green-700 bg-green-50' : attempt.answers[question.id] === i ? 'border-[#a84269] bg-[#fff0f5]' : 'border-[#d8d1c8] bg-white'}`}>
           {i + 1}. {choice}
         </button>)}</div>
         {attempt.submitted && scorable ? <div className="practice-designed-answer mt-5 space-y-3 border-t pt-4"><strong>{t.answer}: {question.answerIndex + 1}. {question.choices[question.answerIndex]}</strong><h3>{t.explanation}</h3><p className="whitespace-pre-wrap">{conciseEvidence(question.explanation).summary}</p>

@@ -1,9 +1,10 @@
 import type { PracticeModule } from '../../domain/practiceModules.mjs';
 import './practice-layout.css';
 import './primary-practice.css';
-import { ShareButton } from '../../components/ShareButton';
+import { ModuleActionBar } from '../../components/ModuleActionBar';
+import { BatchActionBar, BatchManageButton, useListBatch } from '../../components/ListBatch';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
-import { BookOpenText, ChevronLeft, ChevronRight, FileCheck2, Layers3, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpenText, ChevronLeft, ChevronRight, FileCheck2, FileText, Layers3, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -14,7 +15,7 @@ import { buildQuestionIndex, questionKindsForItem } from '../../domain/questions
 import type { AnswerState, AppView, DailyPractice, DraftSummary, LearningCapture, ListeningQuestion, Locale, PracticeAttempt, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
-type PracticeEntry = { completedCount?: number; modules?: PracticeModule[]; reference?: string; description?: string; sourceSummary?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count?: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
+type PracticeEntry = { remove?: () => Promise<void>; completedCount?: number; modules?: PracticeModule[]; reference?: string; description?: string; sourceSummary?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count?: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
 type PracticeGroup = { action?: () => void; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; entries: PracticeEntry[] };
 const MIXED_ENTRY_PAGE_SIZE = 8;
 
@@ -75,6 +76,7 @@ export function MixedPracticeHub({
     </header> : null}
     {activeGroup ? activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} /> :
       <div className="primary-practice-entries">{entries.map(entry => <PracticeModuleCard key={entry.key} entry={entry} locale={locale} />)}</div>}
+    {!activeGroup ? <ModuleActionBar locale={locale} label={copy.practice} shortcuts actions={entries.map(entry => ({ key: entry.key, label: entry.title, icon: <entry.icon size={20} />, onClick: entry.action }))} /> : null}
   </main>;
 }
 
@@ -92,6 +94,13 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
   ).sort((a, b) => sort === 'title'
     ? a.title.localeCompare(b.title, locale, { numeric: true })
     : (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+  const batch = useListBatch(filtered.map(entry => entry.key));
+  const byKey = new Map(entries.map(entry => [entry.key, entry]));
+  const batchCopy = locale === 'ja'
+    ? { remove: '削除', share: '共有', select: '選択', deleteConfirm: (n: number) => `${n} 件の元の下書きを削除します。元に戻せません。公開済みの練習と解答記録は保持されます。`, shareConfirm: (n: number) => `${n} 件の内容を公開の「発見」に共有します。他の学習者が閲覧・追加できます。` }
+    : locale === 'en'
+      ? { remove: 'Delete', share: 'Share', select: 'Select', deleteConfirm: (n: number) => `Delete ${n} source drafts permanently? Published practices and answer history are kept.`, shareConfirm: (n: number) => `Share ${n} practices publicly in Discover? Other learners can view and add them.` }
+      : { remove: '删除', share: '分享', select: '选择', deleteConfirm: (n: number) => `将删除所选 ${n} 项的来源草稿，并从专项列表移除，无法撤销。已生成的正式练习和答题记录会保留。`, shareConfirm: (n: number) => `将所选 ${n} 套练习及说明发布到公开的「发现」，其他学习者可以查看并加入。待确认的练习不会分享。` };
   const pageSize = 8;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages - 1);
@@ -100,7 +109,7 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
   const mobilePageEnd = Math.min(mobileList.visible, filtered.length);
   return (
     <LearningListFrame className="topic-library topic-practice-list" label={copy.topicList} locale={locale}>
-      <LearningListHeader title={copy.topics} count={`${filtered.length} ${copy.sets}`} appliedSummary={query || status !== 'all' || module !== 'all' || sort !== 'recent' ? [query ? `${copy.searchTopics}: ${query}` : '', module !== 'all' ? copy[module] : '', status !== 'all' ? status === 'ready' ? copy.ready : copy.pending : '', sort !== 'recent' ? copy.titleOrder : ''].filter(Boolean).join(' · ') : undefined} onReset={() => { setQuery(''); setStatus('all'); setModule('all'); setSort('recent'); setPage(0); }} search={<LearningListSearch value={query} label={copy.searchTopics} placeholder={copy.searchTopics} locale={locale} onChange={(value) => { setQuery(value); setPage(0); }}/> }>
+      <LearningListHeader expandedOnWide title={copy.topics} appliedSummary={query || status !== 'all' || module !== 'all' || sort !== 'recent' ? [query ? `${copy.searchTopics}: ${query}` : '', module !== 'all' ? copy[module] : '', status !== 'all' ? status === 'ready' ? copy.ready : copy.pending : '', sort !== 'recent' ? copy.titleOrder : ''].filter(Boolean).join(' · ') : undefined} onReset={() => { setQuery(''); setStatus('all'); setModule('all'); setSort('recent'); setPage(0); }} search={<LearningListSearch value={query} label={copy.searchTopics} placeholder={copy.searchTopics} locale={locale} onChange={(value) => { setQuery(value); setPage(0); }}/> }>
       <h3 className="primary-topic-filter-title">{copy.questionType}</h3>
       <div className="topic-library-filters" role="group" aria-label={copy.questionType}>
         {(['all', 'grammar', 'listening', 'vocabulary', 'reading'] as const).map((value) => <button key={value} type="button" aria-pressed={module === value} onClick={() => { setModule(value); setPage(0); }}>{value === 'all' ? copy.all : copy[value]}</button>)}
@@ -111,11 +120,20 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
 
       </div>
         <label className="topic-panel-sort"><span>{copy.sort}</span><select aria-label={copy.sort} value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">{copy.recent}</option><option value="title">{copy.titleOrder}</option></select></label>
-        {entries.some(entry => entry.share) ? <details className="primary-topic-management"><summary>{copy.manageTopics}</summary><ul>{entries.filter(entry => entry.share).map(entry => <li key={entry.key}><span>{entry.title}</span><ShareButton onShare={entry.share!} description={entry.description} locale={locale} /></li>)}</ul></details> : null}
+
       </LearningListHeader>
 
-      <div className="primary-topic-list" role="list">{visibleEntries.length ? visibleEntries.map(entry => <div key={entry.key} role="listitem">
-        <button type="button" className="primary-topic-row" onClick={entry.action}>
+      {entries.some(entry => entry.share || entry.remove) ? <div className="topic-batch-controls">
+        <BatchManageButton batch={batch} locale={locale} />
+        <BatchActionBar batch={batch} locale={locale} actions={[
+          { key: 'delete', label: batchCopy.remove, danger: true, confirm: batchCopy.deleteConfirm, appliesTo: id => Boolean(byKey.get(id)?.remove), run: async id => { await byKey.get(id)!.remove!(); } },
+          { key: 'share', label: batchCopy.share, confirm: batchCopy.shareConfirm, appliesTo: id => Boolean(byKey.get(id)?.share), run: async id => { const entry = byKey.get(id)!; await entry.share!(entry.description?.trim() || entry.title); } },
+        ]} />
+      </div> : null}
+      <div className="primary-topic-list" role="list">{visibleEntries.length ? visibleEntries.map(entry => <div key={entry.key} role="listitem" className={batch.active ? 'topic-selectable-row' : undefined}>
+        {batch.active ? <label className="topic-select-check"><input type="checkbox" checked={batch.selected.has(entry.key)} onChange={() => batch.toggle(entry.key)} aria-label={`${batchCopy.select}：${entry.title}`} /></label> : null}
+        <button type="button" className="primary-topic-row" aria-pressed={batch.active ? batch.selected.has(entry.key) : undefined} onClick={() => batch.active ? batch.toggle(entry.key) : entry.action()}>
+          <FileText className="primary-topic-icon" size={22} aria-hidden="true" />
           <span className="primary-topic-copy"><strong>{entry.title}</strong><small className={entry.status === 'pending' ? 'is-pending' : undefined}>
             {entry.count !== undefined ? <><span>{entry.count} {copy.questions}</span><span aria-hidden="true">·</span></> : null}
             {entry.status === 'pending' ? <span>{copy.pending}</span> : entry.completedCount === undefined ? <span>{copy.ready}</span> : entry.completedCount > 0 ? <CompletedRounds count={entry.completedCount} locale={locale} /> : <span>{copy.notPracticed}</span>}
@@ -145,7 +163,7 @@ function PracticeModuleCard({ entry, locale }: { entry: { title: string; count?:
       {entry.count !== undefined && entry.completedCount !== undefined ? <span aria-hidden="true">·</span> : null}
       {entry.completedCount !== undefined ? <CompletedRounds count={entry.completedCount} locale={locale} retained={entry.retainedRounds} /> : null}
     </small> : null}</span>
-    <ChevronRight size={21} aria-hidden="true" />
+    <span className="primary-practice-cta"><ArrowRight size={18} aria-hidden="true" />{practiceCopy(locale).openPractice}</span>
   </button>;
 }
 

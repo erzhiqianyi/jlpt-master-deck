@@ -73,14 +73,14 @@ import {
   userForToken,
 } from './storage.mjs';
 import { MCP_PATHS } from './mcp-app.mjs';
-import { listProviderDescriptors, ttsCredentialStatus, saveTtsCredential, deleteTtsCredential, synthesizeSpeech } from './tts/index.mjs';
+import { listProviderDescriptors, ttsCredentialStatus, saveTtsCredential, deleteTtsCredential, synthesizeSpeech, listSpeechVoices } from './tts/index.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localOfficialRoot = join(rootDir, '.local', 'official-jlpt');
 const localMockRoot = join(rootDir, '.local', 'mock-exams');
 const localNewsRoot = resolve(process.env.JLPT_NEWS_SOURCE_DIR ?? '/Users/itsuki/AI/knowledge-base/personal-knowledge/sources/jlpt-news');
 
-export function createApiHandler({ mcp, mcpListener, health = buildHealthPayload }) {
+export function createApiHandler({ mcp, mcpListener, health = () => buildHealthPayload(mcp) }) {
 return async (req, res) => {
   if (MCP_PATHS.test(req.url ?? '')) return mcpListener(req, res);
   try {
@@ -317,6 +317,10 @@ return async (req, res) => {
       return json(res, 200, { providers: listProviderDescriptors() });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/tts/voices') {
+      return json(res, 200, { voices: await listSpeechVoices(user.id, url.searchParams.get('provider')) });
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/tts/credentials') {
       return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
     }
@@ -331,8 +335,8 @@ return async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/api/tts/speak') {
-      const { text, provider, voice } = await readJson(req);
-      const { audio, mimeType } = await synthesizeSpeech(user.id, { text, provider, voice });
+      const { text, provider, voice, style, role } = await readJson(req);
+      const { audio, mimeType } = await synthesizeSpeech(user.id, { text, provider, voice, style, role });
       res.writeHead(200, { 'content-type': mimeType, 'content-length': audio.length, 'cache-control': 'private, no-store' });
       return res.end(audio);
     }
@@ -645,7 +649,7 @@ return async (req, res) => {
 };
 }
 
-function buildHealthPayload() {
+function buildHealthPayload(mcp) {
   const projectConfigPath = join(rootDir, '.codex', 'config.toml');
   const userConfigPath = join(homedir(), '.codex', 'config.toml');
   const mcpServerPath = join(rootDir, 'server', 'mcp-server.mjs');
@@ -654,7 +658,7 @@ function buildHealthPayload() {
   const userConfig = readJsonFile(userConfigPath);
   const mcpStatus = readJsonFile(mcpStatusPath);
   const mcpServerReady = existsSync(mcpServerPath);
-  const mcpHttpPath = `${mcp.paths.mcp}`;
+  const mcpHttpPath = `${mcp?.paths?.mcp ?? '/api/jlpt/mcp'}`;
   const projectConfigReady = configIncludesJlptMcp(projectConfig, rootDir);
   const userConfigReady = configIncludesJlptMcp(userConfig, rootDir);
   const codexConfigReady = projectConfigReady || userConfigReady;

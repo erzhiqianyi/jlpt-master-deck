@@ -230,3 +230,22 @@ Answers remain hidden until a session is submitted. Optional limits count elapse
 wall time and submit on expiry; untimed sessions do not impose a timer. Attempts are
 stored per account/exam/session in the browser, not synced across devices. Question
 edits invalidate that session's cached attempt rather than silently changing its score.
+
+
+## Local UI with the hosted account
+
+To preview local frontend changes against the hosted learning data, put
+`JLPT_API_ORIGIN=https://jlpt.erzhiqian.cc` in the ignored `.env.local` file and run
+`npm run dev:app`. Open `http://localhost:4220` and choose Google sign-in with the
+same account used on the hosted site. Vite forwards `/api` and `/.well-known` to
+that HTTPS origin; `/api/auth/config` supplies the existing Firebase configuration.
+A local API process is not needed for this mode. Do not copy session tokens between sites.
+
+Hosted and local API sessions use separate browser storage keys. A local dev token
+is ignored in hosted API mode. This setting only affects the development server;
+production builds continue to use their own same-origin API. Removing the setting
+and restarting Vite restores the local API proxy. Requests that save answers or edit
+content affect the real hosted account in this mode.
+
+If Google reports `auth/unauthorized-domain`, the Firebase project's authorized
+domains must include `localhost`; use that hostname instead of `127.0.0.1`.

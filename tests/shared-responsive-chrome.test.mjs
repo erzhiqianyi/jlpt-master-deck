@@ -95,3 +95,24 @@ test('Practice inventory can use an authoritative lightweight total before quest
  await mount('MixedPracticeHub',{locale:'en',labels:ui.translations.en,questions:[],mixedQuestionCount:42,topicEntries:[],onStart(){},onStartMock(){}});
  assert.match(container.querySelectorAll('.primary-practice-row')[1].textContent,/42 questions/);
 });
+
+test('desktop catalogs place one search in the title bar and show controls inline', async () => {
+ window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+ try {
+  await mount('Fixture');
+  assert.equal(container.querySelectorAll('.page-header-control input[type="search"]').length, 1);
+  assert.equal(container.querySelectorAll('.list-controls-dialog').length, 0);
+  assert.ok(container.querySelector('.list-expanded-filters button'));
+  assert.ok(button('Add entry'));
+  assert.equal(button('Search and filters'), undefined);
+  const input = container.querySelector('input[type="search"]');
+  await ui.act(async () => {
+   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'test');
+   input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  assert.equal(input.value, 'test');
+  assert.equal(container.querySelectorAll('input[type="search"]').length, 1);
+ } finally {
+  window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+ }
+});

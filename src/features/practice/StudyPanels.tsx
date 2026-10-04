@@ -1,3 +1,4 @@
+import { SpeechControls } from '../../components/SpeechControls';
 import { LearningListMetadata } from '../../components/LearningListMetadata';
 import { usePageHeaderActions } from '../../components/PageChrome';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
@@ -16,7 +17,7 @@ import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, 
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { useMobileList } from '../../hooks/useMobileList';
 import { BookOpenText, Pencil, ChevronLeft, ChevronRight, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { ItemImage, prepareImageUpload } from '../../components/ItemImage';
@@ -271,6 +272,12 @@ export function PracticePanel({
   loading?: boolean;
 }) {
   const [timerSession, setTimerSession] = useState(0);
+  const [pendingAdvance, setPendingAdvance] = useState<string | null>(null);
+  const copy = settings.locale === 'ja'
+    ? { more: 'その他', restart: '解答と経過時間をリセットして、もう一度練習しますか？', batch: 'まとめて答え合わせ · 選択後に自動で次の未回答へ', immediate: '1問ずつ答え合わせ', advancing: '解答を記録しました。次の未回答へ…' }
+    : settings.locale === 'en'
+      ? { more: 'More', restart: 'Clear your answers and timer to restart this practice?', batch: 'Review at the end · Auto-advance after selecting', immediate: 'Feedback after each answer', advancing: 'Answer recorded. Moving to the next unanswered question…' }
+      : { more: '更多', restart: '重新练习将清空本组作答并重置计时，确定继续吗？', batch: '整组反馈 · 选答后自动进入下一道未答题', immediate: '逐题反馈 · 作答后查看解析', advancing: '已记录，即将进入下一道未答题…' };
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const [answerSheetPage, setAnswerSheetPage] = useState(0);
   const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
@@ -308,6 +315,8 @@ export function PracticePanel({
   }
 
   function restartTimedPractice() {
+    if (!window.confirm(copy.restart)) return;
+    setPendingAdvance(null);
     invalidatePendingReview();
     setTimerSession((session) => session + 1);
     onRestart();
@@ -370,10 +379,30 @@ export function PracticePanel({
     }
   }
 
-  function chooseAnswer(question: Question, choice: string) {
-    if (feedbackMode === 'immediate' && answers[question.id]) return;
+  const chooseAnswer = useCallback((question: Question, choice: string) => {
+    if (pendingAdvance || (feedbackMode === 'immediate' && answers[question.id])) return;
     onAnswer(question, choice);
-  }
+    if (feedbackMode === 'batch' && !complete) setPendingAdvance(question.id);
+  }, [pendingAdvance, feedbackMode, answers, onAnswer, complete]);
+
+  useEffect(() => {
+    if (!pendingAdvance) return;
+    if (activeQuestion?.id !== pendingAdvance || answerSheetOpen || complete || feedbackMode !== 'batch') {
+      setPendingAdvance(null);
+      return;
+    }
+    if (!answers[pendingAdvance]) return;
+    const timeout = window.setTimeout(() => {
+      const next = questions.findIndex((question, index) => index > activeIndex && !answers[question.id]);
+      const target = next >= 0 ? next : questions.findIndex((question) => !answers[question.id]);
+      setPendingAdvance(null);
+      if (target >= 0) {
+        onJump(target);
+        practiceCardRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [pendingAdvance, activeQuestion?.id, answerSheetOpen, complete, feedbackMode, answers, questions, activeIndex, onJump]);
 
   const displayPracticeTitle = questionTypeLabel;
   const answerSheetShowsResults = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
@@ -404,16 +433,16 @@ export function PracticePanel({
     const currentQuestion = activeQuestion;
 
     function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.repeat || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (isTextEntryTarget(event.target)) return;
 
-      if (event.key === 'ArrowLeft' && questionsLength > 1) {
+      if (event.key === 'ArrowLeft' && activeIndex > 0) {
         event.preventDefault();
         onPrev();
         return;
       }
 
-      if (event.key === 'ArrowRight' && questionsLength > 1) {
+      if (event.key === 'ArrowRight' && activeIndex < questionsLength - 1) {
         event.preventDefault();
         onNext();
         return;
@@ -424,13 +453,13 @@ export function PracticePanel({
         const alreadyAnswered = Boolean(answers[currentQuestion.id]);
         if (!choice || (feedbackMode === 'immediate' && alreadyAnswered)) return;
         event.preventDefault();
-        onAnswer(currentQuestion, choice);
+        chooseAnswer(currentQuestion, choice);
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeQuestion, answers, answerSheetOpen, reviewPreparing, feedbackMode, onAnswer, onNext, onPrev, questionsLength]);
+  }, [activeQuestion, answers, answerSheetOpen, reviewPreparing, feedbackMode, chooseAnswer, onNext, onPrev, questionsLength, activeIndex]);
 
   useEffect(() => {
     const dialog = answerSheetRef.current;
@@ -447,9 +476,17 @@ export function PracticePanel({
       onTouchCancel={() => { touchStartRef.current = null; }}
     >
       {loading ? <p role="status" className="py-6 text-center">正在加载题目…</p> : null}
-      <div className="practice-question-section">
+      <h2 className="practice-session-title">{displayPracticeTitle}</h2>
+      <div className="practice-workspace-grid">
+      <aside className="practice-control-panel" aria-label={labels.practiceAnswerSheet}>
         <div className="practice-question-toolbar">
-          <p>{displayPracticeTitle}</p>
+          <details className="practice-more-actions">
+            <summary>{copy.more}</summary>
+            <div>
+              <button type="button" aria-label={labels.restartPractice} onClick={restartTimedPractice}><RotateCcw size={16} aria-hidden="true" />{labels.restartPractice}</button>
+              <button type="button" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button>
+            </div>
+          </details>
           <button type="button" disabled={questionsLength === 0} aria-haspopup="dialog" aria-expanded={answerSheetOpen}
             onClick={() => { setAnswerSheetFilter('all'); setAnswerSheetPage(Math.floor(activeIndex / 100)); setAnswerSheetOpen(true); }}
             aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`} className="practice-text-action">
@@ -458,10 +495,31 @@ export function PracticePanel({
         </div>
         <div className="practice-timing-strip">
           {questionsLength > 0 ? <PracticeTimer key={`${questions.map((question) => question.id).join(',')}:${timerSession}`} locale={settings.locale} running={!complete && !loading} /> : <span />}
-          <span>{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
+          <span>{labels.completed} {answeredCount} / {questionsLength}</span>
         </div>
         <progress className="practice-question-progress" max={Math.max(1, questionsLength)} value={answeredCount} aria-label={`${labels.completed}: ${answeredCount} / ${questionsLength}`} />
 
+        <nav className="practice-top-navigation" aria-label={labels.practiceAnswerSheet}>
+          <button type="button" disabled={!activeQuestion || activeIndex === 0} onClick={onPrev}><ChevronLeft size={18} aria-hidden="true" />{labels.prev}</button>
+          <strong aria-live="polite">{questionsLength ? activeIndex + 1 : 0} / {questionsLength}</strong>
+          <button type="button" disabled={!activeQuestion || activeIndex >= questionsLength - 1} onClick={onNext}>{labels.next}<ChevronRight size={18} aria-hidden="true" /></button>
+        </nav>
+        <p className="practice-feedback-hint" role="status">{pendingAdvance && !complete ? copy.advancing : feedbackMode === 'batch' ? copy.batch : copy.immediate}</p>
+        <nav className="practice-nearby-questions" aria-label={labels.practiceAnswerSheet}>
+          {questions.slice(Math.max(0, Math.min(activeIndex - 4, questions.length - 10)), Math.max(0, Math.min(activeIndex - 4, questions.length - 10)) + 10).map((question, offset) => {
+            const index = Math.max(0, Math.min(activeIndex - 4, questions.length - 10)) + offset;
+            return <button type="button" key={question.id} aria-current={index === activeIndex ? 'step' : undefined}
+              aria-label={`${index + 1} · ${answers[question.id] ? labels.practiceAnswered : labels.practiceUnanswered}`}
+              data-answered={Boolean(answers[question.id])} onClick={() => { setPendingAdvance(null); onJump(index); }}>{index + 1}</button>;
+          })}
+        </nav>
+      {activeQuestion && complete ? <footer className="practice-session-actions">
+        {reviewError ? <div className="practice-save-error" role="alert"><p>{reviewError}</p><button type="button" onClick={onReview}>{labels.reviewViewHistory}</button></div> : null}
+        <button type="button" className="practice-primary-action" onClick={requestReview} disabled={reviewPreparing}>{reviewPreparing ? <><LoaderCircle size={18} className="animate-spin" aria-hidden="true" />{labels.reviewPreparing}</> : reviewError ? labels.reviewRetry : labels.reviewPage}<ChevronRight size={19} aria-hidden="true" /></button>
+      </footer> : null}
+      </aside>
+      <div className="practice-content-column">
+      <div className="practice-question-section">
         <div className="mt-4">
           {activeQuestion?.instruction ? (
             <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
@@ -506,7 +564,7 @@ export function PracticePanel({
                     <button
                       type="button"
                       key={choice}
-                      disabled={feedbackMode === 'immediate' && Boolean(answered)}
+                      disabled={Boolean(pendingAdvance) || (feedbackMode === 'immediate' && Boolean(answered))}
                       aria-keyshortcuts={String(choiceIndex + 1)}
                       aria-pressed={isSelected}
                       data-answer-state={answerState}
@@ -541,12 +599,8 @@ export function PracticePanel({
               locale={settings.locale}
             />
       ) : null}
-      {activeQuestion ? <footer className="practice-session-actions">
-        {reviewError ? <div className="practice-save-error" role="alert"><p>{reviewError}</p><button type="button" onClick={onReview}>{labels.reviewViewHistory}</button></div> : null}
-        <button type="button" className="practice-previous-action" disabled={questionsLength <= 1} onClick={onPrev}><ChevronLeft size={19} aria-hidden="true" />{labels.prev}</button>
-        {complete ? <button type="button" className="practice-primary-action" onClick={requestReview} disabled={reviewPreparing}>{reviewPreparing ? <><LoaderCircle size={18} className="animate-spin" aria-hidden="true" />{labels.reviewPreparing}</> : reviewError ? labels.reviewRetry : labels.reviewPage}<ChevronRight size={19} aria-hidden="true" /></button> : questionsLength > 1 ? <button type="button" className="practice-primary-action" onClick={onNext}>{labels.next}<ChevronRight size={19} aria-hidden="true" /></button> : null}
-      </footer> : null}
-      {activeQuestion ? <div className="practice-session-secondary-actions"><button type="button" className="practice-text-action" aria-label={labels.restartPractice} onClick={restartTimedPractice}><RotateCcw size={16} aria-hidden="true" />{labels.restartPractice}</button><button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button></div> : !loading ? <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button> : null}
+      </div></div>
+      {!activeQuestion && !loading ? <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button> : null}
       <dialog ref={answerSheetRef} className="practice-native-answer-sheet" aria-labelledby="practice-answer-sheet-title" onClose={() => setAnswerSheetOpen(false)} onCancel={() => setAnswerSheetOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setAnswerSheetOpen(false); }}>
           <div className="practice-native-answer-sheet-content">
             <div className="flex items-center justify-between gap-3">
@@ -1587,14 +1641,14 @@ function VocabCard({
     {pattern.pattern ? <p className="study-entry-highlight"><RubyText text={pattern.pattern} items={[item]} enabled={showRuby} /></p> : null}
     {pattern.connection_zh ? <p className="study-entry-translation">{pattern.connection_zh}</p> : null}
     {pattern.meaning_zh ? <p className="study-entry-translation">{pattern.meaning_zh}</p> : null}
-    {pattern.example ? <p lang="ja"><RubyText text={pattern.example} items={[item]} enabled={showRuby} /></p> : null}
+    {pattern.example ? <p lang="ja"><RubyText text={pattern.example} items={[item]} enabled={showRuby} /> <SpeechControls text={pattern.example} /></p> : null}
     {pattern.example_zh ? <p className="study-entry-translation">{pattern.example_zh}</p> : null}
   </div>;
   const renderExample = (example: typeof examples[number], index: number) => <div key={`${example.ja}-${index}`} className="study-entry-example">
-    {example.ja ? <p lang="ja"><RubyText text={example.ja} items={[item]} enabled={showRuby} /></p> : null}
+    {example.ja ? <p lang="ja"><RubyText text={example.ja} items={[item]} enabled={showRuby} /> <SpeechControls text={example.ja} /></p> : null}
     {example.zh ? <p className="study-entry-translation">{example.zh}</p> : null}
     {example.spoken_ja || example.spoken_zh || example.form_analysis_zh || example.analysis_zh ? <details className="study-example-analysis"><summary>{labels.exampleAnalysis ?? '例句分析'}</summary>
-      {example.spoken_ja || example.spoken_zh ? <div><h5>{labels.spokenExample ?? '口语版'}</h5>{example.spoken_ja ? <p lang="ja"><RubyText text={example.spoken_ja} items={[item]} enabled={showRuby} /></p> : null}{example.spoken_zh ? <p className="study-entry-translation">{example.spoken_zh}</p> : null}</div> : null}
+      {example.spoken_ja || example.spoken_zh ? <div><h5>{labels.spokenExample ?? '口语版'}</h5>{example.spoken_ja ? <p lang="ja"><RubyText text={example.spoken_ja} items={[item]} enabled={showRuby} /> <SpeechControls text={example.spoken_ja} /></p> : null}{example.spoken_zh ? <p className="study-entry-translation">{example.spoken_zh}</p> : null}</div> : null}
       {example.form_analysis_zh ? <p>{example.form_analysis_zh}</p> : null}
       {example.analysis_zh ? <p>{example.analysis_zh}</p> : null}
     </details> : null}
@@ -1602,14 +1656,16 @@ function VocabCard({
   return <article className={`study-entry-card${isGrammarEntry ? ' is-grammar' : ''}`}>
     <header className="study-entry-heading">
       {reading && showRuby ? <p className="study-entry-reading" lang="ja">{reading}</p> : null}
-      <h1 lang="ja">{item.original}</h1>
+      <div className="study-entry-title-row"><h1 lang="ja">{item.original}</h1><SpeechControls text={item.reading || item.original} /></div>
       {isGrammarEntry ? <p className="study-entry-meaning">{meaning}</p> : item.part_of_speech ? <p className="study-entry-translation">{item.part_of_speech}</p> : null}
     </header>
+    <div className="study-entry-content-grid"><div className="study-entry-main">
     {isGrammarEntry && patterns.length ? <section className="study-entry-section"><h2>{labels.grammarConnection ?? '接续'}</h2>{patterns.map(renderPattern)}</section> : null}
     {item.meaning_ja ? <section className="study-entry-section"><h2>{labels.japaneseMeaning}</h2><p lang="ja"><RubyText text={item.meaning_ja} items={[item]} enabled={showRuby} /></p></section> : null}
     {!isGrammarEntry && locale !== 'ja' && meaning ? <section className="study-entry-section"><h2>{labels.localizedMeaning}</h2><p>{meaning}</p></section> : null}
     {explanation ? <section className="study-entry-section"><h2>{labels.analysis}</h2><StudyText text={explanationPreview.summary} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />{explanationPreview.hasMore ? <details className="study-example-analysis"><summary>{locale === 'zh-CN' ? '完整解析' : locale === 'ja' ? '詳しい解説' : 'Full explanation'}</summary><StudyText text={explanation} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} /></details> : null}</section> : null}
     {examples.length ? <section className="study-entry-section"><h2>{labels.vocabularyExamples ?? '例句'}</h2>{examples.slice(0, 1).map(renderExample)}</section> : null}
+    </div><aside className="study-entry-support">
     {coreMemory.length || points.length ? <section className="study-entry-section"><h2>{labels.examQuickNote}</h2>
       {coreMemory.length ? <ul className="study-entry-memory">{coreMemory.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul> : null}
       {points.map((point, index) => <div className="study-entry-point" key={`${point.label ?? 'point'}-${index}`}>{point.label ? <h3>{point.label}</h3> : null}{point.detail_zh ? <p>{point.detail_zh}</p> : null}</div>)}
@@ -1626,6 +1682,7 @@ function VocabCard({
     </details> : null}
     {comparisons.length ? <details className="study-entry-disclosure"><summary>{labels.comparisonNotes ?? '近义辨析'}</summary>{comparisons.map((comparison, index) => <div className="study-entry-point" key={`${comparison.target}-${index}`}>{comparison.target ? <h3>{comparison.target}</h3> : null}{comparison.difference_zh ? <p>{comparison.difference_zh}</p> : null}</div>)}</details> : null}
     {item.images?.length || imageEditor ? <details className="study-entry-disclosure"><summary>{locale === 'zh-CN' ? '记忆图片' : locale === 'ja' ? '記憶イメージ' : 'Memory images'}</summary><EntryImages item={item} token={token} editor={imageEditor} /></details> : null}
+    </aside></div>
     {item.content_origin === 'ai_generated' && item.verification_status !== 'verified' ? <p className="practice-verification-notice">{labels.unverifiedContentNotice}</p> : null}
   </article>;
 }

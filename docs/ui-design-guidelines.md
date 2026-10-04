@@ -13,7 +13,7 @@ The product exists to support one repeated learning loop:
 3. **History:** revisit original inputs and past attempts without mixing them into the active exercise.
 4. **Data:** observe pending work, practice volume, accuracy, and mastery in a compact form.
 
-These four responsibilities define the learning loop, but they do not all need equal navigation weight. Web primary destinations have one stable order at compact and regular widths: Today, Practice, Discover, Records, Library (今日、练习、发现、记录、题库). Vocabulary, Grammar, Listening and Reading are library children. Captures, drafts, practice history and learning summaries live under Records. Planning, question-type guidance, About and Settings remain supporting tools. Browsing preserves the relevant primary destination; answering and recording use an explicit focused task with a predictable parent/back route.
+These four responsibilities define the learning loop, but they do not all need equal navigation weight. Web primary destinations have one stable order at compact and regular widths: Today, Practice, Discover, Statistics, Library (今日、练习、发现、统计、题库). Vocabulary, Grammar, Listening and Reading are library children. Captures, drafts, practice history and learning summaries live under Statistics. The Statistics overview leads with today’s metrics and seven calendar days of answer volume, followed by history and mistake destinations and quieter material shortcuts. Planning, question-type guidance, About and Settings remain supporting tools. Browsing preserves the relevant primary destination; answering and recording use an explicit focused task with a predictable parent/back route.
 
 Cards and list rows provide an overview and a route into deeper content. They should not attempt to display the complete explanation, editing form, progress history, and related actions at the same time. Detailed information belongs on a dedicated detail page with its own hash route.
 
@@ -119,7 +119,7 @@ The mobile layout is not a narrower desktop layout. Preserve the same data and r
 
 ## Current Application Patterns
 
-- **Home:** is a learning dashboard. The current study plan and today's progress are the primary region; exam countdown, capture, mixed review, compact learning status, module rows, and the official-question-type preview remain secondary overview entries. Detailed calendar editing and plan generation stay on the Plan page.
+- **Home:** follows the native Today dashboard: today's plan and practice lead the main column, followed by recent learning, library entries, and capture. A supporting column shows the real due count, up to three due items, and seven days of recorded activity. Compact screens stack these regions on the page background. Counts and progress come from saved account data; missing records stay empty. Detailed calendar editing and plan generation stay on the Plan page.
 - **Capture:** contains one input form for unclear material. Category and context are optional metadata; history and generated exercises do not appear on the same screen.
 - **Data Management:** uses tabs for learning overview, captured inputs, practice history, and review drafts. Draft preview, annotations, and revision actions live in the Drafts tab instead of global navigation.
 - **Account navigation:** the current username is the direct Settings entry on desktop and mobile. Do not add a separate Settings label to the global module menu.
@@ -156,3 +156,26 @@ Before accepting a new page or component, verify:
 - Historical replay creates a separate attempt, preserves route identity, and never overwrites an unrelated active session's answers. Existing server retention limits remain unchanged.
 - Mobile/desktop Web responsiveness does not establish iPhone/iPad pixel parity. Native implementation and screenshot comparison are separate checks.
 - Detailed implementation disposition and pending verification: `docs/qa/web-responsive-audit-disposition.json`.
+
+### Shared catalog layout
+- At 768px and wider, catalog search belongs in the page title bar. Show filters, sorting and management controls inline below it; controls wrap without horizontal scrolling.
+- List pages fill the available workspace with 24px side gutters. Do not stack another centered reading-width container inside the content area.
+- Use quiet rows with a 17px medium-weight title, secondary metadata and consistent separators. Keep the toolbar outside the list surface and remove nested card shadows.
+- On phones, keep search and filters in the shared sheet and list surfaces flat. Detail, authoring and question screens retain their own reading widths.
+- Use the existing checkbox batch-management components. Do not duplicate the content list in an expandable management section.
+
+### Desktop overview alignment
+
+Today, Practice, Discover, Statistics and Library overviews start at the same 24px content inset beside the sidebar as catalog lists. Width limits may keep charts and cards readable, but must not center the overview or its nested containers within the workspace. Mobile layouts retain their existing safe-area spacing.
+
+Statistics is a responsive dashboard: use three columns when its content area reaches 1200px, two at 720px, and one below that. Include today, seven-day answer volume, retained-history totals, module accuracy, recent completed attempts and secondary destinations. Aggregate accuracy by answer counts; never average practice percentages or count unfinished attempts. Missing accuracy is shown as a dash.
+
+### Desktop page and detail alignment
+
+All authenticated workspace pages start at the shared 24px content inset, including settings, plans, forms, history, drafts, guides, practice results and news/detail views. The outer page shell fills the workspace; nested page containers keep their content-specific maximum width with zero inline margins. Do not use auto inline margins to center a page or nested editor. Sidebar expansion must move the shared content edge consistently.
+
+Keep readable line lengths: settings and forms can stay narrow; practice uses up to 1200px with a 300px control rail when the content area reaches 960px; vocabulary and grammar details use up to 1120px with readable main and supporting columns when space allows; reading and listening use wider containers with columns based on actual available content width. Collapsing reading passages must retain the same left edge. Empty states within the workspace follow the page edge. Dialogs, media previews, standalone sign-in/public pages and the dedicated full-screen flashcard experience may retain intentional centering. Mobile safe-area spacing and single-column layouts are independent of this desktop rule.
+
+Listening authoring begins with an always-visible shared audio upload and preview (25 MB maximum). Optional transcript fields may collapse. Question navigation and per-question type, choices and explanation follow the material section; all drafts share the selected audio. Navigating to an earlier draft must preserve the final unsaved draft when saving the group.
+
+On wide practice pages, question content and answer explanations occupy the left column. Keep time, progress, previous/next, nearby question numbers (at most ten), full answer-sheet access and completion actions in one sticky right rail. Reflow that same control tree above the content below the width threshold; do not mount duplicate timers or duplicate answer controls. Nearby question status must not disclose correctness before the configured feedback mode permits it.

@@ -1,3 +1,4 @@
+import { SpeechControls } from '../../components/SpeechControls';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningList, LearningListRow } from '../../components/LearningList';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
@@ -79,7 +80,6 @@ function OfficialSampleDetail({ module, sampleId, labels, locale, onBack }: Shar
   const [selected, setSelected] = useState<number | null>(null);
   const [subAnswers, setSubAnswers] = useState<Record<string, number>>({});
   const [revealed, setRevealed] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
   const subQuestions = sample?.subQuestions ?? [];
   const hasSubQuestions = subQuestions.length > 0;
   const answeredCount = subQuestions.filter((item) => subAnswers[item.id] !== undefined).length;
@@ -89,9 +89,6 @@ function OfficialSampleDetail({ module, sampleId, labels, locale, onBack }: Shar
     setSelected(null);
     setSubAnswers({});
     setRevealed(false);
-    setSpeaking(false);
-    window.speechSynthesis?.cancel();
-    return () => window.speechSynthesis?.cancel();
   }, [sampleId]);
 
   if (!sample) {
@@ -101,23 +98,6 @@ function OfficialSampleDetail({ module, sampleId, labels, locale, onBack }: Shar
         <button type="button" onClick={onBack} className="mt-4 min-h-10 text-sm font-semibold text-[#31564c] hover:underline">← {labels.sampleBackToIndex}</button>
       </section>
     );
-  }
-
-  function playSpeech() {
-    if (!sample?.ttsText || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(sample.ttsText);
-    utterance.lang = 'ja-JP';
-    utterance.rate = 0.92;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function stopSpeech() {
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
   }
 
   return (
@@ -152,12 +132,10 @@ function OfficialSampleDetail({ module, sampleId, labels, locale, onBack }: Shar
           </div>
         ) : null}
 
-        {sample.ttsText ? (
+        {sample.ttsText && !sample.audioUrl ? (
           <div className="mt-5 border-l-2 border-[#9eb4b7] pl-4">
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={speaking ? stopSpeech : playSpeech} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white">
-                {speaking ? labels.sampleStopAudio : labels.samplePlayAudio}
-              </button>
+              <SpeechControls text={sample.ttsText} label={labels.samplePlayAudio} />
             </div>
             <p className="mt-2 text-xs leading-5 text-[#7a807b]">{labels.sampleTtsNotice}</p>
           </div>

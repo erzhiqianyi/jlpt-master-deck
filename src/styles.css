@@ -1887,7 +1887,7 @@ rt {
 .app-content [class*="shadow-"] { box-shadow: none !important; }
 .app-content [class*="border-[#f0d4dd]"] { border-color: var(--ledger-line) !important; }
 .app-content [class*="text-[#a84269]"] { color: var(--ledger-indigo) !important; }
-.app-content [class*="bg-[#fff0f5]"], .app-content [class*="bg-[#fff1f6]"], .app-content [class*="bg-[#fff7fb]"] { background: var(--ledger-indigo-soft) !important; }
+.app-content [class~="bg-[#fff0f5]"], .app-content [class~="bg-[#fff1f6]"], .app-content [class~="bg-[#fff7fb]"] { background: var(--ledger-indigo-soft) !important; }
 .app-content h1, .app-content .journal-title { font-family: Georgia, 'Noto Serif SC', 'Noto Serif JP', serif; }
 @media (max-width: 767px) { .desktop-sidebar { width: 100vw !important; } }
 

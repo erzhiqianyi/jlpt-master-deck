@@ -12,11 +12,27 @@ function escapeXml(text) {
   return text.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char]);
 }
 
-export async function synthesize(text, { apiKey, region, voice }) {
-  if (!region) throw new Error('Azure Speech 需要填写 Region');
-  const ssml = `<speak version='1.0' xml:lang='ja-JP'><voice xml:lang='ja-JP' name='${voice || defaultVoice}'>${escapeXml(text)}</voice></speak>`;
+export function validateRegion(region) {
+  if (!/^[a-z][a-z0-9-]{1,40}$/.test(region ?? '')) throw new Error('Azure Region 请填写区域代码，例如 eastasia');
+}
+
+export async function listVoices({ apiKey, region }) {
+  validateRegion(region);
+  const response = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, {
+    headers: { 'Ocp-Apim-Subscription-Key': apiKey }, signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) throw new Error(`Azure 音色列表请求失败（${response.status}）`);
+  return (await response.json()).filter((v) => v.Locale === 'ja-JP').map((v) => ({
+    id: v.ShortName, name: `${v.LocalName || v.DisplayName} · ${v.Gender}`, styles: v.StyleList ?? [], roles: v.RolePlayList ?? [],
+  }));
+}
+
+export async function synthesize(text, { apiKey, region, voice, style, role }) {
+  validateRegion(region);
+  const expression = style || role ? `<mstts:express-as style='${escapeXml(style || 'general')}'${role ? ` role='${escapeXml(role)}'` : ''}>${escapeXml(text)}</mstts:express-as>` : escapeXml(text);
+  const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='ja-JP'><voice xml:lang='ja-JP' name='${escapeXml(voice || defaultVoice)}'>${expression}</voice></speak>`;
   const response = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
-    method: 'POST',
+    method: 'POST', signal: AbortSignal.timeout(30000),
     headers: {
       'ocp-apim-subscription-key': apiKey,
       'content-type': 'application/ssml+xml',

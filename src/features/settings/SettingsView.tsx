@@ -1,10 +1,11 @@
+import { SpeechPreferences } from './SpeechPreferences';
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
 import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
-import { fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
+import { stopSpeech, speak, fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
 import type { DisplaySettings, Locale } from '../../types';
 
 type SettingsViewProps = {
@@ -44,6 +45,11 @@ type SettingsCopy = {
   pronunciationSave: string;
   pronunciationSaving: string;
   pronunciationClear: string;
+  pronunciationTest: string;
+  pronunciationSaveAndTest: string;
+  pronunciationTesting: string;
+  pronunciationTestSuccess: string;
+  pronunciationTestFailed: string;
 };
 
 const settingsPageCopy: Record<Locale, SettingsCopy> = {
@@ -70,6 +76,11 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     pronunciationSave: '保存',
     pronunciationSaving: '保存中…',
     pronunciationClear: '清除',
+    pronunciationTest: '测试朗读',
+    pronunciationSaveAndTest: '保存并测试',
+    pronunciationTesting: '测试中…',
+    pronunciationTestSuccess: '测试成功，已完成播放。',
+    pronunciationTestFailed: '测试失败：',
   },
   ja: {
     displayAndReading: '表示と読みやすさ',
@@ -94,6 +105,11 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     pronunciationSave: '保存',
     pronunciationSaving: '保存中…',
     pronunciationClear: '削除',
+    pronunciationTest: '読み上げをテスト',
+    pronunciationSaveAndTest: '保存してテスト',
+    pronunciationTesting: 'テスト中…',
+    pronunciationTestSuccess: 'テスト成功。再生が完了しました。',
+    pronunciationTestFailed: 'テスト失敗：',
   },
   en: {
     displayAndReading: 'Display and Reading',
@@ -118,6 +134,11 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
     pronunciationSave: 'Save',
     pronunciationSaving: 'Saving…',
     pronunciationClear: 'Clear',
+    pronunciationTest: 'Test speech',
+    pronunciationSaveAndTest: 'Save and test',
+    pronunciationTesting: 'Testing…',
+    pronunciationTestSuccess: 'Test succeeded. Playback completed.',
+    pronunciationTestFailed: 'Test failed: ',
   },
 };
 
@@ -366,6 +387,10 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
   const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testText, setTestText] = useState('こんにちは。日本語の発音をテストしています。');
+  useEffect(() => () => stopSpeech(), []);
+  const [testSuccess, setTestSuccess] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -382,7 +407,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
   async function handleSave(provider: TtsProviderDescriptor) {
     if (actionPending.current) return;
     actionPending.current = true;
-    setBusyProvider(provider.id); setError('');
+    setBusyProvider(provider.id); setError(''); setTestSuccess(false);
     try {
       const result = await saveTtsCredential(authToken, provider.id, drafts[provider.id] ?? {});
       setCredentials(result.credentials);
@@ -391,10 +416,30 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
     finally { actionPending.current = false; setBusyProvider(null); }
   }
 
+  async function handleTest(provider: TtsProviderDescriptor) {
+    if (actionPending.current) return;
+    actionPending.current = true;
+    setBusyProvider(provider.id); setTesting(true); setError(''); setTestSuccess(false);
+    try {
+      const draft = drafts[provider.id] ?? {};
+      if (Object.values(draft).some((value) => value.trim())) {
+        const result = await saveTtsCredential(authToken, provider.id, draft);
+        setCredentials(result.credentials);
+        setDrafts((current) => ({ ...current, [provider.id]: {} }));
+      }
+      await speak(testText, { provider: provider.id, token: authToken, ...settings.speech?.voices?.[provider.id], rate: settings.speech?.rate });
+      setTestSuccess(true);
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === 'AbortError')) setError(copy.pronunciationTestFailed + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      actionPending.current = false; setBusyProvider(null); setTesting(false);
+    }
+  }
+
   async function handleClear(provider: TtsProviderDescriptor) {
     if (actionPending.current) return;
     actionPending.current = true;
-    setBusyProvider(provider.id); setError('');
+    setBusyProvider(provider.id); setError(''); setTestSuccess(false);
     try {
       if (!(await confirm({ title: copy.pronunciationClearTitle, description: `${provider.name}: ${copy.pronunciationClearBody}`, confirmLabel: copy.pronunciationClear, cancelLabel: { 'zh-CN': '取消', ja: 'キャンセル', en: 'Cancel' }[settings.locale], danger: true }))) return;
       const result = await deleteTtsCredential(authToken, provider.id);
@@ -411,7 +456,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
           aria-label={copy.pronunciationProvider}
           disabled={busyProvider !== null}
           value={settings.ttsProvider}
-          onChange={(event) => { setError(''); onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] }); }}
+          onChange={(event) => { setError(''); setTestSuccess(false); onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] }); }}
           className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]"
         >
           <option value="browser">{copy.pronunciationBrowser}</option>
@@ -419,9 +464,15 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
           {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
         </select>
       </SettingsRow>
+      <SpeechPreferences settings={settings} token={authToken} provider={providers.find((entry) => entry.id === settings.ttsProvider)} credentialVersion={statusFor(settings.ttsProvider)?.updatedAt} onChange={(next) => { stopSpeech(); setTestSuccess(false); onUpdateSettings(next); }} />
+      <label className="grid gap-2 py-3">{settings.locale === 'ja' ? '試聴テキスト' : settings.locale === 'en' ? 'Test text' : '试听文本'}<textarea className="rounded-md border border-[#c8d1c8] p-3" value={testText} maxLength={2000} disabled={testing} onChange={(event) => { setTestText(event.target.value); setTestSuccess(false); }} /></label>
+      {testing && <button type="button" className="min-h-10 px-3 underline" onClick={stopSpeech}>{settings.locale === 'ja' ? '停止' : settings.locale === 'en' ? 'Stop' : '停止播放'}</button>}
+      {settings.ttsProvider === 'browser' && <button type="button" disabled={testing || !testText.trim()} onClick={async () => { setTesting(true); setError(''); setTestSuccess(false); try { await speak(testText, { provider: 'browser', token: authToken, ...settings.speech?.voices?.browser, rate: settings.speech?.rate }); setTestSuccess(true); } catch (cause) { if (!(cause instanceof DOMException && cause.name === 'AbortError')) setError(String(cause)); } finally { setTesting(false); } }} className="min-h-11 rounded-md border px-3">{testing ? copy.pronunciationTesting : copy.pronunciationTest}</button>}
       {providers.filter((provider) => provider.id === settings.ttsProvider).map((provider) => {
         const status = statusFor(provider.id);
         const draft = drafts[provider.id] ?? {};
+        const hasDraft = Object.values(draft).some((value) => value.trim());
+        const completeDraft = provider.credentialFields.every((field) => draft[field.key]?.trim());
         return (
           <SettingsRow key={provider.id} title={provider.name}>
             <div className="grid gap-2">
@@ -436,13 +487,16 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
                   placeholder={field.label}
                   aria-label={`${provider.name} ${field.label}`}
                   value={draft[field.key] ?? ''}
-                  onChange={(event) => setDrafts((current) => ({ ...current, [provider.id]: { ...current[provider.id], [field.key]: event.target.value } }))}
+                  onChange={(event) => { setTestSuccess(false); setError(''); setDrafts((current) => ({ ...current, [provider.id]: { ...current[provider.id], [field.key]: event.target.value } })); }}
                   className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm"
                 />
               ))}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={busyProvider !== null || !Object.values(draft).some((value) => value.trim())} onClick={() => handleSave(provider)} className="min-h-11 rounded-md border border-[#24473f] bg-[#24473f] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
-                  {busyProvider === provider.id ? copy.pronunciationSaving : copy.pronunciationSave}
+                  {busyProvider === provider.id && !testing ? copy.pronunciationSaving : copy.pronunciationSave}
+                </button>
+                <button type="button" disabled={busyProvider !== null || !testText.trim() || (hasDraft ? !completeDraft : !status?.configured)} onClick={() => handleTest(provider)} className="min-h-11 rounded-md border border-[#24473f] bg-white px-3 py-2 text-sm font-semibold text-[#24473f] disabled:opacity-60">
+                  {testing && busyProvider === provider.id ? copy.pronunciationTesting : hasDraft ? copy.pronunciationSaveAndTest : copy.pronunciationTest}
                 </button>
                 {status?.configured && (
                   <button type="button" disabled={busyProvider !== null} onClick={() => handleClear(provider)} className="min-h-11 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#4f5651] disabled:opacity-60">
@@ -454,6 +508,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
           </SettingsRow>
         );
       })}
+      {testSuccess && <p role="status" className="text-sm text-[#24473f]">{copy.pronunciationTestSuccess}</p>}
       {error && <p role="alert" className="text-sm text-[#a43727]">{error}</p>}
     </>
   );

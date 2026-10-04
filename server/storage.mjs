@@ -3436,6 +3436,16 @@ function normalizeSettings(value) {
     questionTypeTips,
     customQuestionTypeTips: normalizeCustomQuestionTypeTips(value?.customQuestionTypeTips),
     ttsProvider,
+    speech: {
+      voices: Object.fromEntries(['browser', ...ttsProviderIds].map((provider) => {
+        const entry = value?.speech?.voices?.[provider] ?? {};
+        return [provider, Object.fromEntries(['voice', 'style', 'role'].map((key) => [key, typeof entry[key] === 'string' ? entry[key].slice(0, 160) : '']))];
+      })),
+      rate: Math.min(1.5, Math.max(0.5, Number(value?.speech?.rate) || 1)),
+      cardAuto: ['front', 'back'].includes(value?.speech?.cardAuto) ? value.speech.cardAuto : 'off',
+      grammarAuto: value?.speech?.grammarAuto === true,
+      includeExample: value?.speech?.includeExample === true,
+    },
   };
 }
 

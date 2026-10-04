@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Minus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Children, createContext, isValidElement, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { usePageHeaderActions } from './PageChrome';
 import { LearningStatusIcon, type LearningStatus } from './LearningStatusIcon';
 import { batchText, type ListSelection } from './ListBatch';
@@ -101,7 +102,15 @@ export function LearningListRow({ selectId, title, references, reading, descript
 }
 
 /** Slots keep feature-specific filters, row content and actions outside the layout. */
-export function LearningListHeader({ title, count, search, children, appliedSummary, onReset }: { title?: ReactNode; count?: ReactNode; search?: ReactNode; children?: ReactNode; appliedSummary?: ReactNode; onReset?: () => void }) {
+export function LearningListHeader({ title, count, search, children, appliedSummary, onReset, expandedOnWide = true }: { expandedOnWide?: boolean; title?: ReactNode; count?: ReactNode; search?: ReactNode; children?: ReactNode; appliedSummary?: ReactNode; onReset?: () => void }) {
+  const [wide, setWide] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setWide(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  const inline = expandedOnWide && wide;
   const density = useContext(ListDensityContext);
   const locale = density?.locale ?? (isValidElement<{ locale?: string }>(search) ? search.props.locale : undefined) ?? 'zh-CN';
   const ja = locale === 'ja'; const en = locale === 'en';
@@ -115,7 +124,9 @@ export function LearningListHeader({ title, count, search, children, appliedSumm
   const hasControls = Boolean(search || Children.toArray(children).length || density);
   const show = () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setOpen(true); };
   const close = () => { dialog.current?.close(); setOpen(false); };
-  const inHeader = usePageHeaderActions(hasControls ? [{ key: `list-controls-${id}`, label, icon: <SlidersHorizontal size={21}/>, onClick: show }] : []);
+  const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
+  const inHeader = usePageHeaderActions(inline && search ? [{ key: `list-search-${id}`, label, content: <div ref={setSearchHost} />, onClick: () => {} }] : hasControls && !inline ? [{ key: `list-controls-${id}`, label, icon: <SlidersHorizontal size={21}/>, onClick: show }] : []);
+  useEffect(() => { if (inline) setOpen(false); }, [inline]);
   const query = isValidElement<{ value?: string }>(search) ? search.props.value : undefined;
   const summary = appliedSummary || (query ? `${ja ? '検索' : en ? 'Search' : '搜索'}: ${query}` : null);
   useEffect(() => {
@@ -127,6 +138,7 @@ export function LearningListHeader({ title, count, search, children, appliedSumm
     document.body.style.overflow = 'hidden';
     return () => { element?.close(); document.body.style.overflow = previous; if (trigger.current?.isConnected) trigger.current.focus(); };
   }, [open]);
+  if (inline) return <header className="list-header list-header-expanded">{inHeader ? searchHost ? createPortal(search, searchHost) : null : <div className="list-expanded-top">{search}</div>}<div className="list-expanded-filters">{children}{density ? <button type="button" className="list-density-toggle" aria-pressed={density.detailed} onClick={density.toggle}>{ja ? '詳細表示' : en ? 'Detailed list' : '详细列表'}</button> : null}</div>{summary && onReset ? <div className="list-applied-summary"><span>{summary}</span><button type="button" onClick={onReset}>{ja ? 'リセット' : en ? 'Reset' : '重置'}</button></div> : null}</header>;
   return <header className={`list-header${inHeader ? ' has-page-header' : ''}`}>
     {!inHeader && title ? <div className="list-title"><h1>{title}</h1>{count ? <span>{count}</span> : null}</div> : null}
     {!inHeader && hasControls ? <button type="button" className="list-controls-trigger" aria-label={label} aria-haspopup="dialog" aria-expanded={open} onClick={show}><SlidersHorizontal size={20}/><span>{label}</span></button> : null}

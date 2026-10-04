@@ -152,7 +152,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
         <aside className="listening-audio-sidebar" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
           <div className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto">
             {!readAlongOpen ? <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} onOpenReadAlong={() => setReadAlongOpen(true)} /> : null}
-            <ListeningQuestionNavigation questions={activeGroup} locale={locale} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
+            {activeGroup.length > 1 ? <ListeningQuestionNavigation questions={activeGroup} locale={locale} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} /> : null}
           </div>
         </aside>
         </div>
@@ -176,7 +176,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
     try {
       const audioBase64 = await fileToBase64(audioFile);
       const currentDraft = { title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation };
-      const drafts = activeDraftIndex === null ? [...queuedDrafts, currentDraft] : queuedDrafts.map((draft, index) => index === activeDraftIndex ? { ...draft, ...currentDraft } : draft);
+      const drafts = activeDraftIndex === null ? [...queuedDrafts, currentDraft] : [...queuedDrafts.map((draft, index) => index === activeDraftIndex ? { ...draft, ...currentDraft } : draft), ...(tailDraft.current ? [tailDraft.current] : [])];
       for (const draft of drafts) {
         const isBlankBasicTraining = draft.questionTypeId === 'listening-basic-training' && draft.choices.every((choice) => !choice.trim());
         const normalizedAnswerIndex = isBlankBasicTraining ? -1 : draft.questionTypeId === 'listening-outline' && draft.answerIndex < 0 ? 0 : draft.answerIndex;
@@ -191,12 +191,13 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       setExplanation('');
       setTranscript('');
       setTranscriptTranslation('');
+      tailDraft.current = null;
       setQueuedDrafts([]);
       setActiveDraftIndex(null);
       setShowForm(false);
       setAudioFile(null);
       setFileInputKey((value) => value + 1);
-      setMessage(`已保存 ${queuedDrafts.length + 1} 道听力题。`);
+      setMessage(`已保存 ${drafts.length} 道听力题。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to save listening question');
     } finally {
@@ -208,6 +209,12 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
     const draft = { ...(activeDraftIndex === null ? {} : queuedDrafts[activeDraftIndex]), title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation };
     setQueuedDrafts((current) => activeDraftIndex === null ? [...current, draft] : current.map((item, index) => index === activeDraftIndex ? draft : item));
     setActiveDraftIndex(null);
+    if (activeDraftIndex !== null && tailDraft.current) {
+      loadDraft(tailDraft.current);
+      tailDraft.current = null;
+      return;
+    }
+    tailDraft.current = null;
     setTitle('');
     setQuestionTypeId(defaultListeningQuestionTypeId);
     setQuestion(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
@@ -321,7 +328,22 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
 
       {showForm ? (
         <form id="listening-authoring-form" className="content-authoring-form listening-authoring-form" onSubmit={submit}>
-            <div className="listening-draft-navigation"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1}</button>)}</div>
+          <section className="listening-material-stage" aria-labelledby="listening-material-heading">
+            <h2 id="listening-material-heading">{locale === 'ja' ? '1 · 音声素材' : locale === 'en' ? '1 · Audio material' : '1 · 上传听力素材'}</h2>
+            <p>{locale === 'ja' ? '音声を一度選択すると、異なる形式の問題を追加できます。' : locale === 'en' ? 'Choose one audio file, then add questions of different types using the same material.' : '音频最多 25 MB。一份素材可添加多道不同题型的题目，切换题目时保留音频与原文。'}</p>
+            <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningAudio}<input key={fileInputKey} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" onChange={(event) => void selectAudio(event.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-md border border-[#cbd6cf] bg-white p-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e9f0e9] file:px-3 file:py-2 file:font-semibold file:text-[#31564c]" required />{audioFile ? <span className="mt-2 block text-xs font-normal text-[#68716b]">{audioFile.name} · {formatFileSize(audioFile.size, locale)}</span> : null}</label>
+            {audioFile ? <UploadedAudioPreview file={audioFile} labels={labels} /> : <p className="mt-3 text-xs leading-5 text-[#68716b]">选择音频后可在这里试听。</p>}
+            <details className="content-form-group listening-audio-form-group"><summary><strong>{locale === 'ja' ? '原文と翻訳（任意）' : locale === 'en' ? 'Transcript and translation (optional)' : '原文与翻译（可选）'}</strong><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
+            <label className="mt-4 block text-sm font-semibold text-[#31564c]">{labels.listeningTranscript}
+              <textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptPlaceholder} className="mt-2 min-h-40 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
+            </label>
+            <label className="mt-3 block text-sm font-semibold text-[#68716b]">{labels.listeningTranscriptTranslation}
+              <textarea value={transcriptTranslation} onChange={(event) => setTranscriptTranslation(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptTranslationPlaceholder} className="mt-2 min-h-28 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
+            </label>
+            </div></details>
+          </section>
+          <h2 className="listening-question-stage-title">{locale === 'ja' ? '2 · 問題を追加' : locale === 'en' ? '2 · Add questions' : '2 · 为素材添加题目'}</h2>
+            <div className="listening-draft-navigation"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1} · {listeningQuestionTypeName(draft.questionTypeId)}</button>)}</div>
           <div className="listening-form-fields">
 
           <div className="listening-type-answer">
@@ -380,18 +402,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           </label></div></details>
 
             </div>
-          <details className="content-form-group listening-audio-form-group" onInvalid={(event) => { event.currentTarget.open = true; }}><summary><strong>{locale === 'ja' ? '音声と原文' : locale === 'en' ? 'Audio and transcript' : '音频与原文'}</strong><span>{audioFile ? audioFile.name : locale === 'ja' ? '音声ファイル・最大 25 MB' : locale === 'en' ? 'Audio file · up to 25 MB' : '音频文件 · 最多 25 MB'}<br />{locale === 'ja' ? '原文・翻訳（任意）' : locale === 'en' ? 'Transcript and translation (optional)' : '听力原文 · 原文翻译（可选）'}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
-            <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningAudio}<input key={fileInputKey} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" onChange={(event) => void selectAudio(event.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-md border border-[#cbd6cf] bg-white p-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e9f0e9] file:px-3 file:py-2 file:font-semibold file:text-[#31564c]" required />{audioFile ? <span className="mt-2 block text-xs font-normal text-[#68716b]">{audioFile.name} · {formatFileSize(audioFile.size, locale)}</span> : null}</label>
-            <label className="mt-4 block text-sm font-semibold text-[#31564c]">{labels.listeningTranscript}
-              <textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptPlaceholder} className="mt-2 min-h-40 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
-            </label>
-            <label className="mt-3 block text-sm font-semibold text-[#68716b]">{labels.listeningTranscriptTranslation}
-              <textarea value={transcriptTranslation} onChange={(event) => setTranscriptTranslation(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptTranslationPlaceholder} className="mt-2 min-h-28 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
-            </label>
-            {audioFile ? <UploadedAudioPreview file={audioFile} labels={labels} /> : <p className="mt-3 text-xs leading-5 text-[#68716b]">选择音频后可在这里试听。</p>}
-          </div></details>
           <div className="listening-authoring-actions">
-            <button type="button" onClick={addDraft} disabled={submitting || matchingAudio || !audioFile}>{locale === 'ja' ? '次の問題を追加' : locale === 'en' ? 'Add next question' : '添加下一题'}</button>
+            <button type="button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) addDraft(); }} disabled={submitting || matchingAudio || !audioFile}>{locale === 'ja' ? '次の問題を追加' : locale === 'en' ? 'Add next question' : '添加下一题'}</button>
             <button type="submit" disabled={submitting || matchingAudio || !audioFile} className="content-form-submit">{submitting ? labels.listeningSubmitting : locale === 'ja' ? '保存して完了' : locale === 'en' ? 'Save and finish' : '保存并完成添加'}</button>
           </div>
         </form>
@@ -820,7 +832,7 @@ function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detai
             ? index === item.answerIndex ? 'border-[#6f947c] !bg-[#edf5ee]' : selected === index ? 'border-[#c9907d] !bg-[#fbf1ed]' : 'border-[#d8e0d7] !bg-white'
             : selected === index ? 'border-[#31564c] !bg-[#edf3ef]' : 'border-[#d8e0d7] !bg-white';
           return (
-            <label key={index} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm ${resultClass}`}>
+            <label key={index} className={`study-answer-option flex min-h-12 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm ${resultClass}`}>
               <input type="radio" name={`listening-${item.id}`} checked={selected === index} onChange={() => onAnswerChange({ ...answer, selected: index })} />
               <span className="min-w-0">{index + 1}. {choice}
                 {revealed && item.choiceDetails?.[index]?.translation ? <span className="mt-1 block font-normal text-[#68716b]">{item.choiceDetails[index].translation}</span> : null}

@@ -353,7 +353,7 @@ function MockExamContent({ examId, userId, locale, onBack }: MockExamPanelProps)
                 {currentQuestion.choices.map((choice, choiceIndex) => {
                   const selected = saved.answers[currentQuestion.id] === choiceIndex;
                   return (
-                    <button key={choiceIndex} type="button" aria-keyshortcuts={String(choiceIndex + 1)} aria-pressed={selected} onClick={() => answer(currentQuestion.id, choiceIndex)} className={`flex min-h-14 w-full items-start gap-3 rounded-md border px-4 py-3 text-left text-base leading-7 transition ${selected ? 'border-[#31564c] bg-[#edf6f0] text-[#24473f] ring-1 ring-[#31564c]' : 'border-[#dce4dd] bg-white text-[#3f4944] hover:bg-[#f7faf7]'}`}>
+                    <button key={choiceIndex} type="button" aria-keyshortcuts={String(choiceIndex + 1)} aria-pressed={selected} onClick={() => answer(currentQuestion.id, choiceIndex)} className={`study-answer-option flex min-h-14 w-full items-start gap-3 rounded-md border px-4 py-3 text-left text-base leading-7 transition ${selected ? 'border-[#31564c] bg-[#edf6f0] text-[#24473f] ring-1 ring-[#31564c]' : 'border-[#dce4dd] bg-white text-[#3f4944] hover:bg-[#f7faf7]'}`}>
                       <span className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${selected ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#bdc9c1] bg-white text-[#5d6962]'}`}>{choiceIndex + 1}</span>
                       <span>{choice}</span>
                     </button>

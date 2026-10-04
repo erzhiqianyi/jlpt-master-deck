@@ -1,8 +1,7 @@
+import { SpeechControls } from '../../components/SpeechControls';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useId, type ReactNode } from 'react';
-import { Volume2 } from 'lucide-react';
 import { findLookupItems, lookupForms, normalizeLookup, segmentJapanese } from '../../domain/wordLookup';
 import { itemMeaning } from '../../domain/items';
-import { speak } from '../../lib/tts';
 import type { LearningCapture, Locale, TtsProviderId, VocabItem } from '../../types';
 import './WordLookup.css';
 
@@ -76,7 +75,6 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<string[]>([]);
   const [error, setError] = useState('');
-  const [speaking, setSpeaking] = useState<string | null>(null);
   const word = normalizeLookup(query);
   const matches = useMemo(() => findLookupItems(items, word).map((item) => ({
     item, meaning: itemMeaning(item, locale)?.trim() || item.meaning_zh?.trim() || item.meaning_ja?.trim(),
@@ -99,13 +97,6 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
     } catch (err) { setError(err instanceof Error ? err.message : '加入失败，请重试。'); }
     finally { busy.current = false; setSaving(false); }
   }
-  async function playPronunciation(itemId: string, text: string) {
-    if (speaking) return;
-    setSpeaking(itemId); setError('');
-    try { await speak(text, { provider: ttsProvider, token: authToken }); }
-    catch (err) { setError(err instanceof Error ? err.message : '朗读失败，请重试。'); }
-    finally { setSpeaking(null); }
-  }
   return <dialog ref={dialog} className="word-lookup-dialog" aria-labelledby="word-lookup-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) { const box = event.currentTarget.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onClose(); } }}>
     <header><h2 id="word-lookup-title">单词查询</h2><button type="button" onClick={onClose} autoFocus aria-label="关闭查询">关闭</button></header>
     <div className="word-lookup-content">
@@ -114,9 +105,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
       {!word ? <p>请输入要查询的单词。</p> : matches.length ? matches.map(({ item, meaning }) => <article key={item.id}>
         <p className="word-lookup-reading-row">
           {item.reading && item.reading !== word && <span className="word-lookup-reading" lang="ja">{item.reading}</span>}
-          <button type="button" className="word-lookup-speak" disabled={speaking === item.id} aria-label={`朗读「${item.original}」`} onClick={() => playPronunciation(item.id, item.reading || item.original)}>
-            <Volume2 size={16} />
-          </button>
+          <SpeechControls text={item.reading || item.original} label={`朗读「${item.original}」`} />
         </p>
         <p>{meaning}</p>
       </article>) : <div className="word-lookup-empty"><p>暂无释义。</p>

@@ -1,3 +1,4 @@
+import { SpeechControls, useSpeech } from '../../components/SpeechControls';
 import '../practice/practice-layout.css';
 import { conjugationReading } from '../../domain/conjugationReading';
 import { LookupText } from './WordLookup';
@@ -30,7 +31,12 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [error, setError] = useState('');
+  const t = (zh: string, ja: string, en: string) => locale === 'zh-CN' ? zh : locale === 'ja' ? ja : en;
   const item = queue[index];
+  const speech = useSpeech()?.settings.speech;
+  const grammar = item?.type === 'grammar' || item?.deck?.includes('grammar');
+  const auto = speech?.cardAuto && speech.cardAuto !== 'off' && (!grammar || speech.grammarAuto) && (speech.cardAuto === 'front' || revealed);
+  const speechText = item ? [item.reading || item.original, ...(auto && speech?.includeExample ? [item.examples?.find((example) => !isMetaLearningExample(example.ja))?.ja ?? ''] : [])].filter(Boolean).join('。') : '';
 
   async function rate(rating: MemoryRating) {
     if (!item || savingRef.current) return;
@@ -52,8 +58,8 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   if (!queue.length || index >= queue.length) {
     return (
       <main className="ledger-focus-review study-memory-review">
-        <header className="ledger-focus-topbar"><button type="button" onClick={onExit}><ArrowLeft size={20} />返回今天</button><strong>记忆卡复习</strong><span>{queue.length} / {queue.length}</span></header>
-        <section className="ledger-review-complete"><CheckCircle2 size={46} /><h1>今日复习完成</h1><p>{queue.length ? `${queue.length} 张记忆卡已更新下次复习日期。` : '今天没有到期的记忆卡。'}</p><button type="button" onClick={onExit}>返回今天</button></section>
+        <header className="ledger-focus-topbar"><button type="button" onClick={onExit}><ArrowLeft size={20} />{t('返回今天', '今日に戻る', 'Back to Today')}</button><strong>{t('记忆卡复习', '単語カード復習', 'Flashcard review')}</strong><span>{queue.length} / {queue.length}</span></header>
+        <section className="ledger-review-complete"><CheckCircle2 size={46} /><h1>{t('今日复习完成', '今日の復習が完了しました', 'Review complete')}</h1><p>{queue.length ? t(`${queue.length} 张记忆卡已更新下次复习日期。`, `${queue.length} 枚のカードの次回復習日を更新しました。`, `Updated the next review dates for ${queue.length} flashcards.`) : t('今天没有到期的记忆卡。', '今日は復習期限のカードがありません。', 'No flashcards are due today.')}</p><button type="button" onClick={onExit}>{t('返回今天', '今日に戻る', 'Back to Today')}</button></section>
       </main>
     );
   }
@@ -63,15 +69,16 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   return (
     <main className="ledger-focus-review study-memory-review">
       <header className="ledger-focus-topbar">
-        <button type="button" onClick={onExit} aria-label="退出复习">
+        <button type="button" onClick={onExit} aria-label={t('退出复习', '復習を終了', 'Exit review')}>
           <ArrowLeft size={20} />
-          <span className="ledger-exit-label ledger-exit-label-long">退出复习</span>
-          <span className="ledger-exit-label ledger-exit-label-short">退出</span>
+          <span className="ledger-exit-label ledger-exit-label-long">{t('退出复习', '復習を終了', 'Exit review')}</span>
+          <span className="ledger-exit-label ledger-exit-label-short">{t('退出', '終了', 'Exit')}</span>
         </button>
-        <strong>记忆卡复习</strong>
+        <strong>{t('记忆卡复习', '単語カード復習', 'Flashcard review')}</strong>
         <span>{reviewed + 1} / {queue.length}</span>
       </header>
-      <div className="ledger-focus-progress" role="progressbar" aria-valuemin={0} aria-valuemax={queue.length} aria-valuenow={reviewed}><i style={{ width: `${(reviewed / queue.length) * 100}%` }} /></div>
+      <div className="ledger-focus-progress" role="progressbar" aria-label={t('复习进度', '復習の進捗', 'Review progress')} aria-valuemin={0} aria-valuemax={queue.length} aria-valuenow={reviewed}><i style={{ width: `${(reviewed / queue.length) * 100}%` }} /></div>
+      <div className="memory-review-speech"><SpeechControls iconOnly key={item.id} text={speechText} auto={Boolean(auto)} /></div>
       <section
         className={`ledger-focus-stage ${wordSpacing ? 'has-word-spacing' : ''} ${revealed ? 'has-ratings' : 'can-reveal'}`}
         onClick={!revealed ? () => setRevealed(true) : undefined}
@@ -86,7 +93,7 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
           } : undefined}
           role={!revealed ? 'button' : undefined}
           tabIndex={!revealed ? 0 : undefined}
-          aria-label={!revealed ? `显示「${item.original}」的答案` : undefined}
+          aria-label={!revealed ? t(`显示「${item.original}」的答案`, `「${item.original}」の答えを表示`, `Show answer for ${item.original}`) : undefined}
         >
           <div className="ledger-memory-flip-inner">
             <article className="ledger-memory-card ledger-memory-face ledger-memory-front" aria-hidden={revealed} inert={revealed}>
@@ -108,13 +115,13 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
         </div>
         {error ? <p className="study-memory-save-error" role="alert">{error}</p> : null}
         {!revealed ? (
-          <button type="button" className="ledger-primary-action" onClick={() => setRevealed(true)}><Eye size={18} />显示答案</button>
+          <button type="button" className="ledger-primary-action" onClick={() => setRevealed(true)}><Eye size={18} />{t('显示答案', '答えを表示', 'Show answer')}</button>
         ) : (
-          <div className="ledger-memory-ratings" aria-label="记忆程度">
-            <button type="button" disabled={saving} data-rating="forgot" onClick={() => rate('forgot')}><RotateCcw size={20} /><strong>忘记</strong><small>10 分钟</small></button>
-            <button type="button" disabled={saving} data-rating="hard" onClick={() => rate('hard')}><TriangleAlert size={20} /><strong>困难</strong><small>1 天</small></button>
-            <button type="button" disabled={saving} data-rating="remembered" onClick={() => rate('remembered')}><CheckCircle2 size={20} /><strong>记得</strong><small>3 天</small></button>
-            <button type="button" disabled={saving} data-rating="easy" onClick={() => rate('easy')}><Target size={20} /><strong>简单</strong><small>7 天</small></button>
+          <div className="ledger-memory-ratings" aria-label={t('记忆程度', '記憶の度合い', 'Recall rating')}>
+            <button type="button" disabled={saving} data-rating="forgot" onClick={() => rate('forgot')}><RotateCcw size={20} /><strong>{t('忘记', '忘れた', 'Forgot')}</strong><small>{t('10 分钟', '10分', '10 minutes')}</small></button>
+            <button type="button" disabled={saving} data-rating="hard" onClick={() => rate('hard')}><TriangleAlert size={20} /><strong>{t('困难', '難しい', 'Hard')}</strong><small>{t('1 天', '1日', '1 day')}</small></button>
+            <button type="button" disabled={saving} data-rating="remembered" onClick={() => rate('remembered')}><CheckCircle2 size={20} /><strong>{t('记得', '覚えている', 'Remembered')}</strong><small>{t('3 天', '3日', '3 days')}</small></button>
+            <button type="button" disabled={saving} data-rating="easy" onClick={() => rate('easy')}><Target size={20} /><strong>{t('简单', '簡単', 'Easy')}</strong><small>{t('7 天', '7日', '7 days')}</small></button>
           </div>
         )}
       </section>
@@ -241,10 +248,10 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'points': return lines((item.points ?? []).map((entry) => joined([entry.label, entry.detail_zh])));
     case 'comparisons': return lines((item.comparisons ?? []).map((entry) => joined([entry.kind === 'everyday' ? `〔日常〕${entry.target ?? ''}` : entry.target, entry.difference_zh])));
     case 'register': return scalar(joined([item.register?.note_zh, item.register?.exam_tip_zh], ' · '));
-    case 'conjugations': return item.conjugations?.length ? <ConjugationPattern item={item} /> : null;
+    case 'conjugations': return item.conjugations?.length ? <ConjugationPattern item={item} locale={locale} /> : null;
     case 'examples': {
       const example = item.examples?.find((candidate) => !isMetaLearningExample(candidate.ja));
-      return example ? <><span lang="ja"><LookupText text={example.ja} /></span><small>{example.zh}</small></> : null;
+      return example ? <><span lang="ja"><LookupText text={example.ja} /> <SpeechControls iconOnly text={example.ja} /></span><small>{example.zh}</small></> : null;
     }
     case 'notes': return lines(item.notes ?? []);
     case 'tags': return item.tags?.length ? <span>{item.tags.join(' · ')}</span> : null;
@@ -253,15 +260,24 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
   }
 }
 
-function ConjugationPattern({ item }: { item: VocabItem }) {
+function ConjugationPattern({ item, locale }: { item: VocabItem; locale: Locale }) {
   const baseForm = item.base_form?.trim() || item.original.trim();
   const rule = conjugationRule(baseForm, item.inflection_class);
+  const translate = (text: string) => {
+    const entries: Record<string, [string, string]> = {
+      '活用变化规则': ['活用の規則', 'Conjugation rules'], 'サ变动词': ['サ変動詞', 'Suru verb'], '词干 ＋「する」型变化': ['語幹 ＋「する」の活用', 'Stem + suru conjugation'],
+      'カ变动词': ['カ変動詞', 'Kuru verb'], '「くる」的不规则变化': ['「くる」の不規則活用', 'Irregular kuru conjugation'], '一段动词': ['一段動詞', 'Ichidan verb'], '去掉「る」后接活用词尾': ['「る」を取って活用語尾を付ける', 'Drop ru and add the ending'],
+      '五段动词': ['五段動詞', 'Godan verb'], '末尾假名按同行变化': ['語尾を同じ行で変化させる', 'Change the final kana within its row'], 'い形容词': ['イ形容詞', 'I-adjective'], '词干 ＋ 活用词尾': ['語幹 ＋ 活用語尾', 'Stem + ending'], 'な形容词': ['ナ形容詞', 'Na-adjective'], '词干 ＋「だ」型变化': ['語幹 ＋「だ」の活用', 'Stem + da conjugation'],
+      '活用': ['活用', 'Conjugation'], '按形式查看变化': ['形ごとに活用を確認', 'Review each conjugated form'], '辞书形': ['辞書形', 'Dictionary'], 'ます形': ['ます形', 'Polite'], 'ない形': ['ない形', 'Negative'], 'た形': ['た形', 'Past'], 'て形': ['て形', 'Te-form'], '条件形': ['条件形', 'Conditional'], '可能形': ['可能形', 'Potential'], '被动形': ['受身形', 'Passive'], '使役形': ['使役形', 'Causative'], '连用形': ['連用形', 'Adverbial'],
+    };
+    return locale === 'zh-CN' ? text : entries[text]?.[locale === 'ja' ? 0 : 1] ?? text;
+  };
 
   return (
-    <section className="ledger-conjugation-pattern" aria-label="活用变化规则">
+    <section className="ledger-conjugation-pattern" aria-label={translate("活用变化规则")}>
       <header>
-        <strong>{rule.typeLabel}</strong>
-        <span>{rule.ruleLabel}</span>
+        <strong>{translate(rule.typeLabel)}</strong>
+        <span>{translate(rule.ruleLabel)}</span>
       </header>
       <ul>
         {item.conjugations?.map((entry) => {
@@ -273,7 +289,7 @@ function ConjugationPattern({ item }: { item: VocabItem }) {
 
           return (
             <li key={`${entry.kind}-${entry.form}`}>
-              <small>{conjugationKindLabel(entry.kind)}</small>
+              <small>{translate(conjugationKindLabel(entry.kind))}</small>
               <span lang="ja">
                 {reading && reading !== form ? <ruby>{surface}<rp>(</rp><rt>{reading}</rt><rp>)</rp></ruby> : surface}
               </span>

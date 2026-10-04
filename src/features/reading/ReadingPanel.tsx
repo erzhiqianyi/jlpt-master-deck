@@ -1,3 +1,4 @@
+import { SpeechControls } from '../../components/SpeechControls';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { PracticeTimer } from '../../components/PracticeTimer';
 import { ReadingRubyProvider, ReadingText } from './ReadingText';
@@ -317,7 +318,11 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
     <div className={`reading-practice-layout${passageOpen ? ' is-passage-open' : ' is-answering'}`}>
     <details className="reading-passage-body" open={passageOpen} onToggle={(event) => setPassageOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
-      <p lang="ja" className={`reading-original-text mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}><ReadingText text={item.passage} lookup={segmented} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /></p>
+      <SpeechControls text={item.passage} label={locale === 'ja' ? '本文を読み上げる' : locale === 'en' ? 'Read passage' : '朗读全文'} />
+      {item.passage.split(/\n\s*\n|\n/).filter((paragraph) => paragraph.trim()).map((paragraph, index) => <div key={index}>
+        <p lang="ja" className={`reading-original-text mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}><ReadingText text={paragraph} lookup={segmented} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /></p>
+        <SpeechControls text={paragraph} label={locale === 'ja' ? `段落 ${index + 1}` : locale === 'en' ? `Paragraph ${index + 1}` : `朗读第 ${index + 1} 段`} />
+      </div>)}
       <button type="button" className="reading-start-answer" onClick={() => { setPassageOpen(false); window.requestAnimationFrame(() => document.getElementById('reading-questions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>{locale === 'ja' ? '本文を閉じて解答する' : locale === 'en' ? 'Close passage and answer' : '收起原文并作答'}</button>
     </details>
     <div id="reading-questions" className="reading-question-column divide-y divide-[#e1e7df]">

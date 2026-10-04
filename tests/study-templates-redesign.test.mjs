@@ -62,7 +62,7 @@ test('word rows preserve meaning and distinct reading, display only actual compl
   assert.ok(document.querySelector('.list-frame.is-simple-study-list'));
   assert.ok(document.querySelector('.list-item-references'), 'reference codes remain available for detailed mode');
   assert.equal(document.querySelector('input[type="search"]'), null, 'filters are initially collapsed');
-  assert.equal(document.querySelectorAll('.module-practice-mascot').length, 1);
+  assert.equal(document.querySelectorAll('.module-practice-entry').length, 1);
 });
 
 test('capture editor unmounts list controls, and Back retains its typed draft', async () => {
@@ -153,16 +153,16 @@ test('memory ratings prevent repeated writes and retain the revealed card after 
 
 test('focused practice selector is a child screen with no list controls or duplicate practice entry', async () => {
   await render(ui.WordIndexPanel, { ...wordProps, questions: [{ id: 'q1', itemId: word.id, kind: 'meaning' }] });
-  await click(document.querySelector('.module-practice-mascot'));
+  await click(document.querySelector('.module-practice-entry'));
   await click(button('按题型练习'));
   assert.ok(document.querySelector('.study-focused-selector'));
-  assert.equal(document.querySelector('.module-practice-mascot'), null);
+  assert.equal(document.querySelector('.module-practice-entry'), null);
   assert.equal(document.querySelector('.list-controls-dialog'), null);
   assert.equal(document.querySelector('[role="list"]'), null);
   assert.equal(location.kind, 'detail');
   await act(async () => location.close());
   assert.ok(document.querySelector('[role="list"]'));
-  assert.ok(document.querySelector('.module-practice-mascot'));
+  assert.ok(document.querySelector('.module-practice-entry'));
 });
 
 test('mistake detail shows the saved answer and Back returns to its filtered list', async () => {

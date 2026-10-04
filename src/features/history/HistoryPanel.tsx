@@ -5,7 +5,7 @@ import './RecordHome.css';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListSearch, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction, type ListSelection } from '../../components/ListBatch';
-import { Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
+import { BarChart3, Clock3, Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -190,6 +190,7 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCo
 
   return (
     <div className="record-home" aria-label={labels.navStatsHome}>
+      <div className="record-mobile-summary"><Clock3 size={24} aria-hidden="true" /><strong>{todayAttempts.length ? `${copy.practices} ${todayAttempts.length} · ${todayTotal} ${copy.answers}` : copy.empty}</strong><a href="#/mixed/tips">{copy.practice}<ArrowRight size={16} aria-hidden="true" /></a></div>
       <section className="record-home-today" aria-labelledby="record-today-title">
         <header><div><span>{formatTodayLabel(locale)}</span><h2 id="record-today-title">{copy.today}</h2></div><button type="button" onClick={onOpenToday}>{copy.detail}<ArrowRight size={16} aria-hidden="true" /></button></header>
         <dl className="record-home-stats">
@@ -242,6 +243,7 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCo
         <div className="record-home-links">
           <a href="#/captures"><NotebookPen size={21} aria-hidden="true" /><span><strong>{copy.captures}</strong><small>{captures.length} {copy.entries}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
           <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{draftCount === undefined ? copy.draftsSub : `${draftCount} ${copy.entries}`}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
+          <button type="button" className="record-mobile-statistics" onClick={onOpenToday}><BarChart3 size={21} aria-hidden="true" /><span><strong>{t('学习统计', '学習統計', 'Study statistics')}</strong></span><ChevronRight size={18} aria-hidden="true" /></button>
 
         </div>
       </section>

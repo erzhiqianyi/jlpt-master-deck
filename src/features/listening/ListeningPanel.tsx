@@ -1,4 +1,3 @@
-import { AnswerCelebration } from '../../components/StudyCompanion';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { RecordReference } from '../../components/RecordReference';
 import './listening.css';
@@ -602,7 +601,6 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
           {labels.listeningShowAnswer}
         </button>
         {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
-        <AnswerCelebration correct={revealed && !isFreeResponse(item) && selected !== null && selected === item.answerIndex} />
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-bold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed ? <ListeningExplanation item={item} labels={labels} /> : null}
@@ -845,7 +843,6 @@ function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detai
         })}
       </div> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <AnswerCelebration correct={revealed && !isFreeResponse(item) && selected !== null && selected === item.answerIndex} />
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed ? <div className="md:hidden"><details className="mt-4 rounded-lg border border-[#dce9df] bg-[#f7fbf7] p-4"><summary className="cursor-pointer font-bold text-[#31564c]">{locale === 'ja' ? '解説を見る' : locale === 'en' ? 'View explanation' : '查看解析'}</summary><ListeningExplanation item={item} labels={labels} /><ListeningAnswerBreakdown item={item} /></details></div> : null}
@@ -1300,7 +1297,10 @@ function audioMimeFromName(name: string) {
 }
 
 function listeningAudioTitle(item: ListeningQuestion, questions: ListeningQuestion[]) {
-  const name = item.audioFileName.replace(/\.[a-zA-Z0-9]{2,5}$/, '').replace(/_+/g, ' ').trim() || item.title;
+  const filename = item.audioFileName.replace(/\.[a-zA-Z0-9]{2,5}$/, '').replace(/_+/g, ' ').trim();
+  const track = filename.match(/\bCD[- ]?([A-Z])[- ]+(\d{1,3})$/i);
+  // Keep the disc identity; the complete original filename remains in audio details.
+  const name = track ? `CD-${track[1].toUpperCase()} · Track ${Number(track[2])}` : filename || item.title;
   const types = [...new Set(questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))];
   return types.length === 1 && !name.includes(types[0]) ? `${name} · ${types[0]}` : name;
 }

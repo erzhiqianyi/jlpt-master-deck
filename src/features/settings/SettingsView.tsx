@@ -2,7 +2,7 @@ import { SpeechPreferences } from './SpeechPreferences';
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
+import { Bot, BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import { stopSpeech, speak, fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
@@ -255,7 +255,7 @@ function SettingsHome({ copy, labels, settings, onOpenSection, onSearch }: { cop
 function AiSettingsBlock({ labels }: { labels: Record<string, string> }) {
   return <section className="settings-ai-block" aria-label={labels.aboutTitle}>
     <a href="#/about">
-      <img src="/study-companion.png" width="76" height="76" alt="" />
+      <Bot size={22} aria-hidden="true" />
       <span><strong>{labels.aboutTitle}</strong><small>{labels.settingsAboutLink}</small></span>
       <ChevronRight size={20} aria-hidden="true" />
     </a>

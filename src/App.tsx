@@ -1772,7 +1772,10 @@ export default function App() {
     if (activeView === 'mixed') return { ...attempt, title: activePracticeTitle };
     return attempt;
   }
-  const mobileHeaderTitle = authoringLocation?.label || replayAttempt?.title || detailTitle || (activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
+  const mobileDetailTitle = route.page === 'words' && route.itemId
+    ? ({ vocabulary: locale === 'zh-CN' ? '词汇详情' : locale === 'ja' ? '語彙の詳細' : 'Vocabulary details', grammar: locale === 'zh-CN' ? '语法详情' : locale === 'ja' ? '文法の詳細' : 'Grammar details', reading: locale === 'zh-CN' ? '阅读原文' : locale === 'ja' ? '読解本文' : 'Reading passage', listening: locale === 'zh-CN' ? '听力作答' : locale === 'ja' ? '聴解練習' : 'Listening practice' } as Partial<Record<AppView, string>>)[route.view]
+    : undefined;
+  const mobileHeaderTitle = authoringLocation?.label || replayAttempt?.title || mobileDetailTitle || detailTitle || (activeView === 'daily-practice' && (studyPage === 'questions' || studyPage === 'review')
     ? activePracticeTitle
     : activeView === 'plan' && route.itemId
       ? ({ daily: locale === 'ja' ? '毎日の学習' : locale === 'en' ? 'Daily learning' : '每天学什么', overview: locale === 'ja' ? '試験までの予定' : locale === 'en' ? 'Exam preparation' : '备考安排', adjust: locale === 'ja' ? '計画を調整' : locale === 'en' ? 'Adjust plan' : '调整计划', textbooks: locale === 'ja' ? '教材の学習予定' : locale === 'en' ? 'Textbook plan' : '教材计划' }[route.itemId] ?? labels.planTitle)
@@ -2631,8 +2634,8 @@ function navItems(labels: Record<string, string>) {
 }
 
 function primaryNavigationItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
-  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '统计', '题库']
-    : locale === 'ja' ? ['今日', '練習', '発見', '統計', '問題集'] : ['Today', 'Practice', 'Discover', 'Statistics', 'Library'];
+  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '记录', '题库']
+    : locale === 'ja' ? ['今日', '練習', '発見', '記録', '問題集'] : ['Today', 'Practice', 'Discover', 'Records', 'Library'];
   return primaryNavigationViews.map((view, index) => ({ view, label: titles[index] }));
 }
 
@@ -2669,6 +2672,10 @@ function studyModeNavItems(view: AppView, labels: Record<string, string>, allowL
 function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale: Locale, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
   const activeView = route.view;
   if (activeView === 'study') return labels.homeStudyArea;
+  if (activeView === 'mistakes') return labels.navMistakesList;
+  if (activeView === 'memory') return labels.dueReview;
+  if (activeView === 'capture') return locale === 'zh-CN' ? '添加输入' : locale === 'ja' ? '入力を追加' : 'Add capture';
+  if (activeView === 'plan') return locale === 'zh-CN' ? '学习计划' : locale === 'ja' ? '学習計画' : 'Study plan';
   if (activeView === 'market') return route.itemId ? labels.navMarketDetail : labels.navMarket;
   if (activeView === 'about') return isAboutSection(route.itemId) ? aboutSectionTitle(route.itemId, locale) : labels.aboutTitle;
   if (activeView === 'profile') return labels.account;
@@ -2678,7 +2685,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
   if (detail?.attempt) return labels.historyAttemptDetail;
   if (detail?.capture) return labels.captureDetailTitle;
   if (detail?.draft) return labels.draftPreview;
-  if (activeView === 'history' && route.itemId === 'today') return labels.historyFilterToday;
+  if (activeView === 'history' && route.itemId === 'today') return locale === 'zh-CN' ? '今日统计' : locale === 'ja' ? '今日の統計' : 'Today’s statistics';
   if (activeView === 'history' && route.itemId === 'history') return labels.historyPracticeTab;
   if (isDataManagementView(activeView)) {
     const visibleTab = activeDataTab ?? dataTabForRoute(activeView);
@@ -2690,7 +2697,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     return labels.dailyPracticeTitle;
   }
   if (activeView === 'question-types') {
-    return labels.navQuestionTypes;
+    return locale === 'zh-CN' ? '题型指南' : locale === 'ja' ? '問題形式ガイド' : 'Question type guide';
   }
   if (activeView === 'mixed' && route.page === 'tips' && route.itemId) {
     if (route.itemId === 'topics') return labels.navTopicsPractice;
@@ -2728,7 +2735,8 @@ function settingsSectionMobileTitle(section: string, labels: Record<string, stri
   if (section === 'display') return copy.display;
   if (section === 'practice') return copy.practice;
   if (section === 'memory') return locale === 'zh-CN' ? '记忆卡内容' : locale === 'ja' ? '記憶カードの内容' : 'Memory card content';
-  if (section === 'account') return `${labels.account} / ${labels.aboutTitle}`;
+  if (section === 'account') return labels.account;
+  if (section === 'pronunciation') return locale === 'zh-CN' ? '发音朗读' : locale === 'ja' ? '発音・読み上げ' : 'Pronunciation';
   return labels.settings;
 }
 

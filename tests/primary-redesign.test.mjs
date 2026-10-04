@@ -41,12 +41,12 @@ const button = (text, scope = document) => [...scope.querySelectorAll('button')]
 afterEach(async () => { await act(async () => root?.unmount()); root = undefined; document.body.style.overflow = ''; });
 after(async () => { dom.window.close(); await rm(dir, { recursive: true, force: true }); });
 
-test('Today follows the native plan-practice hierarchy and preserves confirmation routes', async () => {
+test('Today leads with the daily action and preserves confirmation routes', async () => {
   let opened;
   const navigated = [];
   await render(HomeDashboard, { ...home, latestDraft: { id: 'draft-9', title: 'Draft' }, dueItems: [{ id: 'a' }, { id: 'b' }], onOpenDraft: id => { opened = id; }, onNavigate: view => navigated.push(view) });
   const main = document.querySelector('.primary-today');
-  assert.deepEqual([...main.querySelector('.home-main-column').children].slice(0, 2).map(node => node.className), ['primary-plan-section', 'primary-daily-task']);
+  assert.deepEqual([...main.querySelector('.home-main-column').children].filter(el => el.tagName === 'SECTION').slice(0, 2).map(node => node.className), ['primary-daily-task', 'primary-plan-section']);
   assert.equal(main.querySelectorAll('.home-due-list li').length, 2);
   assert.equal(main.querySelector('h1'), null, 'shell owns the page title');
   assert.match(main.textContent, /确认今日题目/);
@@ -211,17 +211,13 @@ test('Today supporting actions preserve library, capture, history and empty revi
   assert.equal(history, 1);
 });
 
-test('Practice companion opens accessible shortcuts and closes after navigation', async () => {
+test('Practice keeps its three direct entries without a duplicate character menu', async () => {
   let started = 0;
   await render(MixedPracticeHub, { ...mixed, onStart: () => started++ });
-  const trigger = document.querySelector('.module-practice-mascot');
-  assert.ok(trigger.querySelector('img').src.endsWith('/study-companion.png'));
-  await click(trigger);
-  assert.equal(document.querySelector('dialog').open, true);
-  await click(button('综合练习', document.querySelector('dialog')));
+  assert.equal(document.querySelector('.module-practice-entry'), null);
+  assert.equal(document.querySelectorAll('.primary-practice-row').length, 3);
+  await click([...document.querySelectorAll('.primary-practice-row')].find(row => row.textContent.includes('综合练习')));
   assert.equal(started, 1);
-  assert.equal(document.querySelector('dialog').open, false);
-  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
 });
 
 test('Topic management selects original rows and batches confirmed actions without opening practice', async () => {

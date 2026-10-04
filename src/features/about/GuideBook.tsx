@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Check, Copy, Lightbulb, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Copy, Lightbulb, MapPin, UserRound, Bot, FileCheck2 } from 'lucide-react';
 import type { Locale } from '../../types';
 import { aiCapabilities, type AiCapabilityId } from '../../data/aiCapabilities';
 import { guideLesson } from './guideLessons';
@@ -15,9 +15,9 @@ export function guideTitle(section: string, locale: Locale) {
   if (section === 'mcp') return t('认识 MCP', 'MCP を知る', 'Understand MCP');
   if (section === 'connect') return t('接入与验证', '接続と確認', 'Connect and verify');
   if (section === 'results') return t('查看学习成果', '学習成果を確認', 'Check your results');
-  if (section === 'automation') return t('定时任务与自动化', '定期タスクと自動化', 'Scheduled tasks');
+  if (section === 'automation') return t('定时任务说明', '定期タスクと自動化', 'Scheduled tasks');
   const capability = aiCapabilities(locale).find(item => section === `guide-${item.id}`);
-  return capability?.title ?? t('图解使用指南', '図解ガイド', 'Illustrated guide');
+  return capability?.title ?? t('学习协作指引', '図解ガイド', 'Illustrated guide');
 }
 
 export function GuideBook({ section, locale, username }: { section: string; locale: Locale; username: string }) {
@@ -49,7 +49,7 @@ export function GuideBook({ section, locale, username }: { section: string; loca
     automation: t('先手动跑通，再设置时间。定时执行由你的 AI 客户端或调度工具负责，JLPT Master Deck 负责提供数据与保存结果。', 'まず手動で成功させてから時刻を設定。定期実行は AI 側が担当し、このアプリはデータと保存先を提供します。', 'Test manually before scheduling. Your AI client runs the schedule; JLPT Master Deck supplies data and stores results.'),
   };
   const outcome = isUsage ? lesson.outcome : chapter === 'mcp' ? t('分清 AI、MCP 与网页的分工', 'AI・MCP・Web の役割がわかる', 'Understand the roles of AI, MCP and this app') : chapter === 'connect' ? t('完成授权，并验证一次读取', '認可と読み取りを確認', 'Authorize and verify one read') : chapter === 'results' ? t('找到并核对实际保存的结果', '保存された結果を確認', 'Find and check saved results') : t('设置一个可检查的定时流程', '確認できる定期タスクを設定', 'Set up a verifiable scheduled workflow');
-  return <section className="handbook">
+  return <section className="handbook" data-chapter={chapter}>
     <nav className="handbook-toc" aria-label={t('使用指南章节', 'ガイドの章', 'Guide chapters')}>
       <a href="#/about" className="handbook-back"><ArrowLeft size={15} />{t('AI 助手', 'AI アシスタント', 'AI assistant')}</a>
       <strong>{t('使用指南', '使い方ガイド', 'User guide')}</strong>
@@ -81,7 +81,11 @@ export function GuideBook({ section, locale, username }: { section: string; loca
 }
 function Block({ title, children }: { title: string; children: ReactNode }) { return <section className="handbook-block"><h2>{title}</h2>{children}</section>; }
 function FlowFigure({ t, asset, labels }: { t: T; asset: string; labels: string[] }) {
-  return <figure className="handbook-figure"><img src={`/images/ai-guide/${asset}-flow.png`} alt={labels.join(' → ')} width="1536" height="640" /><figcaption>{labels.map((label, i) => <div key={label}><span>{i + 1}</span><strong>{label}</strong></div>)}</figcaption><p>{t('流程示意 · 实际操作在已接入的 AI 客户端中进行', '流れの図解・操作は接続した AI クライアントで行います', 'Illustrated flow · actions happen in your connected AI client')}</p></figure>;
+  const icons = [UserRound, Bot, FileCheck2];
+  return <figure className="handbook-figure handbook-flow-steps" data-flow={asset}><figcaption>{labels.map((label, i) => {
+    const Icon = icons[i] ?? FileCheck2;
+    return <div key={label}><span>{i + 1}</span><Icon size={28} aria-hidden="true" /><strong>{label}</strong></div>;
+  })}</figcaption><p>{t('流程示意 · 实际操作在已接入的 AI 客户端中进行', '流れの図解・操作は接続した AI クライアントで行います', 'Illustrated flow · actions happen in your connected AI client')}</p></figure>;
 }
 export function CopyPrompt({ text, t }: { text: string; t: T }) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');

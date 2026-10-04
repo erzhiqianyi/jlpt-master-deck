@@ -124,3 +124,13 @@ test('desktop and mobile replay Back return to history, never unrelated mixed qu
     assert.deepEqual(mobileBackRoute(route), desktopBackRoute(route));
   }
 });
+
+
+test('record children return to their source and capture form returns to inputs', async () => {
+  const { build } = await import('esbuild');
+  const built = await build({ entryPoints: [new URL('../src/domain/appRoutes.ts', import.meta.url).pathname], bundle: true, platform: 'node', format: 'esm', write: false });
+  const { mobileBackRoute } = await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString('base64')}`);
+  for (const view of ['captures', 'drafts', 'mistakes']) assert.deepEqual(mobileBackRoute({view, page:'questions'}), {view:'history',page:'questions'});
+  assert.deepEqual(mobileBackRoute({view:'capture',page:'questions'}), {view:'captures',page:'questions'});
+  assert.deepEqual(mobileBackRoute({view:'memory',page:'questions'}), {view:'home',page:'questions'});
+});

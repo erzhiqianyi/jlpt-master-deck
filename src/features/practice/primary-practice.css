@@ -35,7 +35,7 @@
 .primary-topic-management .share-trigger { flex-shrink: 0; }
 
 /* Entry cards share the native iPad hierarchy; content lists stay flat. */
-.primary-practice:has(.primary-practice-entries) { max-width: 1100px; padding-bottom: 118px; }
+.primary-practice:has(.primary-practice-entries) { max-width: 1100px; padding-bottom: 0; }
 .primary-practice-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
 .primary-practice .primary-practice-row { flex-direction: column; align-items: flex-start; justify-content: flex-start; min-height: 210px; padding: 26px; gap: 18px; border: 1px solid var(--ui-border, #e4e5de); border-radius: 20px; background: var(--ui-surface, #fff); text-align: left; }
 .primary-practice-row .primary-practice-icon { color: var(--ui-accent, #b65340); }

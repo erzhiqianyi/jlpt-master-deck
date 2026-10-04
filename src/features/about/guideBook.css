@@ -123,3 +123,18 @@
 .handbook .handbook-block h2 { font-size: calc(1.25rem * var(--ui-font-scale, 1)); }
 .handbook .handbook-results strong { font-size: calc(1.125rem * var(--ui-font-scale, 1)); }
 .handbook .handbook-results span, .handbook .handbook-case-picker, .handbook .handbook-details, .handbook .handbook-text-link { font-size: calc(.875rem * var(--ui-font-scale, 1)); }
+
+/* Semantic steps replace character illustrations while preserving the workflow. */
+.handbook .handbook-flow-steps figcaption { display:grid; grid-template-columns:1fr; gap:0; }
+.handbook .handbook-flow-steps figcaption div { display:flex; flex-direction:row; justify-content:flex-start; text-align:left; gap:16px; padding:16px 0; border-bottom:1px solid #e0e7dc; }
+.handbook-flow-steps figcaption svg { color:#35644b; flex-shrink:0; }
+.handbook-flow-steps figcaption div:nth-child(2) svg { color:#a74f3b; }
+
+@media (max-width: 767px) {
+  .light-workspace .handbook .handbook-article > .handbook-outcome,
+  .light-workspace .handbook .handbook-article > header,
+  .light-workspace .handbook:not([data-chapter="mcp"]) .handbook-flow-steps { display:none; }
+  .light-workspace .handbook[data-chapter="automation"] .handbook-article > header { display:block; padding:14px; background:#edf5ef; }
+  .light-workspace .handbook[data-chapter="automation"] .handbook-article > header h1 { display:none; }
+  .light-workspace .handbook .handbook-flow-steps { margin-top:0; }
+}

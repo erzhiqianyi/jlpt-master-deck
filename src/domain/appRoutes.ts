@@ -149,7 +149,9 @@ export function mobileBackRoute(route: AppRoute): AppRoute {
   if (['vocabulary', 'grammar', 'listening', 'reading', 'question-types'].includes(route.view)) {
     return { view: 'home', page: 'questions' };
   }
-  if (route.view === 'captures') {
+  if (route.view === 'capture') return { view: 'captures', page: 'questions' };
+  if (route.view === 'memory') return { view: 'home', page: 'questions' };
+  if (['captures', 'drafts', 'mistakes'].includes(route.view)) {
     return { view: 'history', page: 'questions' };
   }
   if (['history', 'insights', 'captures', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {
@@ -193,7 +195,9 @@ export function desktopBackRoute(route: AppRoute): AppRoute | null {
   if (route.view === 'news-cycle') {
     return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'home', page: 'questions' };
   }
-  if (route.view === 'captures') {
+  if (route.view === 'capture') return { view: 'captures', page: 'questions' };
+  if (route.view === 'memory') return { view: 'home', page: 'questions' };
+  if (['captures', 'drafts', 'mistakes'].includes(route.view)) {
     return { view: 'history', page: 'questions' };
   }
   if (['history', 'insights', 'capture', 'drafts', 'mistakes', 'memory'].includes(route.view)) {

@@ -77,10 +77,10 @@ test('module actions execute, disabled gates remain, and sheet dismisses after s
  await click(button('选择练习模式'));
  await click(button('不可用'));
  assert.equal(calls,1);
- const mascot=document.querySelector('.module-practice-mascot');
+ const mascot=document.querySelector('.module-practice-entry');
  assert.ok(mascot);
  assert.equal(document.querySelector('.module-action-overflow'),null);
- assert.equal(mascot.querySelector('img').getAttribute('src'),'/study-companion.png');
+ assert.equal(mascot.querySelector('img'), null);
  assert.equal(document.querySelector('dialog').open,true);
  await click([...document.querySelectorAll('dialog button')].find(b=>b.textContent==='添加单词'));
  assert.equal(calls,2);

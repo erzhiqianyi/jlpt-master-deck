@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { AnswerState, AppView, DailyPracticeSummary, DraftSummary, Locale, Question, ProgressState, ReadingQuestion, StudyPage, StudyPlanDocument, StudyPlanTaskStatus, VocabItem } from '../../types';
 import './HomeDashboard.css';
-import { ModuleActionBar } from '../../components/ModuleActionBar';
 
 export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAnswers = {}, latestDraft, items = [], progress = {}, readingQuestions = [], onOpenReviewItem, onOpenPracticeHistory, onOpenDraft, onNavigate, onStartDailyPractice, onCreateDailyPractice, onTaskStatus }: {
   token: string; username: string;
@@ -98,6 +97,17 @@ export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAns
     </button>
     <div className="home-dashboard-grid">
     <div className="home-main-column">
+    <section className="primary-daily-task" aria-labelledby="primary-daily-title">
+      <h2 id="primary-daily-title">{text.practice}</h2>
+      <h3 className="home-practice-title">{practice?.title || (latestDraft ? text.confirm : text.prepare)}</h3>
+      {practice ? <p className="primary-daily-meta">{total} {text.questions}{practice.minutes > 0 ? ` · ${practice.minutes} ${text.minutes}` : ''}{answered > 0 ? ` · ${answered} / ${total} ${text.done}` : ''}</p> : null}
+      <button type="button" className="primary-daily-action" onClick={() => practice ? onStartDailyPractice(practice.id) : latestDraft ? onOpenDraft(latestDraft.id) : onCreateDailyPractice()}>
+        {practice ? complete ? text.open : answered > 0 ? text.resume : text.start : latestDraft ? text.reviewDraft : text.prepare}<ArrowRight size={21} aria-hidden="true" />
+      </button>
+    </section>
+    <button type="button" className="primary-navigation-row home-mobile-review" onClick={openReview}>
+      <BookOpen size={29} className="primary-entry-icon" aria-hidden="true" /><span className="primary-entry-copy"><strong>{locale === 'zh-CN' ? '记忆复习' : locale === 'ja' ? '記憶復習' : 'Memory review'}</strong><small>{text.reviewCount(dueItems.length)}</small></span><ChevronRight size={20} aria-hidden="true" />
+    </button>
     <section className="primary-plan-section" aria-labelledby="primary-plan-title">
       <button type="button" className="primary-navigation-row primary-plan-entry" onClick={() => onNavigate('plan')}>
         <CalendarDays className="primary-entry-icon" size={29} aria-hidden="true" />
@@ -113,14 +123,7 @@ export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAns
       <button type="button" className="primary-daily-action" onClick={openReview}><ArrowRight size={20} aria-hidden="true" />{dueItems.length ? overview.reviewStart : overview.reviewBrowse}</button>
       <p className="home-plan-summary">{text.reviewCount(dueItems.length)} · {overview.reviewed} {reviewedToday} {overview.reviewUnit}</p>
     </section>
-    <section className="primary-daily-task" aria-labelledby="primary-daily-title">
-      <h2 id="primary-daily-title">{text.practice}</h2>
-      <h3 className="home-practice-title">{practice?.title || (latestDraft ? text.confirm : text.prepare)}</h3>
-      {practice ? <p className="primary-daily-meta">{total} {text.questions}{practice.minutes > 0 ? ` · ${practice.minutes} ${text.minutes}` : ''}{answered > 0 ? ` · ${answered} / ${total} ${text.done}` : ''}</p> : null}
-      <button type="button" className="primary-daily-action" onClick={() => practice ? onStartDailyPractice(practice.id) : latestDraft ? onOpenDraft(latestDraft.id) : onCreateDailyPractice()}>
-        {practice ? complete ? text.open : answered > 0 ? text.resume : text.start : latestDraft ? text.reviewDraft : text.prepare}<ArrowRight size={21} aria-hidden="true" />
-      </button>
-    </section>
+
 
     <section className="home-continue" aria-labelledby="home-continue-title">
       <h2 id="home-continue-title">{overview.continue}</h2>
@@ -152,10 +155,5 @@ export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAns
       </section>
     </aside>
     </div>
-    <ModuleActionBar locale={locale} label={text.title} shortcuts actions={[
-      { key: 'review', label: dueItems.length ? overview.reviewStart : overview.reviewBrowse, onClick: openReview },
-      { key: 'practice', label: text.practice, onClick: () => practice ? onStartDailyPractice(practice.id) : latestDraft ? onOpenDraft(latestDraft.id) : onCreateDailyPractice() },
-      { key: 'plan', label: text.plan, onClick: () => onNavigate('plan') },
-    ]} />
   </main>;
 }

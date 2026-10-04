@@ -1,7 +1,6 @@
 import type { PracticeModule } from '../../domain/practiceModules.mjs';
 import './practice-layout.css';
 import './primary-practice.css';
-import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { BatchActionBar, BatchManageButton, useListBatch } from '../../components/ListBatch';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
 import { ArrowRight, BookOpenText, ChevronLeft, ChevronRight, FileCheck2, FileText, Layers3, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
@@ -76,7 +75,6 @@ export function MixedPracticeHub({
     </header> : null}
     {activeGroup ? activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} /> :
       <div className="primary-practice-entries">{entries.map(entry => <PracticeModuleCard key={entry.key} entry={entry} locale={locale} />)}</div>}
-    {!activeGroup ? <ModuleActionBar locale={locale} label={copy.practice} shortcuts actions={entries.map(entry => ({ key: entry.key, label: entry.title, icon: <entry.icon size={20} />, onClick: entry.action }))} /> : null}
   </main>;
 }
 
@@ -163,7 +161,7 @@ function PracticeModuleCard({ entry, locale }: { entry: { title: string; count?:
       {entry.count !== undefined && entry.completedCount !== undefined ? <span aria-hidden="true">·</span> : null}
       {entry.completedCount !== undefined ? <CompletedRounds count={entry.completedCount} locale={locale} retained={entry.retainedRounds} /> : null}
     </small> : null}</span>
-    <span className="primary-practice-cta"><ArrowRight size={18} aria-hidden="true" />{practiceCopy(locale).openPractice}</span>
+    <ChevronRight className="primary-practice-chevron" size={20} aria-hidden="true" /><span className="primary-practice-cta"><ArrowRight size={18} aria-hidden="true" />{practiceCopy(locale).openPractice}</span>
   </button>;
 }
 

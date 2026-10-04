@@ -13,24 +13,33 @@ struct DiscoveryShare: Codable, Identifiable {
 struct DiscoveryView: View {
     @Environment(AppStore.self) private var store
     @State private var query = ""
+    @State private var showingSearch = false
     var body: some View {
         Group {
             if store.shares.isEmpty {
                 ContentUnavailableView("暂无发现内容", systemImage: "safari", description: Text(store.isDemo ? "登录后查看共享内容" : "联网同步后查看共享内容"))
             } else {
                 List(store.shares.filter { query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) }) { share in
-                    NavigationLink {
-                        DiscoveryDetailView(share: share)
-                    } label: {
+                    NavigationLink(value: WorkspaceRoute.discovery(share.id)) {
                         DeckRow(title: share.title, subtitle: "\(share.category) · \(share.count) 项", icon: share.icon, showsChevron: false)
                     }.listRowBackground(DeckTheme.surface)
                 }.scrollContentBackground(.hidden)
             }
-        }.searchable(text: $query, prompt: "搜索发现")
+        }.toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("搜索发现", systemImage: "magnifyingglass") { showingSearch = true }
+            }
+        }.sheet(isPresented: $showingSearch) {
+            NavigationStack {
+                Form { TextField("搜索发现", text: $query) }
+                    .navigationTitle("搜索发现").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { showingSearch = false } } }
+            }.presentationDetents([.medium])
+        }
     }
 }
 
-private struct DiscoveryDetailView: View {
+struct DiscoveryDetailView: View {
     let share: DiscoveryShare
     @Environment(AppStore.self) private var store
     @State private var content: DiscoveryPackage?
@@ -40,27 +49,20 @@ private struct DiscoveryDetailView: View {
     @State private var busy = false
     @State private var added = false
     @State private var message: String?
+    @State private var descriptionExpanded = false
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
                 Label(share.category, systemImage: share.icon).foregroundStyle(DeckTheme.accent)
                 Text(share.title).font(.title.bold())
                 Text("\(share.count) 项").foregroundStyle(.secondary)
-                if !share.description.isEmpty { Text(share.description).lineSpacing(6) }
-                Button(added ? "已添加" : busy ? "添加中…" : "添加到我的学习") {
-                    busy = true
-                    Task {
-                        defer { busy = false }
-                        do {
-                            struct Input: Encodable { let shareId: String }
-                            struct Result: Decodable {}
-                            let _: Result = try await store.api.post("api/market/import", body: Input(shareId: share.id))
-                            added = true
-                            await store.refresh()
-                            if let notice = store.notice { message = notice }
-                        } catch { message = error.localizedDescription }
+                if !share.description.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(share.description).lineSpacing(6).lineLimit(descriptionExpanded ? nil : 2)
+                        Button(descriptionExpanded ? "收起简介" : "展开简介") { descriptionExpanded.toggle() }
+                            .font(.footnote).frame(minHeight: 44)
                     }
-                }.buttonStyle(PrimaryButton()).disabled(busy || added)
+                }
                 if let message { Text(message).font(.footnote).foregroundStyle(.secondary) }
                 if loading { ProgressView("正在加载内容…") }
                 if let loadError {
@@ -114,8 +116,24 @@ private struct DiscoveryDetailView: View {
                     }
                 }
 
-            }.modifier(StudyPagePadding())
-        }.navigationTitle("发现").background(DeckTheme.paper)
+            }.frame(maxWidth: 1120, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
+        }.navigationTitle("共享内容").navigationBarTitleDisplayMode(.inline).background(DeckTheme.paper)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) {
+                Button(added ? "已添加" : busy ? "添加中…" : "添加到我的学习") {
+                    busy = true
+                    Task {
+                        defer { busy = false }
+                        do {
+                            struct Input: Encodable { let shareId: String }
+                            struct Result: Decodable {}
+                            let _: Result = try await store.api.post("api/market/import", body: Input(shareId: share.id))
+                            added = true
+                            await store.refresh()
+                            if let notice = store.notice { message = notice }
+                        } catch { message = error.localizedDescription }
+                    }
+                }.buttonStyle(.bordered).disabled(busy || added)
+            } }
             .task(id: share.id) { await loadContent() }
             .fullScreenCover(item: $round) { NativeQuizView(round: $0, savesProgress: false) }
     }

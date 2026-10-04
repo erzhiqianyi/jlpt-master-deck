@@ -15,9 +15,7 @@ struct LibraryView: View {
             ContentUnavailableView("还没有匹配的词条", systemImage: "books.vertical", description: Text("尝试其他关键词，或从网页版导入学习资料。"))
         } else {
             List(filtered) { item in
-                NavigationLink {
-                    ItemDetailView(item: item, review: { review(item) })
-                } label: { DeckRow(title: item.original, subtitle: [item.reading, item.meaning_zh].compactMap { $0 }.joined(separator: " · "), icon: item.isGrammar ? "list.bullet" : "character.book.closed") }
+                NavigationLink(value: WorkspaceRoute.item(item.id)) { DeckRow(title: item.original, subtitle: [item.reading, item.meaning_zh].compactMap { $0 }.joined(separator: " · "), icon: item.isGrammar ? "list.bullet" : "character.book.closed") }
                 .listRowBackground(DeckTheme.surface)
             }.scrollContentBackground(.hidden)
         }
@@ -147,7 +145,7 @@ struct ReadingLibraryView: View {
             ContentUnavailableView("还没有阅读题", systemImage: "book", description: Text("在网页版添加阅读资料后，点击刷新即可同步。"))
         } else {
             List(store.reading) { question in
-                NavigationLink { ReadingPracticeView(question: question) } label: {
+                NavigationLink(value: WorkspaceRoute.reading(question.id)) {
                     DeckRow(title: question.title, subtitle: question.question, icon: "book")
                 }.listRowBackground(DeckTheme.surface)
             }.scrollContentBackground(.hidden)
@@ -156,9 +154,13 @@ struct ReadingLibraryView: View {
 }
 struct ReadingPracticeView: View {
     @Environment(AppStore.self) private var store
-    let question: ReadingQuestion
+    // Keep the displayed question snapshot stable during an automatic refresh so
+    // a selected option cannot silently become a different answer.
+    @State private var question: ReadingQuestion
+    init(question: ReadingQuestion) { _question = State(initialValue: question) }
     @State private var selected: Int?
     @State private var submitted = false
+    @State private var celebration = 0
     @State private var error: String?
     @State private var sessionID = UUID().uuidString
     var body: some View {
@@ -170,7 +172,7 @@ struct ReadingPracticeView: View {
             }
         }.background(DeckTheme.paper).navigationTitle("阅读练习")
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            DetailStudyCompanion(context: "阅读：\(question.title)", captureTitle: submitted ? "记录阅读复盘" : "记录这篇阅读的疑问") { EmptyView() }
+            DetailStudyCompanion(context: "阅读：\(question.title)", captureTitle: submitted ? "记录阅读复盘" : "记录这篇阅读的疑问", celebration: celebration) { EmptyView() }
         }
     }
     private var passage: some View {
@@ -196,6 +198,7 @@ struct ReadingPracticeView: View {
                         .background(selected == index ? DeckTheme.accent.opacity(0.08) : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 7))
                         .overlay(RoundedRectangle(cornerRadius: 7).stroke(selected == index ? DeckTheme.accent : DeckTheme.line))
                 }.disabled(submitted || store.isSaving).accessibilityIdentifier("reading.choice.\(index)")
+                    .accessibilityValue(selected == index ? "已选择" : "未选择")
             }
             if submitted {
                 Label(selected == question.answerIndex ? "回答正确" : "再看一下原文", systemImage: selected == question.answerIndex ? "checkmark.circle.fill" : "info.circle")
@@ -206,7 +209,7 @@ struct ReadingPracticeView: View {
                 Button {
                     guard let selected else { return }
                     Task {
-                        do { try await store.answer(question, selection: selected, sessionID: sessionID); submitted = true; error = nil }
+                        do { try await store.answer(question, selection: selected, sessionID: sessionID); submitted = true; error = nil; if selected == question.answerIndex { celebration += 1 } }
                         catch { self.error = error.localizedDescription }
                     }
                 } label: { Text(store.isSaving ? "保存中…" : "确认答案") }.buttonStyle(PrimaryButton()).disabled(selected == nil || store.isSaving)

@@ -1,3 +1,4 @@
+import { AnswerCelebration } from '../../components/StudyCompanion';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { RecordReference } from '../../components/RecordReference';
 import './listening.css';
@@ -601,6 +602,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
           {labels.listeningShowAnswer}
         </button>
         {answerNotice ? <p role="status" className="text-sm font-bold text-[#8a6134]">{answerNotice}</p> : null}
+        <AnswerCelebration correct={revealed && !isFreeResponse(item) && selected !== null && selected === item.answerIndex} />
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-bold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#a84269]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed ? <ListeningExplanation item={item} labels={labels} /> : null}
@@ -843,6 +845,7 @@ function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detai
         })}
       </div> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        <AnswerCelebration correct={revealed && !isFreeResponse(item) && selected !== null && selected === item.answerIndex} />
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
       </div>
       {revealed ? <div className="md:hidden"><details className="mt-4 rounded-lg border border-[#dce9df] bg-[#f7fbf7] p-4"><summary className="cursor-pointer font-bold text-[#31564c]">{locale === 'ja' ? '解説を見る' : locale === 'en' ? 'View explanation' : '查看解析'}</summary><ListeningExplanation item={item} labels={labels} /><ListeningAnswerBreakdown item={item} /></details></div> : null}

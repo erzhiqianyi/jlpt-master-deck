@@ -1,3 +1,4 @@
+import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningList, LearningListRow } from '../../components/LearningList';
@@ -188,6 +189,7 @@ function OfficialSampleDetail({ module, sampleId, labels, locale, onBack }: Shar
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button type="button" disabled={hasSubQuestions ? answeredCount < subQuestions.length : selected === null} onClick={() => setRevealed(true)} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45">{labels.sampleCheckAnswer}</button>
+          <AnswerCelebration correct={revealed && (hasSubQuestions ? correctCount === subQuestions.length : selected !== null && selected === sample.answerIndex)} />
           {revealed && hasSubQuestions ? <p role="status" className={`text-sm font-semibold ${correctCount === subQuestions.length ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{correctCount} / {subQuestions.length}</p> : null}
           {revealed && !hasSubQuestions && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === sample.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === sample.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
         </div>

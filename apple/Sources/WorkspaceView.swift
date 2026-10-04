@@ -23,6 +23,26 @@ enum WorkspaceSheet: Identifiable {
 }
 struct ReviewSession: Identifiable { let id = UUID(); let items: [StudyItem] }
 
+// Routes contain IDs only. They live for this account's workspace lifetime; answers
+// and detail scroll positions remain owned by the mounted destination views.
+// A cold launch restores the last module only, never an unfinished answer.
+enum WorkspaceRoute: Hashable {
+    case module(Destination), item(String), reading(String), listening(String), discovery(String)
+}
+
+struct WorkspaceNavigation {
+    var paths: [Destination: [WorkspaceRoute]] = [:]
+    var bank: [WorkspaceRoute] = []
+    mutating func openModule(_ destination: Destination) {
+        guard bank.first != .module(destination) else { return }
+        bank = [.module(destination)]
+    }
+    var bankModule: Destination? {
+        guard case .module(let destination) = bank.first else { return nil }
+        return destination
+    }
+}
+
 struct WorkspaceView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -30,8 +50,14 @@ struct WorkspaceView: View {
     @AppStorage private var savedDestination: String
     private var selection: Destination? {
         get { savedDestination.isEmpty ? nil : Destination(rawValue: savedDestination) ?? .today }
-        nonmutating set { savedDestination = newValue?.rawValue ?? "" }
+        nonmutating set {
+            if let newValue, Destination.allCases.suffix(4).contains(newValue) {
+                navigation.openModule(newValue)
+            }
+            savedDestination = newValue?.rawValue ?? ""
+        }
     }
+    @State private var navigation = WorkspaceNavigation()
     @State private var sheet: WorkspaceSheet?
     @State private var review: ReviewSession?
     @State private var query = ""
@@ -47,28 +73,14 @@ struct WorkspaceView: View {
             if usesTabs {
                 TabView(selection: compactSelection) {
                     ForEach(Array(Destination.allCases.prefix(4))) { destination in
-                        NavigationStack { detail(destination) }
+                        NavigationStack(path: path(for: destination)) {
+                            detail(destination).navigationDestination(for: WorkspaceRoute.self, destination: routeView)
+                        }
                             .tabItem { Label(destination.rawValue, systemImage: destination.icon) }
                             .tag(destination)
                     }
-                    NavigationStack {
-                        List(Array(Destination.allCases.suffix(4))) { destination in
-                            Button { selection = destination } label: {
-                                DeckRow(title: destination.rawValue, subtitle: "", icon: destination.icon)
-                            }.buttonStyle(.plain)
-                                .listRowBackground(DeckTheme.surface)
-                                .accessibilityIdentifier("nav.\(destination.id)")
-                        }
-                        .listStyle(.insetGrouped)
-                        .scrollContentBackground(.hidden)
-                        .modifier(WorkspacePageStyle(title: "题库"))
-                        .safeAreaInset(edge: .bottom, spacing: 0) { companion(nil) }
-                        .toolbar {
-                            if selection == nil { workspaceToolbar(showAccount: true) }
-                        }
-                        .navigationDestination(isPresented: modulePresented) {
-                            if let selection { detail(selection) }
-                        }
+                    NavigationStack(path: bankPath) {
+                        bankRoot.navigationDestination(for: WorkspaceRoute.self, destination: routeView)
                     }
                     .tabItem { Label("题库", systemImage: "square.grid.2x2") }
                     .tag(Destination.reading)
@@ -79,11 +91,13 @@ struct WorkspaceView: View {
                         Label { Text("JLPT\nMaster Deck").font(.title2.weight(.semibold)) } icon: {
                             Image("BrandMark").resizable().scaledToFit().frame(width: 40, height: 40)
                         }.padding(.horizontal, 20).padding(.top, 25).padding(.bottom, 15)
-                        List(selection: Binding(get: { selection }, set: { selection = $0 })) {
+                        List(selection: Binding<Destination?>(get: { compactDestination }, set: { value in
+                            if let value { compactSelection.wrappedValue = value }
+                        })) {
                             ForEach(Array(Destination.allCases.prefix(4))) { destination in nav(destination) }
-                            Section("题库") {
-                                ForEach(Array(Destination.allCases.suffix(4))) { destination in nav(destination) }
-                            }
+                            NavigationLink(value: Destination.reading) {
+                                Label("题库", systemImage: "square.grid.2x2").padding(.vertical, 8)
+                            }.tag(Destination.reading).accessibilityIdentifier("nav.题库")
                         }.listStyle(.sidebar).scrollContentBackground(.hidden)
                         Button { sheet = .account } label: {
                             HStack { Image(systemName: "person.crop.circle.fill").font(.title); Text(store.username).lineLimit(1); Spacer(); Image(systemName: "gearshape") }
@@ -91,7 +105,15 @@ struct WorkspaceView: View {
                         }.buttonStyle(.plain).accessibilityIdentifier("workspace.account")
                     }.background(DeckTheme.paper).navigationSplitViewColumnWidth(min: 190, ideal: 215, max: 250)
                 } detail: {
-                    NavigationStack { detail(selection ?? .today) }
+                    if compactDestination == .reading {
+                        NavigationStack(path: bankPath) {
+                            bankRoot.navigationDestination(for: WorkspaceRoute.self, destination: routeView)
+                        }
+                    } else {
+                        NavigationStack(path: path(for: compactDestination)) {
+                            detail(compactDestination).navigationDestination(for: WorkspaceRoute.self, destination: routeView)
+                        }.id(compactDestination)
+                    }
                 }.navigationSplitViewStyle(.balanced)
             }
         }
@@ -101,6 +123,11 @@ struct WorkspaceView: View {
         }
         .fullScreenCover(item: $companionPractice) { NativePracticeScreen(entry: $0) }
         .fullScreenCover(item: $review) { session in MemoryReviewView(items: session.items) }
+        .onAppear {
+            if let selection, Destination.allCases.suffix(4).contains(selection) {
+                navigation.openModule(selection)
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if foregroundGate.update(phase) { store.scheduleAutomaticRefresh() }
         }
@@ -115,12 +142,60 @@ struct WorkspaceView: View {
             // SwiftUI can write the current tab again while restoring the scene.
             // Keep a selected study module when its containing tab is unchanged.
             guard value != compactDestination else { return }
-            selection = value == .reading ? nil : value
+            selection = value == .reading ? navigation.bankModule : value
         })
     }
-    private var modulePresented: Binding<Bool> {
-        Binding(get: { selection.map { Destination.allCases.suffix(4).contains($0) } ?? false },
-                set: { if !$0, let current = selection, Destination.allCases.suffix(4).contains(current) { selection = nil } })
+    private func path(for destination: Destination) -> Binding<[WorkspaceRoute]> {
+        Binding(get: { navigation.paths[destination, default: []] },
+                set: { navigation.paths[destination] = $0 })
+    }
+    private var bankPath: Binding<[WorkspaceRoute]> {
+        Binding(get: { navigation.bank }, set: { routes in
+            navigation.bank = routes
+            if compactDestination == .reading { savedDestination = navigation.bankModule?.rawValue ?? "" }
+        })
+    }
+    private var bankRoot: some View {
+        List(Array(Destination.allCases.suffix(4))) { destination in
+            Button { selection = destination } label: {
+                DeckRow(title: destination.rawValue, subtitle: "", icon: destination.icon)
+            }.buttonStyle(.plain)
+                .listRowBackground(DeckTheme.surface)
+                .accessibilityIdentifier("nav.\(destination.id)")
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .modifier(WorkspacePageStyle(title: "题库"))
+        .safeAreaInset(edge: .bottom, spacing: 0) { companion(nil) }
+        .toolbar { workspaceToolbar(showAccount: true) }
+    }
+    private func routeView(_ route: WorkspaceRoute) -> some View {
+        routeContent(route).toolbar(usesTabs ? .hidden : .automatic, for: .tabBar)
+    }
+    @ViewBuilder private func routeContent(_ route: WorkspaceRoute) -> some View {
+        switch route {
+        case .module(let destination): detail(destination)
+        case .item(let id):
+            if let item = store.items.first(where: { $0.id == id }) {
+                ItemDetailView(item: item, review: { review = ReviewSession(items: [item]) })
+            } else { unavailableRoute }
+        case .reading(let id):
+            if let question = store.reading.first(where: { $0.id == id }) {
+                ReadingPracticeView(question: question)
+            } else { unavailableRoute }
+        case .listening(let id):
+            if let group = ListeningGroup.make(store.listening).first(where: { $0.id == id }) {
+                ListeningDetailView(group: group)
+            } else { unavailableRoute }
+        case .discovery(let id):
+            if let share = store.shares.first(where: { $0.id == id }) {
+                DiscoveryDetailView(share: share)
+            } else { unavailableRoute }
+        }
+    }
+    private var unavailableRoute: some View {
+        ContentUnavailableView("内容已不可用", systemImage: "doc.questionmark", description: Text("请返回列表选择其他内容。"))
+            .navigationTitle("内容已不可用")
     }
     private func detail(_ destination: Destination) -> some View {
         Group {
@@ -316,9 +391,23 @@ struct WeekActivityView: View {
 private struct LibrarySearch: ViewModifier {
     let enabled: Bool
     @Binding var query: String
+    @State private var showingSearch = false
     @ViewBuilder func body(content: Content) -> some View {
-        if enabled { content.searchable(text: $query, prompt: "搜索词汇、语法") }
-        else { content }
+        if enabled {
+            content.toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("搜索词汇、语法", systemImage: "magnifyingglass") { showingSearch = true }
+                }
+            }.sheet(isPresented: $showingSearch) {
+                NavigationStack {
+                    Form {
+                        TextField("搜索词汇、语法", text: $query)
+                        Button("清除搜索") { query = "" }
+                    }.navigationTitle("搜索题库").navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { showingSearch = false } } }
+                }.presentationDetents([.medium])
+            }
+        } else { content }
     }
 }
 

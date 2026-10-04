@@ -1,3 +1,6 @@
+import { LearningListMetadata } from '../../components/LearningListMetadata';
+import { usePageHeaderActions } from '../../components/PageChrome';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import './practice-layout.css';
 import { conciseEvidence, practiceReviewModel } from './practicePresentation';
 import { itemPracticeCounts } from '../../domain/itemPracticeCounts.mjs';
@@ -5,7 +8,6 @@ import { PracticeTimer } from '../../components/PracticeTimer';
 import { conjugationReading } from '../../domain/conjugationReading';
 import { RecordReference, QuestionReference as QuestionReferenceBadge } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
-import { LearningListMetadata, LearningListColumns } from '../../components/LearningListMetadata';
 import type { QuestionReference } from '../../domain/questions';
 import { ShareButton } from '../../components/ShareButton';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
@@ -13,14 +15,14 @@ import { normalizePracticeExplanations } from '../../domain/practiceExplanations
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { useMobileList } from '../../hooks/useMobileList';
-import { BookOpenText, Pencil, ChevronLeft, ChevronRight, House, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
+import { BookOpenText, Pencil, ChevronLeft, ChevronRight, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { ItemImage, prepareImageUpload } from '../../components/ItemImage';
 import { memoryImagePrompt } from '../../domain/memoryImagePrompt';
 import { filterableTags, itemInWordbook, itemTagList, itemWordbookId, wordbookFamily, wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
-import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, ReviewStatus, VocabItem, Wordbook } from '../../types';
+import type { AnswerState, Deck, DisplaySettings, FeedbackMode, LearningCaptureCategory, Locale, PracticeAttempt, ProgressState, Question, QuestionKind, VocabItem, Wordbook } from '../../types';
 
 function QuestionPrompt({ text, target, locale }: { text: string; target?: string; locale: Locale }) {
   // Legacy passage questions append the specific blank instruction to the passage.
@@ -169,28 +171,30 @@ export function PracticeReviewPanel({
     window.requestAnimationFrame(() => listRef.current?.focus());
   }
 
+  useAuthoringNavigation(activeQuestion ? (locale === 'zh-CN' ? '答案解析' : locale === 'ja' ? '解答と解説' : 'Answer explanation') : null, showResults, { kind: 'detail' });
+
   return (
-    <section className="practice-review-results">
-      <header className="practice-results-heading">
+    <section className={`practice-review-results${activeQuestion ? ' is-answer-detail' : ''}`}>
+      {!activeQuestion ? <header className="practice-results-heading">
         <button type="button" className="practice-text-action" onClick={onBackToPractice}><ChevronLeft size={18} aria-hidden="true" />{copy.back}</button>
         <div><p>{copy.results}</p><h1>{reviewTitle}</h1></div>
         {onRestart ? <button type="button" className="practice-text-action" onClick={onRestart}><RotateCcw size={17} aria-hidden="true" />{copy.restart}</button> : null}
-      </header>
-      <section className="practice-result-summary" aria-label={copy.results}>
+      </header> : null}
+      {!activeQuestion ? <section className="practice-result-summary" aria-label={copy.results}>
         <div className="practice-result-score"><strong>{Math.round(model.accuracy * 100)}<small>%</small></strong><span>{copy.accuracy}</span></div>
         <dl><div><dt>{labels.correct}</dt><dd>{model.correct} / {model.total}</dd></div><div><dt>{copy.wrong}</dt><dd>{model.wrong}</dd></div><div><dt>{copy.unanswered}</dt><dd>{model.unanswered}</dd></div><div><dt>{labels.elapsed}</dt><dd>{formatDuration(model.elapsedMs)}</dd></div></dl>
         <p>{attempt ? copy.historicalScore : model.total > 0 && model.correct === model.total ? copy.allCorrect : copy.scoreNote}</p>
         {model.missingOriginals > 0 ? <p role="status">{copy.missing} ({model.missingOriginals})</p> : null}
-      </section>
+      </section> : null}
       <div className={`practice-review-workspace${activeQuestion ? ' has-question' : ''}`}>
-        <section className="practice-result-list" ref={listRef} tabIndex={-1} aria-label={copy.list}>
+        {!activeQuestion ? <section className="practice-result-list" ref={listRef} tabIndex={-1} aria-label={copy.list}>
           <div className="practice-result-filters" role="group" aria-label={copy.list}>
             {([['wrong', copy.wrong, model.wrong], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setReviewIndex(null); }}>{title} <span>{count}</span></button>)}
           </div>
           {rows.length ? <ol className="practice-result-rows">{rows.map(({ question, index, status }) => <li key={question.id}><button type="button" aria-current={reviewIndex === index ? 'true' : undefined} onClick={() => openQuestion(index)}>
             <span className={`practice-result-number is-${status}`}>{index + 1}</span><span><strong>{question.prompt || question.title}</strong><small>{status === 'unanswered' ? copy.unanswered : status === 'correct' ? labels.correct : labels.wrong} · {copy.evidence}</small></span><ChevronRight size={18} aria-hidden="true" />
           </button></li>)}</ol> : <p className="practice-results-empty" role="status">{model.missingOriginals > 0 ? copy.missing : !model.rows.length ? labels.noAttemptHistory : filter === 'wrong' ? copy.emptyWrong : copy.emptyUnanswered}</p>}
-        </section>
+        </section> : null}
         {activeQuestion && activeRow ? <article key={activeQuestion.id} ref={questionRef} tabIndex={-1} className="practice-review-detail" aria-label={`${copy.list} ${activeRow.index + 1}`}>
           <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{activeRow.index + 1} / {model.rows.length}</span></div>
           {activeQuestion.instruction ? <p className="practice-question-instruction">{activeQuestion.instruction}</p> : null}
@@ -437,39 +441,26 @@ export function PracticePanel({
   return (
     <section
       ref={practiceCardRef}
-      className="cute-practice-card practice-swipe-surface practice-session min-w-0 border px-4 pb-6 pt-4 md:p-5"
+      className="study-practice-session practice-session"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={() => { touchStartRef.current = null; }}
     >
       {loading ? <p role="status" className="py-6 text-center">正在加载题目…</p> : null}
       <div className="practice-question-section">
-        <div className="practice-question-toolbar flex flex-wrap items-center justify-between gap-3 border-b border-[#f0d4dd] pb-4">
-          <p className="text-sm font-bold text-[#a84269]">{displayPracticeTitle}</p>
-          {questionsLength > 0 ? <PracticeTimer key={`${questions.map((question) => question.id).join(',')}:${timerSession}`} locale={settings.locale} running={!complete && !loading} /> : null}
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-
-
-            {questionsLength > 1 ? <ArrowButton label={labels.prev} direction="left" shortcut="ArrowLeft" onClick={onPrev} /> : null}
-            <button
-              type="button"
-              disabled={questionsLength === 0}
-              aria-haspopup="dialog"
-              aria-expanded={answerSheetOpen}
-              onClick={() => { setAnswerSheetFilter('all'); setAnswerSheetPage(Math.floor(activeIndex / 100)); setAnswerSheetOpen(true); }}
-              aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`}
-              className="practice-progress-button flex min-h-10 min-w-24 flex-col items-center justify-center rounded-2xl bg-[#fff0f5] px-2 py-1 text-[#a84269] transition hover:bg-[#ffe6ef] md:min-w-32 md:px-3"
-            >
-              <span className="journal-number text-sm font-black">{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
-            </button>
-            {questionsLength > 0 ? (
-              <button type="button" onClick={restartTimedPractice} aria-label={labels.restartPractice} title={labels.restartPractice} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#f0c9d4] bg-white text-[#a84269] hover:bg-[#fff0f5]">
-                <RotateCcw size={17} />
-              </button>
-            ) : null}
-
-          </div>
+        <div className="practice-question-toolbar">
+          <p>{displayPracticeTitle}</p>
+          <button type="button" disabled={questionsLength === 0} aria-haspopup="dialog" aria-expanded={answerSheetOpen}
+            onClick={() => { setAnswerSheetFilter('all'); setAnswerSheetPage(Math.floor(activeIndex / 100)); setAnswerSheetOpen(true); }}
+            aria-label={`${labels.practiceAnswerSheet}: ${questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}`} className="practice-text-action">
+            {labels.practiceAnswerSheet}
+          </button>
         </div>
+        <div className="practice-timing-strip">
+          {questionsLength > 0 ? <PracticeTimer key={`${questions.map((question) => question.id).join(',')}:${timerSession}`} locale={settings.locale} running={!complete && !loading} /> : <span />}
+          <span>{questionsLength ? `${activeIndex + 1} / ${questionsLength}` : '0 / 0'}</span>
+        </div>
+        <progress className="practice-question-progress" max={Math.max(1, questionsLength)} value={answeredCount} aria-label={`${labels.completed}: ${answeredCount} / ${questionsLength}`} />
 
         <div className="mt-4">
           {activeQuestion?.instruction ? (
@@ -483,7 +474,7 @@ export function PracticePanel({
         {activeQuestion ? (
           <>
             {activeQuestion ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="practice-answer-choices mt-5 grid gap-3">
                 {activeQuestion.choices.map((choice, choiceIndex) => {
                   const answered = answers[activeQuestion.id];
                   const isSelected = answered?.selected === choice;
@@ -552,9 +543,10 @@ export function PracticePanel({
       ) : null}
       {activeQuestion ? <footer className="practice-session-actions">
         {reviewError ? <div className="practice-save-error" role="alert"><p>{reviewError}</p><button type="button" onClick={onReview}>{labels.reviewViewHistory}</button></div> : null}
-        <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button>
+        <button type="button" className="practice-previous-action" disabled={questionsLength <= 1} onClick={onPrev}><ChevronLeft size={19} aria-hidden="true" />{labels.prev}</button>
         {complete ? <button type="button" className="practice-primary-action" onClick={requestReview} disabled={reviewPreparing}>{reviewPreparing ? <><LoaderCircle size={18} className="animate-spin" aria-hidden="true" />{labels.reviewPreparing}</> : reviewError ? labels.reviewRetry : labels.reviewPage}<ChevronRight size={19} aria-hidden="true" /></button> : questionsLength > 1 ? <button type="button" className="practice-primary-action" onClick={onNext}>{labels.next}<ChevronRight size={19} aria-hidden="true" /></button> : null}
-      </footer> : !loading ? <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button> : null}
+      </footer> : null}
+      {activeQuestion ? <div className="practice-session-secondary-actions"><button type="button" className="practice-text-action" aria-label={labels.restartPractice} onClick={restartTimedPractice}><RotateCcw size={16} aria-hidden="true" />{labels.restartPractice}</button><button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button></div> : !loading ? <button type="button" className="practice-text-action" onClick={leavePractice}>{labels.reviewBackToPracticeHome}</button> : null}
       <dialog ref={answerSheetRef} className="practice-native-answer-sheet" aria-labelledby="practice-answer-sheet-title" onClose={() => setAnswerSheetOpen(false)} onCancel={() => setAnswerSheetOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setAnswerSheetOpen(false); }}>
           <div className="practice-native-answer-sheet-content">
             <div className="flex items-center justify-between gap-3">
@@ -737,16 +729,17 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
   onWordbookChange?: (wordbookId: string) => void;
   onOrganize?: (id: string, input: { wordbookId?: string; tags?: string[] }) => Promise<unknown>;
 }) {
+  const hasPageChrome = usePageHeaderActions([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [batchWordbookId, setBatchWordbookId] = useState('');
   const [batchTag, setBatchTag] = useState('');
   const [sortKey, setSortKey] = useState<WordIndexSortKey>('created-asc');
   const recentPracticeCounts = useMemo(() => itemPracticeCounts(attempts), [attempts]);
- const [showCaptureForm, setShowCaptureForm] = useState(false);
+  const [showCaptureForm, setShowCaptureForm] = useState(false);
   useAuthoringNavigation(showCaptureForm ? (captureCategory === 'grammar' ? '记一个句型' : '记一个单词') : null, () => { setShowCaptureForm(false); });
-  // The library is always visible; the action bar above it replaces the old entry hub.
-  const showEntryLibrary = true;
   const [showFocusedPractice, setShowFocusedPractice] = useState(false);
+  const showEntryLibrary = !showCaptureForm && !showFocusedPractice;
+  useAuthoringNavigation(showFocusedPractice ? (locale === 'zh-CN' ? '按内容练习' : locale === 'ja' ? '内容別に練習' : 'Practice by content') : null, () => setShowFocusedPractice(false), { kind: 'detail' });
   const [captureBody, setCaptureBody] = useState('');
   const [captureContext, setCaptureContext] = useState('');
   const [targetWordbookId, setTargetWordbookId] = useState<string>(defaultTargetDeck);
@@ -813,6 +806,19 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
       return fallback;
     });
   }, [answers, items, questionsByItem, selectedTag, showEntryHub, sortKey, listSearch, locale]);
+  const appliedListSummary = [
+    selectedWordbookId !== 'all' ? selectedWordbook?.title : '',
+    selectedTag && selectedTag !== allTagValue ? `#${selectedTag}` : '',
+    sortKey !== 'created-asc' ? sortLabel(sortKey, labels) : '',
+    listSearch.trim(),
+  ].filter(Boolean).join(' · ');
+  function resetListControls() {
+    onWordbookChange?.('all');
+    setSelectedTag(allTagValue);
+    setSortKey('created-asc');
+    setListSearch('');
+    setPageIndex(0);
+  }
   const pageCount = Math.max(1, Math.ceil(sortedItems.length / WORD_INDEX_PAGE_SIZE));
   const currentPage = Math.min(pageIndex, pageCount - 1);
   const pageStart = currentPage * WORD_INDEX_PAGE_SIZE;
@@ -927,19 +933,15 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
         <ModuleActionBar
           locale={locale}
           label={isGrammarLibrary ? '语法' : '单词'}
-          primary={onPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
+          primary={onPractice && !showFocusedPractice ? { label: '开始练习', hint: isGrammarLibrary ? '随机一组语法题' : '随机一组单词题', onClick: () => onPractice({ kind: 'random' }) } : undefined}
           onAsk={onSaveCapture ? (body) => onSaveCapture({ body, category: captureCategory ?? 'unsure', context: `学习模块：${isGrammarLibrary ? '语法' : '词汇'} · 用户提问`, targetDeck: defaultTargetDeck, ...(selectedWordbookId !== 'all' ? { targetWordbookId: selectedWordbookId } : {}) }) : undefined}
           contentActions={libraryWordbooks.map((wordbook) => ({ key: wordbook.id, label: wordbook.title, onClick: () => { onWordbookChange?.(wordbook.id); onPractice?.({ kind: 'random' }); } }))}
-          actions={[
+          actions={showFocusedPractice ? [] : [
             { key: 'focused', label: '按题型练习', icon: <Target size={16} aria-hidden="true" />, active: showFocusedPractice, onClick: () => { setShowFocusedPractice((value) => !value); setShowCaptureForm(false); } },
-            ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
-            ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
-            ...(onOpenQuestionBank ? [{ key: 'bank', label: locale === 'zh-CN' ? '题库管理' : locale === 'ja' ? '問題集管理' : 'Question bank', icon: <BookOpenText size={16} aria-hidden="true" />, onClick: onOpenQuestionBank }] : []),
-            ...(captureCategory && onSaveCapture ? [{ key: 'capture', label: isGrammarLibrary ? '记一个句型' : '记一个单词', icon: <Plus size={16} aria-hidden="true" />, active: showCaptureForm, onClick: () => { setShowCaptureForm((value) => !value); setShowFocusedPractice(false); setCaptureSaved(false); } }] : []),
           ]}
         >
           {showFocusedPractice ? (
-            <div className="ledger-focused-practice-panel">
+            <div className="ledger-focused-practice-panel study-focused-selector"><button type="button" className="practice-text-action" onClick={() => setShowFocusedPractice(false)}><ChevronLeft size={18} aria-hidden="true" />{locale === 'zh-CN' ? '返回列表' : locale === 'ja' ? '一覧に戻る' : 'Back to list'}</button>
               <div>
                 <p>按题型练习</p>
                 <div className="ledger-focused-practice-options">
@@ -978,7 +980,7 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
         </ModuleActionBar>
       ) : null}
       <div className={showEntryLibrary ? "learning-list-controls" : undefined}>
-      {showEntryLibrary ? <LearningListHeader title={isGrammarLibrary ? (locale === 'zh-CN' ? '语法笔记' : locale === 'ja' ? '文法ノート' : 'Grammar') : (locale === 'zh-CN' ? '单词本' : locale === 'ja' ? '単語帳' : 'Wordbook')} count={`${sortedItems.length} ${labels.items}`} search={<LearningListSearch value={listSearch} locale={locale} label={locale === 'zh-CN' ? '查找当前列表' : locale === 'ja' ? 'リストを検索' : 'Search this list'} placeholder={locale === 'zh-CN' ? '搜索词语、读音或释义' : locale === 'ja' ? 'リストを検索' : 'Search this list'} onChange={(value) => { setListSearch(value); setPageIndex(0); }}/>} >
+      {showEntryLibrary ? <LearningListHeader title={undefined} count={`${sortedItems.length} ${labels.items}`} appliedSummary={appliedListSummary} onReset={appliedListSummary ? resetListControls : undefined} search={<LearningListSearch value={listSearch} locale={locale} label={locale === 'zh-CN' ? '查找当前列表' : locale === 'ja' ? 'リストを検索' : 'Search this list'} placeholder={locale === 'zh-CN' ? '搜索词语、读音或释义' : locale === 'ja' ? 'リストを検索' : 'Search this list'} onChange={(value) => { setListSearch(value); setPageIndex(0); }}/>} >
             {showEntryHub && onWordbookChange ? (
               <label className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#59645e]">
                 <span className="shrink-0">{labels.wordbookFilter}</span>
@@ -1006,14 +1008,9 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
           </button>
         ) : null}
         {batchActions.length ? <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div> : null}
-      </LearningListHeader> : null}
-      <details onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }} className={`ledger-word-toolbar learning-list-more border-b border-[#e5ddd1] px-4 py-4 md:px-5 ${showEntryHub && !showEntryLibrary ? 'hidden' : ''}`}>
-        <summary>{locale === 'zh-CN' ? '筛选与排序' : locale === 'ja' ? '絞り込みと並び替え' : 'Filter and sort'}</summary>
+      <div className="study-entry-filter-fields">
         <div className="mobile-action-header flex flex-wrap items-center justify-between gap-3">
           <div className="hidden flex-wrap items-center justify-end gap-2 md:flex">
-            {!showEntryHub && onPractice ? <ModuleAction label={labels.questionPage} onClick={onPractice}><Target size={16} /></ModuleAction> : null}
-            {!showEntryHub && onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
-            {!showEntryHub && onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
           </div>
           <div className="mobile-filter-row flex flex-wrap items-center gap-2">
             {showEntryHub && tagOptions.length ? (
@@ -1055,10 +1052,16 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
             <span className="rounded-md bg-[#e8f0eb] px-3 py-1 text-sm font-semibold text-[#24473f]">{sortedItems.length} {labels.items}</span>
           </div>
         </div>
-      </details>
+      </div>
+        {onTips ? <ModuleAction label={labels.navQuestionTypes} onClick={onTips}><Lightbulb size={16} /></ModuleAction> : null}
+        {onReview ? <ModuleAction label={labels.reviewPage} onClick={onReview}><ScrollText size={16} /></ModuleAction> : null}
+        {onOpenQuestionBank ? <ModuleAction label={locale === 'zh-CN' ? '题库管理' : locale === 'ja' ? '問題集管理' : 'Question bank'} onClick={onOpenQuestionBank}><BookOpenText size={16} /></ModuleAction> : null}
+        {captureCategory && onSaveCapture ? <ModuleAction label={isGrammarLibrary ? (locale === 'zh-CN' ? '记一个句型' : locale === 'ja' ? '文型を追加' : 'Add a pattern') : (locale === 'zh-CN' ? '记一个单词' : locale === 'ja' ? '単語を追加' : 'Add a word')} onClick={() => { setShowCaptureForm(true); setShowFocusedPractice(false); setCaptureSaved(false); }}><Plus size={16} /></ModuleAction> : null}
+      </LearningListHeader> : null}
       </div>
       {showCaptureForm && captureCategory && onSaveCapture ? (
-        <form onSubmit={saveCapture} className="grid gap-3 border-b border-[#e5ddd1] bg-[#fffafc] px-4 py-4 md:px-5">
+        <form onSubmit={saveCapture} className="entry-capture-form">
+          {!hasPageChrome ? <header className="study-form-heading"><button type="button" className="practice-text-action" onClick={() => setShowCaptureForm(false)}>{labels.draftEditCancel}</button><h2>{isGrammarLibrary ? (locale === 'zh-CN' ? '记一个句型' : locale === 'ja' ? '文型を追加' : 'Add a pattern') : (locale === 'zh-CN' ? '记一个单词' : locale === 'ja' ? '単語を追加' : 'Add a word')}</h2></header> : null}
           <label className="block text-sm font-semibold text-[#4b3b42]">
             {captureCategory === 'grammar' ? labels.entryAddGrammarInput : labels.entryAddWordInput}
             <textarea
@@ -1096,7 +1099,7 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
             </label>
           ) : null}
           {showEntryHub && onCreateWordbook ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <details className="entry-new-book"><summary>{labels.wordbookCreate}</summary><div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 text-sm font-semibold text-[#4b3b42]">
                 {labels.wordbookNewName}
                 <input
@@ -1111,7 +1114,7 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
                 {creatingWordbook ? labels.processing : labels.wordbookCreate}
               </button>
               {wordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{wordbookError}</p> : null}
-            </div>
+            </div></details>
           ) : null}
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={!captureBody.trim() || captureSaving} className="h-10 rounded-md bg-[#d95f8a] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-50">
@@ -1119,28 +1122,30 @@ export function WordIndexPanel({ items, questions, answers, progress, attempts =
             </button>
             {captureSaved ? <p role="status" className="text-sm font-semibold text-[#356146]">{labels.entryAddSaved}</p> : null}
           </div>
+          {hasPageChrome ? <button type="button" className="practice-text-action study-form-cancel" onClick={() => setShowCaptureForm(false)}>{labels.draftEditCancel}</button> : null}
         </form>
       ) : null}
       {showEntryLibrary ? (
         <>
         <BatchActionBar batch={batch} actions={batchActions} locale={locale} />
-        <LearningList locale={locale} selection={batch.selection} columns={showEntryHub ? <LearningListColumns locale={locale}
-          title={isGrammarLibrary ? (locale === 'ja' ? '文型' : locale === 'en' ? 'Grammar' : '句型') : (locale === 'ja' ? '単語' : locale === 'en' ? 'Word' : '单词')}
-          collectionLabel={collectionLabel} showPartOfSpeech={isVocabularyLibrary}/> : undefined}>{(mobileList.mobile ? mobileItems : pageItems).map((item) => {
-          const missingBook = locale === 'ja' ? '不明' : locale === 'en' ? 'Unknown' : '未知';
+        <LearningList locale={locale} selection={batch.selection}>{(mobileList.mobile ? mobileItems : pageItems).map((item) => {
+          const completedRounds = recentPracticeCounts[item.id] ?? 0;
+          const roundsLabel = locale === 'zh-CN' ? `${completedRounds} 次已完成练习` : locale === 'ja' ? `完了した練習 ${completedRounds} 回` : `${completedRounds} completed practices`;
           const wordbookId = itemWordbookId(item);
           const wordbookTitle = wordbooks.find((book) => book.id === wordbookId)?.title
-            ?? (wordbookId === item.deck ? deckLabels[item.deck] : missingBook);
+            ?? (wordbookId === item.deck ? deckLabels[item.deck] : locale === 'zh-CN' ? '未知' : locale === 'ja' ? '不明' : 'Unknown');
+          const studyStatus = progress[item.id]?.status;
+          const statusLabel = studyStatus === 'mastered' ? labels.statusMastered : studyStatus === 'review' ? labels.statusReview : studyStatus === 'learning' ? labels.statusLearning : labels.statusNew;
           return <LearningListRow key={item.id} selectId={item.id}
             title={item.original}
             references={[item.reference]}
-            reading={isVocabularyLibrary && item.reading === item.original ? undefined : item.reading}
+            reading={distinctReading(item)}
             description={itemMeaning(item, locale)}
-            metadata={showEntryHub ? <><LearningListMetadata locale={locale}
-              addedAt={item.input_at} collectionLabel={collectionLabel} collection={wordbookTitle}
-              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)}/><span className="list-practice-count recent-practice-count" title={locale === 'zh-CN' ? '最近 50 场已完成练习中，每场涉及该知识点计一次；不含记忆卡复习和未关联的题目。' : locale === 'ja' ? '直近50回の完了した練習。項目ごとに1回を集計。' : 'Completed sessions in the last 50 retained attempts; once per linked item, excluding memory cards.'}>{locale === 'zh-CN' ? '近期练习' : locale === 'ja' ? '最近の練習' : 'Recent practice'} {recentPracticeCounts[item.id] ?? 0}{locale === 'en' ? '' : ' 次'}</span></> : undefined}
-            statusKind={progress[item.id]?.status ?? "new"}
-            status={progress[item.id]?.status === 'mastered' ? labels.statusMastered : progress[item.id]?.status === 'review' ? labels.statusReview : progress[item.id]?.status === 'learning' ? labels.statusLearning : labels.statusNew}
+            metadata={<><LearningListMetadata locale={locale} addedAt={item.input_at} collectionLabel={collectionLabel} collection={wordbookTitle}
+              nextReviewAt={progress[item.id]?.nextReviewAt} showPartOfSpeech={isVocabularyLibrary} partOfSpeech={item.part_of_speech} meaning={itemMeaning(item, locale)} />
+              <span className="list-learning-status"><span className="list-metadata-label">{locale === 'zh-CN' ? '学习状态' : locale === 'ja' ? '学習状況' : 'Study status'}</span><span>{statusLabel}</span></span>
+            </>}
+            status={completedRounds > 0 ? <span className="entry-completed-rounds" aria-label={roundsLabel} title={roundsLabel}><RotateCcw size={17} aria-hidden="true" /><span>{completedRounds}{locale === 'en' ? '' : locale === 'ja' ? ' 回' : ' 次'}</span></span> : <></>}
             locale={locale} onOpen={() => onOpen(item.id)}/>;
         })}</LearningList>
         {sortedItems.length > 0 && (mobileList.mobile
@@ -1157,14 +1162,6 @@ function ModuleAction({ label, children, onClick }: { label: string; children: R
     <button type="button" aria-label={label} title={label} onClick={onClick} className="inline-flex h-9 items-center gap-2 rounded-md border border-[#ead1dc] bg-white px-3 text-sm font-bold text-[#a84269] hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95f8a]">
       {children}
       <span>{label}</span>
-    </button>
-  );
-}
-
-function IconAction({ label, title, children, onClick }: { label: string; title: string; children: ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" aria-label={label} title={title} onClick={onClick} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95f8a]">
-      {children}
     </button>
   );
 }
@@ -1190,6 +1187,12 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
   const labels = bookLabels(baseLabels, family);
   const familyWordbooks = wordbooksForFamily(wordbooks, family);
   const isGrammar = family === 'grammar';
+  const [showNewWordbook, setShowNewWordbook] = useState(false);
+  const cancelRename = () => { setEditingWordbookId(null); setRenameWordbookError(''); };
+  useAuthoringNavigation(editingWordbookId ? labels.wordbookRename : null, cancelRename, { kind: 'form' });
+  useAuthoringNavigation(showNewWordbook ? labels.wordbookCreate : null, () => setShowNewWordbook(false), { kind: 'form' });
+  const newWordbookLabel = locale === 'zh-CN' ? '新建' : locale === 'ja' ? '新規' : 'New';
+  const hasPageChrome = usePageHeaderActions(onCreateWordbook && !editingWordbookId && !showNewWordbook ? [{ key: 'new-wordbook', label: newWordbookLabel, onClick: () => setShowNewWordbook(true) }] : []);
 
   async function createWordbook(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1198,7 +1201,7 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
     setCreateWordbookError('');
     try {
       const wordbook = await onCreateWordbook(newWordbookTitle.trim(), isGrammar ? 'grammar_expression' : 'n1_vocab');
-      if (wordbook) setNewWordbookTitle('');
+      if (wordbook) { setNewWordbookTitle(''); setShowNewWordbook(false); }
     } catch (error) {
       setCreateWordbookError(error instanceof Error ? error.message : labels.wordbookCreateFailed);
     } finally {
@@ -1207,6 +1210,7 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
   }
 
   function startRenamingWordbook(wordbook: Wordbook) {
+    setShowNewWordbook(false);
     setEditingWordbookId(wordbook.id);
     setEditingWordbookTitle(wordbook.title);
     setRenameWordbookError('');
@@ -1231,19 +1235,13 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
   }
 
   return (
-    <section className="min-w-0 overflow-hidden bg-white md:rounded-lg md:border md:border-[#d8cdbc] md:shadow-sm">
-      <div className="border-b border-[#e5ddd1] px-4 py-4 md:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-black text-[#26352f]">{labels.wordbookManage}</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-[#68736d]">{labels.wordbookManageHint}</p>
-          </div>
-          <button type="button" onClick={onBack} className="h-9 rounded-md border border-[#d9d0c3] bg-white px-3 text-sm font-semibold text-[#34443c] hover:bg-[#f7f4ef]">
-            {labels.backToEntryList}
-          </button>
-        </div>
-      </div>
-      {onCreateWordbook ? (
+    <section className="study-wordbook-manager">
+      {!hasPageChrome ? <header className="study-wordbook-fallback-heading">
+        <button type="button" className="practice-text-action" onClick={editingWordbookId ? cancelRename : showNewWordbook ? () => setShowNewWordbook(false) : onBack}><ChevronLeft size={18} aria-hidden="true" />{editingWordbookId || showNewWordbook ? labels.draftEditCancel : labels.backToEntryList}</button>
+        <h2>{editingWordbookId ? labels.wordbookRename : showNewWordbook ? labels.wordbookCreate : labels.wordbookManage}</h2>
+        {onCreateWordbook && !editingWordbookId && !showNewWordbook ? <button type="button" className="practice-text-action" onClick={() => setShowNewWordbook(true)}>{newWordbookLabel}</button> : null}
+      </header> : null}
+      {showNewWordbook && onCreateWordbook ? (
         <form onSubmit={createWordbook} className="flex flex-col gap-2 border-b border-[#e5ddd1] px-4 py-4 sm:flex-row sm:items-end md:px-5">
           <label className="min-w-0 flex-1 text-sm font-semibold text-[#4b3b42]">
             {labels.wordbookNewName}
@@ -1258,6 +1256,7 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
           <button type="submit" disabled={!newWordbookTitle.trim() || creatingWordbook} className="h-10 rounded-md bg-[#24473f] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-50">
             {creatingWordbook ? labels.processing : labels.wordbookCreate}
           </button>
+          <button type="button" className="practice-text-action" onClick={() => setShowNewWordbook(false)}>{labels.draftEditCancel}</button>
           {createWordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{createWordbookError}</p> : null}
         </form>
       ) : null}
@@ -1276,7 +1275,7 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
                   <button type="submit" disabled={!editingWordbookTitle.trim() || renamingWordbook} className="h-10 rounded-md bg-[#24473f] px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-50">
                     {renamingWordbook ? labels.processing : labels.draftEditSave}
                   </button>
-                  <button type="button" onClick={() => { setEditingWordbookId(null); setRenameWordbookError(''); }} className="h-10 rounded-md border border-[#d9d0c3] bg-white px-4 text-sm font-semibold text-[#59645e]">
+                  <button type="button" onClick={cancelRename} className="h-10 rounded-md border border-[#d9d0c3] bg-white px-4 text-sm font-semibold text-[#59645e]">
                     {labels.draftEditCancel}
                   </button>
                 </div>
@@ -1286,24 +1285,6 @@ export function WordbookManagerPanel({ labels: baseLabels, locale, family, wordb
       </div>
     </section>
   );
-}
-
-function StatusPill({ status, labels }: { status: ReviewStatus; labels: Record<string, string> }) {
-  const text = status === 'mastered'
-    ? labels.statusMastered
-    : status === 'review'
-      ? labels.statusReview
-      : status === 'learning'
-        ? labels.statusLearning
-        : labels.statusNew;
-  const color = status === 'mastered'
-    ? 'bg-[#d5eadc] text-[#285d47]'
-    : status === 'review'
-      ? 'bg-[#e8f0eb] text-[#24473f]'
-      : status === 'learning'
-        ? 'bg-[#f8ead6] text-[#73532b]'
-        : 'bg-[#f1eee8] text-[#665f55]';
-  return <span className={`whitespace-nowrap rounded px-2 py-1 text-xs font-semibold ${color}`}>{text}</span>;
 }
 
 const ENTRY_NAVIGATOR_PAGE_SIZE = 20;
@@ -1346,6 +1327,7 @@ export function WordDetailPanel({
   const touchStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const [navigatorPage, setNavigatorPage] = useState(() => Math.floor(index / ENTRY_NAVIGATOR_PAGE_SIZE));
+  useAuthoringNavigation(navigatorOpen ? labels.wordDetail : null, () => setNavigatorOpen(false), { kind: 'detail' });
 
   if (!item) {
     return <EmptyModule labels={labels} />;
@@ -1391,15 +1373,13 @@ export function WordDetailPanel({
 
   return (
     <section
-      className="min-w-0"
+      className="study-entry-detail"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={() => { touchStartRef.current = null; }}
     >
-      <div className="sticky top-12 z-20 mb-3 -mx-4 border-y border-[#f0d4dd] bg-[#fffdf9]/95 px-4 py-2.5 shadow-[0_6px_16px_rgba(79,48,63,0.04)] backdrop-blur md:static md:mx-0 md:border-x-0 md:border-t-0 md:bg-transparent md:px-0 md:pb-3 md:pt-0 md:shadow-none">
-        <p className="hidden text-sm font-bold text-[#a84269] md:block">{labels.wordDetail}</p>
-        <RecordReference reference={item.reference} locale={locale} />
+      <div className="study-entry-navigation sticky top-12 z-20 mb-3 -mx-4 border-y border-[#f0d4dd] bg-[#fffdf9]/95 px-4 py-2.5 shadow-[0_6px_16px_rgba(79,48,63,0.04)] backdrop-blur md:static md:mx-0 md:border-x-0 md:border-t-0 md:bg-transparent md:px-0 md:pb-3 md:pt-0 md:shadow-none">
         <div className="flex items-center justify-between gap-3 md:mt-3 md:justify-start">
           <CompactToggle checked={showRuby} label={labels.furigana} onChange={onShowRubyChange} />
           <div className="grid shrink-0 grid-cols-[2.75rem_minmax(4.75rem,auto)_2.75rem] items-center gap-1.5" aria-label={labels.wordDetail}>
@@ -1455,7 +1435,8 @@ export function WordDetailPanel({
         token={token}
         imageEditor={onAddImage && onRemoveImage ? { onAdd: onAddImage, onRemove: onRemoveImage } : undefined}
       />
-      {onOrganize ? <EntryOrganizer key={item.id} item={item} wordbooks={wordbooks} labels={labels} onOrganize={onOrganize} /> : null}
+      {onOrganize ? <details className="study-entry-disclosure"><summary>{labels.entryOrganize}</summary><EntryOrganizer key={item.id} item={item} wordbooks={wordbooks} labels={labels} onOrganize={onOrganize} /></details> : null}
+      {item.reference ? <div className="study-entry-reference"><RecordReference reference={item.reference} locale={locale} /></div> : null}
     </section>
   );
 }
@@ -1588,6 +1569,7 @@ function VocabCard({
   const meaning = localized(item, locale, 'meaning') ?? item.meaning_zh;
   const coreMemory = itemMemoryPoints(item, locale);
   const explanation = itemExplanation(item, locale);
+  const explanationPreview = conciseEvidence(explanation ?? '', 240);
   const isGrammarEntry = item.deck === 'grammar_expression';
   const reading = distinctReading(item);
   const patterns = item.patterns?.filter((pattern) => pattern.pattern || pattern.example || pattern.connection_zh) ?? [];
@@ -1600,206 +1582,52 @@ function VocabCard({
   const comparisons = item.comparisons?.filter((comparison) => comparison.kind !== 'everyday' && (comparison.target || comparison.difference_zh)) ?? [];
   const register = item.register ?? {};
   const registerLabel = register.level ? labels[`usageRegister_${register.level}`] ?? register.level : null;
-  const sectionClass = 'mt-5 border-t border-[#f0d4dd] pt-5';
-  const headingClass = 'text-xs font-bold text-[#a84269]';
-  return (
-    <article className="cute-practice-card min-w-0 border p-4 md:p-6">
-      <h3 className="text-3xl font-black text-[#3d3036]">
-        <RubyText text={item.original} items={[item]} enabled={showRuby} />
-      </h3>
-      {reading ? <p lang="ja" className="mt-1 text-sm font-semibold text-[#8f365b]">{reading}</p> : null}
-      <div className="mt-5 space-y-5 border-t border-[#f0d4dd] pt-5">
-        <section>
-          <h4 className={headingClass}>{labels.japaneseMeaning}</h4>
-          <p className="mt-2 text-sm leading-7 text-[#3d3036]">
-            <RubyText text={item.meaning_ja ?? '-'} items={[item]} enabled={showRuby} />
-          </p>
-        </section>
-        {locale !== 'ja' ? (
-          <section className="border-t border-[#f0d4dd] pt-5">
-            <h4 className={headingClass}>{labels.localizedMeaning}</h4>
-            <p className="mt-2 text-sm leading-7 text-[#3d3036]">{meaning}</p>
-          </section>
-        ) : null}
-      </div>
-      <section className={sectionClass}>
-        <h4 className={headingClass}>{labels.examQuickNote}</h4>
-        <ul className="mt-3 space-y-3">
-          {coreMemory.map((point, index) => (
-            <li key={`${index}-${point}`} className="flex gap-3 text-sm leading-7 text-[#3d3036]">
-              <span aria-hidden="true" className="mt-[0.7rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#a84269]" />
-              <span className="min-w-0 whitespace-pre-wrap break-words">{point}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      {patterns.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{isGrammarEntry ? labels.grammarConnection ?? '接续格式' : labels.collocationsLabel}</h4>
-          <div className="mt-3 space-y-3">
-            {patterns.map((pattern, patternIndex) => (
-              <div key={`${pattern.pattern ?? 'pattern'}-${patternIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                {pattern.pattern ? (
-                  <p className="text-sm font-bold leading-7 text-[#3d3036]"><RubyText text={pattern.pattern} items={[item]} enabled={showRuby} /></p>
-                ) : null}
-                {pattern.connection_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.connection_zh}</p> : null}
-                {pattern.meaning_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.meaning_zh}</p> : null}
-                {pattern.example ? (
-                  <p className="mt-1 text-sm leading-7 text-[#3d3036]"><RubyText text={pattern.example} items={[item]} enabled={showRuby} /></p>
-                ) : null}
-                {pattern.example_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{pattern.example_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {!isGrammarEntry && examples.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.vocabularyExamples}</h4>
-          <ol className="mt-3 space-y-4">
-            {examples.slice(0, 2).map((example, exampleIndex) => (
-              <li key={`${example.ja}-${exampleIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                {example.ja ? (
-                  <p className="text-sm font-bold leading-7 text-[#3d3036]">
-                    <span className="journal-number mr-2 text-[#a84269]">{exampleIndex + 1}.</span>
-                    <RubyText text={example.ja} items={[item]} enabled={showRuby} />
-                  </p>
-                ) : null}
-                {example.zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.zh}</p> : null}
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
-      {conjugations.length ? (
-        <section className={sectionClass}>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h4 className={headingClass}>{labels.conjugationsLabel}</h4>
-            <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
-              {inflectionClass ? (
-                <span className="rounded-full bg-[#fff0f5] px-2.5 py-1 font-bold text-[#8f365b]">
-                  {labels.inflectionClassLabel}：{labels[`inflectionClass_${inflectionClass}`] ?? inflectionClass}
-                </span>
-              ) : null}
-              {baseForm ? <span className="text-[#74646b]">{labels.baseFormLabel}：{baseForm}</span> : null}
-            </div>
-          </div>
-          <dl className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-            {conjugations.map((conjugation, conjugationIndex) => (
-              <div key={`${conjugation.kind}-${conjugation.form}-${conjugationIndex}`} className="border-b border-[#f5e1e7] pb-2">
-                <dt className="text-xs font-semibold text-[#8f365b]">{labels[`conjugation_${conjugation.kind}`] ?? conjugation.kind}</dt>
-                <dd className="mt-1 text-sm font-bold text-[#3d3036]">
-                  <RubyText text={conjugation.form} items={[item]} enabled={showRuby} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ) : null}
-      {points.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.grammarTips ?? '用法技巧'}</h4>
-          <div className="mt-3 divide-y divide-[#f0d4dd] border-y border-[#f0d4dd]">
-            {points.map((point, pointIndex) => (
-              <div key={`${point.label ?? 'point'}-${pointIndex}`} className="py-3">
-                {point.label ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{point.label}</p> : null}
-                {point.detail_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{point.detail_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {isGrammarEntry && examples.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.exampleAnalysis ?? '例句分析'}</h4>
-          <div className="mt-3 space-y-4">
-            {examples.map((example, exampleIndex) => (
-              <div key={`${example.ja}-${exampleIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                {example.ja ? (
-                  <p className="text-sm font-bold leading-7 text-[#3d3036]">
-                    <RubyText text={example.ja} items={[item]} enabled={showRuby} />
-                  </p>
-                ) : null}
-                {example.zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.zh}</p> : null}
-                {example.spoken_ja || example.spoken_zh ? (
-                  <div className="mt-3 rounded-lg border border-[#f0d4dd] bg-[#fffaf5] px-3 py-2">
-                    <p className="text-xs font-bold text-[#8f365b]">{labels.spokenExample ?? '口语版'}</p>
-                    {example.spoken_ja ? (
-                      <p className="mt-1 text-sm font-bold leading-7 text-[#3d3036]">
-                        <RubyText text={example.spoken_ja} items={[item]} enabled={showRuby} />
-                      </p>
-                    ) : null}
-                    {example.spoken_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.spoken_zh}</p> : null}
-                  </div>
-                ) : null}
-                {example.form_analysis_zh ? <p className="mt-2 text-sm leading-6 text-[#8f365b]">{example.form_analysis_zh}</p> : null}
-                {example.analysis_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{example.analysis_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {registerLabel || register.note_zh || register.exam_tip_zh || everydayAlternatives.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.grammarRegister ?? '语体与口语说法'}</h4>
-          <div className="mt-3 space-y-3">
-            {registerLabel || register.note_zh ? (
-              <div className="flex flex-wrap items-start gap-2">
-                {registerLabel ? <span className="rounded-full bg-[#fff0f5] px-3 py-1 text-xs font-bold text-[#8f365b]">{registerLabel}</span> : null}
-                {register.note_zh ? <p className="min-w-0 flex-1 text-sm leading-6 text-[#3d3036]">{register.note_zh}</p> : null}
-              </div>
-            ) : null}
-            {register.exam_tip_zh ? (
-              <p className="rounded-xl bg-[#fffaf5] px-3 py-2 text-sm leading-6 text-[#74646b]">
-                <span className="font-bold text-[#8f365b]">{labels.examRegisterNote ?? '考试提示'}：</span>
-                {register.exam_tip_zh}
-              </p>
-            ) : null}
-            {everydayAlternatives.length ? (
-              <div>
-                <p className="text-xs font-bold text-[#8f365b]">{labels.spokenAlternatives ?? '口语一般这样说'}</p>
-                <div className="mt-2 space-y-2">
-                  {everydayAlternatives.map((alternative, alternativeIndex) => (
-                    <div key={`${alternative.target ?? 'alt'}-${alternativeIndex}`} className="border-l-2 border-[#f0c9d4] pl-3">
-                      {alternative.target ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{alternative.target}</p> : null}
-                      {alternative.difference_zh ? <p className="mt-0.5 text-sm leading-6 text-[#74646b]">{alternative.difference_zh}</p> : null}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-      {comparisons.length ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.comparisonNotes ?? '近义辨析'}</h4>
-          <div className="mt-3 divide-y divide-[#f0d4dd] border-y border-[#f0d4dd]">
-            {comparisons.map((comparison, comparisonIndex) => (
-              <div key={`${comparison.target ?? 'comparison'}-${comparisonIndex}`} className="py-3">
-                {comparison.target ? <p className="text-sm font-bold leading-6 text-[#3d3036]">{comparison.target}</p> : null}
-                {comparison.difference_zh ? <p className="mt-1 text-sm leading-6 text-[#74646b]">{comparison.difference_zh}</p> : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {explanation ? (
-        <section className={sectionClass}>
-          <h4 className={headingClass}>{labels.analysis}</h4>
-          <StudyText className="mt-2 text-sm text-[#74646b]" text={explanation} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />
-        </section>
-      ) : null}
-      {item.content_origin === 'ai_generated' && item.verification_status !== 'verified' ? (
-        <p className="mt-3 rounded-2xl border border-[#f0cf80] bg-[#fff8df] p-3 text-xs leading-5 text-[#775516]">
-          {labels.unverifiedContentNotice}
-        </p>
-      ) : null}
-      {item.images?.length || imageEditor ? (
-        <EntryImages item={item} token={token} editor={imageEditor} />
-      ) : null}
-    </article>
-  );
+  const moreExamples = locale === 'zh-CN' ? '更多例句' : locale === 'ja' ? '例文をもっと見る' : 'More examples';
+  const renderPattern = (pattern: typeof patterns[number], index: number) => <div key={`${pattern.pattern ?? 'pattern'}-${index}`} className="study-entry-pattern">
+    {pattern.pattern ? <p className="study-entry-highlight"><RubyText text={pattern.pattern} items={[item]} enabled={showRuby} /></p> : null}
+    {pattern.connection_zh ? <p className="study-entry-translation">{pattern.connection_zh}</p> : null}
+    {pattern.meaning_zh ? <p className="study-entry-translation">{pattern.meaning_zh}</p> : null}
+    {pattern.example ? <p lang="ja"><RubyText text={pattern.example} items={[item]} enabled={showRuby} /></p> : null}
+    {pattern.example_zh ? <p className="study-entry-translation">{pattern.example_zh}</p> : null}
+  </div>;
+  const renderExample = (example: typeof examples[number], index: number) => <div key={`${example.ja}-${index}`} className="study-entry-example">
+    {example.ja ? <p lang="ja"><RubyText text={example.ja} items={[item]} enabled={showRuby} /></p> : null}
+    {example.zh ? <p className="study-entry-translation">{example.zh}</p> : null}
+    {example.spoken_ja || example.spoken_zh || example.form_analysis_zh || example.analysis_zh ? <details className="study-example-analysis"><summary>{labels.exampleAnalysis ?? '例句分析'}</summary>
+      {example.spoken_ja || example.spoken_zh ? <div><h5>{labels.spokenExample ?? '口语版'}</h5>{example.spoken_ja ? <p lang="ja"><RubyText text={example.spoken_ja} items={[item]} enabled={showRuby} /></p> : null}{example.spoken_zh ? <p className="study-entry-translation">{example.spoken_zh}</p> : null}</div> : null}
+      {example.form_analysis_zh ? <p>{example.form_analysis_zh}</p> : null}
+      {example.analysis_zh ? <p>{example.analysis_zh}</p> : null}
+    </details> : null}
+  </div>;
+  return <article className={`study-entry-card${isGrammarEntry ? ' is-grammar' : ''}`}>
+    <header className="study-entry-heading">
+      {reading && showRuby ? <p className="study-entry-reading" lang="ja">{reading}</p> : null}
+      <h1 lang="ja">{item.original}</h1>
+      {isGrammarEntry ? <p className="study-entry-meaning">{meaning}</p> : item.part_of_speech ? <p className="study-entry-translation">{item.part_of_speech}</p> : null}
+    </header>
+    {isGrammarEntry && patterns.length ? <section className="study-entry-section"><h2>{labels.grammarConnection ?? '接续'}</h2>{patterns.map(renderPattern)}</section> : null}
+    {item.meaning_ja ? <section className="study-entry-section"><h2>{labels.japaneseMeaning}</h2><p lang="ja"><RubyText text={item.meaning_ja} items={[item]} enabled={showRuby} /></p></section> : null}
+    {!isGrammarEntry && locale !== 'ja' && meaning ? <section className="study-entry-section"><h2>{labels.localizedMeaning}</h2><p>{meaning}</p></section> : null}
+    {explanation ? <section className="study-entry-section"><h2>{labels.analysis}</h2><StudyText text={explanationPreview.summary} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} />{explanationPreview.hasMore ? <details className="study-example-analysis"><summary>{locale === 'zh-CN' ? '完整解析' : locale === 'ja' ? '詳しい解説' : 'Full explanation'}</summary><StudyText text={explanation} renderText={(text) => <RubyText text={text} items={[item]} enabled={showRuby} />} /></details> : null}</section> : null}
+    {examples.length ? <section className="study-entry-section"><h2>{labels.vocabularyExamples ?? '例句'}</h2>{examples.slice(0, 1).map(renderExample)}</section> : null}
+    {coreMemory.length || points.length ? <section className="study-entry-section"><h2>{labels.examQuickNote}</h2>
+      {coreMemory.length ? <ul className="study-entry-memory">{coreMemory.map((point, index) => <li key={`${index}-${point}`}>{point}</li>)}</ul> : null}
+      {points.map((point, index) => <div className="study-entry-point" key={`${point.label ?? 'point'}-${index}`}>{point.label ? <h3>{point.label}</h3> : null}{point.detail_zh ? <p>{point.detail_zh}</p> : null}</div>)}
+    </section> : null}
+    {examples.length > 1 ? <details className="study-entry-disclosure"><summary>{moreExamples}<span>{examples.length - 1}</span></summary>{examples.slice(1).map(renderExample)}</details> : null}
+    {!isGrammarEntry && patterns.length ? <details className="study-entry-disclosure"><summary>{labels.collocationsLabel}</summary>{patterns.map(renderPattern)}</details> : null}
+    {conjugations.length ? <details className="study-entry-disclosure"><summary>{labels.conjugationsLabel}</summary>
+      <p className="study-entry-translation">{inflectionClass ? `${labels.inflectionClassLabel}：${labels[`inflectionClass_${inflectionClass}`] ?? inflectionClass}` : ''}{baseForm ? ` · ${labels.baseFormLabel}：${baseForm}` : ''}</p>
+      <dl className="study-entry-conjugations">{conjugations.map((conjugation, index) => <div key={`${conjugation.kind}-${index}`}><dt>{labels[`conjugation_${conjugation.kind}`] ?? conjugation.kind}</dt><dd><RubyText text={conjugation.form} items={[item]} enabled={showRuby} /></dd></div>)}</dl>
+    </details> : null}
+    {registerLabel || register.note_zh || register.exam_tip_zh || everydayAlternatives.length ? <details className="study-entry-disclosure"><summary>{labels.grammarRegister ?? '语体与口语说法'}</summary>
+      {registerLabel ? <p className="study-entry-highlight">{registerLabel}</p> : null}{register.note_zh ? <p>{register.note_zh}</p> : null}{register.exam_tip_zh ? <p>{labels.examRegisterNote ?? '考试提示'}：{register.exam_tip_zh}</p> : null}
+      {everydayAlternatives.length ? <div><h3>{labels.spokenAlternatives ?? '口语一般这样说'}</h3>{everydayAlternatives.map((alternative, index) => <div className="study-entry-point" key={`${alternative.target}-${index}`}>{alternative.target ? <h4>{alternative.target}</h4> : null}{alternative.difference_zh ? <p>{alternative.difference_zh}</p> : null}</div>)}</div> : null}
+    </details> : null}
+    {comparisons.length ? <details className="study-entry-disclosure"><summary>{labels.comparisonNotes ?? '近义辨析'}</summary>{comparisons.map((comparison, index) => <div className="study-entry-point" key={`${comparison.target}-${index}`}>{comparison.target ? <h3>{comparison.target}</h3> : null}{comparison.difference_zh ? <p>{comparison.difference_zh}</p> : null}</div>)}</details> : null}
+    {item.images?.length || imageEditor ? <details className="study-entry-disclosure"><summary>{locale === 'zh-CN' ? '记忆图片' : locale === 'ja' ? '記憶イメージ' : 'Memory images'}</summary><EntryImages item={item} token={token} editor={imageEditor} /></details> : null}
+    {item.content_origin === 'ai_generated' && item.verification_status !== 'verified' ? <p className="practice-verification-notice">{labels.unverifiedContentNotice}</p> : null}
+  </article>;
 }
 
 const MAX_ENTRY_IMAGES = 6;
@@ -1963,4 +1791,3 @@ function rubyTermsForItems(items: VocabItem[]) {
     .map((term) => ({ surface: term.text, reading: term.reading }))
     .sort((a, b) => b.surface.length - a.surface.length);
 }
-import { useAuthoringNavigation } from '../../components/AuthoringNavigation';

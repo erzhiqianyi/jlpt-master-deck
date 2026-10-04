@@ -4,10 +4,12 @@ import { ChevronLeft, ChevronRight, PlayCircle } from 'lucide-react';
 import { useState } from 'react';
 import { dialoguePractices } from '../../data/dialoguePractice';
 import { DialogueRolePlay } from './DialogueRolePlay';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 
 export function DialoguePracticePanel() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const selected = activeIndex === null ? null : dialoguePractices[activeIndex];
+  useAuthoringNavigation(selected?.title ?? null, () => setActiveIndex(null), { kind: 'detail', backLabel: '返回对话列表' });
 
   if (!selected || activeIndex === null) return (
     <LearningCatalog columnLabels={["对话", "任务", null]} title="对话练习" items={dialoguePractices} searchText={(item) => `${item.title} ${item.task}`} onBack={() => { window.location.hash = '#/mixed/tips'; }} renderRow={(item) => <LearningListRow key={item.id} title={item.title} description={item.task} onOpen={() => { setActiveIndex(dialoguePractices.indexOf(item)); }}/>}/>

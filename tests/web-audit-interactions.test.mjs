@@ -35,7 +35,7 @@ const noop=()=>{};
 async function render(component,props){await act(async()=>root.render(h(ConfirmationProvider,null,h(component,props))));}
 async function click(element){assert.ok(element,'expected element exists');await act(async()=>element.click());}
 async function fill(element,value){await act(async()=>{Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set.call(element,value);element.dispatchEvent(new Event('input',{bubbles:true}));});}
-const button=(text)=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===text);
+const button=(text)=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===text||b.getAttribute('aria-label')===text);
 after(async()=>{await act(async()=>root.unmount());dom.window.close();await rm(dir,{recursive:true,force:true});});
 
 test('capture rejects visibly, retains input, deduplicates pending retry and clears only on success',async()=>{
@@ -71,13 +71,16 @@ test('plan update failure shows recovery and preserves existing task state',asyn
 test('module actions execute, disabled gates remain, and sheet dismisses after selection',async()=>{
  let calls=0;
  await render(ModuleActionBar,{label:'词汇',actions:[{key:'add',label:'添加单词',onClick:()=>calls++},{key:'blocked',label:'不可用',disabled:true,onClick:()=>calls+=100}],primary:{label:'开始练习',onClick:noop}});
+ await click(button('选择练习模式'));
  await click(button('添加单词'));
  assert.equal(calls,1);
+ await click(button('选择练习模式'));
  await click(button('不可用'));
  assert.equal(calls,1);
- const more=document.querySelector('.module-action-overflow');
- assert.ok(more);
- await click(more);
+ const mascot=document.querySelector('.module-practice-mascot');
+ assert.ok(mascot);
+ assert.equal(document.querySelector('.module-action-overflow'),null);
+ assert.equal(mascot.querySelector('img').getAttribute('src'),'/study-companion.png');
  assert.equal(document.querySelector('dialog').open,true);
  await click([...document.querySelectorAll('dialog button')].find(b=>b.textContent==='添加单词'));
  assert.equal(calls,2);

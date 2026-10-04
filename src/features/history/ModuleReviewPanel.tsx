@@ -1,4 +1,6 @@
-import { ArrowRight } from 'lucide-react';
+import '../practice/practice-layout.css';
+import { LearningList, LearningListFrame, LearningListHeader, LearningListRow } from '../../components/LearningList';
+import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { listeningAudioRouteId, listeningPracticeKey } from '../../domain/listeningPractice';
 import type { ListeningQuestion, Locale, ProgressState, ReadingQuestion } from '../../types';
 
@@ -17,15 +19,14 @@ export function ModuleReviewPanel({ module, locale, readingQuestions, listeningQ
     : listeningQuestions.map((item) => ({ id: listeningAudioRouteId(item), key: listeningPracticeKey(item), title: item.audioFileName || item.title })))
     .filter((entry) => { if (seen.has(entry.key)) return false; seen.add(entry.key); return Boolean(progress[entry.key]?.reviewCount); })
     .sort((left, right) => (progress[right.key]?.lastReviewedAt ?? '').localeCompare(progress[left.key]?.lastReviewedAt ?? ''));
-  return <section className="mx-auto max-w-4xl py-4" aria-labelledby="module-review-heading">
-    <header className="mb-5"><h1 id="module-review-heading" className="text-xl font-semibold">{copy.title}</h1><p className="mt-2 text-sm text-[#68716b]">{copy.body}</p></header>
-    <p className="mb-4 text-sm text-[#68716b]">{module === 'reading' ? copy.readingNote : copy.listeningNote}</p>
-    {entries.length ? <ul className="divide-y divide-[#ded6cf] border-y border-[#ded6cf]">{entries.map((entry) => {
+  return <LearningListFrame locale={locale} className="study-module-review" label={copy.title}>
+    <LearningListHeader count={`${entries.length}`}><p className="study-review-record-note">{module === 'reading' ? copy.readingNote : copy.listeningNote}</p></LearningListHeader>
+    {entries.length ? <LearningList locale={locale}>{entries.map((entry) => {
       const record = progress[entry.key];
-      return <li key={entry.key}><button type="button" className="flex min-h-16 w-full items-center justify-between gap-4 py-4 text-left" onClick={() => onOpen(entry.id)} aria-label={`${entry.title} · ${copy.open}`}>
-        <span className="min-w-0"><strong className="block break-words">{entry.title}</strong><span className="mt-1 block text-sm text-[#68716b]">{copy.count}: {record.reviewCount}{module === 'reading' ? ` · ${copy.correct}: ${record.correct} · ${copy.wrong}: ${record.wrong}` : ''}</span></span><ArrowRight size={18} className="shrink-0" aria-hidden="true" />
-      </button></li>;
-    })}</ul> : <p className="py-8 text-center text-[#68716b]">{copy.empty}</p>}
-    <button type="button" onClick={onPractice} className="cute-button-secondary mt-5 min-h-11 px-4">{copy.start}</button>
-  </section>;
+      return <LearningListRow key={entry.key} title={entry.title} locale={locale}
+        description={`${copy.count}: ${record.reviewCount}${module === 'reading' ? ` · ${copy.correct}: ${record.correct} · ${copy.wrong}: ${record.wrong}` : ''}`}
+        actionLabel={copy.open} onOpen={() => onOpen(entry.id)} />;
+    })}</LearningList> : <p className="study-review-empty">{copy.empty}</p>}
+    <ModuleActionBar locale={locale} label={copy.title} primary={{ label: copy.start, onClick: onPractice }} />
+  </LearningListFrame>;
 }

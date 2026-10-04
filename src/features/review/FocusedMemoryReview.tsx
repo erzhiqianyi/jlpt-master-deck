@@ -1,9 +1,10 @@
+import '../practice/practice-layout.css';
 import { conjugationReading } from '../../domain/conjugationReading';
 import { LookupText } from './WordLookup';
 import { RecordReference } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
 import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ItemImage } from '../../components/ItemImage';
 import { distinctReading, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
 import { memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
@@ -27,23 +28,30 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [error, setError] = useState('');
   const item = queue[index];
 
   async function rate(rating: MemoryRating) {
-    if (!item || saving) return;
+    if (!item || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
+    setError('');
     try {
       await onRate(item, rating);
       setIndex((current) => current + 1);
       setRevealed(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : locale === 'zh-CN' ? '未能保存，请重试。' : locale === 'ja' ? '保存できませんでした。再試行してください。' : 'Could not save. Please try again.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   if (!queue.length || index >= queue.length) {
     return (
-      <main className="ledger-focus-review">
+      <main className="ledger-focus-review study-memory-review">
         <header className="ledger-focus-topbar"><button type="button" onClick={onExit}><ArrowLeft size={20} />返回今天</button><strong>记忆卡复习</strong><span>{queue.length} / {queue.length}</span></header>
         <section className="ledger-review-complete"><CheckCircle2 size={46} /><h1>今日复习完成</h1><p>{queue.length ? `${queue.length} 张记忆卡已更新下次复习日期。` : '今天没有到期的记忆卡。'}</p><button type="button" onClick={onExit}>返回今天</button></section>
       </main>
@@ -53,7 +61,7 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   const reviewed = index;
 
   return (
-    <main className="ledger-focus-review">
+    <main className="ledger-focus-review study-memory-review">
       <header className="ledger-focus-topbar">
         <button type="button" onClick={onExit} aria-label="退出复习">
           <ArrowLeft size={20} />
@@ -98,14 +106,15 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
             </article>
           </div>
         </div>
+        {error ? <p className="study-memory-save-error" role="alert">{error}</p> : null}
         {!revealed ? (
           <button type="button" className="ledger-primary-action" onClick={() => setRevealed(true)}><Eye size={18} />显示答案</button>
         ) : (
           <div className="ledger-memory-ratings" aria-label="记忆程度">
-            <button type="button" disabled={saving} onClick={() => rate('forgot')}><RotateCcw size={20} /><strong>忘记</strong><small>10 分钟</small></button>
-            <button type="button" disabled={saving} onClick={() => rate('hard')}><TriangleAlert size={20} /><strong>困难</strong><small>1 天</small></button>
-            <button type="button" disabled={saving} onClick={() => rate('remembered')}><CheckCircle2 size={20} /><strong>记得</strong><small>3 天</small></button>
-            <button type="button" disabled={saving} onClick={() => rate('easy')}><Target size={20} /><strong>简单</strong><small>7 天</small></button>
+            <button type="button" disabled={saving} data-rating="forgot" onClick={() => rate('forgot')}><RotateCcw size={20} /><strong>忘记</strong><small>10 分钟</small></button>
+            <button type="button" disabled={saving} data-rating="hard" onClick={() => rate('hard')}><TriangleAlert size={20} /><strong>困难</strong><small>1 天</small></button>
+            <button type="button" disabled={saving} data-rating="remembered" onClick={() => rate('remembered')}><CheckCircle2 size={20} /><strong>记得</strong><small>3 天</small></button>
+            <button type="button" disabled={saving} data-rating="easy" onClick={() => rate('easy')}><Target size={20} /><strong>简单</strong><small>7 天</small></button>
           </div>
         )}
       </section>

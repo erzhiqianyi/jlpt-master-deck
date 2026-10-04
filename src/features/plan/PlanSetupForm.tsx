@@ -1,40 +1,57 @@
 import { BookOpenCheck, CalendarRange, Clock3, Layers3, Plus, School, Target, X } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type SetStateAction } from 'react';
 import { createStudyMaterial } from '../../domain/studyPlan';
 import type { StudyPlanMaterial, StudyPlanModule, StudyPlanProfile } from '../../types';
 
 const modules: StudyPlanModule[] = ['grammar', 'reading', 'listening', 'vocabulary', 'other'];
 
 export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: Record<string, string>; profile: StudyPlanProfile; onSave: (profile: StudyPlanProfile) => Promise<void>; onCancel?: () => void }) {
-  const [draft, setDraft] = useState(profile);
+  const [draft, setDraftState] = useState(profile);
+  const dirty = useRef(false);
   const [saving, setSaving] = useState(false);
+  const savePending = useRef(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => setDraft(profile), [profile]);
+  // Polling returns a new profile object every time. Only a clean editor follows
+  // those updates; a local draft survives both cloned and changed server data.
+  useEffect(() => {
+    if (!dirty.current) setDraftState(profile);
+  }, [profile]);
+
+  function setDraft(update: SetStateAction<StudyPlanProfile>) {
+    dirty.current = true;
+    setDraftState(update);
+  }
 
   function updateMaterial(id: string, patch: Partial<StudyPlanMaterial>) {
     setDraft((current) => ({ ...current, materials: current.materials.map((material) => material.id === id ? { ...material, ...patch } : material) }));
   }
 
   async function save() {
+    if (savePending.current) return;
     if (draft.examDate < draft.startDate) return setMessage(labels.planInvalidDates);
     if (!draft.materials.length || draft.materials.some((material) => !material.title.trim())) return setMessage(labels.planMaterialNameRequired);
+    savePending.current = true;
     setSaving(true);
     setMessage('');
     try {
       await onSave(draft);
+      dirty.current = false;
+      setDraftState(draft);
       setMessage(labels.planProfileSaved);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : labels.planSaveFailed);
     } finally {
+      savePending.current = false;
       setSaving(false);
     }
   }
 
   return (
-    <div className="space-y-5">
+    <form className="plan-profile-form" aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void save(); }}>
+      <fieldset disabled={saving} className="plan-profile-fields">
       <FormSection initiallyOpen icon={Target} title={labels.planBasicInfo} body={labels.planProfileOverviewBody}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="plan-basic-fields">
           <Field label={labels.planLevel}>
             <select value={draft.level} onChange={(event) => setDraft({ ...draft, level: event.target.value as StudyPlanProfile['level'] })} className={inputClass}>
               {['N1', 'N2', 'N3', 'N4', 'N5'].map((level) => <option key={level}>{level}</option>)}
@@ -51,7 +68,7 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
       </FormSection>
 
       <FormSection icon={Clock3} title={labels.planConstraintsSection} body={labels.planConstraintsSectionBody}>
-        <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="plan-basic-fields">
           <Field label={labels.planMaterialStartStatus}>
             <select value={draft.materialStartStatus ?? 'not_started'} onChange={(event) => setDraft({ ...draft, materialStartStatus: event.target.value as StudyPlanProfile['materialStartStatus'] })} className={inputClass}>
               {(['not_started', 'in_progress', 'reviewing'] as const).map((status) => <option key={status} value={status}>{labels[`planMaterialStartStatus_${status}`]}</option>)}
@@ -72,7 +89,7 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
       </FormSection>
 
       <FormSection icon={Layers3} title={labels.planSupplementalSection} body={labels.planSupplementalSectionBody}>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="plan-basic-fields">
           <Field label={labels.planSupplementalNeeds}>
             <textarea value={draft.supplementalNeeds ?? ''} maxLength={1000} onChange={(event) => setDraft({ ...draft, supplementalNeeds: event.target.value })} placeholder={labels.planSupplementalNeedsPlaceholder} className={textareaClass} />
           </Field>
@@ -92,7 +109,7 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
         </div>
         <div className="mt-3 divide-y divide-[#dfe5dc] border-y border-[#dfe5dc]">
           {draft.materials.map((material) => (
-            <div key={material.id} className="grid gap-3 py-4 md:grid-cols-[minmax(220px,1.5fr)_150px_minmax(220px,1fr)_40px] md:items-end">
+            <div key={material.id} className="plan-material-fields">
               <Field label={labels.planMaterialName}><input value={material.title} maxLength={120} onChange={(event) => updateMaterial(material.id, { title: event.target.value })} className={inputClass} /></Field>
               <Field label={labels.planModule}>
                 <select value={material.module} onChange={(event) => updateMaterial(material.id, { module: event.target.value as StudyPlanModule })} className={inputClass}>
@@ -109,11 +126,12 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
       </FormSection>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={save} disabled={saving} className="h-11 rounded-md bg-[#31564c] px-5 text-sm font-semibold text-white hover:bg-[#27483f] disabled:opacity-60">{saving ? labels.planSaving : labels.planSaveProfile}</button>
+        <button type="submit" disabled={saving} className="h-11 rounded-md bg-[#31564c] px-5 text-sm font-semibold text-white hover:bg-[#27483f] disabled:opacity-60">{saving ? labels.planSaving : labels.planSaveProfile}</button>
         {onCancel ? <button type="button" onClick={onCancel} disabled={saving} className="h-11 rounded-md border border-[#c8d1c8] bg-white px-5 text-sm font-semibold text-[#4f5b55] hover:bg-[#f3f6f1] disabled:opacity-60">{labels.planCancelEdit}</button> : null}
       </div>
+      </fieldset>
       {message ? <p role="status" className="text-sm font-semibold text-[#4f5b55]">{message}</p> : null}
-    </div>
+    </form>
   );
 }
 
@@ -124,15 +142,8 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function FormSection({ icon: Icon, title, body, children, initiallyOpen = false }: { initiallyOpen?: boolean; icon: typeof Target; title: string; body: string; children: ReactNode }) {
   return (
     <details className="gentle-details" open={initiallyOpen || undefined}>
-      <summary>{title}</summary><div className="mb-4 flex items-start gap-3">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#edf4ef] text-[#31564c]">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-[#27312c]">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-[#68716b]">{body}</p>
-        </div>
-      </div>
+      <summary>{title}</summary>
+      <p className="plan-field-hint">{body}</p>
       <div className="space-y-4 pb-4">{children}</div>
     </details>
   );

@@ -20,11 +20,18 @@ await mkdir('.local', { recursive: true });
 const directory = await mkdtemp(resolve('.local', 'market-tests-'));
 const output = resolve(directory, 'market.mjs');
 await build({ stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
-export { MarketPanel } from './src/features/market/MarketPanel';
+import { useState } from 'react';
+import { MarketPanel } from './src/features/market/MarketPanel';
+import { AuthoringNavigationProvider } from './src/components/AuthoringNavigation';
+import { PageChromeProvider, PageHeaderActions } from './src/components/PageChrome';
+export function MarketPanelHarness(props) {
+  const [location, setLocation] = useState(null);
+  return <PageChromeProvider><AuthoringNavigationProvider onChange={setLocation}><header><button type="button" onClick={() => location ? location.close() : window.location.hash = '#/market'}>Header back</button><PageHeaderActions /></header><MarketPanel {...props} /></AuthoringNavigationProvider></PageChromeProvider>;
+}
 export { ConfirmationProvider } from './src/components/ConfirmationProvider';
 export { translations } from './src/i18n/translations';
 ` }, bundle: true, platform: 'node', format: 'esm', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, outfile: output });
-const { MarketPanel, ConfirmationProvider, translations } = await import(pathToFileURL(output));
+const { MarketPanelHarness, ConfirmationProvider, translations } = await import(pathToFileURL(output));
 const { createElement: h, act } = await import('react');
 const { createRoot } = await import('react-dom/client');
 const root = createRoot(document.getElementById('root'));
@@ -41,7 +48,7 @@ globalThis.fetch = async (path, options = {}) => { const call = { path: String(p
 const defaults = { token: 'test-token', initialShareId: 'share-a', labels, settings, locale: 'en', onAdded: async () => {} };
 async function render(props = {}, fresh = false) {
   if (fresh) mount++;
-  await act(async () => root.render(h(ConfirmationProvider, null, h(MarketPanel, { ...defaults, ...props, key: mount }))));
+  await act(async () => root.render(h(ConfirmationProvider, null, h(MarketPanelHarness, { ...defaults, ...props, key: mount }))));
 }
 async function click(element) { assert.ok(element, 'expected control exists'); await act(async () => element.click()); }
 const button = text => [...document.querySelectorAll('button')].find(element => element.textContent.trim() === text);
@@ -96,8 +103,9 @@ test('repeat import events share one operation and success stays added even when
   await click(button('Added'));
   assert.equal(calls.filter(call => call.method === 'POST').length, 1);
   await render({ initialShareId: undefined });
-  assert.equal(document.querySelector('.market-row-add').disabled, true);
-  assert.match(document.querySelector('.market-row-add').textContent, /Added/);
+  assert.equal(document.querySelector('.market-row-add'), null, 'list rows have no import clutter');
+  await render({ initialShareId: 'share-a' });
+  assert.equal(button('Added').disabled, true, 'the detail retains the successful import status');
 });
 
 test('failed import remains retryable without marking the item as added', async () => {
@@ -136,7 +144,8 @@ test('failed detail loading offers a real retry and empty practice cannot start'
   fetchHandler = call => call.path === '/api/market/share-a' ? (++attempt === 1 ? response({ error: 'Unavailable' }, 503) : response({ package: { ...practice, questions: [] } })) : baseFetch(call);
   await render({}, true);
   assert.match(document.querySelector('[role="alert"]').textContent, /Action failed/);
-  assert.ok(button('Back to shared content'));
+  assert.equal(button('Back to shared content'), undefined, 'detail relies on the single shared header Back');
+  assert.ok(button('Header back'));
   await click(button('Retry'));
   assert.equal(attempt, 2);
   assert.equal(button('Try without saving').disabled, true);
@@ -148,12 +157,49 @@ test('own shares have no import button and withdrawing requires explicit confirm
   fetchHandler = call => call.method === 'DELETE' ? response({ ok: true }) : call.path === '/api/market' ? response({ shares: [{ ...share, mine: true }] }) : baseFetch(call);
   await render({ initialShareId: undefined }, true);
   assert.equal(document.querySelector('.market-row-add'), null);
-  await click(document.querySelector('.market-row-withdraw'));
+  await render({ initialShareId: 'share-a' });
+  await click(button('Manage'));
+  await click(document.querySelector('.market-management-dialog > button'));
   assert.equal(calls.some(call => call.method === 'DELETE'), false);
   assert.match(document.querySelector('.app-confirmation').textContent, /Others will no longer see/);
   await click([...document.querySelectorAll('.app-confirmation button')].find(element => !element.classList.contains('is-danger')));
   assert.equal(calls.some(call => call.method === 'DELETE'), false);
-  await click(document.querySelector('.market-row-withdraw'));
+  await click(button('Manage'));
+  await click(document.querySelector('.market-management-dialog > button'));
   await click(document.querySelector('.app-confirmation .is-danger'));
   assert.equal(calls.filter(call => call.method === 'DELETE').length, 1);
+});
+
+
+test('detail shows a real sample and expandable introduction while header Back returns from local trial', async () => {
+  calls = []; fetchHandler = baseFetch;
+  await render({}, true);
+  assert.equal(document.querySelector('.market-question-prompt').textContent, 'First question');
+  assert.equal(document.querySelectorAll('.market-question-preview li').length, 2);
+  assert.equal(button('Expand introduction').getAttribute('aria-expanded'), 'false');
+  await click(button('Expand introduction'));
+  assert.equal(button('Collapse introduction').getAttribute('aria-expanded'), 'true');
+  await click(button('Try without saving'));
+  await click(choice(0));
+  await click(button('Header back'));
+  assert.ok(button('Try without saving'));
+  assert.equal(document.querySelector('.practice-session'), null);
+  assert.equal(calls.filter(call => call.method !== 'GET').length, 0);
+});
+
+test('discovery list contains title and type/count, with optional tools in its shared header sheet', async () => {
+  calls = []; fetchHandler = baseFetch;
+  await render({ initialShareId: undefined }, true);
+  assert.equal(document.querySelector('.discovery-panel h1'), null);
+  assert.equal(document.querySelector('.market-row-withdraw'), null);
+  assert.equal(document.querySelector('.market-row-add'), null);
+  assert.match(document.querySelector('.standard-list-description').textContent, /topic practice · 2 questions/);
+  assert.doesNotMatch(document.querySelector('.learning-list').textContent, /Two trial questions/);
+  await click(document.querySelector('header .page-header-action'));
+  assert.equal(document.querySelector('.list-controls-dialog').open, true);
+  const scope = document.querySelector('select[aria-label="Share scope"]');
+  await act(async () => { scope.value = 'mine'; scope.dispatchEvent(new Event('change', { bubbles: true })); });
+  assert.match(document.querySelector('.list-applied-summary').textContent, /My shares/);
+  await click(button('Reset'));
+  assert.equal(document.querySelector('.list-applied-summary'), null);
 });

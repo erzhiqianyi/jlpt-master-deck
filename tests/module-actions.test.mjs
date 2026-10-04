@@ -46,17 +46,18 @@ after(async () => { dom.window.close(); await rm(directory, { recursive: true, f
 
 test('all declared module actions render, preserve toggle state and respect disabled gates', async () => {
   let count = 0;
-  await mount('module', { label: 'Vocabulary', locale: 'en', actions: [
+  await mount('module', { label: 'Vocabulary', locale: 'en', primary: { label: 'Start practice', onClick() {} }, actions: [
     { key: 'tips', label: 'Learning methods', onClick: () => count++ },
     { key: 'focused', label: 'By question type', active: true, onClick: () => count++ },
     { key: 'add', label: 'Add word', disabled: true, onClick: () => count++ },
   ] });
+  await click(button('Choose a practice mode'));
   assert.equal(button('By question type').getAttribute('aria-pressed'), 'true');
   await click(button('Add word'));
   assert.equal(count, 0);
   await click(button('Learning methods'));
   assert.equal(count, 1);
-  await click(button('More actions'));
+  await click(button('Choose a practice mode'));
   const dialog = app.querySelector('dialog');
   assert.equal(dialog.open, true);
   assert.equal(button('Add word', dialog).disabled, true);
@@ -67,7 +68,7 @@ test('all declared module actions render, preserve toggle state and respect disa
 
 test('practice mode preserves capability gates and restores focus on cancellation', async () => {
   await mount('module', { label: 'Vocabulary', locale: 'en', primary: { label: 'Start practice', onClick() {} } });
-  const trigger = button('Start practice');
+  const trigger = button('Choose a practice mode');
   trigger.focus();
   await click(trigger);
   const dialog = app.querySelector('dialog');
@@ -85,12 +86,12 @@ test('content menu invokes the selected action and closes, including after reope
   await mount('module', { label: 'Vocabulary', locale: 'en', primary: { label: 'Start practice', onClick: () => count++ }, contentActions: [
     { key: 'one', label: 'My wordbook', onClick: () => count += 10 },
   ] });
-  await click(button('Start practice'));
+  await click(button('Choose a practice mode'));
   await click(button('Practice by content'));
   await click(button('My wordbook'));
   assert.equal(count, 10);
   assert.equal(app.querySelector('dialog').open, false);
-  await click(button('Start practice'));
+  await click(button('Choose a practice mode'));
   await click(button('Random practice'));
   assert.equal(count, 11);
   assert.equal(app.querySelector('dialog').open, false);
@@ -105,7 +106,7 @@ test('question composer prevents duplicate submits, retains failures and links t
     if (fail) throw new Error('offline');
     await new Promise((done) => { resolve = done; });
   } });
-  await click(button('Start practice'));
+  await click(button('Choose a practice mode'));
   await click(button('Ask a question'));
   const textarea = app.querySelector('textarea');
   assert.equal(document.activeElement, textarea);
@@ -128,7 +129,7 @@ test('question composer prevents duplicate submits, retains failures and links t
 
 test('new dialog copy follows Japanese locale and explicit close is always available', async () => {
   await mount('module', { label: '語彙', locale: 'ja', primary: { label: '練習を開始', onClick() {} }, onAsk: async () => {} });
-  await click(button('練習を開始'));
+  await click(button('練習モードを選択'));
   assert.ok(button('ランダム練習'));
   await click(button('質問する'));
   assert.ok(button('待機リストに追加'));

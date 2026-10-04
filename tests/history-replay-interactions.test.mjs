@@ -106,12 +106,15 @@ test('module review has explicit empty recovery and audio-level real progress', 
   let starts = 0, opened;
   await render(ModuleReviewPanel, { module: 'reading', locale: 'zh-CN', readingQuestions: [], listeningQuestions: [], progress: {}, onOpen: noop, onPractice: () => starts++ });
   assert.match(document.body.textContent, /还没有练习记录/);
-  await click(button('开始练习'));
+  await click(document.querySelector('.module-practice-mascot'));
+  await click(button('随机练习'));
   assert.equal(starts, 1);
   await render(ModuleReviewPanel, { module: 'listening', locale: 'zh-CN', readingQuestions: [], listeningQuestions: [{ id: 'q1', audioAssetId: 'a1', audioReference: 'A-1', audioFileName: 'Audio one', title: 'Q1' }, { id: 'q2', audioAssetId: 'a1', title: 'Q2' }], progress: { 'listening-audio:a1': { reviewCount: 3, correct: 0, wrong: 0 } }, onOpen: (id) => opened = id, onPractice: noop });
-  assert.equal(document.querySelectorAll('li').length, 1);
+  assert.equal(document.querySelectorAll('[role="listitem"]').length, 1);
   assert.match(document.body.textContent, /练习次数: 3/);
+  await click(document.querySelector('.list-controls-trigger'));
   assert.match(document.body.textContent, /历史选项答案未保存/);
-  await click(document.querySelector('li button'));
+  await click(document.querySelector('.list-controls-dialog button[aria-label="关闭"]'));
+  await click(document.querySelector('[role="listitem"] button'));
   assert.equal(opened, 'A-1');
 });

@@ -1,8 +1,9 @@
 import type { PracticeModule } from '../../domain/practiceModules.mjs';
 import './practice-layout.css';
+import './primary-practice.css';
 import { ShareButton } from '../../components/ShareButton';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
-import { ArrowRight, CalendarDays, Play, BookOpenText, Brain, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Headphones, Languages, Layers3, MessagesSquare, Mic, RotateCcw, type LucideIcon } from 'lucide-react';
+import { BookOpenText, ChevronLeft, ChevronRight, FileCheck2, Layers3, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -10,35 +11,24 @@ import { opinionPractices } from '../../data/opinionPractice';
 import { dialoguePractices } from '../../data/dialoguePractice';
 import { useMobileList } from '../../hooks/useMobileList';
 import { buildQuestionIndex, questionKindsForItem } from '../../domain/questions';
-import type { AnswerState, AppView, DailyPractice, DraftSummary, LearningCapture, ListeningQuestion, Locale, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
+import type { AnswerState, AppView, DailyPractice, DraftSummary, LearningCapture, ListeningQuestion, Locale, PracticeAttempt, ProgressState, Question, ReadingQuestion, StudyPlanDocument, VocabItem } from '../../types';
 
 type ModuleSummary = { view: AppView; title: string; body: string; count: number };
-type PracticeEntry = { completedCount?: number; modules?: PracticeModule[]; reference?: string; description?: string; sourceSummary?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
+type PracticeEntry = { completedCount?: number; modules?: PracticeModule[]; reference?: string; description?: string; sourceSummary?: string; share?: (description: string) => Promise<void>; status?: 'ready' | 'pending'; updatedAt?: string; key: string; title: string; body: string; count?: number; icon: LucideIcon; tone: string; action: () => void; start?: () => void };
 type PracticeGroup = { action?: () => void; key: string; title: string; body: string; count: number; icon: LucideIcon; tone: string; entries: PracticeEntry[] };
 const MIXED_ENTRY_PAGE_SIZE = 8;
 
 export function MixedPracticeHub({
-  topicEntries = [],
-  dailyPractice,
-  dailyAnswers = {},
-  groupKey,
-  labels,
-  locale,
-  questions,
-  items,
-  progress,
-  modules,
-  captures,
-  drafts,
-  listeningQuestions,
-  readingQuestions,
-  studyPlan,
-  onStart,
-  onStartMock,
-  onNavigate,
-  onStartModule,
+  topicEntries = [], topicCount, topicCompletedCount, mixedQuestionCount, attempts, mockExamCount, mockCompletedCount,
+  groupKey, locale, questions, onStart, onStartMock,
 }: {
   topicEntries?: PracticeEntry[];
+  mixedQuestionCount?: number;
+  topicCount?: number;
+  topicCompletedCount?: number;
+  attempts?: PracticeAttempt[];
+  mockExamCount?: number;
+  mockCompletedCount?: number;
   dailyPractice?: DailyPractice;
   dailyAnswers?: AnswerState;
   groupKey?: string;
@@ -58,71 +48,34 @@ export function MixedPracticeHub({
   onNavigate: (view: AppView) => void;
   onStartModule: (view: AppView) => void;
 }) {
-  // Never-answered items have no progress entry but are still due today, same as memory review.
-  const now = new Date().toISOString();
-  const dueCount = items.filter((item) => (progress[item.id]?.nextReviewAt ?? '') <= now).length;
-  const grammarCount = items.filter((item) => item.deck === 'grammar_expression').length;
-  const vocabularyCount = items.filter((item) => item.deck !== 'grammar_expression').length;
-  const plannedTaskCount = studyPlan.tasks.length;
-  const moduleCount = (view: AppView) => modules.find((module) => module.view === view)?.count ?? 0;
   const activeGroupKey = groupKey?.split('/')[0] ?? null;
   const opinionTopicId = activeGroupKey === 'opinion' ? groupKey?.split('/')[1] : undefined;
-  const opinionTopic = opinionPractices.find((item) => item.id === opinionTopicId);
+  const opinionTopic = opinionPractices.find(item => item.id === opinionTopicId);
   const setActiveGroupKey = (key: string | null) => { window.location.hash = key ? `#/mixed/tips/${key}` : '#/mixed/tips'; };
   const copy = practiceCopy(locale);
-  const dailyAnswered = dailyPractice?.questions.filter((question) => dailyAnswers[question.id]).length ?? 0;
-  const dailyTotal = dailyPractice?.questions.length ?? 0;
-  const dailyStarted = dailyAnswered > 0 && dailyAnswered < dailyTotal;
-  const dailyComplete = dailyTotal > 0 && dailyAnswered === dailyTotal;
-  const moreEntries: PracticeEntry[] = [
-    { key: 'mixed', title: copy.mixed, body: copy.mixedBody, count: questions.length, icon: Layers3, tone: 'purple', action: onStart },
-    { key: 'topics', title: copy.topics, body: copy.topicsBody, count: topicEntries.length, icon: BookOpenText, tone: 'mint', action: () => setActiveGroupKey('topics') },
-    { key: 'daily', title: copy.daily, body: copy.dailyBody, count: dueCount, icon: RotateCcw, tone: 'blue', action: () => onNavigate('daily-practice') },
-    { key: 'dialogue', title: copy.dialogue, body: copy.dialogueBody, count: dialoguePractices.length, icon: MessagesSquare, tone: 'blue', action: () => setActiveGroupKey('dialogue') },
-    { key: 'opinion', title: copy.opinion, body: copy.opinionBody, count: opinionPractices.length, icon: Mic, tone: 'mint', action: () => setActiveGroupKey('opinion') },
-    { key: 'mock', title: copy.mock, body: copy.mockBody, count: 0, icon: FileCheck2, tone: 'gray', action: onStartMock },
-    { key: 'drafts', title: copy.drafts, body: copy.draftsBody, count: drafts.length, icon: FileCheck2, tone: 'yellow', action: () => onNavigate('drafts') },
+  const mixedRounds = attempts === undefined ? undefined : new Set(attempts.filter(attempt => attempt.view === 'mixed' && Boolean(attempt.completedAt)).map(attempt => attempt.id)).size;
+  const topicCountsComplete = (topicCount === undefined || topicCount === topicEntries.length) && topicEntries.every(entry => entry.status === 'pending' || entry.completedCount !== undefined);
+  const topicRounds = topicCompletedCount ?? (topicCountsComplete ? topicEntries.reduce((total, entry) => total + (entry.completedCount ?? 0), 0) : undefined);
+  const entries = [
+    { key: 'topics', title: copy.topics, count: topicCount ?? topicEntries.length, completedCount: topicRounds, unit: copy.sets, icon: BookOpenText, action: () => setActiveGroupKey('topics') },
+    { key: 'mixed', title: copy.mixed, count: mixedQuestionCount ?? questions.length, completedCount: mixedRounds, retainedRounds: true, unit: copy.questions, icon: Layers3, action: onStart },
+    { key: 'mock', title: copy.mock, count: mockExamCount, completedCount: mockCompletedCount, unit: copy.sets, icon: FileCheck2, action: onStartMock },
   ];
   const groups: PracticeGroup[] = [
     { key: 'opinion', title: copy.opinion, body: copy.opinionBody, count: opinionPractices.length, icon: Mic, tone: 'mint', entries: [] },
     { key: 'dialogue', title: copy.dialogue, body: copy.dialogueBody, count: dialoguePractices.length, icon: MessagesSquare, tone: 'blue', entries: [] },
     { key: 'topics', title: copy.topics, body: copy.topicsBody, count: topicEntries.length, icon: BookOpenText, tone: 'mint', entries: topicEntries },
   ];
-  const activeGroup = activeGroupKey ? groups.find((group) => group.key === activeGroupKey) ?? null : null;
+  const activeGroup = activeGroupKey ? groups.find(group => group.key === activeGroupKey) ?? null : null;
 
-  return (
-    <main className={`ledger-mixed ledger-practice-center${activeGroupKey === 'topics' ? ' topic-practice-page' : ''}`}>
-      {activeGroup && activeGroupKey !== 'topics' && activeGroupKey !== 'dialogue' && !(activeGroupKey === 'opinion' && !opinionTopicId) ? <header className={`practice-simple-heading gentle-section-heading${activeGroup ? ' has-active-group' : ''}`}>
-        {activeGroup ? <button type="button" aria-label={opinionTopicId ? copy.backOpinion : copy.backPractice} onClick={() => setActiveGroupKey(opinionTopicId ? 'opinion' : null)}><ChevronLeft size={24} aria-hidden="true" /></button> : null}
-        <div>
-          <p>{copy.practice}</p>
-          <h1>{opinionTopic?.title ?? (activeGroup ? activeGroup.title : copy.practice)}</h1>
-        </div>
-      </header> : null}
-
-      {activeGroup ? (
-        activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} />
-      ) : (
-        <div className="practice-hub-content">
-          <div className="practice-hub-layout">
-            <section className="practice-today" aria-labelledby="practice-today-title">
-              <p className="practice-today-eyebrow"><CalendarDays size={20} aria-hidden="true" />{copy.daily}</p>
-              <h2 id="practice-today-title">{dailyPractice?.title ?? copy.prepareToday}</h2>
-              <p className="practice-today-meta">{dailyPractice ? `${dailyTotal} ${copy.questions} · ${copy.about} ${dailyPractice.minutes} ${copy.minutes}` : copy.newTodayBody}</p>
-              {dailyPractice && dailyTotal > 0 ? <div className="practice-today-progress"><span>{copy.completed} <strong>{dailyAnswered} / {dailyTotal}</strong></span><progress value={dailyAnswered} max={dailyTotal} aria-label={`${copy.completed} ${dailyAnswered} / ${dailyTotal}`} /></div> : null}
-              <button type="button" className="practice-primary-action" onClick={() => onNavigate('daily-practice')}>{dailyStarted ? copy.continuePractice : dailyComplete ? copy.openPractice : dailyPractice ? copy.startPractice : copy.prepareToday}<ArrowRight size={20} aria-hidden="true" /></button>
-            </section>
-            <section className="practice-other-entries" aria-label={copy.morePractice}>
-              <div className="practice-entry-list">
-                {['topics', 'mixed', 'mock'].map((key) => moreEntries.find((entry) => entry.key === key)!).map(entry => <PracticeModuleCard key={entry.key} entry={entry} unit={entry.key === 'topics' ? copy.sets : copy.questions} />)}
-              </div>
-            </section>
-          </div>
-        </div>
-      )}
-
-    </main>
-  );
+  return <main className={`ledger-mixed ledger-practice-center primary-practice${activeGroupKey === 'topics' ? ' topic-practice-page' : ''}`} aria-label={copy.practice}>
+    {activeGroup?.key === 'opinion' && opinionTopicId ? <header className="practice-simple-heading gentle-section-heading has-active-group">
+      <button type="button" aria-label={copy.backOpinion} onClick={() => setActiveGroupKey('opinion')}><ChevronLeft size={24} aria-hidden="true" /></button>
+      <h1>{opinionTopic?.title ?? copy.opinion}</h1>
+    </header> : null}
+    {activeGroup ? activeGroup.key === 'opinion' ? <OpinionPracticePanel topicId={opinionTopicId} /> : activeGroup.key === 'dialogue' ? <DialoguePracticePanel /> : <TopicPracticeList entries={topicEntries} locale={locale} /> :
+      <div className="primary-practice-entries">{entries.map(entry => <PracticeModuleCard key={entry.key} entry={entry} locale={locale} />)}</div>}
+  </main>;
 }
 
 function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; locale: Locale }) {
@@ -146,38 +99,60 @@ function TopicPracticeList({ entries, locale }: { entries: PracticeEntry[]; loca
   const visibleEntries = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   const mobilePageEnd = Math.min(mobileList.visible, filtered.length);
   return (
-    <LearningListFrame className="topic-library topic-practice-list" label={copy.topicList}>
-      <LearningListHeader title={copy.topics} count={`${entries.length} ${copy.sets}`} search={<LearningListSearch value={query} label={copy.searchTopics} placeholder={copy.searchTopics} locale={locale} onChange={(value) => { setQuery(value); setPage(0); }}/> }>
+    <LearningListFrame className="topic-library topic-practice-list" label={copy.topicList} locale={locale}>
+      <LearningListHeader title={copy.topics} count={`${filtered.length} ${copy.sets}`} appliedSummary={query || status !== 'all' || module !== 'all' || sort !== 'recent' ? [query ? `${copy.searchTopics}: ${query}` : '', module !== 'all' ? copy[module] : '', status !== 'all' ? status === 'ready' ? copy.ready : copy.pending : '', sort !== 'recent' ? copy.titleOrder : ''].filter(Boolean).join(' · ') : undefined} onReset={() => { setQuery(''); setStatus('all'); setModule('all'); setSort('recent'); setPage(0); }} search={<LearningListSearch value={query} label={copy.searchTopics} placeholder={copy.searchTopics} locale={locale} onChange={(value) => { setQuery(value); setPage(0); }}/> }>
+      <h3 className="primary-topic-filter-title">{copy.questionType}</h3>
       <div className="topic-library-filters" role="group" aria-label={copy.questionType}>
         {(['all', 'grammar', 'listening', 'vocabulary', 'reading'] as const).map((value) => <button key={value} type="button" aria-pressed={module === value} onClick={() => { setModule(value); setPage(0); }}>{value === 'all' ? copy.all : copy[value]}</button>)}
       </div>
-      <div className="topic-library-filters" aria-label={copy.practiceStatus}>
+      <h3 className="primary-topic-filter-title">{copy.practiceStatus}</h3>
+      <div className="topic-library-filters" role="group" aria-label={copy.practiceStatus}>
         {([['all', copy.all], ['ready', copy.ready], ['pending', copy.pending]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={status === value} onClick={() => { setStatus(value); setPage(0); }}>{label}</button>)}
 
       </div>
-        <label className="topic-panel-sort"><span className="sr-only">{copy.sort}</span><select aria-label={copy.sort} value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">{copy.recent}</option><option value="title">{copy.titleOrder}</option></select></label>
+        <label className="topic-panel-sort"><span>{copy.sort}</span><select aria-label={copy.sort} value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }}><option value="recent">{copy.recent}</option><option value="title">{copy.titleOrder}</option></select></label>
+        {entries.some(entry => entry.share) ? <details className="primary-topic-management"><summary>{copy.manageTopics}</summary><ul>{entries.filter(entry => entry.share).map(entry => <li key={entry.key}><span>{entry.title}</span><ShareButton onShare={entry.share!} description={entry.description} locale={locale} /></li>)}</ul></details> : null}
       </LearningListHeader>
-      {query || status !== 'all' || module !== 'all' ? <div className="topic-search-summary" role="status">{copy.results(filtered.length)}<button type="button" onClick={() => { setQuery(''); setStatus('all'); setModule('all'); setPage(0); }}>{copy.reset}</button></div> : null}
-      <LearningList hasActions countLabel={copy.completedCount} locale={locale} columnLabels={[copy.practice, copy.countAndSource, copy.status]}>{visibleEntries.map((entry) => <LearningListRow compact inlineActions key={entry.key} title={entry.title} count={entry.completedCount ?? 0} references={[entry.reference]} status={entry.status === "ready" ? copy.ready : copy.pending} locale={locale} secondary={entry.share ? <ShareButton iconOnly onShare={entry.share} description={entry.description} locale={locale} /> : undefined} description={`${entry.count ? `${entry.count} ${copy.questions} · ` : ''}${entry.sourceSummary ?? copy.sourcePending}`} actionIcon={entry.status === 'ready' ? <Play size={20} aria-hidden="true"/> : <CheckCircle2 size={20} aria-hidden="true"/>} actionLabel={entry.status === 'ready' ? copy.practice : copy.confirm} onOpen={entry.action}/>)}</LearningList>
+
+      <div className="primary-topic-list" role="list">{visibleEntries.length ? visibleEntries.map(entry => <div key={entry.key} role="listitem">
+        <button type="button" className="primary-topic-row" onClick={entry.action}>
+          <span className="primary-topic-copy"><strong>{entry.title}</strong><small className={entry.status === 'pending' ? 'is-pending' : undefined}>
+            {entry.count !== undefined ? <><span>{entry.count} {copy.questions}</span><span aria-hidden="true">·</span></> : null}
+            {entry.status === 'pending' ? <span>{copy.pending}</span> : entry.completedCount === undefined ? <span>{copy.ready}</span> : entry.completedCount > 0 ? <CompletedRounds count={entry.completedCount} locale={locale} /> : <span>{copy.notPracticed}</span>}
+          </small></span>
+          <ChevronRight size={21} aria-hidden="true" />
+        </button>
+      </div>) : <p className="primary-topic-empty" role="status">{copy.noResults}</p>}</div>
       {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobilePageEnd < filtered.length ? null : copy.endOfList}</div> : null}
       {!mobileList.mobile && pages > 1 ? <LearningListPagination page={currentPage} pages={pages} onChange={setPage} previous={copy.previous} next={copy.next}/> : null}
     </LearningListFrame>
   );
 }
 
-function PracticeModuleCard({ entry, unit }: { entry: PracticeEntry; unit: string }) {
+function CompletedRounds({ count, locale, retained = false }: { count: number; locale: Locale; retained?: boolean }) {
+  const text = locale === 'ja' ? `${count} 回` : locale === 'en' ? `${count} rounds` : `${count} 次`;
+  const label = locale === 'ja' ? `完了した練習 ${text}` : locale === 'en' ? `${text} completed` : `已完成练习 ${text}`;
+  const scope = locale === 'ja' ? '保存されている完了済みの練習記録のみ。全期間の合計ではありません。' : locale === 'en' ? 'Completed rounds in retained history only, not a lifetime total.' : '仅统计当前保留记录中的已完成练习，不代表全部历史。';
+  return <span className="primary-completed-rounds" aria-label={retained ? `${label}；${scope}` : label} title={retained ? scope : label}><Repeat2 size={16} aria-hidden="true" />{text}</span>;
+}
+
+function PracticeModuleCard({ entry, locale }: { entry: { title: string; count?: number; completedCount?: number; retainedRounds?: boolean; unit: string; icon: LucideIcon; action: () => void }; locale: Locale }) {
   const Icon = entry.icon;
-  return <button type="button" className="practice-entry-row" onClick={entry.action}>
-    <Icon size={24} aria-hidden="true" />
-    <span><strong>{entry.title}</strong><small>{entry.body}{entry.count > 0 ? ` · ${entry.count} ${unit}` : ''}</small></span>
-    <ChevronRight size={20} aria-hidden="true" />
+  return <button type="button" className="practice-entry-row primary-practice-row" onClick={entry.action}>
+    <Icon className="primary-practice-icon" size={30} aria-hidden="true" />
+    <span><strong>{entry.title}</strong>{entry.count !== undefined || entry.completedCount !== undefined ? <small>
+      {entry.count !== undefined ? <span>{entry.count} {entry.unit}</span> : null}
+      {entry.count !== undefined && entry.completedCount !== undefined ? <span aria-hidden="true">·</span> : null}
+      {entry.completedCount !== undefined ? <CompletedRounds count={entry.completedCount} locale={locale} retained={entry.retainedRounds} /> : null}
+    </small> : null}</span>
+    <ChevronRight size={21} aria-hidden="true" />
   </button>;
 }
 
 function practiceCopy(locale: Locale) {
   if (locale === 'ja') return {
     prepareToday: '今日の練習を準備', newTodayBody: '新しいセットの目安は約30分です。', about: '約', minutes: '分', completed: '解答済み', continuePractice: '練習を続ける', startPractice: '練習を始める', openPractice: '練習を開く',
-    completedCount: '練習回数', questionType: '問題分野', grammar: '文法', listening: '聴解', vocabulary: '単語', reading: '読解',
+    manageTopics: '分野別練習を管理', notPracticed: '未練習', noResults: '該当する練習がありません', completedCount: '練習回数', questionType: '問題分野', grammar: '文法', listening: '聴解', vocabulary: '単語', reading: '読解',
     vocabularyBody: '単語・漢字・読み方', grammarBody: '文の組み立て方を学ぶ', listeningBody: '聞いて答えを選ぶ', readingBody: '読んで問いに答える',
     mixed: '総合練習', mixedBody: '単語と文法の項目を復習', topics: '分野別練習', topicsBody: '教材・漢字・文法のテーマで練習', daily: '今日の練習', dailyBody: '今日の問題を始める', dialogue: '会話練習', dialogueBody: '場面に合わせて会話を練習', opinion: '意見を述べる練習', opinionBody: '約2分で意見と理由を伝える', mock: '模擬試験', mockBody: '自分の内容と予定で取り組む', drafts: '練習の下書き', draftsBody: '準備された問題を確認',
     backOpinion: '意見を述べる練習に戻る', backPractice: '練習に戻る', practice: '練習', whatToPractice: '何を練習しますか？', choose: '練習方法を選んでください。', modules: '学習分野', morePractice: 'ほかの練習', items: '件',
@@ -185,7 +160,7 @@ function practiceCopy(locale: Locale) {
   };
   if (locale === 'en') return {
     prepareToday: 'Prepare today’s practice', newTodayBody: 'New sets are prepared for about 30 minutes.', about: 'about', minutes: 'min', completed: 'Answered', continuePractice: 'Continue practice', startPractice: 'Start practice', openPractice: 'Open practice',
-    completedCount: 'Practice count', questionType: 'Question category', grammar: 'Grammar', listening: 'Listening', vocabulary: 'Vocabulary', reading: 'Reading',
+    manageTopics: 'Manage topic practice', notPracticed: 'Not practiced', noResults: 'No matching practice sets', completedCount: 'Practice count', questionType: 'Question category', grammar: 'Grammar', listening: 'Listening', vocabulary: 'Vocabulary', reading: 'Reading',
     vocabularyBody: 'Words, kanji and readings', grammarBody: 'Learn how sentences work', listeningBody: 'Listen and choose an answer', readingBody: 'Read and answer questions',
     mixed: 'Mixed practice', mixedBody: 'Review vocabulary and grammar entries', topics: 'Topic practice', topicsBody: 'Practice by textbook, kanji or grammar topic', daily: "Today's practice", dailyBody: 'Start the questions prepared for today', dialogue: 'Dialogue practice', dialogueBody: 'Practice openings, responses and endings', opinion: 'Opinion practice', opinionBody: 'Explain your view and reasons in about 2 minutes', mock: 'Mock exam', mockBody: 'Use your own content and schedule', drafts: 'Practice drafts', draftsBody: 'Review prepared questions',
     backOpinion: 'Back to opinion practice', backPractice: 'Back to practice', practice: 'Practice', whatToPractice: 'What would you like to practice?', choose: 'Choose a way to begin.', modules: 'Study modules', morePractice: 'More practice', items: 'items',
@@ -193,7 +168,7 @@ function practiceCopy(locale: Locale) {
   };
   return {
     prepareToday: '准备今日练习', newTodayBody: '新题组按约 30 分钟准备。', about: '约', minutes: '分钟', completed: '已完成', continuePractice: '继续练习', startPractice: '开始练习', openPractice: '查看练习',
-    completedCount: '练习次数', questionType: '题型', grammar: '语法', listening: '听力', vocabulary: '单词', reading: '阅读',
+    manageTopics: '管理专项练习', notPracticed: '未练习', noResults: '没有符合条件的练习', completedCount: '练习次数', questionType: '题型', grammar: '语法', listening: '听力', vocabulary: '单词', reading: '阅读',
     vocabularyBody: '单词、汉字、读音', grammarBody: '学习句子怎么说', listeningBody: '听一听，选出答案', readingBody: '读一读，回答问题',
     mixed: '综合练习', mixedBody: '复习单词与语法条目', topics: '专项练习', topicsBody: '按教材、汉字或语法主题练一套', daily: '今日练习', dailyBody: '开始今天准备好的题目', dialogue: '对话练习', dialogueBody: '按人物关系练习开场、回应和收尾', opinion: '意见表达', opinionBody: '用约 2 分钟说清立场、理由和例子', mock: '模拟考试', mockBody: '按自己的内容和安排作答', drafts: '练习草稿', draftsBody: '查看和确认准备好的题目',
     backOpinion: '返回意见表达', backPractice: '返回练习', practice: '练习', whatToPractice: '你想练什么？', choose: '选一种方式开始。', modules: '分项学习', morePractice: '更多练习', items: '项',
@@ -246,7 +221,7 @@ export function MixedEntryIndexPanel({
   }, [pageCount]);
 
   return (
-    <LearningListFrame className="learning-catalog" label={labels.mixedHubAllEntries}>
+    <LearningListFrame className="learning-catalog" label={labels.mixedHubAllEntries} locale={locale}>
       <LearningListHeader title={labels.mixedHubAllEntries} count={`${entries.length} ${labels.items}`}>
         <div className="list-tools">
           <CountPill label={labels.navVocabulary} value={counts.vocabulary} />

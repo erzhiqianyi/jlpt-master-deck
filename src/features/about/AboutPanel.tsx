@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, Bot, ChevronRight, CircleCheck, PlugZap } from 'lucide-react';
+import { ArrowLeft, Bot, ChevronRight, CircleCheck, PlugZap, BookOpen, CalendarClock, Link2, ListChecks } from 'lucide-react';
 import type { AuthUser, Locale } from '../../types';
 import { ConnectedAgents, fetchAgentGrants, type AgentGrant } from '../agents/ConnectedAgents';
 import { GuideBook, guideTitle, isGuideSection } from './GuideBook';
@@ -18,16 +18,18 @@ export function AboutPanel({ user, locale, authToken, section }: { labels: Recor
   if (section === 'agents') return <SubPage t={t} title={aboutSectionTitle('agents', locale)}><AgentsSection t={t} authToken={authToken} /></SubPage>;
   if (isGuideSection(section)) return <GuideBook key={section} section={section!} locale={locale} username={user.username} />;
   return <section className="ai-guide min-w-0">
-    <header className="handbook-home-heading"><img className="ai-companion-mark" src="/study-companion.png" width="84" height="84" alt="" /><span>AI × JLPT</span><h1>{t('让学习，有个好帮手', '学習に、頼れる相棒を', 'A helping hand for your studies')}</h1><p>{t('在你常用的 AI 里提出需求，在这里积累学习成果。', 'いつもの AI に頼んで、ここに学びを蓄えましょう。', 'Ask your usual AI. Keep your learning here.')}</p><a href={`${locale === 'zh-CN' ? '' : `/${locale}`}/community/`} className="handbook-text-link">{t('浏览公开的学习社区 →', '公開学習コミュニティを見る →', 'Explore the public learning community →')}</a></header>
+    <h1 className="sr-only">{t('AI 助手', 'AI アシスタント', 'AI assistant')}</h1>
     <ConnectionStatus t={t} authToken={authToken} />
-    <a className="handbook-entry cute-focus" href="#/about/guide"><div><span className="handbook-eyebrow">{t('图解使用指南', '図解ガイド', 'ILLUSTRATED GUIDE')}</span><h2>{t('接入后，可以做什么？', '接続したら、何ができる？', 'What can you do once connected?')}</h2><p>{t('从整理第一条笔记，到生成练习、分析错题。看懂流程，复制示例，跟着做一次。', '最初のメモから練習・誤答分析まで。図解と例文で一緒に試しましょう。', 'From your first note to practice and review. Follow the diagrams and try an example.')}</p><strong>{t('打开图解指南', 'ガイドを開く', 'Open the guide')} <ChevronRight size={18} /></strong></div><img src="/images/ai-guide/learning-flow.png" alt="" /></a>
-    <nav className="handbook-home-links" aria-label={t('接下来', '次のステップ', 'Next steps')}>
+    <nav className="ai-assistant-menu" aria-label={t('学习与协作', '学習と連携', 'Learning with AI')}>
       {[
-        ['mcp', t('01 认识 MCP', '01 MCP を知る', '01 Understand MCP'), t('AI 如何连接你的学习数据', 'AI と学習データのつながり', 'How AI connects to your learning')],
-        ['connect', t('02 接入与验证', '02 接続と確認', '02 Connect and verify'), t('复制地址、授权、试一次读取', 'URL・認可・読み取り確認', 'Copy, authorize, test a read')],
-        ['automation', t('进阶：定时自动跑', '応用：定期実行', 'Next: scheduled tasks'), t('把已经试成功的流程设成定时任务', '成功した手順を定期タスクに', 'Schedule a workflow you have tested')],
-      ].map(([id, title, body]) => <a className="cute-focus" href={`#/about/${id}`} key={id}><strong>{title}</strong><span>{body}</span><ChevronRight size={18} /></a>)}
+        { id: 'guide', icon: BookOpen, title: t('图解使用指南', '図解ガイド', 'Illustrated guide'), body: t('整理笔记、生成练习、分析错题', 'ノート整理・問題作成・誤答分析', 'Notes, practice and reviewing mistakes') },
+        { id: 'mcp', icon: Bot, title: t('认识 MCP', 'MCP を知る', 'Understand MCP'), body: t('AI 如何连接你的学习数据', 'AI と学習データのつながり', 'How AI connects to your learning') },
+        { id: 'connect', icon: Link2, title: t('接入与验证', '接続と確認', 'Connect and verify'), body: t('复制地址、授权、验证一次读取', 'URL・認可・読み取り確認', 'Copy, authorize and verify a read') },
+        { id: 'results', icon: ListChecks, title: t('查看学习成果', '学習成果を確認', 'Find learning results'), body: t('找到并核对实际保存的内容', '保存された内容を確認', 'Find and check saved content') },
+        { id: 'automation', icon: CalendarClock, title: t('定时任务说明', '定期タスクについて', 'Scheduled tasks'), body: t('把已试成功的流程设成定时任务', '成功した手順を定期タスクに', 'Schedule a workflow you have tested') },
+      ].map(({ id, icon: Icon, title, body }) => <a href={`#/about/${id}`} key={id}><Icon size={21} aria-hidden="true" /><span><strong>{title}</strong><small>{body}</small></span><ChevronRight size={17} aria-hidden="true" /></a>)}
     </nav>
+    <a href={`${locale === 'zh-CN' ? '' : `/${locale}`}/community/`} className="handbook-text-link">{t('浏览公开的学习社区 →', '公開学習コミュニティを見る →', 'Explore the public learning community →')}</a>
   </section>;
 }
 function ConnectionStatus({ t, authToken }: { t: T; authToken: string }) {
@@ -70,8 +72,7 @@ function ConnectionStatus({ t, authToken }: { t: T; authToken: string }) {
 function SubPage({ t, title, children }: { t: T; title: string; children: ReactNode }) {
   return (
     <section className="ai-guide min-w-0">
-      <a href="#/about" className="ai-guide-back hidden md:inline-flex"><ArrowLeft size={16} aria-hidden="true" />{t('AI 助手', 'AI アシスタント', 'AI assistant')}</a>
-      <h1 className="ai-guide-subtitle">{title}</h1>
+      <h1 className="sr-only">{title}</h1>
       {children}
     </section>
   );

@@ -2,6 +2,48 @@ import type { AppRoute, AppView } from '../types';
 
 export const primaryNavigationViews = ['home', 'mixed', 'market', 'history', 'study'] as const;
 
+/** Only the five destination roots expose phone tabs. Local screens take precedence. */
+export function isPrimaryNavigationRoot(route: AppRoute, hasLocalScreen = false) {
+  if (hasLocalScreen || route.itemId) return false;
+  if (route.view === 'mixed') return route.page === 'tips';
+  return ['home', 'market', 'history', 'study'].includes(route.view) && route.page === 'questions';
+}
+
+/** A single semantic parent for every viewport, independent of display breadcrumbs. */
+export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = false }: { dailyPracticeIsTopic?: boolean } = {}): AppRoute | null {
+  if (isPrimaryNavigationRoot(route)) return null;
+  if (route.view === 'mixed') {
+    if (route.itemId?.startsWith('replay:')) return { view: 'history', page: 'questions', itemId: 'history' };
+    if (route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
+    if (route.page === 'words') return { view: 'study', page: 'questions' };
+    if (route.page === 'review') return { view: 'mixed', page: 'questions' };
+    return { view: 'mixed', page: 'tips' };
+  }
+  if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
+    if (route.itemId) return { view: route.view, page: route.page };
+    if (route.page === 'review' && ['vocabulary', 'grammar'].includes(route.view)) return { view: route.view, page: 'questions' };
+    return route.page === 'words' ? { view: 'study', page: 'questions' } : { view: route.view, page: 'words' };
+  }
+  if (route.view === 'market' || route.view === 'history' || route.view === 'settings') {
+    if (route.itemId) return { view: route.view, page: 'questions' };
+  }
+  if (route.view === 'question-types') return route.itemId ? { view: 'question-types', page: 'questions' } : { view: 'study', page: 'questions' };
+  if (route.view === 'mock-exams') {
+    if (route.itemId) return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
+    return { view: 'mixed', page: 'tips' };
+  }
+  if (route.view === 'daily-practice') return route.page === 'review'
+    ? { view: 'daily-practice', page: 'questions', itemId: route.itemId }
+    : dailyPracticeIsTopic ? { view: 'mixed', page: 'tips', itemId: 'topics' } : { view: 'home', page: 'questions' };
+  if (route.view === 'news-cycle') return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'mixed', page: 'tips' };
+  if (route.view === 'capture') return { view: 'captures', page: 'questions' };
+  if (['captures', 'drafts', 'mistakes', 'memory', 'data', 'insights'].includes(route.view)) return { view: 'history', page: 'questions' };
+  if (route.view === 'plan' && route.itemId) return { view: 'plan', page: 'questions' };
+  if (route.view === 'about' && route.itemId?.startsWith('guide-')) return { view: 'about', page: 'questions', itemId: 'guide' };
+  if (route.view === 'about' && route.itemId) return { view: 'about', page: 'questions' };
+  return { view: 'home', page: 'questions' };
+}
+
 /** Primary destination is based on the task, not just the module in the URL. */
 export function primaryNavigationView(route: AppRoute): AppView {
   if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
@@ -14,7 +56,7 @@ export function primaryNavigationView(route: AppRoute): AppView {
   return route.view;
 }
 
-/** Browsing keeps global destinations; answering, authoring and memorizing are focused. */
+/** Legacy focused-task classification; primary tab visibility uses isPrimaryNavigationRoot. */
 export function isImmersiveRoute(route: AppRoute) {
   if (route.view === 'memory-review' || route.view === 'capture' || route.view === 'daily-practice') return true;
   if (['vocabulary', 'grammar', 'reading', 'listening', 'mixed'].includes(route.view)) {

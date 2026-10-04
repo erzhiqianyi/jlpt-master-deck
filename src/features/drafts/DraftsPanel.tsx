@@ -1,3 +1,5 @@
+import { usePageHeaderActions } from '../../components/PageChrome';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { RecordReference } from '../../components/RecordReference';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningListRow } from '../../components/LearningList';
@@ -62,7 +64,10 @@ export function DraftsPanel({
   const [editingContent, setEditingContent] = useState('');
   const [editingError, setEditingError] = useState('');
   const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
+  const editorSavePending = useRef(false);
   const [actionError, setActionError] = useState('');
+  const editorDrafts = useRef<Record<string, { title: string; content: string }>>({});
+  useAuthoringNavigation(editingDraftId ? labels.draftEdit : null, closeDraftEditing, { kind: 'form', priority: 1 });
   const orderedDrafts = useMemo(() => [...drafts].sort((a, b) => {
     const priority = (status: string) => ['draft', 'needs_revision'].includes(status) ? 0 : status === 'approved' ? 1 : 2;
     return priority(a.status) - priority(b.status) || b.updated_at.localeCompare(a.updated_at);
@@ -87,13 +92,13 @@ export function DraftsPanel({
     setCurrentDetailDraftId(id);
     setUnknownWords('');
     setActionError('');
-    cancelDraftEditing();
+    closeDraftEditing();
     onSelectDraft(id);
   }
 
   function backToList() {
     setCurrentDetailDraftId(null);
-    cancelDraftEditing();
+    closeDraftEditing();
   }
 
   async function organizeSelectedDrafts(ids: string[]) {
@@ -149,9 +154,15 @@ export function DraftsPanel({
 
   function startDraftEditing(draft: ReviewPackDraft) {
     setEditingDraftId(draft.id);
-    setEditingTitle(draft.title);
-    setEditingContent(JSON.stringify(draft.content, null, 2));
+    setEditingTitle(editorDrafts.current[draft.id]?.title ?? draft.title);
+    setEditingContent(editorDrafts.current[draft.id]?.content ?? JSON.stringify(draft.content, null, 2));
     setEditingError('');
+  }
+
+  function closeDraftEditing() {
+    if (savingDraftId) return;
+    if (editingDraftId) editorDrafts.current[editingDraftId] = { title: editingTitle, content: editingContent };
+    cancelDraftEditing();
   }
 
   function cancelDraftEditing() {
@@ -163,7 +174,7 @@ export function DraftsPanel({
   }
 
   async function saveDraftEdits(id: string) {
-    if (!onUpdateDraft || savingDraftId) return;
+    if (!onUpdateDraft || editorSavePending.current) return;
     const title = editingTitle.trim();
     if (!title) {
       setEditingError(labels.draftEditTitleRequired);
@@ -176,28 +187,27 @@ export function DraftsPanel({
       setEditingError(labels.draftEditInvalidJson);
       return;
     }
+    editorSavePending.current = true;
     setSavingDraftId(id);
     setEditingError('');
     try {
       await onUpdateDraft(id, { title, content });
+      delete editorDrafts.current[id];
       cancelDraftEditing();
     } catch (error) {
       setEditingError(error instanceof Error ? error.message : labels.draftEditSaveFailed);
       setSavingDraftId(null);
+    } finally {
+      editorSavePending.current = false;
     }
   }
 
-  return (
-    <section className="min-w-0 space-y-4">
-      {embedded ? null : <div className="min-w-0 rounded-lg border border-[#d7dfd6] bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">{labels.draftsTitle}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-[#5f625b]">{labels.draftsBody}</p>
-          </div>
-        </div>
-      </div>}
+  if (editingDraftId && detailDraft?.id === editingDraftId) return <section className="draft-editor-page">
+    <DraftEditor labels={labels} title={editingTitle} content={editingContent} error={editingError} saving={savingDraftId === detailDraft.id} onTitleChange={setEditingTitle} onContentChange={setEditingContent} onCancel={closeDraftEditing} onSave={() => saveDraftEdits(detailDraft.id)} />
+  </section>;
 
+  return (
+    <section className="drafts-template min-w-0 space-y-4">
       {actionError ? <p role="alert" className="rounded-md border border-[#d7b9ad] bg-white p-3 text-sm text-[#8f3d2e]">{actionError}</p> : null}
       {embedded && drafts.length === 0 ? (
         <div className="border-y border-[#dfe5df] py-8">
@@ -220,7 +230,7 @@ export function DraftsPanel({
                   <RecordReference reference={detailDraft.reference} />
                   {isTopicDraft(detailDraft) ? <p className="mt-1 text-xs font-semibold text-[#52645b]">{drafts.find((draft) => draft.id === detailDraft.id)?.sourceSummary ?? '来源待确认'}</p> : null}
                 </div>
-                <PreviewDisclosure title="更多操作" icon={MoreHorizontal}><div className="mobile-action-row flex flex-wrap gap-2">
+                <PreviewDisclosure title="管理草稿" headerAction icon={MoreHorizontal}><div className="mobile-action-row flex flex-wrap gap-2">
                   <button type="button" onClick={onCopyRevisionContext} className="h-11 rounded-md border border-[#cbd6cf] bg-white px-3 text-sm font-semibold text-[#24473f]">
                     {labels.revisionContext}
                   </button>
@@ -249,7 +259,7 @@ export function DraftsPanel({
                       saving={savingDraftId === detailDraft.id}
                       onTitleChange={setEditingTitle}
                       onContentChange={setEditingContent}
-                      onCancel={cancelDraftEditing}
+                      onCancel={closeDraftEditing}
                       onSave={() => saveDraftEdits(detailDraft.id)}
                     />
                   ) : (
@@ -481,8 +491,10 @@ function DraftEditor({
   onCancel: () => void;
   onSave: () => void;
 }) {
+  const form = useRef<HTMLFormElement>(null);
+  const headerManaged = usePageHeaderActions([{ key: 'draft-save', label: saving ? labels.processing : labels.draftEditSave, disabled: saving || !title.trim(), onClick: () => form.current?.requestSubmit() }], 20);
   return (
-    <section className="mt-5 border-t border-[#e1e6df] pt-5">
+    <form ref={form} className="draft-editor" aria-busy={saving} onSubmit={(event) => { event.preventDefault(); onSave(); }}>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[#34413b]">
           {labels.draftEditTitle}
@@ -502,16 +514,16 @@ function DraftEditor({
           />
         </label>
       </div>
-      {error ? <p className="mt-3 rounded-md border border-[#e6c3b9] bg-[#fff8f5] p-3 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={onSave} disabled={saving} className="h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+      {error ? <p role="alert" className="mt-3 rounded-md border border-[#e6c3b9] bg-[#fff8f5] p-3 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2" hidden={headerManaged}>
+        <button type="submit" disabled={saving} className="h-11 rounded-md bg-[#173d35] px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
           {saving ? labels.processing : labels.draftEditSave}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className="h-11 rounded-md border border-[#cbd6cf] bg-white px-4 text-sm font-semibold text-[#24473f] disabled:cursor-wait disabled:opacity-60">
           {labels.draftEditCancel}
         </button>
       </div>
-    </section>
+    </form>
   );
 }
 
@@ -755,11 +767,12 @@ function DraftContentPreview({ content, labels }: { content: unknown; labels: Re
   );
 }
 
-function PreviewDisclosure({ title, buttonLabel, icon: Icon, children }: { title: string; buttonLabel?: string; icon?: LucideIcon; children: ReactNode }) {
+function PreviewDisclosure({ title, buttonLabel, icon: Icon, children, headerAction = false }: { title: string; buttonLabel?: string; icon?: LucideIcon; children: ReactNode; headerAction?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const headerManaged = usePageHeaderActions(headerAction ? [{ key: 'draft-management', label: title, icon: Icon ? <Icon size={21} /> : undefined, onClick: () => dialog.current?.showModal() }] : [], 1);
   return (
     <div className="preview-disclosure">
-      <button className="preview-disclosure-trigger" type="button" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>{Icon ? <Icon size={18} aria-hidden="true" /> : null}<span>{buttonLabel ?? title}</span></button>
+      <button hidden={headerAction && headerManaged} className="preview-disclosure-trigger" type="button" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>{Icon ? <Icon size={18} aria-hidden="true" /> : null}<span>{buttonLabel ?? title}</span></button>
       <dialog ref={dialog} className="preview-dialog" aria-label={title}>
         <header><h3>{title}</h3><button type="button" autoFocus onClick={() => dialog.current?.close()}>关闭</button></header>
         <div className="preview-dialog-content">{children}</div>

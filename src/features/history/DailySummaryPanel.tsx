@@ -14,8 +14,9 @@ type Summary = {
 
 const tokyoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-export function DailySummaryPanel({ token, locale }: { token: string; locale: Locale }) {
-  const [date, setDate] = useState(tokyoToday);
+export function DailySummaryPanel({ token, locale, date: controlledDate, hideDatePicker = false }: { token: string; locale: Locale; date?: string; hideDatePicker?: boolean }) {
+  const [selectedDate, setDate] = useState(tokyoToday);
+  const date = controlledDate ?? selectedDate;
   const [savedDates, setSavedDates] = useState<string[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,12 +28,13 @@ export function DailySummaryPanel({ token, locale }: { token: string; locale: Lo
       : { title: '今日总结', empty: '当天没有学习总结', loading: '读取中…', error: '无法读取学习总结', total: '题', correct: '正确', incorrect: '错误', accuracy: '正确率', strengths: '强项', weaknesses: '今日弱点', confusion: '易混组', recommendations: '推荐复习' };
 
   useEffect(() => {
+    if (hideDatePicker) return;
     let active = true;
     apiRequest<{ summaries: { date: string }[] }>('/api/daily-summaries', { token })
       .then(({ summaries }) => { if (active) setSavedDates(summaries.map((entry) => entry.date)); })
       .catch(() => { if (active) setSavedDates([]); });
     return () => { active = false; };
-  }, [token]);
+  }, [token, hideDatePicker]);
 
   useEffect(() => {
     let active = true;
@@ -56,10 +58,10 @@ export function DailySummaryPanel({ token, locale }: { token: string; locale: Lo
   }, [date, savedDates]);
 
   return <section className="daily-summary-panel" aria-label={copy.title}>
-    <header className="daily-summary-header"><div><span>{date}</span><h2>{copy.title}</h2></div>
-      <label><span className="sr-only">{copy.title}</span><select aria-label={copy.title} value={date} onChange={(event) => setDate(event.target.value)}>
+    <header className="daily-summary-header"><h2>{copy.title}</h2>
+      {!hideDatePicker ? <label><span className="sr-only">{copy.title}</span><select aria-label={copy.title} value={date} onChange={(event) => setDate(event.target.value)}>
         {dates.map((day) => <option key={day} value={day}>{day}</option>)}
-      </select></label>
+      </select></label> : null}
     </header>
     {loading ? <p role="status">{copy.loading}</p> : error ? <p role="alert">{error}</p> : !summary ? <p className="daily-summary-empty">{copy.empty}</p> : <>
       <dl className="daily-summary-stats">

@@ -1,3 +1,4 @@
+import { PageHeaderActions } from '../../components/PageChrome';
 import { primaryNavigationView, primaryNavigationViews } from '../../domain/appNavigation';
 import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -57,6 +58,7 @@ export function MobileAppHeader({ onSettings, settingsLabel, onSearch, searchLab
           {title}
         </h1>
         <div className="flex min-w-0 items-center justify-end gap-1">
+          <PageHeaderActions />
           {onHeaderFilter ? <button type="button" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`} title={`${filterName}：${filterLabel}`} className={`cute-focus flex h-10 min-w-0 max-w-full items-center justify-center gap-1 rounded-full text-[#a84269] ${filterIconOnly ? 'w-10' : 'px-2'}`}><Filter size={filterIconOnly ? 21 : 18} className="shrink-0" />{filterIconOnly ? null : <span className="truncate text-sm">{filterLabel}</span>}</button> : null}
           {onSearch ? <button type="button" onClick={onSearch} aria-label={searchLabel} className="cute-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#a84269]"><Search size={21} /></button> : null}
           {onAction && actionLabel ? (
@@ -283,7 +285,8 @@ export function DesktopPageHeader({ title, breadcrumbs, labels, onBack, onSearch
           <button type="button" className="cute-focus rounded px-1 py-1 hover:bg-[#eaf4ed]" onClick={crumb.onClick} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>{crumb.label}</button>
         </span>)}
       </nav> : <h1 className="workspace-page-title">{title}</h1>}
-      {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button>}
+      {onHeaderFilter ? <button type="button" className="workspace-search cute-focus" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`}><Filter size={18} /><span>{filterLabel}</span></button> : onSearch ? <button type="button" className="workspace-search cute-focus" onClick={onSearch} aria-label={labels.searchOpen}><Search size={18} /><span>{labels.searchTitle}</span></button> : null}
+      <PageHeaderActions />
     </header>
   );
 }

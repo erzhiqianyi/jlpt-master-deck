@@ -1,6 +1,6 @@
 import { allQuestionsConfirmed } from './features/drafts/questionReviewState';
-import { mobileBackRoute, desktopBackRoute, routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
-import { adjacentEntryId, isImmersiveRoute, primaryNavigationView, primaryNavigationViews } from './domain/appNavigation';
+import { routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
+import { adjacentEntryId, contextualBackRoute, isPrimaryNavigationRoot, primaryNavigationView, primaryNavigationViews } from './domain/appNavigation';
 import { answersForAttempt, canReplayAttempt, createReplayAttempt, enqueuePracticeSave, replayPracticeSaveBody, questionsForAttempt, replayRouteAttemptId } from './domain/attemptReplay';
 import { HistoryReplayPanel } from './features/history/HistoryReplayPanel';
 import { ModuleReviewPanel } from './features/history/ModuleReviewPanel';
@@ -11,7 +11,8 @@ import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKe
 
 import { LoginLanding, LoginLanguageSelect } from './features/auth/LoginLanding';
 import { AppNoticeDialog } from './components/AppNoticeDialog';
-import { AuthoringNavigation, type AuthoringLocation } from './components/AuthoringNavigation';
+import { AuthoringNavigationProvider, type AuthoringLocation } from './components/AuthoringNavigation';
+import { PageChromeProvider } from './components/PageChrome';
 
 import { configureFirebase, googleIdToken, firebaseLogout } from './lib/firebase';
 
@@ -32,6 +33,7 @@ import { AboutPanel, aboutSectionTitle, isAboutSection } from './features/about/
 import { UserProfilePanel } from './features/profile/UserProfilePanel';
 import { CapturePanel } from './features/capture/CapturePanel';
 import { DraftsPanel } from './features/drafts/DraftsPanel';
+import { useMockExamCount } from './hooks/useMockExamCount';
 import { StudyModulesHub } from './features/home/StudyModulesHub';
 import './features/home/LightWorkspace.css';
 import { HomeDashboard } from './features/home/HomeDashboard';
@@ -249,6 +251,7 @@ export default function App() {
   const pendingPracticeSave = useRef<Promise<unknown>>(Promise.resolve());
   const activeView = route.view;
   const studyPage = route.page;
+  const mockExamCount = useMockExamCount(authToken, Boolean(user) && !authLoading && activeView === 'mixed' && studyPage === 'tips' && !route.itemId);
 
   useEffect(() => {
     let cancelled = false;
@@ -456,6 +459,9 @@ export default function App() {
     },
     [items, needsActiveQuestions, selectedDeck],
   );
+  const mixedQuestionCount = useMemo(() => activeView === 'mixed' && studyPage === 'tips'
+    ? buildQuestionIndex(selectedDeck === 'all' ? items.filter(item => item.deck !== 'name_reading' && item.type !== 'proper_name') : items).length
+    : undefined, [activeView, studyPage, items, selectedDeck]);
   const pagedVocabulary = activeView === 'vocabulary' && studyPage === 'questions';
   const allQuestions = useMemo(() => pagedVocabulary ? [] : activeView === 'mixed'
     ? shuffledBySeed(buildQuestions(shuffledBySeed(questionItems, mixedQuestionSeed), locale, 20), mixedQuestionSeed)
@@ -647,12 +653,12 @@ export default function App() {
     await apiRequest('/api/market', { token: authToken, method: 'POST', body });
   }
   const topicPracticeEntries = useMemo(() => {
-    if (activeView !== 'mixed' || studyPage !== 'tips' || route.itemId !== 'topics') {
+    if (activeView !== 'mixed' || studyPage !== 'tips') {
       return [];
     }
     return drafts.filter(isTopicDraft).map((draft) => {
       const practice = dailyPracticeDetails.find((practice) => practice.sourceDraftId === draft.id);
-      const completedCount = practice ? practiceCompletionCounts[practice.id] ?? 0 : 0;
+      const completedCount = practice ? practiceCompletionCounts[practice.id] ?? 0 : ['approved', 'archived'].includes(draft.status) ? undefined : 0;
       return {
         completedCount,
         modules: practice ? practiceModules(practice.questions, draft.title) : draft.modules ?? practiceModules([], draft.title),
@@ -663,7 +669,7 @@ export default function App() {
         status: practice || ['approved', 'archived'].includes(draft.status) ? 'ready' as const : 'pending' as const,
         updatedAt: draft.updated_at,
         body: practice ? `${practice.questions.length} 题 · 开始练习` : ['approved', 'archived'].includes(draft.status) ? '已确认 · 查看并开始' : '待确认 · 查看题目',
-        count: practice?.questions.length ?? 0, icon: BookOpenText, tone: 'mint',
+        count: practice?.questions.length, icon: BookOpenText, tone: 'mint',
         action: () => {
           if (practice) { void openDailyPractice(practice.id); }
           else { void selectDraft(draft.id); setActiveDraftDetailId(draft.id); navigateTo('drafts'); }
@@ -941,6 +947,14 @@ export default function App() {
     const requestedPage = page ?? (supportsStudyPage(view) ? defaultDesktopStudyPage(view) : 'questions');
     const nextRoute = { view, page: supportsStudyPage(view) || isOfficialSampleModule(view) ? requestedPage : 'questions' as StudyPage };
     const nextHash = routeHash(nextRoute.view, nextRoute.page, itemId);
+    if (isPrimaryNavigationRoot({ ...nextRoute, itemId })) {
+      authoringLocation?.close();
+      setActiveCaptureDetailId(null);
+      setActiveDraftDetailId(null);
+      setActiveAttemptDetailId(null);
+      setAttemptQuestionDetailOpen(false);
+      setDataTab(dataTabForRoute(view));
+    }
     if (window.location.hash === nextHash) {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       return;
@@ -1674,10 +1688,10 @@ export default function App() {
   const attemptDetailOpen = isDataManagementView(activeView) && dataTab === 'practice' && Boolean(activeAttemptDetailId);
   const questionDetailOpen = attemptDetailOpen && attemptQuestionDetailOpen;
   const dataDetailOpen = captureDetailOpen || draftDetailOpen || attemptDetailOpen;
-  const showMobileBackHeader = !isMobileTabRoute(route) || dataDetailOpen || Boolean(authoringLocation);
-  const showMobileBottomNavigation = !isImmersiveRoute(route) && !authoringLocation;
-  const mobileBackRouteValue = mobileBackRoute(route);
-  const desktopBackRouteValue = desktopBackRoute(route);
+  const isPrimaryRoot = isPrimaryNavigationRoot(route, dataDetailOpen || Boolean(authoringLocation));
+  const showMobileBackHeader = !isPrimaryRoot;
+  const showMobileBottomNavigation = isPrimaryRoot;
+  const backRouteValue = contextualBackRoute(route, { dailyPracticeIsTopic: Boolean(activeDailyPractice && topicDraftForPractice(activeDailyPractice, drafts)) });
   const listeningDetailGroup = route.view === 'listening' && route.page === 'words' && route.itemId
     ? listeningAudioGroupForRoute(listeningQuestions, route.itemId) : [];
   const detailTitle = route.page === 'words' && route.itemId
@@ -1690,8 +1704,8 @@ export default function App() {
     : undefined;
   const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference,
     matchesPracticeRoute(route.itemId, activeDailyPractice) ? activeDailyPractice?.reference : undefined);
+  if (captureDetailOpen || attemptDetailOpen) pageCrumbs.push({ label: captureDetailOpen ? labels.captureDetailTitle : labels.historyAttemptDetail });
   if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
-  const parentCrumbRoute = pageCrumbs.at(-2)?.route;
   const defaultDataTab = dataTabForRoute(activeView);
   const dataManagementBackAction = dataDetailOpen
     ? () => {
@@ -1707,6 +1721,11 @@ export default function App() {
       ? () => setDataTab(defaultDataTab)
       : undefined;
   const dataManagementBackLabel = questionDetailOpen ? labels.historyBackToAttemptQuestions : captureDetailOpen ? labels.historyBackToCaptures : draftDetailOpen ? labels.draftBackToList : attemptDetailOpen ? labels.historyBackToAttempts : dataTabLabel(dataTab, labels);
+  function handlePageBack() {
+    if (authoringLocation) { authoringLocation.close(); return; }
+    if (dataManagementBackAction) { dataManagementBackAction(); return; }
+    if (backRouteValue) navigateTo(backRouteValue.view, backRouteValue.page, backRouteValue.itemId);
+  }
   const mobileStudyModeLabel = studyPage === 'tips'
     ? labels.navQuestionTypes
     : studyPage === 'bank'
@@ -1722,7 +1741,7 @@ export default function App() {
   const questionBookFilterName = activeView === 'grammar' ? labels.grammarbookFilter : labels.wordbookFilter;
   const questionBookFilterLabel = wordbooks.find((book) => book.id === selectedWordbookId)?.title
     ?? (activeView === 'grammar' ? labels.grammarbookAll : labels.wordbookAll);
-  const mobileHeaderBackLabel = questionDetailOpen
+  const mobileHeaderBackLabel = authoringLocation?.backLabel || (questionDetailOpen
     ? labels.historyBackToAttemptQuestions
     : studyItemDetailOpen
       ? labels.backToEntryList
@@ -1730,7 +1749,7 @@ export default function App() {
         ? labels.backToEntryList
       : dataDetailOpen
         ? dataManagementBackLabel
-        : labels.navBack;
+        : labels.navBack);
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
     : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
@@ -1755,22 +1774,22 @@ export default function App() {
       question: questionDetailOpen,
     }));
 
-  const pageKind = dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
+  const pageKind = authoringLocation?.kind || (dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
     ? 'detail'
     : replayAttemptId || (hasStudyControls && studyPage !== 'words' && studyPage !== 'tips') || (activeView === 'mock-exams' && route.itemId)
       ? 'practice'
-      : isMobileTabRoute(route) && activeView !== 'market'
+      : isPrimaryRoot && activeView !== 'market'
         ? 'entry'
-        : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list';
+        : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list');
 
   return (
-    <AuthoringNavigation.Provider value={setAuthoringLocation}>
+    <PageChromeProvider>
+    <AuthoringNavigationProvider onChange={setAuthoringLocation}>
     <main data-bottom-navigation={showMobileBottomNavigation ? 'visible' : 'hidden'} className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
-      <GlobalSearch open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
+      <GlobalSearch locale={locale} open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
         onSettings={() => navigateTo('settings')}
         settingsLabel={labels.settings}
-        onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
         filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
         filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
         filterIconOnly={showQuestionBookFilter}
@@ -1779,14 +1798,7 @@ export default function App() {
         title={mobileHeaderTitle}
         backLabel={mobileHeaderBackLabel}
         showBack={showMobileBackHeader}
-        onBack={() => {
-          if (authoringLocation) { authoringLocation.close(); return; }
-          if (dataManagementBackAction) {
-            dataManagementBackAction();
-            return;
-          }
-          window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
-        }}
+        onBack={handlePageBack}
         actionLabel={undefined}
         onAction={undefined}
         // Mobile pages should keep the header focused on navigation. The desktop
@@ -1829,13 +1841,7 @@ export default function App() {
         title={mobileHeaderTitle}
         labels={labels}
         showBack={showMobileBackHeader}
-        onBack={() => {
-          if (authoringLocation) { authoringLocation.close(); return; }
-          if (dataManagementBackAction) { dataManagementBackAction(); return; }
-          if (parentCrumbRoute) { navigateTo(parentCrumbRoute.view, parentCrumbRoute.page, parentCrumbRoute.itemId); return; }
-          window.location.hash = routeHash(mobileBackRouteValue.view, mobileBackRouteValue.page, mobileBackRouteValue.itemId);
-        }}
-        onSearch={showQuestionBookFilter ? undefined : () => setSearchOpen(true)}
+        onBack={handlePageBack}
         filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
         filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
         onHeaderFilter={showQuestionBookFilter ? () => setMobileStudyPanel('filter') : undefined}
@@ -1846,7 +1852,7 @@ export default function App() {
               <DesktopLocationBar
                 route={route}
                 labels={labels}
-                backRoute={desktopBackRouteValue}
+                backRoute={backRouteValue}
                 backLabel={dataManagementBackLabel}
                 backAction={dataManagementBackAction}
                 activeDataTab={isDataManagementView(activeView) ? dataTab : undefined}
@@ -1882,6 +1888,7 @@ export default function App() {
               onOpenReviewItem={(item) => navigateTo(item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary', 'words', item.id)}
               plan={studyPlan}
               todayPractices={homeTodayPractices}
+              dailyAnswers={activeDailyPractice?.id === homeTodayPractices[0]?.id ? answers : {}}
               latestDraft={latestHomeDraft}
               onOpenDraft={(id) => {
                 setActiveDraft(null);
@@ -1907,6 +1914,7 @@ export default function App() {
             {activeView === 'history' || activeView === 'insights' || activeView === 'captures' || activeView === 'drafts' ? (
               <DataManagementPanel
                 summaryToken={authToken}
+                draftCount={drafts.length}
                 key={activeView}
                 labels={labels}
                 locale={locale}
@@ -1917,7 +1925,7 @@ export default function App() {
                 questions={historyQuestions}
                 onRestartAttempt={replayHistoryAttempt}
                 draftsContent={<DraftsPanel onSaveQuestionReview={saveQuestionReview} onFinalizeReviewedDraft={finalizeReviewedDraft} embedded labels={labels} drafts={drafts} activeDraft={activeDraft} annotation={draftAnnotation} onAnnotationChange={setDraftAnnotation} onCreateDailyDraft={createDailyDraft} onSelectDraft={selectDraft} onSaveAnnotation={saveDraftAnnotation} onCopyRevisionContext={copyDraftRevisionContext} onCreateDraftFromSelection={createDraftFromSelection} onDeleteDraft={removeDraft} onConfirmDraft={confirmDraftForAgent} onPublishDraft={publishDraftAsDailyPractice} onUpdateDraft={updateDraft} detailDraftId={activeDraftDetailId} onDetailDraftChange={setActiveDraftDetailId} />}
-                settingsContent={<SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
+                settingsContent={<SettingsView onSearch={() => setSearchOpen(true)} labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />}
                 activeTab={dataTab}
                 isHome={activeView === 'insights' || activeView === 'history'}
                 detailOpen={captureDetailOpen || attemptDetailOpen || draftDetailOpen}
@@ -1997,9 +2005,9 @@ export default function App() {
                 <QuestionTypeGuide labels={labels} locale={locale} customTips={settings.questionTypeTips} customTipEntries={settings.customQuestionTypeTips} onOpen={openQuestionType} onCreateCustomTip={createCustomQuestionTypeTip} />
               )
             ) : null}
-            {activeView === 'study' ? <StudyModulesHub locale={locale} labels={labels} onNavigate={navigateTo} /> : null}
+            {activeView === 'study' ? <StudyModulesHub locale={locale} labels={labels} onNavigate={navigateTo} items={data.items} progress={progress} readingQuestions={readingQuestions} listeningQuestions={listeningQuestions} /> : null}
             {activeView === 'settings' ? (
-              <SettingsView labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
+              <SettingsView onSearch={() => setSearchOpen(true)} labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
             ) : null}
             {isOfficialSampleModule(activeView) && studyPage === 'samples' ? (
               <OfficialModuleSamples
@@ -2015,6 +2023,9 @@ export default function App() {
             {activeView === 'mixed' && studyPage === 'tips' ? (
               <MixedPracticeHub
                 topicEntries={topicPracticeEntries}
+                attempts={attemptHistory}
+                mockExamCount={mockExamCount}
+                mixedQuestionCount={mixedQuestionCount}
                 dailyPractice={homeTodayPractices[0]}
                 dailyAnswers={answers}
                 groupKey={route.itemId}
@@ -2300,7 +2311,8 @@ export default function App() {
       ) : null}
 
     </main>
-    </AuthoringNavigation.Provider>
+    </AuthoringNavigationProvider>
+    </PageChromeProvider>
   );
 }
 
@@ -2706,16 +2718,6 @@ function settingsSectionMobileTitle(section: string, labels: Record<string, stri
   return labels.settings;
 }
 
-function isMobileTabRoute(route: AppRoute) {
-  if (route.view === 'study' || route.view === 'home' || (route.view === 'market' && !route.itemId) || (route.view === 'plan' && !route.itemId) || (route.view === 'history' && !route.itemId) || (route.view === 'settings' && !route.itemId)) {
-    return true;
-  }
-  if (route.view === 'mixed') {
-    return route.page === 'tips' && !route.itemId;
-  }
-  return false;
-}
-
 function isDataManagementView(view: AppView) {
   return view === 'insights' || view === 'captures' || view === 'history' || view === 'drafts' || view === 'settings';
 }
@@ -2734,6 +2736,19 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   ];
   if (route.view === 'study') return [{ label: labels.homeStudyArea, route }];
   if (route.view === 'home') return [{ label: labels.navTaskHome ?? labels.navHome, route }];
+  if (route.view === 'market') return [
+    { label: labels.navMarket, route: { view: 'market', page: 'questions' } },
+    ...(route.itemId ? [{ label: labels.navMarketDetail, route }] : []),
+  ];
+  if (route.view === 'history') return [
+    { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } },
+    ...(route.itemId ? [{ label: route.itemId === 'today' ? labels.historyFilterToday : labels.historyPracticeTab, route }] : []),
+  ];
+  if (route.view === 'settings') return [
+    { label: labels.navHome, route: { view: 'home', page: 'questions' } },
+    { label: labels.settings, route: { view: 'settings', page: 'questions' } },
+    ...(route.itemId ? [{ label: settingsSectionMobileTitle(route.itemId, labels, locale), route }] : []),
+  ];
   const crumbs: Array<{ label: string; route?: AppRoute }> = [
     { label: labels.navHome, route: { view: 'home', page: 'questions' } },
   ];
@@ -2743,11 +2758,14 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
       ? { label: labels.homeStudyArea, route: { view: 'study', page: 'questions' } }
       : { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
     if (route.view === 'mixed') {
+      if (route.page === 'words') crumbs[0] = { label: labels.homeStudyArea, route: { view: 'study', page: 'questions' } };
+      if (route.page === 'tips' && route.itemId?.startsWith('opinion/')) crumbs.push({ label: labels.navOpinionPractice, route: { view: 'mixed', page: 'tips', itemId: 'opinion' } });
       if (route.page !== 'tips' || route.itemId) crumbs.push({ label: mobileAppTitle(route, labels, locale), route });
       return crumbs;
     }
     if (route.view === 'question-types') {
-      crumbs.push({ label: labels.navQuestionTypes });
+      crumbs.push({ label: labels.navQuestionTypes, route: { view: 'question-types', page: 'questions' } });
+      if (route.itemId) crumbs.push({ label: labels.navDetail, route });
       return crumbs;
     }
     crumbs.push({ label: moduleLabelFor(route.view, labels), route: { view: route.view, page: 'words' } });
@@ -2759,6 +2777,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'mock-exams') {
+    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
     crumbs.push({ label: labels.navMockExams, route: route.itemId ? { view: 'mock-exams', page: 'questions' } : undefined });
     if (route.itemId && /^(week|custom):/.test(route.itemId)) {
       const [kind, week, date] = route.itemId.split(':');
@@ -2769,6 +2788,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'news-cycle') {
+    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
     crumbs.push({ label: labels.navNewsPractice, route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
     if (route.itemId) crumbs.push({ label: route.itemId });
     return crumbs;
@@ -2781,8 +2801,8 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     return crumbs;
   }
 
-  if (['history', 'drafts', 'settings', 'insights'].includes(route.view)) {
-    crumbs.push({ label: labels.navMine, route: { view: 'insights', page: 'questions' } });
+  if (['captures', 'drafts', 'insights'].includes(route.view)) {
+    crumbs[0] = { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } };
     const visibleTab = activeDataTab ?? dataTabForRoute(route.view);
     if (route.view !== 'insights' || visibleTab !== 'captures') {
       crumbs.push({ label: dataTabLabel(visibleTab, labels) });
@@ -2791,6 +2811,11 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
       crumbs.push({ label: labels.draftPreview });
     }
     return crumbs;
+  }
+
+  if (['capture', 'mistakes', 'memory', 'data'].includes(route.view)) {
+    crumbs[0] = { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } };
+    if (route.view === 'capture') crumbs.push({ label: labels.historyCaptureTab, route: { view: 'captures', page: 'questions' } });
   }
 
   crumbs.push({ label: moduleLabelFor(route.view, labels) });

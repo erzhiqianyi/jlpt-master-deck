@@ -1,3 +1,4 @@
+import { formatListDate } from '../../components/LearningListMetadata';
 import { RecordReference } from '../../components/RecordReference';
 import './listening.css';
 import { listeningShareCopy, requestListeningShare } from './listeningShare';
@@ -5,13 +6,13 @@ import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKe
 import { listeningEditorContent, splitListeningExplanation } from '../../domain/listeningExplanation';
 import { colorReadAlongTokens, listeningTranscriptForPractice, mergeReadAlongClips, splitReadAlongLines } from '../../domain/listeningReadAlong';
 import { clearListeningClipDrafts, loadListeningClipDrafts, saveListeningClipDraft } from '../../domain/listeningClipDrafts';
-import { formatListDate } from '../../components/LearningListMetadata';
+import { usePageHeaderActions } from '../../components/PageChrome';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { LearningList, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { useConfirmation } from '../../components/confirmation';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Lightbulb, LoaderCircle, Mic, Pause, Pencil, Play, Plus, RotateCcw, ScrollText, Share2, Sparkles, Square, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clipboard, Headphones, Lightbulb, LoaderCircle, Mic, Pause, Pencil, Play, Plus, RotateCcw, ScrollText, Share2, Sparkles, Square, Trash2, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { officialN1QuestionTypes } from '../../data/questionTypes';
 import { apiRequest } from '../../lib/api';
@@ -94,9 +95,9 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
- const [showAiForm, setShowAiForm] = useState(false);
-  useAuthoringNavigation(mode === 'library' && !activeQuestionId ? (showForm ? '添加听力题' : showAiForm ? labels.aiGenerateFromLink : null) : null, () => { setShowForm(false); setShowAiForm(false); });
-  // The library is always visible; the action bar above it replaces the old entry hub.
+  const [showAiForm, setShowAiForm] = useState(false);
+  useAuthoringNavigation(mode === 'library' && !activeQuestionId ? (showForm ? (locale === 'ja' ? '聴解問題を追加' : locale === 'en' ? 'Add listening questions' : '添加听力题') : showAiForm ? labels.aiGenerateFromLink : null) : null, () => { setShowForm(false); setShowAiForm(false); });
+  // Preserve editor drafts when moving between library and local authoring pages.
   const showLibrary = !showForm && !showAiForm;
   const [sourceUrl, setSourceUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
@@ -138,28 +139,25 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   const activeGroup = activeQuestionId ? listeningAudioGroupForRoute(questions, activeQuestionId) : [];
   const activeLibraryQuestion = activeGroup[0];
   if (activeLibraryQuestion) {
-    if (readAlongOpen) return <ListeningReadAlongWorkspace key={activeLibraryQuestion.audioAssetId ?? activeLibraryQuestion.id} item={activeLibraryQuestion} labels={labels} locale={locale} token={token} onBack={() => setReadAlongOpen(false)} />;
     return (
-      <section className="listening-workspace cute-practice-card min-w-0 overflow-hidden border">
-        <div className="flex items-center gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-6">
-          <button type="button" onClick={onBackToLibrary} aria-label={labels.listeningBackToList} title={labels.listeningBackToList} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5]">
-            <ChevronLeft size={18} />
-          </button>
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-black text-[#3d3036]"><span className="md:hidden">{activeLibraryQuestion.audioReference || labels.listeningPracticeTitle} · {activeGroup.length} {locale === 'ja' ? '問' : locale === 'en' ? 'questions' : '题'}</span><span className="hidden md:inline">{activeLibraryQuestion.audioReference ? `${activeLibraryQuestion.audioReference} · ` : ''}{activeLibraryQuestion.audioFileName}</span></h2>
-          </div>
-          <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} locale={locale} questionCount={activeLibraryQuestion.audioAssetId ? activeGroup.length : 1} />
+      <>
+      {readAlongOpen ? <ListeningReadAlongWorkspace key={activeLibraryQuestion.audioAssetId ?? activeLibraryQuestion.id} item={activeLibraryQuestion} labels={labels} locale={locale} token={token} onBack={() => setReadAlongOpen(false)} /> : null}
+      <section hidden={readAlongOpen} className="listening-workspace listening-detail cute-practice-card min-w-0 overflow-hidden border">
+        <div className="listening-content-heading">
+          <div className="min-w-0"><h2>{listeningAudioTitle(activeLibraryQuestion, activeGroup)}</h2><p>{activeGroup.length} {locale === 'ja' ? '問' : locale === 'en' ? 'questions' : '题'} · {locale === 'en' ? 'Practiced' : locale === 'ja' ? '練習' : '练习'} {progress[listeningPracticeKey(activeLibraryQuestion)]?.reviewCount ?? 0} {locale === 'en' ? 'times' : '次'}</p></div>
+          {!readAlongOpen ? <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} locale={locale} questionCount={activeLibraryQuestion.audioAssetId ? activeGroup.length : 1} /> : null}
         </div>
-        <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_minmax(440px,42%)]">
-        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
-        <aside className="order-first min-w-0 border-b border-[#f0d4dd] bg-[#fffafd] p-4 md:p-5 xl:order-last xl:border-b-0 xl:border-l" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
+        <div className="listening-answer-layout">
+        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} active={!readAlongOpen} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
+        <aside className="listening-audio-sidebar" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
           <div className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto">
+            {!readAlongOpen ? <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} onOpenReadAlong={() => setReadAlongOpen(true)} /> : null}
             <ListeningQuestionNavigation questions={activeGroup} locale={locale} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
-            <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} onOpenReadAlong={() => setReadAlongOpen(true)} />
           </div>
         </aside>
         </div>
       </section>
+      </>
     );
   }
 
@@ -290,24 +288,14 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
 
   return (
     <section className="listening-workspace ledger-word-index ledger-module-page min-w-0">
-      {showForm ? <div className="sticky top-0 z-20 flex flex-wrap items-center justify-end gap-3 border-b border-[#dce9df] bg-white px-4 py-4 md:px-6">
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={addDraft} disabled={submitting || matchingAudio || !audioFile} className="h-10 rounded-md border border-[#31564c] bg-white px-4 text-sm font-bold text-[#31564c] disabled:opacity-50">添加下一题</button>
-          <button type="submit" form="listening-authoring-form" disabled={submitting || matchingAudio || !audioFile} className="h-10 rounded-md bg-[#31564c] px-4 text-sm font-bold text-white disabled:opacity-50">{submitting ? labels.listeningSubmitting : '保存并完成添加'}</button>
-        </div>
-      </div> : <ModuleActionBar
+      {!showForm && !showAiForm ? <ModuleActionBar
         locale={locale}
         label="听力"
         primary={onPractice ? { label: '开始练习', hint: '按题库顺序练一轮', onClick: () => { const group = audioGroups[Math.floor(Math.random() * audioGroups.length)]; if (group) onOpenQuestion?.(listeningAudioRouteId(group.representative)); } } : undefined}
         onAsk={onAsk}
         contentActions={audioGroups.map((group) => ({ key: group.key, label: group.representative.title, onClick: () => onOpenQuestion?.(listeningAudioRouteId(group.representative)) }))}
-        actions={[
-          ...(onTips ? [{ key: 'tips', label: '学习方法', icon: <Lightbulb size={16} aria-hidden="true" />, onClick: onTips }] : []),
-          ...(onReview ? [{ key: 'review', label: labels.reviewPage, icon: <ScrollText size={16} aria-hidden="true" />, onClick: onReview }] : []),
-          { key: 'ai', label: labels.aiGenerateFromLink, icon: <Sparkles size={16} aria-hidden="true" />, active: showAiForm, onClick: () => { setShowAiForm((value) => !value); setMessage(''); } },
-          { key: 'add', label: labels.listeningUploadTitle, icon: <Plus size={16} aria-hidden="true" />, active: false, onClick: () => { setShowForm(true); setShowAiForm(false); setMessage(''); } },
-        ]}
-      />}
+
+      /> : null}
 
       {message ? <p role="status" className="border-b border-[#f0d4dd] px-4 py-3 text-sm font-bold text-[#8f365b] md:px-6">{message}</p> : null}
 
@@ -332,28 +320,19 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
       ) : null}
 
       {showForm ? (
-        <form id="listening-authoring-form" className="border-b border-[#f0d4dd] bg-white/70 px-4 py-5 md:px-6" onSubmit={submit}>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]">
-            <div className="grid content-start gap-4">
-              <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-black text-[#3d3036]">题目 {activeDraftIndex === null ? queuedDrafts.length + 1 : activeDraftIndex + 1}</h2><span className="text-sm text-[#68716b]">编辑题目内容</span></div>
+        <form id="listening-authoring-form" className="content-authoring-form listening-authoring-form" onSubmit={submit}>
+            <div className="listening-draft-navigation"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1}</button>)}</div>
+          <div className="listening-form-fields">
 
-
-
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="listening-type-answer">
             <label className="block text-sm font-semibold text-[#46514c]">
               {labels.questionType}
               <select value={questionTypeId} onChange={(event) => { const next = event.target.value; const nextGuidance = listeningTypeGuidance[next] ?? listeningTypeGuidance['listening-task']; const nextChoices = nextGuidance.freeResponse ? ['', '', '', ''] : Array.from({ length: nextGuidance.choiceCount }, (_, index) => choices[index] ?? ''); setQuestionTypeId(next); setQuestion(nextGuidance.prompt); setChoices(nextChoices); setChoiceDetails((current) => resizeListeningChoiceDetails(current, nextChoices.length)); setAnswerIndex(nextGuidance.freeResponse ? -1 : 0); }} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
                 {listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}
               </select>
             </label>
-            <label className="block text-sm font-semibold text-[#46514c]">
-              {labels.listeningTitle}
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={labels.listeningTitlePlaceholder} maxLength={120} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" />
-            </label>
-          </div>
-
           {!isBlankBasicTraining ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div>
               <label className="block text-sm font-semibold text-[#46514c]">
                 {labels.listeningCorrectAnswer}
                 <select value={answerIndex} onChange={(event) => setAnswerIndex(Number(event.target.value))} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base">
@@ -364,12 +343,19 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           ) : (
             <p className="text-xs font-normal text-[#68716b]">全部选项已留空：这是一道填空题，练习时会显示文本输入框，请在下方解析中写出参考答案。</p>
           )}
+          </div>
+
+            <label className="block text-sm font-semibold text-[#46514c]">
+              {labels.listeningTitle}
+              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={labels.listeningTitlePlaceholder} maxLength={120} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" />
+            </label>
 
           <label className="block text-sm font-semibold text-[#46514c]">
             {labels.listeningQuestion}
             <textarea value={question} readOnly maxLength={1000} className="mt-2 min-h-24 w-full cursor-not-allowed rounded-md border border-[#c8d1c8] bg-[#f4f7f3] p-3 text-base leading-6 text-[#46514c]" required />
           </label>
 
+          <details className="content-form-group" onInvalid={(event) => { event.currentTarget.open = true; }}><summary><strong>{locale === 'ja' ? '選択肢と解説' : locale === 'en' ? 'Choices and explanation' : '选项与解析'}</strong><span>{locale === 'en' ? 'Choices, translations and explanations' : locale === 'ja' ? '選択肢・翻訳・解説' : '选项 · 每项含翻译与解析 · 总解析（可选）'}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
           <div className="grid gap-3">
             {choices.slice(0, typeGuidance.freeResponse ? 4 : typeGuidance.choiceCount).map((choice, index) => (
               <fieldset key={index} className="grid gap-2 rounded-lg border border-[#dce9df] bg-[#fbfdfb] p-3 sm:grid-cols-2">
@@ -391,13 +377,10 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
 
           <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningExplanation}
             <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} placeholder={labels.listeningOverallExplanationPlaceholder} maxLength={2000} className="mt-2 min-h-20 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-base leading-6" />
-          </label>
-
+          </label></div></details>
 
             </div>
-          <aside className="min-w-0 h-fit rounded-2xl border border-[#dce9df] bg-[#f4faf5] p-4 lg:sticky lg:top-4">
-            <div className="mb-3 flex items-center justify-between"><h3 className="font-black text-[#31564c]">音频</h3><span className="text-xs text-[#68716b]">最多 25 MB</span></div>
-            <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[#dce9df] pb-4"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1}</button>)}</div>
+          <details className="content-form-group listening-audio-form-group" onInvalid={(event) => { event.currentTarget.open = true; }}><summary><strong>{locale === 'ja' ? '音声と原文' : locale === 'en' ? 'Audio and transcript' : '音频与原文'}</strong><span>{audioFile ? audioFile.name : locale === 'ja' ? '音声ファイル・最大 25 MB' : locale === 'en' ? 'Audio file · up to 25 MB' : '音频文件 · 最多 25 MB'}<br />{locale === 'ja' ? '原文・翻訳（任意）' : locale === 'en' ? 'Transcript and translation (optional)' : '听力原文 · 原文翻译（可选）'}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
             <label className="block text-sm font-semibold text-[#46514c]">{labels.listeningAudio}<input key={fileInputKey} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" onChange={(event) => void selectAudio(event.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-md border border-[#cbd6cf] bg-white p-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e9f0e9] file:px-3 file:py-2 file:font-semibold file:text-[#31564c]" required />{audioFile ? <span className="mt-2 block text-xs font-normal text-[#68716b]">{audioFile.name} · {formatFileSize(audioFile.size, locale)}</span> : null}</label>
             <label className="mt-4 block text-sm font-semibold text-[#31564c]">{labels.listeningTranscript}
               <textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptPlaceholder} className="mt-2 min-h-40 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
@@ -406,21 +389,16 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
               <textarea value={transcriptTranslation} onChange={(event) => setTranscriptTranslation(event.target.value)} maxLength={30000} placeholder={labels.listeningTranscriptTranslationPlaceholder} className="mt-2 min-h-28 w-full rounded-md border border-[#c8d1c8] bg-white p-3 text-sm leading-6" />
             </label>
             {audioFile ? <UploadedAudioPreview file={audioFile} labels={labels} /> : <p className="mt-3 text-xs leading-5 text-[#68716b]">选择音频后可在这里试听。</p>}
-          </aside>
+          </div></details>
+          <div className="listening-authoring-actions">
+            <button type="button" onClick={addDraft} disabled={submitting || matchingAudio || !audioFile}>{locale === 'ja' ? '次の問題を追加' : locale === 'en' ? 'Add next question' : '添加下一题'}</button>
+            <button type="submit" disabled={submitting || matchingAudio || !audioFile} className="content-form-submit">{submitting ? labels.listeningSubmitting : locale === 'ja' ? '保存して完了' : locale === 'en' ? 'Save and finish' : '保存并完成添加'}</button>
           </div>
         </form>
       ) : null}
 
-      {showLibrary ? <LearningCatalog columns={<div className="list-column-header listening-column-header" aria-hidden="true">
-        <span className="list-column-reference">{locale === 'ja' ? '参照番号' : locale === 'en' ? 'Reference' : '编号'}</span>
-        <span className="list-column-title">{locale === 'ja' ? '音声' : locale === 'en' ? 'Audio' : '音频'}</span>
-        <span className="list-column-metadata">
-          <span>{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>
-          <span>{locale === 'ja' ? '追加日' : locale === 'en' ? 'Added' : '添加时间'}</span>
-          <span>{locale === 'ja' ? '練習回数' : locale === 'en' ? 'Practice count' : '练习次数'}</span>
-        </span>
-      </div>}
-        title={locale === 'ja' ? '聴解ライブラリ' : locale === 'en' ? 'Listening library' : '听力题库'}
+      {showLibrary ? <LearningCatalog appliedSummary={[typeFilter === 'all' ? '' : listeningQuestionTypeName(typeFilter), sortOrder === 'oldest' ? (locale === 'ja' ? '古い順' : locale === 'en' ? 'Oldest first' : '最早添加') : ''].filter(Boolean).join(' · ')} onReset={() => { setTypeFilter('all'); setSortOrder('newest'); }} columnLabels={[locale === 'ja' ? '音声' : locale === 'en' ? 'Audio' : '音频', locale === 'ja' ? '概要' : locale === 'en' ? 'Summary' : '摘要', null]}
+        title={locale === 'ja' ? '聴解' : locale === 'en' ? 'Listening' : '听力'}
         items={audioGroups}
         locale={locale}
         batch={{ id: (item) => item.key, actions: [{
@@ -429,19 +407,19 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           confirm: (count) => locale === 'ja' ? `選択した ${count} 件の音声と、その問題をすべて削除します。` : locale === 'en' ? `Delete ${count} selected audio files and all of their questions?` : `将删除所选 ${count} 个音频及其全部题目，删除后无法恢复。`,
           run: async (key) => { for (const question of audioGroups.find((item) => item.key === key)?.questions ?? []) await onDelete(question.id); },
         }] }}
-        tools={<><LearningListSelect label="题型" value={typeFilter} onChange={(value) => setTypeFilter(value)} hideLabel><option value="all">全部题型</option>{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</LearningListSelect><LearningListSelect label="排序" value={sortOrder} onChange={(value) => setSortOrder(value)} hideLabel><option value="newest">最新添加</option><option value="oldest">最早添加</option></LearningListSelect></>}
+        tools={<><div className="list-tools">
+          <button type="button" onClick={() => { setShowForm(true); setShowAiForm(false); setMessage(''); }}><Plus size={16} aria-hidden="true" />{labels.listeningUploadTitle}</button>
+          <button type="button" onClick={() => { setShowAiForm(true); setShowForm(false); setMessage(''); }}><Sparkles size={16} aria-hidden="true" />{labels.aiGenerateFromLink}</button>
+          {onTips ? <button type="button" onClick={onTips}><Lightbulb size={16} aria-hidden="true" />{locale === 'ja' ? '学習方法' : locale === 'en' ? 'Study tips' : '学习方法'}</button> : null}
+          {onReview ? <button type="button" onClick={onReview}><ScrollText size={16} aria-hidden="true" />{labels.reviewPage}</button> : null}
+        </div><LearningListSelect label="题型" value={typeFilter} onChange={(value) => setTypeFilter(value)} hideLabel><option value="all">全部题型</option>{listeningQuestionTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</LearningListSelect><LearningListSelect label="排序" value={sortOrder} onChange={(value) => setSortOrder(value)} hideLabel><option value="newest">最新添加</option><option value="oldest">最早添加</option></LearningListSelect></>}
         searchText={(item) => `${item.representative.audioReference ?? ''} ${item.representative.audioFileName} ${item.questions.map((question) => `${question.reference ?? ''} ${listeningQuestionTypeName(question.questionTypeId)} ${question.title}`).join(' ')}`}
         renderRow={(item) => {
-          const addedAt = item.questions.map((question) => question.createdAt)
-            .filter((value) => value && Number.isFinite(Date.parse(value)))
-            .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
-          return <LearningListRow key={item.key} title={item.representative.audioFileName}
-            references={item.representative.audioReference ? [item.representative.audioReference] : item.questions.map(question => question.reference)}
-            metadata={<>
-              <span><span className="sr-only">{locale === 'ja' ? '問題数・種類' : locale === 'en' ? 'Questions / types' : '题数与题型'}</span>{item.questions.length} 道题 · {[...new Set(item.questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))].join('、')}</span>
-              <span className="list-added">{formatListDate(addedAt, locale === 'ja' ? '記録なし' : locale === 'en' ? 'Not recorded' : '未记录', locale, true)}</span>
-              <span className="list-practice-count"><span className="practice-count-label">{locale === "ja" ? "練習回数 " : locale === "en" ? "Practice count " : "练习次数 "}</span>{progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0}</span>
-            </>} locale={locale} onOpen={() => onOpenQuestion?.(listeningAudioRouteId(item.representative))}/>;
+          const count = progress[listeningPracticeKey(item.representative)]?.reviewCount ?? 0;
+          const summary = `${item.questions.length} ${locale === 'ja' ? '問' : locale === 'en' ? 'questions' : '题'} · ${locale === 'ja' ? `練習 ${count} 回` : locale === 'en' ? `Practiced ${count} times` : `练习 ${count} 次`}`;
+          return <LearningListRow key={item.key} title={<span className="listening-row-title"><span className="listening-row-icon"><Headphones size={25} aria-hidden="true" /></span><span>{listeningAudioTitle(item.representative, item.questions)}</span></span>}
+            description={summary} locale={locale} onOpen={() => onOpenQuestion?.(listeningAudioRouteId(item.representative))}/>;
+
         }}
       /> : null}
     </section>
@@ -471,11 +449,12 @@ function ListeningShareButton({ item, token, locale, questionCount }: { item: Li
       setError(cause instanceof Error ? cause.message : copy.failed);
     } finally { pending.current = false; setBusy(false); }
   }
+  const hasHeaderActions = usePageHeaderActions([{ key: 'listening-share', label: link ? copy.copy : copy.publish, icon: <Share2 size={20} aria-hidden="true" />, disabled: busy, onClick: () => void (link ? navigator.clipboard.writeText(link).catch(() => {}) : share()) }], 20);
   return <div className="ml-auto flex min-w-0 flex-wrap justify-end gap-2">
     {link ? <input aria-label={copy.link} className="min-h-11 min-w-0 max-w-40 rounded border px-2 py-1 text-xs md:max-w-52" readOnly value={link} onFocus={(event) => event.currentTarget.select()} /> : null}
-    <button type="button" onClick={() => void (link ? navigator.clipboard.writeText(link).catch(() => {}) : share())} disabled={busy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#d6e6df] bg-white px-2.5 py-1.5 text-sm font-bold text-[#31564c]" aria-label={link ? copy.copy : copy.publish}>
+    {!hasHeaderActions ? <button type="button" onClick={() => void (link ? navigator.clipboard.writeText(link).catch(() => {}) : share())} disabled={busy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#d6e6df] bg-white px-2.5 py-1.5 text-sm font-bold text-[#31564c]" aria-label={link ? copy.copy : copy.publish}>
       <Share2 size={16} aria-hidden="true" />{busy ? copy.busy : link ? copy.copy : copy.publish}
-    </button>
+    </button> : null}
     {error ? <span role="alert" className="text-xs text-red-600">{error}</span> : null}
   </div>;
 }
@@ -622,11 +601,9 @@ function ListeningReadAlongWorkspace({ item, labels, locale, token, onBack }: { 
   const transcript = listeningTranscriptForPractice(item);
   const lines = useMemo(() => splitReadAlongLines(transcript), [transcript]);
   const [selectedLine, setSelectedLine] = useState(0);
+  useAuthoringNavigation(locale === 'ja' ? 'シャドーイング' : locale === 'en' ? 'Shadowing practice' : '跟读练习', onBack, { kind: 'practice', priority: 10 });
   return <section className="listening-workspace cute-practice-card min-w-0 overflow-hidden border">
-    <div className="flex flex-wrap items-center gap-3 border-b border-[#f0d4dd] px-4 py-3 md:px-6">
-      <button type="button" onClick={onBack} className="inline-flex h-9 items-center gap-1 rounded-full border border-[#ead1dc] bg-white px-3 text-sm font-bold text-[#31564c]"><ChevronLeft size={17} />返回题目</button>
-      <div className="min-w-0"><h2 className="text-lg font-black text-[#3d3036]">跟读练习</h2><p className="truncate text-xs text-[#778079]">{item.audioReference} · {item.audioFileName}</p></div>
-    </div>
+    <div className="listening-content-heading"><div><h2>{listeningAudioTitle(item, [item])}</h2><p>{item.audioReference}</p></div></div>
     <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_minmax(380px,36%)]">
       <div className="min-w-0 p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold text-[#31564c]">听力原文 · 逐句练习</h3><span className="text-xs text-[#68716b]">{lines.length} 句</span></div>
@@ -674,10 +651,9 @@ function ListeningAudioTools({ item, labels, locale, token, onOpenReadAlong }: {
   }, [item.id, labels.listeningPlayError, token]);
 
   return <div className="mt-4 min-w-0">
-    <h3 className="hidden text-sm font-bold text-[#31564c] md:block">{locale === 'ja' ? '音声を聞く' : locale === 'en' ? 'Listen to audio' : '听力播放'}</h3>
-    <p className="mt-1 hidden break-all text-xs leading-5 text-[#778079] md:block">{item.audioFileName}</p>
+    <details className="listening-audio-details"><summary>{locale === 'ja' ? '音声の詳細' : locale === 'en' ? 'Audio details' : '音频信息'}</summary><p>{item.audioFileName}</p><p>{formatFileSize(item.audioSize, locale)} · {formatListDate(item.createdAt, '—', locale)}</p><RecordReference reference={item.audioReference} locale={locale} /></details>
     <div className="mt-3">{audioUrl ? <AudioPlayer src={audioUrl} labels={labels} /> : <p className="text-sm text-[#68716b]">{audioError || labels.listeningAudioLoading}</p>}</div>
-    {onOpenReadAlong ? <button type="button" onClick={onOpenReadAlong} className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-[#31564c] px-4 text-sm font-bold text-white"><Mic size={16} />进入跟读练习</button> : null}
+    {onOpenReadAlong ? <button type="button" onClick={onOpenReadAlong} className="listening-shadowing-entry inline-flex items-center gap-2"><Mic size={16} />进入跟读练习</button> : null}
   </div>;
 }
 
@@ -722,9 +698,11 @@ function ListeningQuestionNavigation({ questions, locale, mobile, mobileIndex, o
 
 type GroupAnswer = { selected: number | null; freeResponse: string };
 
-function ListeningQuestionGroup({ questions, recordPractice, labels, locale, onUpdate, onDelete, mobile, mobileIndex, onMobileIndexChange }: { questions: ListeningQuestion[]; recordPractice: RecordPractice; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobile: boolean; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
+function ListeningQuestionGroup({ active, questions, recordPractice, labels, locale, onUpdate, onDelete, mobile, mobileIndex, onMobileIndexChange }: { active: boolean; questions: ListeningQuestion[]; recordPractice: RecordPractice; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobile: boolean; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
   const [answers, setAnswers] = useState<Record<string, GroupAnswer>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Keep editor data mounted behind shadowing, but only the visible page owns Back.
+  useAuthoringNavigation(active && editingId ? (locale === 'ja' ? '聴解問題を編集' : locale === 'en' ? 'Edit listening question' : '编辑听力题') : null, () => setEditingId(null), { kind: 'form', priority: 20 });
   const [revealed, setRevealed] = useState(false);
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1225,7 +1203,6 @@ function FeedbackList({ title, items, tone }: { title: string; items: string[]; 
   );
 }
 
-
 function QuestionAction({ label, title, children, onClick, disabled }: { label: string; title: string; children: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" aria-label={label} title={title} onClick={onClick} disabled={disabled} className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#ead1dc] bg-white text-[#a84269] hover:bg-[#fff0f5] disabled:cursor-wait disabled:opacity-50">
@@ -1305,6 +1282,12 @@ function blobToBase64(blob: Blob) {
 function audioMimeFromName(name: string) {
   const extension = name.toLowerCase().split('.').pop();
   return ({ mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg', webm: 'audio/webm', aac: 'audio/aac', flac: 'audio/flac' } as Record<string, string>)[extension ?? ''] ?? 'audio/mpeg';
+}
+
+function listeningAudioTitle(item: ListeningQuestion, questions: ListeningQuestion[]) {
+  const name = item.audioFileName.replace(/\.[a-zA-Z0-9]{2,5}$/, '').replace(/_+/g, ' ').trim() || item.title;
+  const types = [...new Set(questions.map((question) => listeningQuestionTypeName(question.questionTypeId)))];
+  return types.length === 1 && !name.includes(types[0]) ? `${name} · ${types[0]}` : name;
 }
 
 function listeningQuestionTypeName(id: string | undefined) {

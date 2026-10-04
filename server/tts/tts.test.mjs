@@ -102,6 +102,8 @@ test('Azure lists only Japanese voices and sends escaped voice/style/role SSML',
   assert.deepEqual(voices[0].roles, []);
   await azure.synthesize('日本語 <test>', { region: 'eastasia', apiKey: 'test-key', voice: "voice'", style: 'chat', role: 'Girl' });
   assert.equal(calls[1].url, 'https://eastasia.tts.speech.microsoft.com/cognitiveservices/v1');
+  assert.equal(calls[1].options.headers['user-agent'], 'JLPT-Master');
+  assert.equal(calls[1].options.headers['content-type'], 'application/ssml+xml');
   assert.match(calls[1].options.body, /name='voice&apos;'/);
   assert.match(calls[1].options.body, /mstts:express-as style='chat' role='Girl'/);
   assert.match(calls[1].options.body, /&lt;test&gt;/);
@@ -117,4 +119,10 @@ test('speech preferences survive settings normalization', () => {
   assert.equal(result.speech.rate, 0.8);
   assert.equal(result.speech.cardAuto, 'back');
   assert.equal(result.speech.grammarAuto, true);
+});
+
+test('Azure empty 400 responses include an actionable message', async (t) => {
+  const azure = await import('./providers/azure.mjs');
+  t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 400 }));
+  await assert.rejects(azure.synthesize('こんにちは', { region: 'japaneast', apiKey: 'test-key' }), /400.*音色、风格和角色/);
 });

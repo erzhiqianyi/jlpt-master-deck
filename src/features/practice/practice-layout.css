@@ -398,3 +398,36 @@
   .study-practice-session .practice-question-toolbar > p { font-size: calc(15px * var(--ui-font-scale, 1)); }
   .practice-top-navigation { margin-top: 10px; }
 }
+
+/* Review pages use the available workspace width on desktop. */
+.practice-review-results {
+  max-width: none;
+}
+.practice-results-heading h1 {
+  font-family: inherit;
+  text-wrap: pretty;
+}
+.practice-result-rows strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.practice-historical-version {
+  margin: 12px 0 16px;
+  color: #627068;
+  font-size: calc(13px * var(--ui-font-scale, 1));
+  line-height: 1.7;
+}
+@media (min-width: 768px) {
+  .practice-review-results {
+    padding: 24px 28px;
+  }
+  .practice-result-summary dl {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 24px;
+  }
+  .practice-result-score {
+    min-width: 120px;
+  }
+}

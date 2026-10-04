@@ -24,7 +24,8 @@ target.build_configurations.each do |c|
     'CODE_SIGN_ENTITLEMENTS' => 'Config/JLPTMasterDeck.entitlements',
     'CODE_SIGN_ENTITLEMENTS[sdk=macosx*]' => 'Config/JLPTMasterDeckMac.entitlements',
     'PRODUCT_BUNDLE_IDENTIFIER' => 'cc.erzhiqian.jlptmasterdeck',
-    'SUPPORTED_PLATFORMS' => 'iphoneos iphonesimulator macosx',
+    # Mac support comes from SUPPORTS_MACCATALYST in App.xcconfig; macosx adds an unsupported AppKit destination.
+    'SUPPORTED_PLATFORMS' => 'iphoneos iphonesimulator',
     'SWIFT_VERSION' => '5.0', 'ENABLE_USER_SCRIPT_SANDBOXING' => 'YES',
     'LD_RUNPATH_SEARCH_PATHS' => '$(inherited) @executable_path/Frameworks'
   })

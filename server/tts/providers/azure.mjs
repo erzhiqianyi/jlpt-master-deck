@@ -37,9 +37,16 @@ export async function synthesize(text, { apiKey, region, voice, style, role }) {
       'ocp-apim-subscription-key': apiKey,
       'content-type': 'application/ssml+xml',
       'x-microsoft-outputformat': 'audio-24khz-48kbitrate-mono-mp3',
+      'user-agent': 'JLPT-Master',
     },
     body: ssml,
   });
-  if (!response.ok) throw new Error(`Azure 发音请求失败（${response.status}）：${(await response.text().catch(() => '')).slice(0, 300)}`);
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => '')).trim().slice(0, 300);
+    const hint = response.status === 400
+      ? 'Azure 拒绝了合成请求，请检查音色、风格和角色参数。'
+      : 'Azure 未返回错误详情，请稍后重试。';
+    throw new Error(`Azure 发音请求失败（${response.status}）：${detail || hint}`);
+  }
   return { audio: Buffer.from(await response.arrayBuffer()), mimeType: 'audio/mpeg' };
 }

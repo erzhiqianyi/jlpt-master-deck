@@ -69,7 +69,7 @@ test('trial completes into results, returns with answers, restarts and exits wit
   assert.equal(document.querySelector('.discovery-heading'), null);
   assert.equal(button('View trial results'), undefined);
   await click(choice(1));
-  await click(document.querySelector('.practice-primary-action'));
+  await click(button(labels.next));
   assert.match(document.querySelector('.practice-session').textContent, /Second question/);
   await click(choice(1));
   await click(button('View trial results'));

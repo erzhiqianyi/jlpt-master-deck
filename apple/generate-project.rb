@@ -56,10 +56,20 @@ tests.build_configurations.each do |c|
     'SUPPORTS_MACCATALYST' => 'YES', 'TEST_HOST' => '$(BUILT_PRODUCTS_DIR)/JLPTMasterDeck.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/JLPTMasterDeck',
     'BUNDLE_LOADER' => '$(TEST_HOST)' })
 end
+ui_tests = project.new_target(:ui_test_bundle, 'JLPTMasterDeckUITests', :ios, '17.0')
+ui_tests.add_dependency(target)
+ui_group = project.main_group.new_group('UITests', 'UITests')
+Dir.glob('UITests/*.swift').sort.each { |path| ui_tests.source_build_phase.add_file_reference(ui_group.new_file(File.basename(path))) }
+ui_tests.build_configurations.each do |c|
+  c.build_settings.merge!({ 'GENERATE_INFOPLIST_FILE' => 'YES', 'SWIFT_VERSION' => '5.0',
+    'PRODUCT_BUNDLE_IDENTIFIER' => 'cc.erzhiqian.jlptmasterdeck.uitests', 'TARGETED_DEVICE_FAMILY' => '1,2',
+    'TEST_TARGET_NAME' => 'JLPTMasterDeck' })
+end
 project.save
 scheme = Xcodeproj::XCScheme.new
 scheme.add_build_target(target)
 scheme.add_test_target(tests)
+scheme.add_test_target(ui_tests)
 scheme.set_launch_target(target)
 scheme.save_as(project.path, 'JLPTMasterDeck', true)
 puts 'Generated JLPTMasterDeck.xcodeproj'

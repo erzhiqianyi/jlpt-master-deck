@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
@@ -225,6 +226,32 @@ final class DatabaseCheckTests: XCTestCase {
 }
 
 final class LocalFirstNavigationTests: XCTestCase {
+    func testOpeningCurrentModuleKeepsItsDetailPath() {
+        var navigation = WorkspaceNavigation()
+        navigation.openModule(.reading)
+        navigation.bank.append(.reading("question-1"))
+        navigation.openModule(.reading)
+        XCTAssertEqual(navigation.bank, [.module(.reading), .reading("question-1")])
+        XCTAssertEqual(navigation.bankModule, .reading)
+        navigation.openModule(.grammar)
+        XCTAssertEqual(navigation.bank, [.module(.grammar)])
+    }
+    func testTabPathsStayIndependentAcrossBackgroundRefreshGate() {
+        var navigation = WorkspaceNavigation()
+        navigation.paths[.discovery] = [.discovery("share-1")]
+        navigation.paths[.vocabulary] = [.item("word-1")]
+        let before = navigation.paths
+        var gate = ForegroundRefreshGate()
+        XCTAssertFalse(gate.update(.background))
+        XCTAssertTrue(gate.update(.active))
+        XCTAssertEqual(navigation.paths, before)
+        navigation.paths[.discovery] = []
+        XCTAssertEqual(navigation.paths[.vocabulary], [.item("word-1")])
+        // A new workspace deliberately restores no draft or detail path.
+        XCTAssertTrue(WorkspaceNavigation().paths.isEmpty)
+        XCTAssertNil(WorkspaceNavigation().bankModule)
+    }
+
     func testTransientInactiveEventsDoNotRefreshButBackgroundReturnDoes() {
         var gate = ForegroundRefreshGate()
         XCTAssertFalse(gate.update(.active))
@@ -250,5 +277,28 @@ final class LocalFirstNavigationTests: XCTestCase {
         XCTAssertEqual(fractional.timeIntervalSince(whole), 0.25, accuracy: 0.001)
         XCTAssertEqual(StudyDates.parse("2026-10-03T09:00:00+09:00"), whole)
         XCTAssertNil(StudyDates.parse("invalid"))
+    }
+}
+
+final class CompanionAssetTests: XCTestCase {
+    func testAllTransparentMotionFramesAreBundledAndTimingsAreValid() throws {
+        var names = Set<String>()
+        for motion in CompanionMotion.allCases {
+            XCTAssertFalse(motion.sequence.isEmpty)
+            for step in motion.sequence {
+                XCTAssertTrue((0..<6).contains(step.frame))
+                XCTAssertGreaterThan(step.milliseconds, 0)
+            }
+            for frame in 0..<6 {
+                let name = motion.asset(frame)
+                XCTAssertTrue(names.insert(name).inserted)
+                let image = try XCTUnwrap(UIImage(named: name), "Missing bundled motion frame: \(name)")
+                let pixels = try XCTUnwrap(image.cgImage)
+                XCTAssertEqual(pixels.width, 320)
+                XCTAssertEqual(pixels.height, 320)
+                XCTAssertTrue([CGImageAlphaInfo.premultipliedFirst, .premultipliedLast, .first, .last].contains(pixels.alphaInfo))
+            }
+        }
+        XCTAssertEqual(names.count, 18)
     }
 }

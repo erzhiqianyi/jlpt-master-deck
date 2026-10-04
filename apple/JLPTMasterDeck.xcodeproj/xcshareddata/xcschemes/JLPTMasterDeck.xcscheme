@@ -47,6 +47,16 @@
                ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E6AB5218B399322360138CC5"
+               BuildableName = "JLPTMasterDeckUITests.xctest"
+               BlueprintName = "JLPTMasterDeckUITests"
+               ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

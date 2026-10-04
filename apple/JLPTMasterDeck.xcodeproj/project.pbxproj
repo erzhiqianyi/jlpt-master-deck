@@ -25,6 +25,7 @@
 		C3B95992D273051CE1451F32 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9C6932FCBFA6E158266D95 /* Theme.swift */; };
 		C540AEBD7F182F2ED63AC3E0 /* NativePractice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EB041AD44AA21857F254F0 /* NativePractice.swift */; };
 		D0E6701BFD52325C024FA9EE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D1EED32A237987B12C4C46 /* APIClient.swift */; };
+		D1D362EF4C86DE97AD5B26F1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 055618518B832B414C7824D2 /* Foundation.framework */; };
 		D21B0BE04E849FD17ABFE242 /* SupportingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0081F089492841CD7A2AF1A6 /* SupportingViews.swift */; };
 		D3C4A1B2031451F7D28570EB /* BrandAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DDAAB317BCA440FAD03F6E7 /* BrandAssets.xcassets */; };
 		DCFEDEB263A52D38C0CB5CE6 /* ListeningViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C914C9128A46FD323C2C5F6 /* ListeningViews.swift */; };
@@ -32,10 +33,18 @@
 		EA2D1C34B90D1DAE4AB7B165 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DCA0FBBC78C2BC5CE7746F /* LoginView.swift */; };
 		EA6EF197F9F0244F8751EED2 /* IdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451D9ABCB672756EDF8AD406 /* IdentityService.swift */; };
 		ECD40EC0ECAC396727135C15 /* DatabaseCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4CBF810C0880FA82A402E5 /* DatabaseCheckView.swift */; };
+		FD91C7B5D5262EE0B630D3BF /* NavigationLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9D1BF7905C50AEAE746939 /* NavigationLifecycleTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		068A6E0A9C97F27E17248EA7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0EA4B06060F29AA6F206CFF3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B2197748D27747BDA2DF991;
+			remoteInfo = JLPTMasterDeck;
+		};
+		C38DEC576BDDBA8132C5866E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0EA4B06060F29AA6F206CFF3 /* Project object */;
 			proxyType = 1;
@@ -51,10 +60,12 @@
 		13A1FCD6FA7D1765C825A00A /* DiscoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiscoveryView.swift; sourceTree = "<group>"; };
 		15A3CFA12448E944A7C82E65 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		1DDAAB317BCA440FAD03F6E7 /* BrandAssets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = BrandAssets.xcassets; sourceTree = "<group>"; };
+		1E8E3990F0525B5C96E3DA29 /* JLPTMasterDeckUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JLPTMasterDeckUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4161A826DBD9BA9EF0FF50D1 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		451D9ABCB672756EDF8AD406 /* IdentityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IdentityService.swift; sourceTree = "<group>"; };
 		4805F87582C418FFB0481804 /* DemoData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
 		4C914C9128A46FD323C2C5F6 /* ListeningViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ListeningViews.swift; sourceTree = "<group>"; };
+		4E9D1BF7905C50AEAE746939 /* NavigationLifecycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NavigationLifecycleTests.swift; sourceTree = "<group>"; };
 		500427CBEE10180317CEA0FE /* JLPTMasterDeckMac.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = JLPTMasterDeckMac.entitlements; sourceTree = "<group>"; };
 		56C1C692CB21421D44DC66CD /* JLPTMasterDeck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JLPTMasterDeck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		67D1EED32A237987B12C4C46 /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -91,6 +102,14 @@
 				16307299679F9E6580945C82 /* FirebaseAuth in Frameworks */,
 				65D226412DFFE995C4525F3E /* FirebaseCore in Frameworks */,
 				C32D759FDC7645FB2811A211 /* GoogleSignIn in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FF0694CB7713232CEEA88D5B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1D362EF4C86DE97AD5B26F1 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +164,15 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		ABC340602EACF1B4EDE20FF7 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				4E9D1BF7905C50AEAE746939 /* NavigationLifecycleTests.swift */,
+			);
+			name = UITests;
+			path = UITests;
+			sourceTree = "<group>";
+		};
 		B89CCD835E9EAA453DC94409 = {
 			isa = PBXGroup;
 			children = (
@@ -154,6 +182,7 @@
 				F57E8F23DCD630FB7D40B8D9 /* Config */,
 				1AB3D3822B6769FBB032C6B5 /* Tests */,
 				49C9B13BFF87EE88262F4FB5 /* Resources */,
+				ABC340602EACF1B4EDE20FF7 /* UITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -170,6 +199,7 @@
 			children = (
 				56C1C692CB21421D44DC66CD /* JLPTMasterDeck.app */,
 				95E0300ED6AB0D7F35377948 /* JLPTMasterDeckTests.xctest */,
+				1E8E3990F0525B5C96E3DA29 /* JLPTMasterDeckUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -229,6 +259,24 @@
 			productReference = 95E0300ED6AB0D7F35377948 /* JLPTMasterDeckTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		E6AB5218B399322360138CC5 /* JLPTMasterDeckUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A8F9812C0FF57F4B6BE52EA7 /* Build configuration list for PBXNativeTarget "JLPTMasterDeckUITests" */;
+			buildPhases = (
+				A1B4E091DDB275C89FDE3A9E /* Sources */,
+				FF0694CB7713232CEEA88D5B /* Frameworks */,
+				30A88A3B3E21B5347172BA88 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C16604B57E7ABA1032365485 /* PBXTargetDependency */,
+			);
+			name = JLPTMasterDeckUITests;
+			productName = JLPTMasterDeckUITests;
+			productReference = 1E8E3990F0525B5C96E3DA29 /* JLPTMasterDeckUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -257,12 +305,20 @@
 			targets = (
 				2B2197748D27747BDA2DF991 /* JLPTMasterDeck */,
 				36B72548670BBD5AFE2B0C1E /* JLPTMasterDeckTests */,
+				E6AB5218B399322360138CC5 /* JLPTMasterDeckUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0DA82A13F0A62DAB49C38E4B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		30A88A3B3E21B5347172BA88 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -313,6 +369,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B4E091DDB275C89FDE3A9E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD91C7B5D5262EE0B630D3BF /* NavigationLifecycleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -322,9 +386,29 @@
 			target = 2B2197748D27747BDA2DF991 /* JLPTMasterDeck */;
 			targetProxy = 068A6E0A9C97F27E17248EA7 /* PBXContainerItemProxy */;
 		};
+		C16604B57E7ABA1032365485 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = JLPTMasterDeck;
+			target = 2B2197748D27747BDA2DF991 /* JLPTMasterDeck */;
+			targetProxy = C38DEC576BDDBA8132C5866E /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		04D5EEF87DE9C2C9FC792381 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cc.erzhiqian.jlptmasterdeck.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = JLPTMasterDeck;
+			};
+			name = Debug;
+		};
 		1078AAFC45ED5FB12B13C516 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 826265FF7851EF9F8941EE81 /* App.xcconfig */;
@@ -526,6 +610,21 @@
 			};
 			name = Release;
 		};
+		FFE9F8EB7B1546E3E584BFFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cc.erzhiqian.jlptmasterdeck.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = JLPTMasterDeck;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -534,6 +633,15 @@
 			buildConfigurations = (
 				71F6E95B2AAD36F2FA276916 /* Release */,
 				1078AAFC45ED5FB12B13C516 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A8F9812C0FF57F4B6BE52EA7 /* Build configuration list for PBXNativeTarget "JLPTMasterDeckUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FFE9F8EB7B1546E3E584BFFD /* Release */,
+				04D5EEF87DE9C2C9FC792381 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

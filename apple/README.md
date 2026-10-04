@@ -4,11 +4,11 @@ Native SwiftUI first version, minimum iOS/iPadOS 17. Open `JLPTMasterDeck.xcodep
 
 ## Implemented scope
 
-- Adaptive sidebar and today's learning dashboard based on the approved iPad concept. Compact iPhone/iPad windows use five bottom tabs (Today, Practice, Discover, Records, Question Bank), with vocabulary, grammar, reading and listening available in Question Bank.
-- The selected workspace section (including the Question Bank root) is saved per account and restored on relaunch. Ordinary background/foreground transitions retain the live navigation stack. Relaunch restoration currently covers the section, not nested details or an unfinished practice round.
+- Five-destination adaptive sidebar and today's learning dashboard based on the approved iPad concept. Compact iPhone/iPad windows use five bottom tabs (Today, Practice, Discover, Records, Question Bank), with vocabulary, grammar, reading and listening available in Question Bank.
+- The selected workspace section (including the Question Bank root) is saved per account and restored on relaunch. Ordinary background/foreground transitions retain explicit per-tab navigation paths and mounted detail/answer state. Reading and listening pin the displayed question snapshot during synchronization. Missing route IDs show a safe return page. Relaunch restoration currently covers the section, not nested details or an unfinished practice round.
 - Today displays synchronized daily practice packs with question/answered counts and a direct native quiz entry. An empty practice cache offers manual sync; viewing the dashboard does not initiate a request.
-- The existing orange study companion sits above the bottom safe area and opens page-specific shortcuts. Sync/capture moved out of the navigation bar. Its short greeting/tilt animations respect Reduce Motion and stop when inactive. Chinese tab labels are all two characters: 今日、练习、发现、记录、题库.
-- Phone layouts use a single-column practice catalog and compact margins for login, review, item details, listening and native exercises. Library search stays within library screens.
+- The existing orange study companion sits above the bottom safe area and opens page-specific shortcuts. Sync/capture moved out of the navigation bar. Its supplied 72pt transparent frames blink while idle and wave before opening the original shortcuts; newly saved correct answers celebrate and return to idle. One cancellable timeline owns each character, stops when inactive and uses a static fallback for Reduce Motion or missing assets. Chinese tab labels are all two characters: 今日、练习、发现、记录、题库.
+- Phone layouts use a flat practice catalog (topic and mixed practice; daily work stays on Today) and compact margins for login, review, item details, listening and native exercises. Library search stays within library screens.
 - Real cloud library, plans, review progress, reading questions and captures from `https://jlpt.erzhiqian.cc`.
 - Searchable vocabulary/grammar library, Japanese system speech, reveal-and-rate memory review.
 - Reading passage and question side by side on wide windows; stacked on compact windows; result saved before revealing the explanation.
@@ -58,7 +58,7 @@ See `docs/apple-client-architecture.md` in the repository. QR login is deliberat
 
 ## Verification
 
-- Scheme `JLPTMasterDeck` includes `JLPTMasterDeckTests` (review scheduling parity and real web response decoding).
+- Scheme `JLPTMasterDeck` includes `JLPTMasterDeckTests` (review scheduling, account isolation, route ownership and transparent animation assets) and `JLPTMasterDeckUITests` (demo-only lifecycle/navigation regression with screenshot attachments).
 - Keep simulator signing enabled, including for login testing: use `CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-` for ad-hoc simulator builds. Disabling signing omits the simulator's injected Keychain entitlements and causes Google sign-in to fail with OSStatus `-34018`. Device and Catalyst distribution still require their own valid signing configuration.
 - Demo validation: navigation, search, card reveal/rating, reading answer/feedback, capture/save/history, logout, portrait and landscape resizing.
 - End-to-end real account and Apple provider checks require the configuration above.

@@ -1,3 +1,4 @@
+import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
 import { LearningListMetadata } from '../../components/LearningListMetadata';
 import { usePageHeaderActions } from '../../components/PageChrome';
@@ -271,6 +272,7 @@ export function PracticePanel({
   analysisStatus: PracticeAttempt['analysisStatus'];
   loading?: boolean;
 }) {
+  const [celebratedQuestion, setCelebratedQuestion] = useState<string | null>(null);
   const [timerSession, setTimerSession] = useState(0);
   const [pendingAdvance, setPendingAdvance] = useState<string | null>(null);
   const copy = settings.locale === 'ja'
@@ -382,6 +384,9 @@ export function PracticePanel({
   const chooseAnswer = useCallback((question: Question, choice: string) => {
     if (pendingAdvance || (feedbackMode === 'immediate' && answers[question.id])) return;
     onAnswer(question, choice);
+    if (feedbackMode === 'immediate' && choice === question.answer) {
+      setCelebratedQuestion(question.id);
+    }
     if (feedbackMode === 'batch' && !complete) setPendingAdvance(question.id);
   }, [pendingAdvance, feedbackMode, answers, onAnswer, complete]);
 
@@ -588,6 +593,7 @@ export function PracticePanel({
         </div> : null}
       </div>
 
+      <AnswerCelebration correct={Boolean(activeQuestion && celebratedQuestion === activeQuestion.id && answers[activeQuestion.id]?.correct && feedbackMode === 'immediate')} />
       {activeQuestion && answers[activeQuestion.id] && (feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed')) ? (
             <AnswerPanel
               key={activeQuestion.id}

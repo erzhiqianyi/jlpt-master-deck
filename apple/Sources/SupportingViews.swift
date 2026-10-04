@@ -3,28 +3,31 @@ import AuthenticationServices
 import AVFoundation
 
 struct PracticeHub: View {
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(AppStore.self) private var store
     @State private var selected: PracticeEntry?
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                LazyVGrid(columns: sizeClass == .compact ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 360), spacing: 20)], spacing: 20) {
-                    ForEach(PracticeEntry.ordered(dailyCompleted: store.dailyPracticeCompleted)) { entry in
-                        Button { selected = entry } label: {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Image(systemName: entry.icon).font(.title).foregroundStyle(DeckTheme.accent)
-                                Text(entry.title).font(.title2.bold()).foregroundStyle(.primary)
-                                Label("进入练习", systemImage: "arrow.right").font(.subheadline.bold()).foregroundStyle(DeckTheme.accent)
-                            }.padding(24).frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
-                                .background(.background, in: RoundedRectangle(cornerRadius: 22))
-                        }.buttonStyle(.plain).accessibilityIdentifier("practice.\(entry.id)")
-                    }
+            VStack(spacing: 0) {
+                ForEach(PracticeEntry.all.filter { $0.id != "daily" }) { entry in
+                    Button { selected = entry } label: {
+                        DeckRow(title: entry.title, subtitle: summary(entry), icon: entry.icon)
+                    }.buttonStyle(.plain).accessibilityIdentifier("practice.\(entry.id)")
+                    Divider()
                 }
-            }.frame(maxWidth: 1000).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
+            }.frame(maxWidth: 1200, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
         }.fullScreenCover(item: $selected) { entry in
             NativePracticeScreen(entry: entry)
         }
+    }
+    private func summary(_ entry: PracticeEntry) -> String {
+        if entry.id == "topics" {
+            let count = store.drafts.filter { draft in draft.isTopic && store.packs.contains { $0.sourceDraftId == draft.id } }.count
+            return "\(count) 套"
+        }
+        let kinds = ["grammar", "moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji"]
+        let count = Set(store.packs.flatMap(\.questions).filter { $0.isUsable && kinds.contains($0.kind) }.map(\.id)).count
+        return "\(count) 题"
+
     }
 }
 struct CaptureView: View {

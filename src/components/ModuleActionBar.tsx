@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useStudyCompanion } from './StudyCompanion';
 import { ChevronLeft, ListFilter, MessageCircle, Shuffle, X } from 'lucide-react';
 
 export type ModuleAction = {
@@ -32,6 +33,7 @@ export function ModuleActionBar({ title, label, count, primary, actions = [], co
   contentActions?: ModuleAction[];
   children?: ReactNode;
 }) {
+  const companion = useStudyCompanion(Boolean(primary || shortcuts));
   const copy = moduleActionCopy(locale);
   const companionLabel = locale === 'ja' ? '学習パートナー' : locale === 'en' ? 'Study companion' : '学习伙伴';
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -93,8 +95,8 @@ export function ModuleActionBar({ title, label, count, primary, actions = [], co
   return <div className="module-action-bar" role="group" aria-label={`${label} · ${copy.actions}`}>
     {title ? <div className="module-action-bar-heading"><h2>{title}</h2>{count ? <span>{count}</span> : null}</div> : null}
     {primary || shortcuts ? <button type="button" className="module-practice-mascot" aria-label={shortcuts ? companionLabel : copy.modes} title={shortcuts ? companionLabel : copy.modes}
-      disabled={primary?.disabled} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => show(shortcuts ? 'actions' : 'modes')}>
-      <img src="/study-companion.png" alt="" width="72" height="72"/>
+      disabled={primary?.disabled} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => companion.play('wave', () => show(shortcuts ? 'actions' : 'modes'))}>
+      {companion.image}
     </button> : actions.length ? <div className="module-context-actions">{actionButtons}</div> : null}
     {children}
     <dialog ref={dialog} id={id} className="module-action-dialog" data-panel={panel} aria-labelledby={`${id}-title`}

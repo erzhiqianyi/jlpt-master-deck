@@ -1,3 +1,4 @@
+import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { PracticeTimer } from '../../components/PracticeTimer';
@@ -383,6 +384,7 @@ function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPrac
           }
         }} className="reading-confirm-answer">{labels.readingShowAnswer}</button>
         {answerNotice ? <p role="status" className="text-sm font-semibold text-[#8a6134]">{answerNotice}</p> : null}
+        <AnswerCelebration correct={revealed && selected !== null && selected === item.answerIndex} />
         {revealed && selected !== null ? <p role="status" className={`text-sm font-semibold ${selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{selected === item.answerIndex ? labels.readingCorrect : labels.readingWrong}</p> : null}
       </div>
     </section>

@@ -42,7 +42,7 @@ struct DeckRow: View {
 struct StudyPagePadding: ViewModifier {
     @Environment(\.horizontalSizeClass) private var sizeClass
     func body(content: Content) -> some View {
-        content.padding(sizeClass == .compact ? 16 : 32)
+        content.padding(sizeClass == .compact ? 16 : 24)
     }
 }
 

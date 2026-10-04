@@ -9,15 +9,11 @@ struct StudyCompanion: View {
     let open: (Destination) -> Void
     let database: () -> Void
     @Environment(AppStore.self) private var store
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var lifted = false
-    private var motionKey: String { "\(destination?.rawValue ?? "题库")-\(store.isLoading)-\(store.isDownloadingAudio)-\(reduceMotion)-\(scenePhase)" }
     private var busy: Bool { store.isLoading || store.isDownloadingAudio }
     var body: some View {
         HStack {
             Spacer(minLength: 0)
-            Menu {
+            CompanionActionButton(identifier: "workspace.companion", hint: "打开\(destination?.rawValue ?? "题库")的快捷操作") {
                 Section("\(destination?.rawValue ?? "题库") · 快捷操作") { contextualActions }
                 if destination != nil {
                     Button(action: capture) { Label(captureTitle, systemImage: "square.and.pencil") }
@@ -27,42 +23,18 @@ struct StudyCompanion: View {
                     Button { Task { await store.refresh() } } label: { Label("同步学习数据", systemImage: "arrow.triangle.2.circlepath") }
                         .disabled(store.isLoading || store.isSaving || store.isDemo || !store.isOnline)
                 }
-            } label: {
-                Image("StudyCompanion").resizable().scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .scaleEffect(lifted ? 1.06 : 1)
-                    .rotationEffect(.degrees(lifted ? tilt : 0), anchor: .bottom)
-                    .offset(y: lifted ? -5 : 0)
-                    .shadow(color: DeckTheme.accent.opacity(0.12), radius: 5, y: 3)
-                    .overlay(alignment: .topTrailing) {
-                        if busy { ProgressView().controlSize(.mini).padding(6).background(DeckTheme.surface, in: Circle()) }
-                        else if store.pendingCount > 0 {
-                            Image(systemName: "arrow.up.circle.fill").foregroundStyle(DeckTheme.accent)
-                                .background(DeckTheme.surface, in: Circle())
-                        }
-                    }
-                    .contentShape(Rectangle())
             }
-            .accessibilityLabel("学习伙伴")
-            .accessibilityHint("打开\(destination?.rawValue ?? "题库")的快捷操作")
-            .accessibilityIdentifier("workspace.companion")
+            .overlay(alignment: .topTrailing) {
+                if busy { ProgressView().controlSize(.mini).padding(6).background(DeckTheme.surface, in: Circle()).allowsHitTesting(false) }
+                else if store.pendingCount > 0 {
+                    Image(systemName: "arrow.up.circle.fill").foregroundStyle(DeckTheme.accent)
+                        .background(DeckTheme.surface, in: Circle()).allowsHitTesting(false)
+                }
+            }
         }
         .padding(.trailing, 12).padding(.top, 4).padding(.bottom, 2)
-        .task(id: motionKey) {
-            lifted = false
-            guard !reduceMotion, scenePhase == .active else { return }
-            // Two small greeting steps on navigation / sync changes, then settle.
-            do {
-                for _ in 0..<2 {
-                    try Task.checkCancellation()
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) { lifted = true }
-                    try await Task.sleep(for: .milliseconds(240))
-                    withAnimation(.easeOut(duration: 0.22)) { lifted = false }
-                    try await Task.sleep(for: .milliseconds(260))
-                }
-            } catch { lifted = false }
-        }
     }
+
     private var captureTitle: String {
         switch destination {
         case .vocabulary: "记录词汇疑问"
@@ -75,20 +47,13 @@ struct StudyCompanion: View {
         default: "记录疑问"
         }
     }
-    private var tilt: Double {
-        switch destination {
-        case .practice, .listening: 5
-        case .reading, .grammar, .vocabulary: -4
-        default: 2
-        }
-    }
     @ViewBuilder private var contextualActions: some View {
         switch destination {
         case .today:
             Button(action: review) { Label("开始记忆复习", systemImage: "rectangle.on.rectangle") }
             Button { practice("daily") } label: { Label("今日练习", systemImage: "calendar") }
         case .practice:
-            ForEach(PracticeEntry.ordered(dailyCompleted: store.dailyPracticeCompleted)) { entry in
+            ForEach(PracticeEntry.all.filter { $0.id != "daily" }) { entry in
                 Button { practice(entry.id) } label: { Label(entry.title, systemImage: entry.icon) }
             }
         case .vocabulary, .grammar:
@@ -128,19 +93,112 @@ struct DatabaseCheckSheet: View {
 struct DetailStudyCompanion<Actions: View>: View {
     let context: String
     let captureTitle: String
+    var celebration = 0
     @ViewBuilder var actions: Actions
     @State private var capturePresented = false
     var body: some View {
         HStack {
             Spacer()
-            Menu {
+            CompanionActionButton(identifier: "detail.companion", hint: "打开当前页面的快捷操作", celebration: celebration) {
                 Section(context) { actions }
                 Button { capturePresented = true } label: { Label(captureTitle, systemImage: "square.and.pencil") }
-            } label: {
-                Image("StudyCompanion").resizable().scaledToFit().frame(width: 80, height: 80)
-            }.accessibilityLabel("学习伙伴").accessibilityHint("打开当前页面的快捷操作")
-                .accessibilityIdentifier("detail.companion")
+            }
         }.padding(.trailing, 12).padding(.vertical, 2)
             .sheet(isPresented: $capturePresented) { CaptureView(initialContext: context) }
+    }
+}
+
+
+/// One task owns the frame cursor. A new request or scene change cancels its predecessor.
+/// Frames retain the supplied anchor; no scale/rotation is added to the prototype pixels.
+enum CompanionMotion: String, CaseIterable {
+    case idle, wave, celebrate
+    var sequence: [(frame: Int, milliseconds: Int)] {
+        switch self {
+        case .idle: [(0, 2600), (1, 90), (2, 120), (1, 90), (0, 300)]
+        case .wave: [(0, 260), (1, 110), (2, 130), (1, 110), (0, 110), (5, 110), (4, 130), (5, 110), (0, 930)]
+        case .celebrate: [(0, 400), (1, 140), (2, 160), (3, 220), (2, 180), (4, 160), (5, 220), (0, 920)]
+        }
+    }
+    func asset(_ frame: Int) -> String { "Companion-\(rawValue)-\(frame)" }
+}
+
+struct CompanionAvatar: View {
+    var motion: CompanionMotion = .idle
+    var request = 0
+    var completion: () -> Void = {}
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var frameName = CompanionMotion.idle.asset(0)
+    private struct Playback: Equatable {
+        let motion: CompanionMotion; let request: Int; let active: Bool; let reduced: Bool
+    }
+    private static let images: [String: UIImage] = {
+        var result: [String: UIImage] = [:]
+        for motion in CompanionMotion.allCases {
+            for frame in 0..<6 {
+                let name = motion.asset(frame)
+                if let image = UIImage(named: name) { result[name] = image }
+            }
+        }
+        return result
+    }()
+    private var available: Bool { Self.images.count == 18 }
+    var body: some View {
+        Group {
+            if let image = Self.images[frameName] { Image(uiImage: image).resizable().scaledToFit() }
+            else { Image("StudyCompanion").resizable().scaledToFit() }
+        }
+        .frame(width: 72, height: 72)
+        .accessibilityHidden(true)
+        .task(id: Playback(motion: motion, request: request, active: scenePhase == .active, reduced: reduceMotion)) {
+            frameName = CompanionMotion.idle.asset(0)
+            guard scenePhase == .active else { return }
+            guard !reduceMotion, available else {
+                if motion != .idle { completion() }
+                return
+            }
+            do {
+                repeat {
+                    for step in motion.sequence {
+                        try Task.checkCancellation()
+                        frameName = motion.asset(step.frame)
+                        try await Task.sleep(for: .milliseconds(step.milliseconds))
+                    }
+                } while motion == .idle
+                try Task.checkCancellation()
+                frameName = CompanionMotion.idle.asset(0)
+                completion()
+            } catch { /* Replacement task owns the next frame. */ }
+        }
+    }
+}
+
+/// Preserve existing contextual shortcuts; opening waits for the single wave to finish.
+struct CompanionActionButton<Actions: View>: View {
+    let identifier: String
+    let hint: String
+    var celebration = 0
+    @ViewBuilder var actions: Actions
+    @State private var waving = false
+    @State private var celebrating = false
+    @State private var presented = false
+    var body: some View {
+        Button {
+            guard !waving else { return }
+            celebrating = false
+            waving = true
+        } label: {
+            CompanionAvatar(motion: waving ? .wave : celebrating ? .celebrate : .idle, request: celebration) {
+                if waving { waving = false; presented = true }
+                celebrating = false
+            }.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("学习伙伴")
+        .accessibilityHint(hint)
+        .accessibilityIdentifier(identifier)
+        .onChange(of: celebration) { _, _ in if !waving { celebrating = true } }
+        .confirmationDialog("学习伙伴", isPresented: $presented, titleVisibility: .visible) { actions }
     }
 }

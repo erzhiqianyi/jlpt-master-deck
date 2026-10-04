@@ -30,6 +30,7 @@ struct ListeningLibraryView: View {
     @Environment(AppStore.self) private var store
     @State private var query = ""
     @State private var type = "all"
+    @State private var showingFilters = false
     static let types = [("all", "全部"), ("listening-task", "課題理解"), ("listening-points", "ポイント理解"), ("listening-outline", "概要理解"), ("listening-quick", "即時応答"), ("listening-integrated", "統合理解"), ("listening-basic-training", "基础训练")]
     var groups: [ListeningGroup] {
         ListeningGroup.make(store.listening).filter { group in
@@ -53,23 +54,42 @@ struct ListeningLibraryView: View {
                     HStack {
                         Text("\(groups.count) 段音频 · \(groups.reduce(0) { $0 + $1.questions.count }) 道题").foregroundStyle(.secondary)
                         Spacer()
-                        Picker("题型", selection: $type) { ForEach(Self.types, id: \.0) { Text($0.1).tag($0.0) } }
+                        Button("搜索与筛选", systemImage: "line.3.horizontal.decrease") { showingFilters = true }
+                            .frame(minHeight: 44)
                     }.padding(.horizontal, 24)
                     if groups.isEmpty { ContentUnavailableView("暂无匹配的听力", systemImage: "headphones") }
                     List(groups) { group in
-                        NavigationLink { ListeningDetailView(group: group) } label: {
-                            DeckRow(title: group.title, subtitle: "\(group.questions.first?.audioReference ?? "") · \(group.questions.count) 道题 · 已练习 \(store.state.progress["listening-audio:\(group.id)"]?.reviewCount ?? 0) 次", icon: "headphones")
+                        NavigationLink(value: WorkspaceRoute.listening(group.id)) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                DeckRow(title: group.title, subtitle: "\(group.questions.first?.audioReference ?? "") · \(group.questions.count) 道题", icon: "headphones", showsChevron: false)
+                                Label("\(store.state.progress["listening-audio:\(group.id)"]?.reviewCount ?? 0) 次", systemImage: "arrow.triangle.2.circlepath")
+                                    .font(.caption).foregroundStyle(DeckTheme.muted)
+                                    .accessibilityLabel("已练习 \(store.state.progress["listening-audio:\(group.id)"]?.reviewCount ?? 0) 次")
+                                    .padding(.leading, 54).padding(.bottom, 12)
+                            }
                         }
                     }.scrollContentBackground(.hidden)
-                }.searchable(text: $query, prompt: "搜索听力标题或编号")
+                }.sheet(isPresented: $showingFilters) {
+                    NavigationStack {
+                        Form {
+                            TextField("搜索听力标题或编号", text: $query)
+                            Picker("题型", selection: $type) { ForEach(Self.types, id: \.0) { Text($0.1).tag($0.0) } }
+                            Button("清除条件") { query = ""; type = "all" }
+                        }.navigationTitle("搜索与筛选").navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { showingFilters = false } } }
+                    }.presentationDetents([.medium, .large])
+                }
             }
         }
     }
 
 }
 struct ListeningDetailView: View {
+    @State private var celebration = 0
     @Environment(AppStore.self) private var store
-    let group: ListeningGroup
+    // Freeze this session's question ordering while answers are still editable.
+    @State private var group: ListeningGroup
+    init(group: ListeningGroup) { _group = State(initialValue: group) }
     @State private var player: AVAudioPlayer?
     @State private var loading = false
     @State private var playing = false
@@ -125,10 +145,10 @@ struct ListeningDetailView: View {
                     }
                     Button("再练一次") { selected = [:]; written = [:]; revealed = false; sessionID = UUID().uuidString; player?.stop(); player?.currentTime = 0; playing = false }.buttonStyle(.bordered)
                 }
-            }.frame(maxWidth: 900).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
+            }.frame(maxWidth: 1120, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            DetailStudyCompanion(context: "听力：\(group.title)", captureTitle: "记录这段听力的疑问") {
+            DetailStudyCompanion(context: "听力：\(group.title)", captureTitle: "记录这段听力的疑问", celebration: celebration) {
                 Button { Task { await toggleAudio() } } label: { Label(playing ? "暂停音频" : "播放音频", systemImage: playing ? "pause.fill" : "play.fill") }.disabled(loading)
                 Button { player?.currentTime = 0; player?.play(); playing = player != nil } label: { Label("从头播放", systemImage: "backward.end.fill") }.disabled(player == nil)
             }
@@ -137,7 +157,9 @@ struct ListeningDetailView: View {
     private func confirm() async {
         guard complete, !saving else { return }; saving = true; error = nil
         defer { saving = false }
-        do { try await store.recordListening(group: group, sessionID: sessionID, selected: selected, written: written); revealed = true }
+        do { try await store.recordListening(group: group, sessionID: sessionID, selected: selected, written: written); revealed = true
+            if group.questions.contains(where: { !$0.freeResponse && selected[$0.id] == $0.answerIndex }) { celebration += 1 }
+        }
         catch { self.error = error.localizedDescription }
     }
     private func toggleAudio() async {

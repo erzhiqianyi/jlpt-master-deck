@@ -99,6 +99,8 @@ struct NativeQuizView: View {
     @State private var saving = false
     @State private var correct = 0
     @State private var failure: String?
+    @State private var celebrating = false
+    @State private var celebrationRequest = 0
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -128,16 +130,22 @@ struct NativeQuizView: View {
                             if let reason = question.correctReason { Text(reason).lineSpacing(6) }
                             ForEach(Array((question.choiceAnalysis ?? []).enumerated()), id: \.offset) { _, analysis in Text("\(analysis.choice)：\(analysis.explanation)").font(.subheadline) }
                             if let memory = question.memoryPoint, !memory.isEmpty { Text(memory).padding().background(DeckTheme.green.opacity(0.1)) }
-                            Button(index + 1 == round.questions.count ? "查看结果" : "下一题") { index += 1; selected = nil; submitted = false; failure = nil }.buttonStyle(PrimaryButton())
+                            Button(index + 1 == round.questions.count ? "查看结果" : "下一题") { index += 1; selected = nil; submitted = false; failure = nil; celebrating = false }.buttonStyle(PrimaryButton())
                         } else {
                             Button(saving ? "正在保存…" : "确认答案") {
                                 guard let selected else { return }; saving = true
-                                Task { defer { saving = false }; do { if savesProgress { try await store.submitNativeQuestion(question, selected: selected) }; submitted = true; if selected == question.answer { correct += 1 } } catch { failure = error.localizedDescription } }
+                                Task { defer { saving = false }; do { if savesProgress { try await store.submitNativeQuestion(question, selected: selected) }; submitted = true; if selected == question.answer { correct += 1; celebrationRequest += 1; celebrating = true } } catch { failure = error.localizedDescription } }
                             }.buttonStyle(PrimaryButton()).disabled(selected == nil || saving)
                         }
                     }
                 }.frame(maxWidth: 850).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
             }.background(DeckTheme.paper).navigationTitle(round.title).navigationBarTitleDisplayMode(.inline)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    HStack {
+                        Spacer()
+                        CompanionAvatar(motion: celebrating ? .celebrate : .idle, request: celebrationRequest) { celebrating = false }
+                    }.padding(.trailing, 12)
+                }
                 .toolbar { ToolbarItem(placement: .cancellationAction) { DeckDismissButton(kind: .back, label: savesProgress ? "返回练习列表" : "返回发现详情", disabled: saving, identifier: "quiz.back") } }
         }.interactiveDismissDisabled()
     }

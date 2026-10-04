@@ -126,3 +126,19 @@ test('Azure empty 400 responses include an actionable message', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 400 }));
   await assert.rejects(azure.synthesize('こんにちは', { region: 'japaneast', apiKey: 'test-key' }), /400.*音色、风格和角色/);
 });
+
+test('API refresh hits, options and saved credential generations miss; deletion and auth gate cached audio', async(t)=>{
+  storage.createUser('cache-api', 'password-one');
+  const {token}=storage.loginUser('cache-api','password-one'); let calls=0;
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response(new Uint8Array([4,5,6]));});
+  const save=()=>call('PUT','/api/tts/credentials/openai',{token,body:{apiKey:'mock-only'}});
+  const speak=(extra={},session=token)=>call('POST','/api/tts/speak',{token:session,body:{text:'復習',provider:'openai',...extra}});
+  await save(); assert.equal((await speak()).status,200);assert.equal((await speak()).headers['cache-control'],'private, no-store');assert.equal(calls,1);
+  await speak({voice:'alloy'});assert.equal(calls,1);
+  for(const extra of [{voice:'nova'},{style:'chat'},{role:'Girl'},{text:'別の文'}]) await speak(extra);
+  assert.equal(calls,5);
+  await save();await speak();assert.equal(calls,6);
+  assert.equal((await speak({},'invalid')).status,401);
+  await call('DELETE','/api/tts/credentials/openai',{token});assert.equal((await speak()).status,400);assert.equal(calls,6);
+  await save();await speak();assert.equal(calls,7);t.mock.restoreAll();
+});

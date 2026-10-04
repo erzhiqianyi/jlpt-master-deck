@@ -32,3 +32,8 @@ export function getTtsCredential(userId, provider) {
   if (!row) return null;
   return JSON.parse(decryptSecret(row.credential_encrypted, ttsSecretKey()));
 }
+
+// Randomized encrypted envelope doubles as a generation token; never return it to clients.
+export function ttsCredentialRevision(userId, provider) {
+  return getDb().prepare('SELECT credential_encrypted FROM user_tts_credentials WHERE user_id = ? AND provider = ?').get(userId, provider)?.credential_encrypted ?? null;
+}

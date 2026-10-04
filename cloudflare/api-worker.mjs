@@ -1,3 +1,4 @@
+import { ensureCacheSchema, cleanupTtsCache } from '../server/tts/cache.mjs';
 import { DurableObject } from 'cloudflare:workers';
 import { withPlatform } from '../server/platform.mjs';
 import { sqliteAdapter } from './sqlite-adapter.mjs';
@@ -48,6 +49,7 @@ export class JlptDatabase extends DurableObject {
         ensureItemSchema(this.db);
         ensureQuerySchema(this.db);
         ensureReferenceSchema(this.db);
+        ensureCacheSchema(this.db);
       });
     });
   }
@@ -56,7 +58,7 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, aiHomeHtml, dataSource: 'cloudflare-sqlite',
+      const platform = { ttsCacheBucket: this.env.MEDIA, ttsCacheEnv: this.env, db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, aiHomeHtml, dataSource: 'cloudflare-sqlite',
         readMedia: async (path, limit) => {
           const object = await this.env.MEDIA.get(objectKey(path));
           if (!object) return null;
@@ -77,6 +79,8 @@ export class JlptDatabase extends DurableObject {
           return result;
         }));
         await this.flushDeletes();
+        try { if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + 86400000); }
+        catch { console.warn('TTS cache maintenance scheduling failed'); }
         return response;
       } catch (error) {
         if (error instanceof RouteFailure) return error.response;
@@ -95,7 +99,26 @@ export class JlptDatabase extends DurableObject {
       await this.ctx.storage.setAlarm(Date.now()+60000);
     }
   }
-  async alarm() { await this.flushDeletes(); }
+  async alarm() {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      let delay = 60000;
+      try {
+        await this.flushDeletes();
+        const budget = { remaining: 20, deadline: Date.now() + 5000 };
+        await withPlatform({ db: this.db, ttsCacheBucket: this.env.MEDIA, ttsCacheEnv: this.env }, () => cleanupTtsCache({ budget }));
+        // Continue bounded batches promptly, otherwise perform the daily sweep.
+        delay = budget.remaining <= 0 || Date.now() >= budget.deadline ? 60000 : 86400000;
+      } catch {
+        // Catch inside the concurrency gate: an escaping error resets the DO.
+        console.warn('TTS cache maintenance failed; retry scheduled');
+      } finally {
+        // Keep any earlier media-delete retry; also re-arm after maintenance errors.
+        const next = Date.now() + delay;
+        const existing = await this.ctx.storage.getAlarm();
+        if (!existing || existing > next) await this.ctx.storage.setAlarm(next);
+      }
+    });
+  }
   async dispatch(request, mcp) {
     const url = new URL(request.url);
     if (url.pathname === '/api/health') {

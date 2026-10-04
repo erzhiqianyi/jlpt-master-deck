@@ -23,6 +23,8 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/me','GET',undefined,'')).status,401);
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
     await request('/__seed');
+    assert.deepEqual(await json('/__tts-cache'), { generated: true, audio: 'fixture-audio' });
+    assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     assert.ok((await json('/api/study-plan')).plan.profile);
     const mock = (await json('/api/mock-exams', 'POST', { title: '自由な試験', sessions: [{ id: 'part', title: '自由なパート', questions: [{ id: 'q', prompt: '選んでください', choices: ['A', 'B'], answerIndex: 1, explanation: 'Bです' }] }] })).exam;
     assert.equal((await json('/api/mock-exams')).exams[0].id, mock.id);
@@ -55,6 +57,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     // Model an existing database missing the later audio and completion-statistics tables.
     assert.equal((await request('/__legacy-audio-schema')).status, 200);
     await mf.dispose(); mf=new Miniflare(options);
+    assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     assert.equal((await json('/api/health')).databaseReady, true);
     assert.equal((await json('/api/mock-exams/' + mock.id)).exam.title, '変更');
     assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '更新总解析');
@@ -180,6 +183,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     const resources=(await rpc('resources/list')).resources;
     assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
     await mf.dispose(); mf=new Miniflare(options);
+    assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     const persistedReading = (await json('/api/reading-questions/' + reading.id)).question;
     assert.equal(persistedReading.passageTranslation, '云端 MCP 更新译文');
     assert.equal(persistedReading.explanation, '更新总解析');
@@ -199,6 +203,10 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
     assert.deepEqual((await json('/api/review-data','GET',undefined,'test-2')).items.map(item=>item.original),['共有']);
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
+    assert.deepEqual(await json('/__tts-cache-alarm-recovery'), { failed: true, retrySoon: true });
+    assert.deepEqual(await json('/__tts-cache-batches'), { first: 6, remaining: 0 });
+    assert.deepEqual(await json('/__tts-cache-expire'), { remaining: 0, alarm: true });
+    assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
     await json('/api/listening-questions/'+question.id,'DELETE');
     assert.equal((await request(audioPath)).status,404);
     assert.equal((await (await mf.getR2Bucket('MEDIA')).list()).objects.length,0);

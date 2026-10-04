@@ -1,3 +1,5 @@
+import { usePageHeaderActions } from '../../components/PageChrome';
+import './CapturePanel.css';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import type { Deck, LearningCaptureCategory, Wordbook } from '../../types';
 
@@ -18,8 +20,10 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const form = useRef<HTMLFormElement>(null);
   const savePending = useRef(false);
   const wordbookPending = useRef(false);
+  const headerManaged = usePageHeaderActions([{ key: 'capture-save', label: saving ? labels.captureSaving ?? labels.processing : labels.captureSave, disabled: !body.trim() || saving || creatingWordbook, onClick: () => form.current?.requestSubmit() }], 20);
   const vocabularyWordbooks = wordbooks.filter((wordbook) => wordbook.deck !== 'grammar_expression');
 
   async function submit(event: React.FormEvent) {
@@ -76,12 +80,10 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl py-2 md:py-5">
-      <p className="text-sm font-semibold text-[#7d6032]">{labels.captureEyebrow}</p>
-      <h1 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.captureTitle}</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68716b]">{labels.captureBody}</p>
+    <section className="capture-form-page">
+      <h1 className="sr-only">{labels.captureTitle}</h1>
 
-      <form onSubmit={submit} aria-busy={saving} className="mt-6 border-y border-[#d7dfd6] py-5">
+      <form ref={form} onSubmit={submit} aria-busy={saving} className="capture-form">
         <label className="block text-sm font-semibold text-[#34413b]">
           {labels.captureInputLabel}
           <textarea
@@ -96,7 +98,7 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
           />
         </label>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="capture-form-fields">
           <label className="text-sm font-semibold text-[#4f5b55]">
             {labels.captureCategory}
             <select disabled={saving || creatingWordbook} value={category} onChange={(event) => setCategory(event.target.value as LearningCaptureCategory)} className="mt-2 block h-11 min-w-48 rounded-md border border-[#c8d1c8] bg-white px-3 text-sm">
@@ -111,7 +113,7 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
               </select>
             </label>
           ) : null}
-          <button type="submit" disabled={!body.trim() || saving || creatingWordbook} className="h-11 rounded-md bg-[#31564c] px-6 text-sm font-semibold text-white disabled:opacity-45">
+          <button type="submit" hidden={headerManaged} disabled={!body.trim() || saving || creatingWordbook} className="capture-save-button h-11 rounded-md bg-[#b84d3e] px-6 text-sm font-semibold text-white disabled:opacity-45">
             {saving ? labels.captureSaving ?? labels.processing : labels.captureSave}
           </button>
         </div>
@@ -120,7 +122,7 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
       </form>
 
       {category === 'word' ? (
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+        <details className="capture-new-wordbook"><summary>{labels.wordbookCreate}</summary><div className="capture-new-wordbook-fields">
           <label className="min-w-0 flex-1 text-sm font-semibold text-[#4f5b55]">
             {labels.wordbookNewName}
             <input
@@ -136,7 +138,7 @@ export function CapturePanel({ labels, wordbooks, onSave, onCreateWordbook, onOp
             {creatingWordbook ? labels.processing : labels.wordbookCreate}
           </button>
           {wordbookError ? <p role="alert" className="text-sm font-semibold text-[#8f3d2e]">{wordbookError}</p> : null}
-        </div>
+        </div></details>
       ) : null}
 
       {saved ? (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { dialogueGuidance, dialogueSummaries, type DialogueRegister } from '../../data/dialogueGuidance';
 import type { DialoguePractice } from '../../data/dialoguePractice';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 
 const registers: { value: DialogueRegister; label: string }[] = [
   { value: 'plain', label: '普通体' },
@@ -13,6 +14,7 @@ const secondaryButton = 'min-h-11 rounded-full border border-[#f0c9d4] bg-white 
 export function DialogueRolePlay({ item, sceneIndex }: { item: DialoguePractice; sceneIndex: number }) {
   const guide = dialogueGuidance[item.id];
   const [simulating, setSimulating] = useState(false);
+  useAuthoringNavigation(simulating ? '分角色模拟对话' : null, () => setSimulating(false), { kind: 'practice', priority: 1, backLabel: '返回参考' });
   const [roleName, setRoleName] = useState(guide.roles[0].name);
   const [visibleCount, setVisibleCount] = useState(0);
   const [showHint, setShowHint] = useState(false);

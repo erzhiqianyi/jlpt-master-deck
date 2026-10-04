@@ -1,11 +1,11 @@
+import { buildMistakeEntries } from '../../domain/mistakes';
 import { StudyText } from '../../components/StudyText';
 import { DailySummaryPanel } from './DailySummaryPanel';
 import './RecordHome.css';
-import { NavigationCard } from '../../components/NavigationCard';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListSearch, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction, type ListSelection } from '../../components/ListBatch';
-import { Archive, ArrowLeft, ArrowRight, CircleAlert, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
+import { Archive, ArrowLeft, ArrowRight, CircleAlert, Clock3, ChartNoAxesColumn, CheckCircle2, ChevronLeft, ChevronRight, Circle, History, Inbox, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AppView, LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question } from '../../types';
 
@@ -15,7 +15,7 @@ type AttemptFilter = {
   range: 'all' | 'today' | 'week' | 'month';
 };
 
-export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, summaryToken, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange }: {
+export function HistoryPanel({ labels, locale, captures, attempts, questions = [], onCaptureStatus, summaryToken, embedded = false, mode = 'both', recordSection: controlledRecordSection, selectedCaptureId: controlledCaptureId, onSelectedCaptureChange, selectedAttemptId: controlledAttemptId, onSelectedAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, draftCount }: {
   labels: Record<string, string>;
   locale: Locale;
   captures: LearningCapture[];
@@ -23,6 +23,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   questions?: Question[];
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
   summaryToken?: string;
+  draftCount?: number;
   embedded?: boolean;
   mode?: 'both' | 'captures' | 'practice';
   recordSection?: 'home' | 'today' | 'history';
@@ -34,6 +35,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   onAttemptQuestionDetailChange?: (open: boolean) => void;
 }) {
   const [page, setPage] = useState(0);
+  const [statisticsDate, setStatisticsDate] = useState(() => tokyoDateKey(new Date().toISOString()));
   const [captureSearch, setCaptureSearch] = useState('');
   const [captureFilter, setCaptureFilter] = useState<LearningCaptureStatus | 'all'>('all');
   const [view, setView] = useState<'captures' | 'practice'>('captures');
@@ -47,6 +49,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   const selectedAttemptId = controlledAttemptId !== undefined ? controlledAttemptId : uncontrolledAttemptId;
   const setSelectedAttemptId = onSelectedAttemptChange ?? setUncontrolledAttemptId;
   const sortedAttempts = useMemo(() => attempts.filter((attempt) => Boolean(attempt.completedAt)).sort((first, second) => dateValue(second.completedAt ?? second.startedAt) - dateValue(first.completedAt ?? first.startedAt)), [attempts]);
+  const statisticsAttempts = useMemo(() => sortedAttempts.filter(attempt => tokyoDateKey(attempt.completedAt ?? attempt.startedAt) === statisticsDate), [sortedAttempts, statisticsDate]);
   const todayAttempts = useMemo(() => sortedAttempts.filter((attempt) => isTodayAttempt(attempt)), [sortedAttempts]);
   const filteredAttempts = useMemo(() => sortedAttempts.filter((attempt) => attemptMatchesFilter(attempt, attemptFilter)), [attemptFilter, sortedAttempts]);
   const selectedAttempt = sortedAttempts.find((attempt) => attempt.id === selectedAttemptId);
@@ -90,7 +93,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
 
   return (
     <section className={`${embedded ? 'py-0' : 'mx-auto w-full max-w-4xl py-2 md:py-5'} history-panel`}>
-      {!embedded ? <><p className="text-sm font-semibold text-[#7d6032]">{labels.historyEyebrow}</p><h1 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.historyPageTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#68716b]">{labels.historyPageBody}</p></> : null}
+      {!embedded ? <h1 className="history-page-title">{labels.historyPageTitle}</h1> : null}
 
       {mode === 'both' ? <div className="mt-5 flex border-b border-[#d7dfd6]" role="tablist">
         <HistoryTab active={view === 'captures'} label={`${labels.historyCaptureTab} ${captures.length}`} onClick={() => setView('captures')} />
@@ -107,8 +110,8 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
             onToggleStatus={() => onCaptureStatus(selectedCapture.id, selectedCapture.status === 'processed' ? 'inbox' : 'processed')}
           />
         ) : (
-          <LearningListFrame className="learning-catalog mt-4" label={labels.historyCaptureTab}>
-            <LearningListHeader title={labels.historyCaptureTab} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`}><div className="list-tools"><LearningListSearch value={captureSearch} onChange={(value) => { setCaptureSearch(value); setPage(0); }} placeholder={locale === 'zh-CN' ? '搜索输入记录' : locale === 'ja' ? '記録を検索' : 'Search captures'} /><LearningListSelect value={captureFilter} onChange={(value) => { setCaptureFilter(value as LearningCaptureStatus | 'all'); setPage(0); }} hideLabel label={locale === 'zh-CN' ? '记录状态' : locale === 'ja' ? '状態' : 'Capture status'}>{(['all', 'inbox', 'processed', 'archived'] as const).map(status => <option key={status} value={status}>{status === 'all' ? (locale === 'zh-CN' ? '全部状态' : locale === 'ja' ? 'すべての状態' : 'All statuses') : captureStatusLabel(labels, status)}</option>)}</LearningListSelect><BatchManageButton batch={captureBatch} locale={locale} /></div></LearningListHeader>
+          <LearningListFrame locale={locale} className="learning-catalog mt-4" label={labels.historyCaptureTab}>
+            <LearningListHeader title={labels.historyCaptureTab} appliedSummary={captureSearch || captureFilter !== 'all' ? [captureSearch, captureFilter !== 'all' ? captureStatusLabel(labels, captureFilter) : ''].filter(Boolean).join(' · ') : undefined} onReset={() => { setCaptureSearch(''); setCaptureFilter('all'); setPage(0); }} count={`${captures.length} ${locale === 'zh-CN' ? '项' : locale === 'ja' ? '件' : 'items'}`}><div className="list-tools"><LearningListSearch value={captureSearch} onChange={(value) => { setCaptureSearch(value); setPage(0); }} placeholder={locale === 'zh-CN' ? '搜索输入记录' : locale === 'ja' ? '記録を検索' : 'Search captures'} /><LearningListSelect value={captureFilter} onChange={(value) => { setCaptureFilter(value as LearningCaptureStatus | 'all'); setPage(0); }} hideLabel label={locale === 'zh-CN' ? '记录状态' : locale === 'ja' ? '状態' : 'Capture status'}>{(['all', 'inbox', 'processed', 'archived'] as const).map(status => <option key={status} value={status}>{status === 'all' ? (locale === 'zh-CN' ? '全部状态' : locale === 'ja' ? 'すべての状態' : 'All statuses') : captureStatusLabel(labels, status)}</option>)}</LearningListSelect><BatchManageButton batch={captureBatch} locale={locale} /></div></LearningListHeader>
             <BatchActionBar batch={captureBatch} actions={captureBatchActions} locale={locale} />
             <CaptureTable labels={labels} locale={locale} captures={sortedCaptures.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} onSelect={setSelectedCaptureId} selection={captureBatch.selection} />
             {listFooter}
@@ -118,17 +121,17 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
         <PracticeAttemptDetail labels={labels} locale={locale} attempt={selectedAttempt} questions={questions} onBack={() => setSelectedAttemptId(null)} showBack={!embedded} questionDetailOpen={attemptQuestionDetailOpen} onQuestionDetailChange={onAttemptQuestionDetailChange} />
       ) : (
         <>
-          {summaryToken ? <DailySummaryPanel token={summaryToken} locale={locale} /> : null}
+
           {recordSection === 'home' ? (
-            <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
+            <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} draftCount={draftCount} mistakeCount={buildMistakeEntries(sortedAttempts, questions, []).length} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
           ) : null}
           {recordSection === 'today' ? (
-            <TodayPracticeSummary labels={labels} locale={locale} attempts={todayAttempts} onSelect={setSelectedAttemptId} />
+            <><label className="record-statistics-date"><span className="sr-only">{locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'}</span><input type="date" aria-label={locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'} value={statisticsDate} onChange={event => { if (event.target.value) setStatisticsDate(event.target.value); }} /></label><TodayPracticeSummary labels={labels} locale={locale} attempts={statisticsAttempts} onSelect={setSelectedAttemptId} />{summaryToken ? <details className="record-summary-disclosure"><summary>{locale === 'zh-CN' ? '学习总结' : locale === 'ja' ? '学習まとめ' : 'Learning summary'}</summary><DailySummaryPanel token={summaryToken} locale={locale} date={statisticsDate} hideDatePicker /></details> : null}</>
           ) : null}
           {showAttemptHistory ? (
             <>
-              <LearningListFrame className="learning-catalog mt-4" label={labels.historyPracticeTab}>
-                <LearningListHeader title={locale === 'zh-CN' ? '全部记录' : locale === 'ja' ? 'すべての記録' : 'All records'} count={`${filteredAttempts.length} / ${sortedAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`}>
+              <LearningListFrame locale={locale} className="learning-catalog mt-4" label={labels.historyPracticeTab}>
+                <LearningListHeader title={labels.historyPracticeTab} appliedSummary={attemptFilter.module !== 'all' || attemptFilter.result !== 'all' || attemptFilter.range !== 'all' ? [attemptFilter.module !== 'all' ? moduleLabel(labels, attemptFilter.module) : '', attemptFilter.result !== 'all' ? (attemptFilter.result === 'wrong' ? labels.historyFilterHasWrong : labels.historyFilterPerfect) : '', attemptFilter.range !== 'all' ? ({ today: labels.historyFilterToday, week: labels.historyFilterWeek, month: labels.historyFilterMonth }[attemptFilter.range]) : ''].filter(Boolean).join(' · ') : undefined} onReset={() => { setAttemptFilter({ module: 'all', result: 'all', range: 'all' }); setPage(0); }} count={`${filteredAttempts.length} / ${sortedAttempts.length}${locale === 'zh-CN' ? ' 次练习' : locale === 'ja' ? ' 回' : ' practices'} · ${sortedAttempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)}${locale === 'zh-CN' ? ' 次作答' : locale === 'ja' ? ' 解答' : ' answers'}`}>
                   <PracticeAttemptFilters labels={labels} value={attemptFilter} attempts={sortedAttempts} onChange={(filter) => { setAttemptFilter(filter); setPage(0); }} />
                 </LearningListHeader>
                 <PracticeAttemptTable labels={labels} locale={locale} attempts={filteredAttempts.slice(mobileList.mobile ? 0 : start, mobileList.mobile ? mobileList.visible : start + 6)} startIndex={mobileList.mobile ? 0 : start} onSelect={setSelectedAttemptId} />
@@ -142,10 +145,12 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
   );
 }
 
-function RecordHome({ labels, locale, todayAttempts, attempts, captures, onOpenToday, onOpenHistory }: {
+function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCount, mistakeCount, onOpenToday, onOpenHistory }: {
   labels: Record<string, string>;
   locale: Locale;
   todayAttempts: PracticeAttempt[];
+  draftCount?: number;
+  mistakeCount: number;
   attempts: PracticeAttempt[];
   captures: LearningCapture[];
   onOpenToday: () => void;
@@ -155,35 +160,34 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, onOpenT
   const todayCorrect = todayAttempts.reduce((sum, attempt) => sum + (attempt.summary?.correct ?? attempt.answers.filter((answer) => answer.correct).length), 0);
   const todayAccuracy = todayTotal ? Math.round(todayCorrect / todayTotal * 100) : 0;
   const copy = locale === 'zh-CN'
-    ? { today: '今天的积累', detail: '查看统计', practices: '完成练习', questions: '作答题数', accuracy: '正确率', review: '回顾与巩固', history: '练习历史', historySub: '回看每次练习与解析', mistakes: '错题集', mistakesSub: '找到需要再练的知识点', saved: '学习资料', captures: '输入记录', drafts: '练习草稿', draftsSub: '查看准备好的题目', empty: '今天还没有完成练习，按自己的节奏开始。', total: '次练习', answers: '次作答', entries: '条记录' }
+    ? { today: '今天的积累', detail: '查看统计', practices: '完成练习', questions: '作答题数', accuracy: '正确率', review: '回顾与巩固', history: '练习历史', historySub: '回看每次练习与解析', mistakes: '错题集', mistakesSub: '找到需要再练的知识点', saved: '学习资料', captures: '输入记录', drafts: '练习草稿', draftsSub: '查看准备好的题目', empty: '今天还没有完成练习', practice: '去练习', total: '次练习', answers: '次作答', entries: '条记录' }
     : locale === 'ja'
-      ? { today: '今日の積み重ね', detail: '統計を見る', practices: '完了した練習', questions: '解答数', accuracy: '正答率', review: '振り返りと復習', history: '練習履歴', historySub: '練習結果と解説を振り返る', mistakes: '間違いノート', mistakesSub: 'もう一度練習したい項目を確認', saved: '学習資料', captures: '入力履歴', drafts: '練習の下書き', draftsSub: '準備された問題を確認', empty: '今日はまだ練習がありません。自分のペースで始めましょう。', total: '回の練習', answers: '解答', entries: '件' }
-      : { today: 'Today’s progress', detail: 'View statistics', practices: 'Practices', questions: 'Answers', accuracy: 'Accuracy', review: 'Review and improve', history: 'Practice history', historySub: 'Revisit results and explanations', mistakes: 'Mistake notebook', mistakesSub: 'Find learning points to practice again', saved: 'Study materials', captures: 'Input records', drafts: 'Practice drafts', draftsSub: 'Check prepared questions', empty: 'No completed practice today. Start at your own pace.', total: 'practices', answers: 'answers', entries: 'records' };
+      ? { today: '今日の積み重ね', detail: '統計を見る', practices: '完了した練習', questions: '解答数', accuracy: '正答率', review: '振り返りと復習', history: '練習履歴', historySub: '練習結果と解説を振り返る', mistakes: '間違いノート', mistakesSub: 'もう一度練習したい項目を確認', saved: '学習資料', captures: '入力履歴', drafts: '練習の下書き', draftsSub: '準備された問題を確認', empty: '今日はまだ練習していません', practice: '練習する', total: '回の練習', answers: '解答', entries: '件' }
+      : { today: 'Today’s progress', detail: 'View statistics', practices: 'Practices', questions: 'Answers', accuracy: 'Accuracy', review: 'Review and improve', history: 'Practice history', historySub: 'Revisit results and explanations', mistakes: 'Mistake notebook', mistakesSub: 'Find learning points to practice again', saved: 'Study materials', captures: 'Input records', drafts: 'Practice drafts', draftsSub: 'Check prepared questions', empty: 'No completed practice today', practice: 'Practice', total: 'practices', answers: 'answers', entries: 'records' };
 
   return (
     <div className="record-home" aria-label={labels.navStatsHome}>
-      <section className="record-home-today" aria-labelledby="record-today-title">
+      {todayAttempts.length ? <section className="record-home-today" aria-labelledby="record-today-title">
         <header><div><span>{formatTodayLabel(locale)}</span><h2 id="record-today-title">{copy.today}</h2></div><button type="button" onClick={onOpenToday}>{copy.detail}<ArrowRight size={16} aria-hidden="true" /></button></header>
         <dl className="record-home-stats">
           <div><dt>{copy.practices}</dt><dd>{todayAttempts.length}</dd></div>
           <div><dt>{copy.questions}</dt><dd>{todayTotal}</dd></div>
           <div><dt>{copy.accuracy}</dt><dd>{todayTotal ? `${todayAccuracy}%` : '—'}</dd></div>
         </dl>
-        {!todayAttempts.length && <p className="record-home-empty">{copy.empty}</p>}
-      </section>
+      </section> : <section className="record-home-empty-status" aria-label={copy.today}><Clock3 size={24} aria-hidden="true" /><p>{copy.empty}</p><a href="#/mixed/tips">{copy.practice}<ArrowRight size={17} aria-hidden="true" /></a></section>}
       <section className="record-home-review" aria-labelledby="record-review-title">
-        <h2 id="record-review-title">{copy.review}</h2>
-        <div className="navigation-grid">
-          <NavigationCard icon={<History size={23} />} title={copy.history} description={copy.historySub} onOpen={onOpenHistory} />
-          <NavigationCard icon={<CircleAlert size={23} />} title={copy.mistakes} description={copy.mistakesSub} href="#/mistakes" />
+        <h2 id="record-review-title" className="sr-only">{copy.review}</h2>
+        <div className="record-home-primary-links record-home-links">
+          <button type="button" onClick={onOpenHistory}><History size={25} aria-hidden="true" /><span><strong>{copy.history}</strong><small>{attempts.length} {copy.total} · {attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)} {copy.answers}</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+          <a href="#/mistakes"><CircleAlert size={25} aria-hidden="true" /><span><strong>{copy.mistakes}</strong><small>{mistakeCount} {locale === 'zh-CN' ? '个知识点' : locale === 'ja' ? '項目' : 'learning points'}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
         </div>
-        <p className="record-home-total">{attempts.length} {copy.total}<span aria-hidden="true"> · </span>{attempts.reduce((sum, attempt) => sum + attempt.answers.length, 0)} {copy.answers}</p>
       </section>
       <section className="record-home-materials" aria-labelledby="record-materials-title">
-        <h2 id="record-materials-title">{copy.saved}</h2>
+        <h2 id="record-materials-title" className="sr-only">{copy.saved}</h2>
         <div className="record-home-links">
           <a href="#/captures"><NotebookPen size={21} aria-hidden="true" /><span><strong>{copy.captures}</strong><small>{captures.length} {copy.entries}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
-          <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{copy.draftsSub}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
+          <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{draftCount === undefined ? copy.draftsSub : `${draftCount} ${copy.entries}`}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
+          <button type="button" onClick={onOpenToday}><ChartNoAxesColumn size={21} aria-hidden="true" /><span><strong>{copy.detail}</strong><small>{formatTodayLabel(locale)}</small></span><ChevronRight size={18} aria-hidden="true" /></button>
         </div>
       </section>
     </div>
@@ -207,12 +211,12 @@ function TodayPracticeSummary({ labels, locale, attempts, onSelect }: {
   }, { total: 0, correct: 0, elapsedMs: 0 });
   const accuracy = totals.total ? Math.round((totals.correct / totals.total) * 100) : 0;
   const latestAttempts = attempts;
-  const title = locale === 'zh-CN' ? '今天结果' : locale === 'ja' ? '今日の結果' : 'Today';
+  const title = locale === 'zh-CN' ? '练习记录' : locale === 'ja' ? '練習記録' : 'Practice records';
 
   const unit = locale === 'zh-CN' ? '次练习' : locale === 'ja' ? '回' : 'practices';
   return (
-    <LearningListFrame className="learning-catalog mt-4" label={title}>
-      <LearningListHeader title={title} count={`${formatTodayLabel(locale)} · ${attempts.length} ${unit}`} />
+    <LearningListFrame locale={locale} className="learning-catalog mt-4" label={title}>
+
       {attempts.length ? (
         <>
           <dl className="list-stats">
@@ -235,7 +239,7 @@ function CaptureTable({ labels, locale, captures, onSelect, selection }: {
   onSelect: (id: string) => void;
   selection?: ListSelection;
 }) {
-  return <LearningList locale={locale} selection={selection} columnLabels={[labels.historyCaptureTab, locale === "ja" ? "種類" : locale === "en" ? "Category" : "分类", locale === "ja" ? "状態" : locale === "en" ? "Status" : "状态"]}>{captures.map((capture) => <LearningListRow key={capture.id} selectId={capture.id} title={captureSummary(capture).title} description={labels[`captureCategory_${capture.category}`]} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
+  return <LearningList locale={locale} selection={selection} columnLabels={[labels.historyCaptureTab, locale === "ja" ? "種類" : locale === "en" ? "Category" : "分类", locale === "ja" ? "状態" : locale === "en" ? "Status" : "状态"]}>{captures.map((capture) => <LearningListRow key={capture.id} selectId={capture.id} title={captureSummary(capture).title} description={`${labels[`captureCategory_${capture.category}`]} · ${formatDate(capture.createdAt, locale)}`} statusKind={capture.status} status={captureStatusLabel(labels, capture.status)} locale={locale} onOpen={() => onSelect(capture.id)}/>)}</LearningList>;
 
 }
 
@@ -259,7 +263,7 @@ function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
   const summary = captureSummary(capture);
 
   return (
-    <div className="mt-5">
+    <div className="capture-record-detail">
       <article className="rounded-lg border border-[#d7dfd6] bg-white p-4 md:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -271,9 +275,7 @@ function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
           <h2 className="mt-2 text-lg font-semibold leading-7 text-[#27312c]">{summary.title}</h2>
           {summary.subtitle ? <p className="mt-1 text-sm leading-6 text-[#657069]">{summary.subtitle}</p> : null}
         </div>
-        <button type="button" onClick={() => void toggleStatus()} disabled={busy} aria-busy={busy} className="min-h-11 shrink-0 rounded-md border border-[#c8d1c8] bg-white px-3 text-xs font-semibold text-[#31564c]">
-          {busy ? labels.processing : capture.status === 'processed' ? labels.captureMarkInbox : labels.captureMarkProcessed}
-        </button>
+
       </div>
 
       {error ? <p role="alert" className="mt-3 text-sm text-red-700">{error}</p> : null}
@@ -284,6 +286,9 @@ function CaptureDetail({ labels, locale, capture, onToggleStatus }: {
           <StructuredCaptureContent value={parsed ?? capture.body} labels={labels} />
         </div>
       </div>
+        <button type="button" onClick={() => void toggleStatus()} disabled={busy} aria-busy={busy} className="capture-record-save">
+          {busy ? labels.processing : capture.status === 'processed' ? labels.captureMarkInbox : labels.captureMarkProcessed}
+        </button>
       </article>
     </div>
   );
@@ -396,7 +401,7 @@ function PracticeAttemptFilters({ labels, value, attempts, onChange }: {
   );
 }
 
-function PracticeAttemptTable({ labels, locale, attempts, startIndex, onSelect }: {
+function PracticeAttemptTable({ labels, locale, attempts, onSelect }: {
   labels: Record<string, string>;
   locale: Locale;
   attempts: PracticeAttempt[];
@@ -406,7 +411,7 @@ function PracticeAttemptTable({ labels, locale, attempts, startIndex, onSelect }
   // One flat list; the date moves into each row instead of splitting the list into day sections.
   const attemptDate = (attempt: PracticeAttempt) => new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' }).format(new Date(attempt.completedAt ?? attempt.startedAt));
   return <div className="learning-history-list">
-    <LearningList locale={locale} columnLabels={[locale === "ja" ? "練習" : locale === "en" ? "Practice" : "练习", locale === "ja" ? "日時・問題数・時間" : locale === "en" ? "Date / questions / duration" : "日期、题数与用时", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{attempts.map((attempt, index) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} references={[String(startIndex + index + 1)]} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
+    <LearningList locale={locale} columnLabels={[locale === "ja" ? "練習" : locale === "en" ? "Practice" : "练习", locale === "ja" ? "日時・問題数・時間" : locale === "en" ? "Date / questions / duration" : "日期、题数与用时", locale === "ja" ? "結果" : locale === "en" ? "Result" : "结果"]}>{attempts.map((attempt) => <LearningListRow key={attempt.id} title={attempt.title?.trim() || moduleLabel(labels, attempt.view)} description={`${attemptDate(attempt)} · ${attempt.answers.length} ${locale === 'zh-CN' ? '题' : locale === 'ja' ? '問' : 'questions'} · ${formatDuration(attempt.summary?.elapsedMs)}`} status={summaryText(attempt)} locale={locale} onOpen={() => onSelect(attempt.id)}/>)}</LearningList>
   </div>;
 }
 
@@ -673,6 +678,10 @@ function formatDate(value: string, locale: Locale) {
 
 function formatTodayLabel(locale: Locale) {
   return new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+}
+
+function tokyoDateKey(value: string) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value));
 }
 
 function isTodayAttempt(attempt: PracticeAttempt) {

@@ -1,6 +1,6 @@
 import { LearningList, LearningListRow } from '../../components/LearningList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
-import { Undo2, SkipForward, BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, Check, FileStack, ListChecks } from 'lucide-react';
+import { Undo2, SkipForward, BookAudio, BookOpenText, ChevronLeft, ChevronRight, ClipboardList, CalendarDays, Check, FileStack, ListChecks } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { calendarDays, localDateString, tasksForDate } from '../../domain/studyPlan';
 import type { Locale, StudyDailySummary, StudyPlanDayEvidence, StudyPlanTask, StudyPlanTaskStatus } from '../../types';
@@ -81,7 +81,7 @@ export function PlanCalendar({
             const selected = date === selectedDate;
             const isToday = date === today;
             return date ? (
-              <button key={date} type="button" aria-label={`${formatFullDate(date, locale)} · ${completed}/${dayTasks.length}`} aria-pressed={selected} onClick={() => setSelectedDate(date)} className={`plan-date ${selected ? 'is-selected' : ''} ${isToday ? 'is-today' : ''} ${completed && completed === dayTasks.length ? 'is-complete' : ''}`}>
+              <button key={date} type="button" aria-label={`${formatFullDate(date, locale)} · ${completed}/${dayTasks.length}`} aria-pressed={selected} onClick={() => { setSelectedDate(date); setCalendarOpen(false); }} className={`plan-date ${selected ? 'is-selected' : ''} ${isToday ? 'is-today' : ''} ${completed && completed === dayTasks.length ? 'is-complete' : ''}`}>
                 <span className="plan-date-number">{Number(date.slice(-2))}</span>
                 <span className="plan-date-mark" aria-hidden="true">{completed && completed === dayTasks.length ? <Check size={12} /> : dayTasks.length ? <span className={completed ? 'has-progress' : ''} /> : null}</span>
               </button>
@@ -123,25 +123,12 @@ function DayFocus({ labels, locale, date, tasks, summary, evidence, updatingId, 
   const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
   return (
     <section className="plan-day-agenda">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#7d6032]">{formatFullDate(date, locale)}</p>
-          <h2 className="mt-1 text-2xl font-semibold text-[#27312c]">{labels.planSelectedDayTasks}</h2>
-        </div>
-        <div className="plan-day-count">
-          <p className="text-xs font-semibold text-[#68716b]">{labels.planTaskProgress}</p>
-          <p className="text-xl font-semibold text-[#31564c]">{completedTasks.length} / {tasks.length}</p>
-        </div>
-      </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e5ebe6]" aria-label={labels.planDayCompletionRate} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completionRate} role="progressbar">
-        <span className="block h-full rounded-full bg-[#31564c]" style={{ width: `${completionRate}%` }} />
-      </div>
+      {tasks.length > 0 ? <div className="plan-day-result"><span>{labels.planTaskProgress}</span><strong>{completedTasks.length} / {tasks.length}</strong><div aria-label={labels.planDayCompletionRate} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completionRate} role="progressbar"><span style={{ width: `${completionRate}%` }} /></div></div> : <div className="plan-day-empty"><CalendarDays size={30} aria-hidden="true" /><p>{locale === 'zh-CN' ? (date === localDateString(new Date()) ? '今天没有安排' : '这一天没有安排') : locale === 'ja' ? 'この日の予定はありません' : 'No tasks planned for this day'}</p></div>}
 
       <div className="mt-5 grid gap-4">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-[#46514c]">{labels.planDayPlanContents}</h3>
+        {tasks.length > 0 ? <div className="min-w-0">
           <TaskList locale={locale} labels={labels} tasks={tasks} updatingId={updatingId} onTaskStatus={onTaskStatus} />
-        </div>
+        </div> : null}
 
         <details className="gentle-details"><summary>{labels.planDayDone}</summary>
           <DoneList labels={labels} tasks={completedTasks} evidence={evidence} />

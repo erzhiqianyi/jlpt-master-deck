@@ -1,0 +1,36 @@
+/* Shared content uses the same content-first page at every screen size. */
+.discovery-panel .market-preview { max-width: 760px; margin: 0 auto; padding: 24px 20px 40px; border: 0; color: var(--ink, #172d32); }
+.market-detail-heading { display: flex; align-items: flex-start; gap: 16px; }
+.discovery-panel .market-detail-heading h2 { flex: 1; min-width: 0; margin: 0; font-size: clamp(calc(22px * var(--ui-font-scale, 1)), calc(3vw * var(--ui-font-scale, 1)), calc(28px * var(--ui-font-scale, 1))); line-height: 1.5; overflow-wrap: anywhere; }
+.market-detail-summary { margin-top: 8px; color: #667777; font-size: calc(15px * var(--ui-font-scale, 1)); }
+.market-introduction { margin: 20px 0; }
+.market-introduction > p { font-size: calc(16px * var(--ui-font-scale, 1)); line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; color: #58676d; }
+.market-introduction > p.is-collapsed { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.market-introduction > button { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-height: 44px; margin-left: auto; color: #b94c3d; font-size: calc(14px * var(--ui-font-scale, 1)); }
+.market-introduction > button[aria-expanded='true'] svg { transform: rotate(180deg); }
+.market-question-preview { padding-top: 18px; border-top: 1px solid #e5e7e1; }
+.market-question-caption { display: flex; justify-content: space-between; gap: 16px; font-size: calc(15px * var(--ui-font-scale, 1)); line-height: 1.6; }
+.market-question-caption > span { flex-shrink: 0; color: #667777; }
+.market-question-prompt { margin-block: 12px; padding: 16px; border-radius: 10px; background: #faf3ef; white-space: pre-wrap; font-size: calc(19px * var(--ui-font-scale, 1)); font-weight: 650; line-height: 1.75; overflow-wrap: anywhere; }
+.market-question-preview > ol { display: grid; gap: 8px; }
+.market-question-preview li { display: flex; gap: 12px; align-items: flex-start; min-height: 48px; padding: 10px 12px; border: 1px solid #e1e5df; border-radius: 9px; font-size: calc(17px * var(--ui-font-scale, 1)); line-height: 1.6; }
+.market-question-preview li > span { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 50%; background: #eff0ec; }
+.market-question-preview li > p { min-width: 0; overflow-wrap: anywhere; }
+.market-preview-actions { display: grid; gap: 8px; margin-top: 22px; }
+.market-preview-actions > button { width: 100%; min-height: 52px; border-radius: 9px; background: #bb4c3d; color: white; font-size: calc(18px * var(--ui-font-scale, 1)); font-weight: 650; }
+.market-preview-actions > p, .market-import > p, .market-source-notice { font-size: calc(13px * var(--ui-font-scale, 1)); line-height: 1.65; color: #718080; }
+.market-preview-actions > p { text-align: center; }
+.market-import { display: grid; gap: 8px; margin-top: 24px; }
+.market-import > button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border: 1px solid #c05b4b; border-radius: 9px; color: #b94c3d; }
+.market-source-notice { margin-top: 16px; }
+.market-preview :is(button, summary):focus-visible { outline: 2px solid #45776a; outline-offset: 3px; }
+.market-preview button:disabled { opacity: .5; cursor: not-allowed; }
+.market-word-preview { padding-top: 12px; }
+@media (min-width: 768px) { .discovery-panel .market-preview { padding: 32px; } }
+.market-manage-trigger { min-height: 44px; color: #b94c3d; font-weight: 650; }
+.market-management-dialog { width: min(420px, calc(100% - 32px)); margin: auto; padding: 20px; border: 1px solid #e7dfd7; border-radius: 16px; background: #fffefa; color: #243a3e; }
+.market-management-dialog::backdrop { background: #172d3255; }
+.market-management-dialog > div { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.market-management-dialog h3 { font-size: calc(20px * var(--ui-font-scale, 1)); font-weight: 650; }
+.market-management-dialog button { min-height: 44px; min-width: 44px; }
+.market-management-dialog > button { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 12px; border-radius: 8px; background: #faf0eb; color: #ad4638; }

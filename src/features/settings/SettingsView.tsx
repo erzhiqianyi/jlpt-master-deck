@@ -1,7 +1,7 @@
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2 } from 'lucide-react';
+import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
 import { fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
@@ -14,6 +14,7 @@ type SettingsViewProps = {
   authToken: string;
   activeSection?: string;
   onOpenSection?: (section: SettingsSectionId) => void;
+  onSearch?: () => void;
   onLogout: () => void;
   onUpdateSettings: (settings: DisplaySettings) => void;
 };
@@ -120,14 +121,14 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
   },
 };
 
-export function SettingsView({ labels, settings, username, authToken, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings }: SettingsViewProps) {
+export function SettingsView({ labels, settings, username, authToken, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings, onSearch }: SettingsViewProps) {
   const copy = settingsPageCopy[settings.locale];
   const activeSection = isSettingsSection(activeSectionValue) ? activeSectionValue : undefined;
   const onOpenSection = openSection ?? ((section: SettingsSectionId) => { window.location.hash = `#/settings/${section}`; });
 
   return (
-    <section className="gentle-settings mobile-settings-page mobile-page-surface mx-auto min-w-0 max-w-3xl rounded-lg border border-[#dfe5dc] bg-[#fbfcf8] p-5 shadow-sm md:max-w-4xl md:border-0 md:bg-transparent md:p-0 md:shadow-none">
-      <h2 className={`settings-root-title text-2xl font-semibold text-[#27312c]${activeSection ? ' settings-detail-title' : ''}`}>{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
+    <section className="gentle-settings settings-template" aria-label={activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}>
+      <h2 className="sr-only">{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
       {!activeSection ? <div className="settings-home-only"><SettingsProfileCard copy={copy} username={username} locale={settings.locale} /></div> : null}
       <div className="settings-mobile-detail settings-unified-content">
         {activeSection ? (
@@ -135,7 +136,7 @@ export function SettingsView({ labels, settings, username, authToken, activeSect
             <SettingsSectionContent section={activeSection} copy={copy} labels={labels} settings={settings} username={username} authToken={authToken} onUpdateSettings={onUpdateSettings} />
           </section>
         ) : (
-          <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} />
+          <SettingsHome copy={copy} labels={labels} settings={settings} onOpenSection={onOpenSection} onSearch={onSearch} />
         )}
       </div>
       {!activeSection || activeSection === 'account' ? <div className="settings-logout-area">
@@ -208,16 +209,24 @@ function SettingsProfileCard({ copy, username, locale }: { copy: SettingsCopy; u
   );
 }
 
-function SettingsHome({ copy, labels, settings, onOpenSection }: { copy: SettingsCopy; labels: Record<string, string>; settings: DisplaySettings; onOpenSection: (section: SettingsSectionId) => void }) {
+function SettingsHome({ copy, labels, settings, onOpenSection, onSearch }: { copy: SettingsCopy; labels: Record<string, string>; settings: DisplaySettings; onOpenSection: (section: SettingsSectionId) => void; onSearch?: () => void }) {
+  const t = (zh: string, ja: string, en: string) => settings.locale === 'zh-CN' ? zh : settings.locale === 'ja' ? ja : en;
   return (
-    <div className="navigation-grid settings-navigation">
-      <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
-      <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
-      <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
-      <SettingsNavItem icon={<Volume2 size={22} />} title={copy.pronunciation} subtitle={copy.pronunciationHint} onClick={() => onOpenSection('pronunciation')} />
-      <SettingsNavItem icon={<MessageSquareText size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
-      <McpInspectorLink copy={copy} />
-      <AiSettingsBlock labels={labels} />
+    <div className="settings-navigation">
+      <section className="settings-nav-group" aria-label={t('学习偏好', '学習の設定', 'Learning preferences')}>
+        <h3>{t('学习偏好', '学習の設定', 'Learning preferences')}</h3>
+        <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
+        <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
+        <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
+        <SettingsNavItem icon={<Volume2 size={22} />} title={copy.pronunciation} subtitle={copy.pronunciationHint} onClick={() => onOpenSection('pronunciation')} />
+      </section>
+      <section className="settings-nav-group" aria-label={t('账户与帮助', 'アカウントとヘルプ', 'Account and help')}>
+        <h3>{t('账户与帮助', 'アカウントとヘルプ', 'Account and help')}</h3>
+        <SettingsNavItem icon={<UserRound size={22} />} title={labels.account} subtitle={labels.currentUser} onClick={() => onOpenSection('account')} />
+        <AiSettingsBlock labels={labels} />
+        {onSearch ? <SettingsNavItem icon={<Search size={22} />} title={t('搜索所有学习内容', '学習内容を検索', 'Search all learning materials')} subtitle={t('词汇、语法、题目与记录', '語彙・文法・問題・記録', 'Vocabulary, grammar, questions and records')} onClick={onSearch} /> : null}
+        <McpInspectorLink copy={copy} />
+      </section>
     </div>
   );
 }
@@ -264,7 +273,7 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
           </div>
         </SettingsRow>
         <SettingsRow title={copy.kanaDisplay}>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="settings-toggle-list">
             <Toggle checked={settings.showReviewRuby} label={labels.reviewRuby} onChange={(checked) => onUpdateSettings({ ...settings, showReviewRuby: checked })} />
             <Toggle checked={settings.showExplanationRuby} label={labels.explanationRuby} onChange={(checked) => onUpdateSettings({ ...settings, showExplanationRuby: checked })} />
           </div>
@@ -275,7 +284,7 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   if (section === 'practice') {
     return (
       <SettingsRow title={copy.feedbackTiming}>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="settings-feedback-options" role="group" aria-label={copy.feedbackTiming}>
           <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'immediate' })}>{labels.feedbackModeImmediate}</SegmentButton>
           <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
         </div>
@@ -452,7 +461,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
 
 function SettingsRow({ title, children, desktopOnly = false }: { title: string; children: ReactNode; desktopOnly?: boolean }) {
   return (
-    <div className={`gap-3 py-4 md:grid md:grid-cols-[180px_minmax(0,1fr)] md:items-start ${desktopOnly ? 'hidden md:grid' : 'grid'}`}>
+    <div className={`settings-row${desktopOnly ? ' settings-row-extra' : ''}`}>
       <h3 className="text-sm font-semibold text-[#46514c]">{title}</h3>
       <div className="min-w-0">{children}</div>
     </div>
@@ -471,9 +480,9 @@ function LanguageSelect({ value, onChange }: { value: Locale; onChange: (locale:
 
 function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-[#d9d0c3] bg-white px-3 py-2 text-sm font-semibold text-[#4f5651]">
+    <label className="settings-toggle">
       <span>{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-[#24473f]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="settings-switch" role="switch" />
     </label>
   );
 }

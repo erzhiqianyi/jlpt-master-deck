@@ -60,7 +60,7 @@ export function ConnectedAgents({ authToken, showEndpoint = true }: { authToken:
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="connected-agents grid gap-4">
       {showEndpoint ? <>
         <p className="m-0 text-sm leading-6 text-[#68716b]">Claude、ChatGPT 或 Claude Code 通过下面的地址连接后，会跳到授权页请求你的同意。已授权的 Agent 只能访问你自己的学习记录。</p>
         <div className="flex flex-wrap items-center gap-2">
@@ -75,17 +75,17 @@ export function ConnectedAgents({ authToken, showEndpoint = true }: { authToken:
       ) : grants.length === 0 ? (
         <p className="m-0 text-sm text-[#68716b]">还没有已连接的 Agent。</p>
       ) : (
-        <ul className="m-0 grid list-none gap-2 p-0">
+        <><p className="connected-agents-count">{grants.length} 个连接</p><ul className="m-0 grid list-none gap-2 p-0">
           {grants.map((grant) => (
             <li key={grant.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#e1ddd5] bg-white px-3 py-3">
               <div className="min-w-0">
                 <p className="m-0 text-sm font-semibold text-[#31564c]">{grant.name}{grant.expired ? <span className="ml-2 text-xs font-normal text-[#a0522d]">已过期</span> : null}</p>
-                <p className="m-0 text-xs text-[#7d837e]">{grant.scopes.join(' · ')} · {grant.prefix}… · 最近使用 {formatTime(grant.lastUsedAt || grant.createdAt)}</p>
+                <p className="connected-agent-scopes">{grant.scopes.map(scope => ({ study: '读取与更新学习内容', 'audio:read': '读取音频', 'library:write': '写入、导出与删除内容' }[scope] ?? scope)).join(' · ')}</p><p className="connected-agent-last-used">最近使用 {formatTime(grant.lastUsedAt || grant.createdAt)}</p><details className="connected-agent-details"><summary>授权详情</summary><p>{grant.scopes.join(' · ')} · {grant.prefix}…</p></details>
               </div>
               <button type="button" disabled={busyId === grant.id} onClick={() => void revoke(grant)} className="min-h-10 rounded-md border border-[#e0b4b4] bg-white px-3 text-sm font-semibold text-[#8f3a3a] hover:bg-[#fdf1f1] disabled:opacity-60">{busyId === grant.id ? '断开中…' : '断开'}</button>
             </li>
           ))}
-        </ul>
+        </ul></>
       )}
     </div>
   );

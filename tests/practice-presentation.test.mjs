@@ -56,12 +56,13 @@ test('concise evidence keeps a source excerpt without dropping the full explanat
  assert.equal(conciseEvidence('a'.repeat(300)).summary.length,181);
 });
 
-test('today hub has one primary entry, real progress and all three secondary routes',async()=>{
+test('practice hub keeps exactly three primary routes and today practice stays on Today',async()=>{
  await render(MixedPracticeHub,{topicEntries:[],locale:'zh-CN',labels,questions,items:[],progress:{},modules:[],captures:[],drafts:[],listeningQuestions:[],readingQuestions:[],studyPlan:{tasks:[]},onStart:noop,onStartMock:noop,onNavigate:noop,onStartModule:noop,dailyPractice:{title:'Today real set',minutes:18,questions},dailyAnswers:{q1:{selected:'乙',correct:true}}});
- assert.equal(document.querySelectorAll('.practice-today .practice-primary-action').length,1);
- assert.equal(button('继续练习')?.textContent,'继续练习');
- assert.equal(document.querySelector('progress').value,1);assert.equal(document.querySelector('progress').max,3);
+ assert.equal(document.querySelector('.practice-today'),null);
+ assert.equal(document.querySelector('progress'),null);
+ assert.equal(button('继续练习'),undefined);
  assert.deepEqual([...document.querySelectorAll('.practice-entry-row strong')].map(n=>n.textContent),['专项练习','综合练习','模拟考试']);
+ assert.equal(document.querySelectorAll('.primary-practice-entries > button').length,3);
 });
 
 test('answer feedback prioritizes result and correct answer; all extra content starts collapsed',async()=>{
@@ -78,7 +79,7 @@ test('batch touch answers stay on current question; answer sheet pauses shortcut
  await render(PracticePanel,{...base,feedbackMode:'batch',answers:{},answeredCount:0,onAnswer:()=>answered++,onJump:()=>jumped++,onNext:()=>next++});
  await click(document.querySelector('.cute-choice'));
  assert.equal(answered,1);assert.equal(jumped,0);
- await click(document.querySelector('.practice-progress-button'));
+ await click(document.querySelector(`button[aria-label^="${labels.practiceAnswerSheet}:"]`));
  assert.equal(document.querySelector('dialog').open,true);
  await act(async()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',bubbles:true})));
  assert.equal(answered,1,'shortcuts must not answer through a dialog');

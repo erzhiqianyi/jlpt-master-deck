@@ -1,3 +1,5 @@
+import './practice-layout.css';
+import { ChevronRight, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { LearningCatalog } from '../../components/LearningCatalog';
 import { LearningListRow } from '../../components/LearningList';
@@ -7,9 +9,9 @@ import type { ExamSummary } from './mockExamTypes';
 
 type Entry = { id: string; title: string; description: string; status: string };
 const copy = {
-  'zh-CN': { title: '模拟考试', notice: '内容和安排由你设计。可整套作答，也可拆成多次小测。', loading: '正在读取试卷…', empty: '还没有试卷。可让助手或定时任务通过 MCP 创建。', parts: '部分', questions: '题', legacy: '已有试卷', imported: '原新闻内容', failed: '部分试卷未能读取，请重试或连接对应的本地后端。', retry: '重试' },
-  ja: { title: '模擬試験', notice: '内容と予定は自由に設計できます。一括でも、複数回に分けても受験できます。', loading: '読み込み中…', empty: '試験はありません。アシスタントや定期タスクから MCP で作成できます。', parts: 'パート', questions: '問', legacy: '既存の試験', imported: '旧ニュース教材', failed: '一部を読み込めません。再試行するかローカルサーバーに接続してください。', retry: '再試行' },
-  en: { title: 'Mock exams', notice: 'Design your own content and schedule. Take a full paper or split it into sessions.', loading: 'Loading exams…', empty: 'No exams yet. Ask an assistant or scheduled task to create one through MCP.', parts: 'sessions', questions: 'questions', legacy: 'Existing paper', imported: 'Previous news content', failed: 'Some exams could not be loaded. Retry or connect to their local backend.', retry: 'Retry' },
+  'zh-CN': { title: '模拟考试', notice: '内容和安排由你设计。可整套作答，也可拆成多次小测。', loading: '正在读取试卷…', empty: '还没有试卷', emptyBody: '准备好试卷后会显示在这里', assistant: '前往 AI 助手', parts: '部分', questions: '题', legacy: '已有试卷', imported: '原新闻内容', failed: '部分试卷未能读取，请重试或连接对应的本地后端。', retry: '重试' },
+  ja: { title: '模擬試験', notice: '内容と予定は自由に設計できます。一括でも、複数回に分けても受験できます。', loading: '読み込み中…', empty: '試験はまだありません', emptyBody: '試験を用意すると、ここに表示されます', assistant: 'AI アシスタントへ', parts: 'パート', questions: '問', legacy: '既存の試験', imported: '旧ニュース教材', failed: '一部を読み込めません。再試行するかローカルサーバーに接続してください。', retry: '再試行' },
+  en: { title: 'Mock exams', notice: 'Design your own content and schedule. Take a full paper or split it into sessions.', loading: 'Loading exams…', empty: 'No papers yet', emptyBody: 'Your papers will appear here when they are ready', assistant: 'Open AI assistant', parts: 'sessions', questions: 'questions', legacy: 'Existing paper', imported: 'Previous news content', failed: 'Some exams could not be loaded. Retry or connect to their local backend.', retry: 'Retry' },
 };
 export function MockExamCatalog({ locale, token, onOpen }: { locale: Locale; token: string; onOpen: (id: string) => void }) {
   const t = copy[locale];
@@ -30,9 +32,13 @@ export function MockExamCatalog({ locale, token, onOpen }: { locale: Locale; tok
     });
     return () => { cancelled = true; };
   }, [token, locale, retry, t]);
-  if (!entries) return <p role="status">{t.loading}</p>;
+  if (!entries) return <p className="study-catalog-loading" role="status">{t.loading}</p>;
+  if (!entries.length) return <section className="study-mock-empty" aria-label={t.title}>
+    <FileText size={62} strokeWidth={1.4} aria-hidden="true" />
+    {failed ? <><h1>{t.failed}</h1><button type="button" className="practice-text-action" onClick={() => setRetry(value => value + 1)}>{t.retry}</button></> : <><h1>{t.empty}</h1><p>{t.emptyBody}</p><a href="#/mcp" className="practice-text-action">{t.assistant}<ChevronRight size={18} aria-hidden="true" /></a></>}
+  </section>;
   return <LearningCatalog title={t.title} locale={locale} items={entries} searchText={entry => `${entry.title} ${entry.description} ${entry.status}`}
-    notice={<>{t.notice}{failed ? <p role="alert">{t.failed} <button type="button" className="gentle-direct-link" onClick={() => setRetry(value => value + 1)}>{t.retry}</button></p> : null}{!entries.length && !failed ? <p>{t.empty}</p> : null}</>}
+    notice={<>{t.notice}{failed ? <p role="alert">{t.failed} <button type="button" className="gentle-direct-link" onClick={() => setRetry(value => value + 1)}>{t.retry}</button></p> : null}</>}
     columnLabels={locale === 'ja' ? ['試験', '構成', null] : locale === 'en' ? ['Exam', 'Contents', null] : ['试卷', '内容安排', null]}
     renderRow={entry => <LearningListRow key={entry.id} title={entry.title} description={entry.description} status={entry.status} locale={locale} onOpen={() => onOpen(entry.id)} />} />;
 }

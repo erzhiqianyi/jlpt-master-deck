@@ -1,3 +1,6 @@
+import './practice-layout.css';
+import { ChevronDown } from 'lucide-react';
+import { LearningListHeader, LearningListSearch } from '../../components/LearningList';
 import { useMemo, useState } from 'react';
 import { RecordReference } from '../../components/RecordReference';
 import { practiceQuestionSourceLabel } from '../../domain/practiceProvenance';
@@ -39,39 +42,32 @@ export function QuestionBankPanel({ grammarQuestions, dailyPractices, loadingDai
       ? { title: 'Question bank', search: 'Search question, number, or source', all: 'All', grammar: 'Grammar', daily: 'Daily practice', answer: 'Answer', source: 'Source', empty: 'No matching questions', previous: 'Previous', next: 'Next' }
       : { title: '题库管理', search: '搜索题目、编号或来源', all: '全部', grammar: '语法', daily: '每日练习', answer: '正确答案', source: '来源', empty: '没有符合条件的题目', previous: '上一页', next: '下一页' };
 
-  return <section className="min-w-0 overflow-hidden rounded-lg border border-[#d8cdbc] bg-white">
-    <header className="border-b border-[#e5ddd1] p-4 md:p-5">
-      <h1 className="text-xl font-black text-[#26352f]">{copy.title}</h1>
-      <p className="mt-1 text-sm text-[#68736d]">{filtered.length} {locale === 'en' ? 'questions' : locale === 'ja' ? '問' : '题'}{loadingDaily ? ' · 正在读取每日练习…' : ''}</p>
+  return <section className="study-question-bank">
+    <div className="study-question-bank-toolbar">
+      <LearningListHeader count={`${filtered.length} ${locale === 'en' ? 'questions' : locale === 'ja' ? '問' : '题'}`} search={<LearningListSearch value={query} onChange={(value) => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale} />} appliedSummary={[group !== 'all' ? copy[group] : '', query.trim()].filter(Boolean).join(' · ')} onReset={group !== 'all' || query.trim() ? () => { setGroup('all'); setQuery(''); setPage(0); } : undefined}>
       <nav className="mt-2 flex flex-wrap gap-3 text-sm font-semibold text-[#315b4d]" aria-label={copy.title}>
         <a href="#/vocabulary/words" className="hover:underline">{locale === 'ja' ? '単語' : locale === 'en' ? 'Vocabulary' : '词汇条目'}</a>
         <a href="#/reading/words" className="hover:underline">{locale === 'ja' ? '読解問題集' : locale === 'en' ? 'Reading bank' : '阅读题库'}</a>
         <a href="#/listening/words" className="hover:underline">{locale === 'ja' ? '聴解問題集' : locale === 'en' ? 'Listening bank' : '听力题库'}</a>
       </nav>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(['all', 'grammar', 'daily'] as const).map((value) => <button key={value} type="button" aria-pressed={group === value}
-          onClick={() => { setGroup(value); setPage(0); }}
-          className={`rounded-md border px-3 py-2 text-sm font-semibold ${group === value ? 'border-[#24473f] bg-[#e8f0eb] text-[#24473f]' : 'border-[#d9d0c3] text-[#59645e]'}`}>
-          {copy[value]}
-        </button>)}
-      </div>
-      <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} aria-label={copy.search} placeholder={copy.search}
-        className="mt-3 h-11 w-full rounded-md border border-[#d9d0c3] bg-white px-3 text-base outline-none focus:border-[#24473f]" />
-    </header>
+        <div className="study-bank-group-filter" role="group" aria-label={copy.title}>{(['all', 'grammar', 'daily'] as const).map((value) => <button key={value} type="button" aria-pressed={group === value} onClick={() => { setGroup(value); setPage(0); }}>{copy[value]}</button>)}</div>
+      </LearningListHeader>
+      {loadingDaily ? <p role="status" className="study-catalog-loading">{locale === 'zh-CN' ? '正在读取每日练习…' : locale === 'ja' ? '毎日の練習を読み込み中…' : 'Loading daily practices…'}</p> : null}
+    </div>
     <div className="divide-y divide-[#e5ddd1]">
       {visible.map(({ key, question, collection }) => <details key={key} className="group px-4 py-3 md:px-5">
-        <summary className="cursor-pointer list-none text-[#26352f] marker:hidden">
+        <summary className="study-bank-question-heading"><div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#68736d]">
             <span>{collection}</span><span>{question.reference ?? question.id}</span>
           </div>
           <p className="mt-1 whitespace-pre-line font-semibold leading-7">{question.prompt}</p>
-        </summary>
+          </div><ChevronDown size={18} aria-hidden="true" /></summary>
         <div className="mt-3 border-t border-[#eee6db] pt-3 text-sm leading-7 text-[#34443c]">
           {question.title ? <p className="font-bold">{question.title}</p> : null}
           <p>{copy.source}：{practiceQuestionSourceLabel(question)}{question.source_reference?.trim() ? ` · ${question.source_reference.trim()}` : ''}</p>
           {question.reference ? <RecordReference reference={question.reference} locale={locale} /> : null}
-          <ol className="mt-2 list-inside list-decimal">{question.choices.map((choice, index) => <li key={`${index}:${choice}`}>{choice}</li>)}</ol>
-          <p className="mt-2 font-bold">{copy.answer}：{question.answer}</p>
+          <ol className="study-bank-choices">{question.choices.map((choice, index) => <li key={`${index}:${choice}`}><span>{index + 1}</span>{choice}</li>)}</ol>
+          <p className="study-bank-answer">{copy.answer}：{question.answer}</p>
           {question.correctReason ? <p className="mt-1">{question.correctReason}</p> : null}
         </div>
       </details>)}

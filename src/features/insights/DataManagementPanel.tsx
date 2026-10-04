@@ -1,3 +1,5 @@
+import { Plus } from 'lucide-react';
+import { usePageHeaderActions } from '../../components/PageChrome';
 import { canReplayAttempt } from '../../domain/attemptReplay';
 import { type ReactNode } from 'react';
 import type { LearningCapture, LearningCaptureStatus, Locale, PracticeAttempt, Question, VocabItem } from '../../types';
@@ -6,7 +8,8 @@ import { PracticeReviewPanel } from '../practice/StudyPanels';
 
 export type DataTab = 'captures' | 'practice' | 'drafts' | 'settings';
 
-export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby, summaryToken, onRestartAttempt }: {
+export function DataManagementPanel({ labels, locale, captures, attempts, questions, draftsContent, settingsContent, activeTab, isHome, detailOpen, recordSection, activeCaptureId, onActiveCaptureChange, activeAttemptId, onActiveAttemptChange, attemptQuestionDetailOpen, onAttemptQuestionDetailChange, onCaptureStatus, items, showRuby, summaryToken, onRestartAttempt, draftCount }: {
+  draftCount?: number;
   onRestartAttempt?: (attempt: PracticeAttempt) => void;
   items: VocabItem[];
   showRuby: boolean;
@@ -31,6 +34,8 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
   onCaptureStatus: (id: string, status: LearningCaptureStatus) => Promise<void>;
 }) {
   const visibleTab = isHome ? 'practice' : activeTab;
+  const addCaptureLabel = locale === 'zh-CN' ? '添加输入' : locale === 'ja' ? '入力を追加' : 'Add input';
+  const headerManaged = usePageHeaderActions(!detailOpen && !isHome && activeTab === 'captures' ? [{ key: 'capture-add', label: addCaptureLabel, icon: <Plus size={20} />, onClick: () => { window.location.hash = '#/capture'; } }] : []);
   const selectedAttempt = attempts.find((attempt) => attempt.id === activeAttemptId);
   if (visibleTab === 'practice' && selectedAttempt) {
     const attemptQuestions = selectedAttempt.questionIds.flatMap((id) => {
@@ -43,15 +48,15 @@ export function DataManagementPanel({ labels, locale, captures, attempts, questi
     </>;
   }
   return (
-    <section className={`data-management-panel mx-auto w-full max-w-5xl py-2 md:py-5`}>
-      {!detailOpen && !isHome && activeTab === 'captures' ? <header className="gentle-records-heading gentle-section-heading">
+    <section className={`data-management-panel mx-auto w-full max-w-3xl py-0`}>
+      {!headerManaged && !detailOpen && !isHome && activeTab === 'captures' ? <header className="gentle-records-heading gentle-section-heading">
         <a href="#/capture" className="gentle-back">{locale === 'zh-CN' ? '＋ 记一点新内容' : locale === 'ja' ? '学習メモを追加' : 'Add a study note'}</a>
       </header> : null}
       <>
       {activeTab === 'captures' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} embedded mode="captures" selectedCaptureId={activeCaptureId} onSelectedCaptureChange={onActiveCaptureChange} /> : null}
-      {visibleTab === 'practice' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} summaryToken={summaryToken} embedded mode="practice" recordSection={recordSection} selectedAttemptId={activeAttemptId} onSelectedAttemptChange={onActiveAttemptChange} attemptQuestionDetailOpen={attemptQuestionDetailOpen} onAttemptQuestionDetailChange={onAttemptQuestionDetailChange} /> : null}
-      {activeTab === 'drafts' ? <div className="pt-5">{draftsContent}</div> : null}
-      {activeTab === 'settings' ? <div className="pt-5">{settingsContent}</div> : null}
+      {visibleTab === 'practice' ? <HistoryPanel labels={labels} locale={locale} captures={captures} attempts={attempts} questions={questions} onCaptureStatus={onCaptureStatus} summaryToken={summaryToken} draftCount={draftCount} embedded mode="practice" recordSection={recordSection} selectedAttemptId={activeAttemptId} onSelectedAttemptChange={onActiveAttemptChange} attemptQuestionDetailOpen={attemptQuestionDetailOpen} onAttemptQuestionDetailChange={onAttemptQuestionDetailChange} /> : null}
+      {activeTab === 'drafts' ? <div>{draftsContent}</div> : null}
+      {activeTab === 'settings' ? <div>{settingsContent}</div> : null}
       </>
     </section>
   );

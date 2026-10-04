@@ -1,5 +1,7 @@
+import './StudyPlanPanel.css';
+import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { ArrowRight, AlertTriangle, BookOpenCheck, CalendarRange, ChevronDown, Clock3, School, Target } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { localDateString, resolvePlanPhases, type PlanPhaseView } from '../../domain/studyPlan';
 import type {
   DraftSummary,
@@ -44,8 +46,9 @@ export function StudyPlanPanel({
   onTaskStatus,
 }: StudyPlanPanelProps) {
   const [profileMode, setProfileMode] = useState<'read' | 'edit'>('read');
+  const [planView, setPlanView] = useState<'agenda' | 'arrangement'>('agenda');
   const [copied, setCopied] = useState(false);
-  const settingsRef = useRef<HTMLDetailsElement>(null);
+  useAuthoringNavigation(profileMode === 'edit' ? labels.planEditProfile : null, () => setProfileMode('read'), { kind: 'form', priority: 1 });
   const isTextbooks = section === 'textbooks';
   const prompt = labels.planMcpPrompt.replace('{level}', plan.profile.level);
   const evidence = useMemo(
@@ -65,19 +68,12 @@ export function StudyPlanPanel({
     setProfileMode('read');
   }
 
-  // "Adjust" is not a page of its own: it lives in the settings fold at the bottom of the single plan page.
-  function openSettings() {
-    const element = settingsRef.current;
-    if (!element) return;
-    element.open = true;
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
   const copy = locale === 'zh-CN'
     ? { today: '今天要做什么', arrangement: '备考安排', settings: '目标与时间', settingsHint: '级别、考试日期、每周时间和教材，点开就能改' }
     : locale === 'ja'
       ? { today: '今日やること', arrangement: '試験までの予定', settings: '目標と時間', settingsHint: 'レベル・試験日・週の時間・教材はここで変更' }
       : { today: 'Today', arrangement: 'Exam preparation', settings: 'Goal and time', settingsHint: 'Level, exam date, weekly time and materials — open to change' };
+  useAuthoringNavigation(planView === 'arrangement' ? copy.arrangement : null, () => setPlanView('agenda'), { kind: 'detail' });
   const textbookTasks = useMemo(
     () => isTextbooks
       ? plan.tasks.filter((task) => task.materialId || plan.profile.materials.some((material) => {
@@ -90,43 +86,36 @@ export function StudyPlanPanel({
 
   if (isTextbooks) {
     return (
-      <div className="gentle-plan mx-auto max-w-4xl space-y-5">
+      <div className="gentle-plan plan-template">
         <PlanCalendar labels={labels} locale={locale} tasks={textbookTasks} summaries={[]} evidence={[]} onTaskStatus={onTaskStatus} />
       </div>
     );
   }
 
   return (
-    <div className="gentle-plan plan-single light-plan mx-auto max-w-4xl">
-      <header className="light-heading"><p>JLPT {plan.profile.level} · {plan.profile.examDate}</p><h1>{locale === 'zh-CN' ? '把目标，分成每天的一小步。' : locale === 'ja' ? '目標を、毎日の一歩に。' : 'One small step toward your goal.'}</h1></header>
-      <section className="plan-single-section" aria-labelledby="plan-today-title">
-        <h2 id="plan-today-title" className="plan-single-title">{copy.today}</h2>
-        <PlanCalendar labels={labels} locale={locale} tasks={plan.tasks} summaries={plan.dailySummaries} evidence={evidence} onTaskStatus={onTaskStatus} />
-      </section>
-
-      <details className="plan-single-section plan-overview-page light-plan-overview">
-        <summary id="plan-arrangement-title">{copy.arrangement}<ChevronDown size={18}/></summary>
-        <PlanOverviewPanel labels={labels} locale={locale} plan={plan} phases={phases} onAdjust={openSettings} />
-      </details>
-
-      <details ref={settingsRef} className="gentle-details plan-settings" id="plan-settings">
-        <summary>
-          <span className="plan-settings-summary">
-            <span>{copy.settings} · JLPT {plan.profile.level} · {formatDateRange(plan.profile.startDate, plan.profile.examDate, locale)}</span>
-            <span>{copy.settingsHint}</span>
-          </span>
-          <ChevronDown size={18} aria-hidden="true" />
-        </summary>
-        {profileMode === 'edit' ? <PlanSetupForm labels={labels} profile={plan.profile} onSave={saveProfile} onCancel={() => setProfileMode('read')} /> : <>
-          <PlanReferencePanel labels={labels} locale={locale} plan={plan} phases={phases} mode="profile" />
-          <button type="button" className="gentle-back" onClick={() => setProfileMode('edit')}>{labels.planEditProfile}</button>
-        </>}
-        <section className="plan-ai-help">
-          <h2 className="text-lg font-semibold">{labels.planMcpRequired}</h2>
-          <p className="mt-2 text-sm leading-6 text-[#647669]">{labels.planMcpRequiredBody}</p>
-          <button type="button" onClick={copyPrompt} className="gentle-back mt-3">{copied ? labels.planPromptCopied : labels.planCopyPrompt}</button>
+    <div className="gentle-plan plan-template">
+      <div hidden={profileMode !== 'edit'}><PlanSetupForm labels={labels} profile={plan.profile} onSave={saveProfile} onCancel={() => setProfileMode('read')} /></div>
+      <div className="plan-single" hidden={profileMode === 'edit'}>
+        <section className="plan-agenda-page" hidden={planView !== 'agenda'} aria-labelledby="plan-today-title">
+          <h2 id="plan-today-title" className="sr-only">{copy.today}</h2>
+          <PlanCalendar labels={labels} locale={locale} tasks={plan.tasks} summaries={plan.dailySummaries} evidence={evidence} onTaskStatus={onTaskStatus} />
+          <button type="button" className="plan-destination-row" onClick={() => setPlanView('arrangement')}><BookOpenCheck size={22} aria-hidden="true" /><span>{copy.arrangement}</span><ArrowRight size={18} aria-hidden="true" /></button>
+          <button type="button" className="plan-destination-row" onClick={() => setPlanView('arrangement')}><Target size={22} aria-hidden="true" /><span>{copy.settings}<small>JLPT {plan.profile.level} · {formatDateRange(plan.profile.startDate, plan.profile.examDate, locale)}</small></span><ArrowRight size={18} aria-hidden="true" /></button>
         </section>
-      </details>
+        <section className="plan-arrangement-page" hidden={planView !== 'arrangement'} aria-label={copy.arrangement}>
+          <PlanOverviewPanel labels={labels} locale={locale} plan={plan} phases={phases} onAdjust={() => setProfileMode('edit')} />
+          <section className="plan-target-summary" aria-label={copy.settings}>
+            <h2>{copy.settings}</h2>
+            <PlanReferencePanel labels={labels} locale={locale} plan={plan} phases={phases} mode="profile" />
+            <button type="button" className="plan-edit-profile" onClick={() => setProfileMode('edit')}>{labels.planEditProfile}</button>
+          </section>
+          <details className="gentle-details plan-ai-help">
+            <summary>{labels.planMcpRequired}</summary>
+            <p className="mt-2 text-sm leading-6 text-[#647669]">{labels.planMcpRequiredBody}</p>
+            <button type="button" onClick={copyPrompt} className="gentle-back mt-3">{copied ? labels.planPromptCopied : labels.planCopyPrompt}</button>
+          </details>
+        </section>
+      </div>
     </div>
   );
 }

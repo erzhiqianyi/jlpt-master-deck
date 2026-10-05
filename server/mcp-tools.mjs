@@ -1,7 +1,7 @@
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
 import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { currentPlatform } from './platform.mjs';
-import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
+import { practiceExplanationPatchSchema, practiceQuestionPatchSchema } from './practice-explanation-schema.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
 import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
@@ -47,6 +47,7 @@ import {
   getReviewPackDraft,
   getDailyPractice,
   updatePracticeQuestionExplanation,
+  updatePracticeQuestion,
   getPlanGenerationContext,
   getPracticeSession,
   getStudyPlan,
@@ -453,6 +454,9 @@ export const tools = [
   tool('get_daily_practice', 'Read one formal daily practice with its generated questions.',
     { practice_id: z.string() }, ro,
     async ({ practice_id }, ctx) => text(found(getDailyPractice(uid(ctx), practice_id), 'Daily practice not found'))),
+  tool('update_practice_question', 'Update one question in an owned published daily or topic practice. Read get_daily_practice first; use its practice and question IDs. Supports prompt, promptTarget, instruction, context, choices, answer, answerIndex, Japanese annotations and explanation fields. Omitted fields are preserved. Choices must be distinct and contain the answer; answerIndex is zero-based and must agree with answer. Questions other than kanji reading still require concrete explanations. Preserves IDs and recorded learning history; does not update source drafts, library seeds or other copies. Text changes clear affected old annotations unless replacements are supplied. updated_at advances for device synchronization.',
+    { practice_id: z.string().min(1), question_id: z.string().min(1), patch: practiceQuestionPatchSchema }, replacing,
+    async ({ practice_id, question_id, patch }, ctx) => text(updatePracticeQuestion(uid(ctx), practice_id, question_id, patch)), { scope: 'library:write' }),
   tool('update_practice_question_explanation', 'Update explanations of one question in an owned published topic or daily practice, including confirmed draft publications. Read get_daily_practice first and use its practice and question IDs. Omitted fields are preserved; choiceAnalysis replaces all option explanations. The merged question must have specific overall and per-choice reasons. Preserves question text, choices, answer, IDs and learning history. Updates the published practice directly, not its source draft or other copies.',
     { practice_id: z.string().min(1), question_id: z.string().min(1), patch: practiceExplanationPatchSchema }, replacing,
     async ({ practice_id, question_id, patch }, ctx) => text(updatePracticeQuestionExplanation(uid(ctx), practice_id, question_id, patch)),

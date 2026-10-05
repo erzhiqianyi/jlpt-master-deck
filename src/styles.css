@@ -7069,7 +7069,10 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .question-review-navigation-dialog h2 { font-size: 18px; margin: 0; }
 .question-review-navigation-dialog header button { min-height: 44px; padding: 8px 12px; }
 .question-review-navigation-dialog .question-review-number-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
+.question-review-mobile-confirm-all { display: none; }
 @media (max-width: 767px) {
+  .question-review-mobile-confirm-all { display: block; width: 100%; margin-block: 8px 16px; background: #285941; color: white; }
+  .question-review-section-heading .question-review-check { display: none; }
   .question-review-navigation, .question-review-desktop-position { display: none; }
   .question-review-workspace .question-review-navigation-trigger { display: inline-flex; align-items: center; }
 }

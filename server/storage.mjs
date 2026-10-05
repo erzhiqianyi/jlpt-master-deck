@@ -3,7 +3,7 @@ import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japane
 import { repairReadingTarget } from './practice-reading-target.mjs';
 import { scheduleItemPronunciation } from './tts/prewarm.mjs';
 import { practiceModules } from '../src/domain/practiceModules.mjs';
-import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
+import { practiceExplanationPatchSchema, practiceQuestionPatchSchema } from './practice-explanation-schema.mjs';
 import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations, isEmptyReason } from '../src/domain/practiceExplanations.mjs';
@@ -3005,7 +3005,11 @@ export function deleteDailyPractice(userId, id) {
 }
 
 export function updatePracticeQuestionExplanation(userId, practiceId, questionId, patch) {
-  const changes = practiceExplanationPatchSchema.parse(patch);
+  return updatePracticeQuestion(userId, practiceId, questionId, practiceExplanationPatchSchema.parse(patch));
+}
+
+export function updatePracticeQuestion(userId, practiceId, questionId, patch) {
+  const changes = practiceQuestionPatchSchema.parse(patch);
   const database = getDb();
   return transaction(database, () => {
     const row = database.prepare('SELECT practice_json FROM daily_practices WHERE user_id = ? AND id = ?').get(userId, practiceId);
@@ -3014,12 +3018,27 @@ export function updatePracticeQuestionExplanation(userId, practiceId, questionId
     const matches = (practice.questions ?? []).filter((question) => question.id === questionId);
     if (matches.length !== 1) throw Object.assign(new Error('Question not found or ambiguous in this practice'), { statusCode: 404 });
     const current = matches[0];
-    if (changes.choiceAnalysis && (changes.choiceAnalysis.length !== current.choices.length
-      || new Set(changes.choiceAnalysis.map((entry) => entry.choice)).size !== current.choices.length
-      || changes.choiceAnalysis.some((entry) => !current.choices.includes(entry.choice)))) {
+    const choices = changes.choices ?? current.choices;
+    const answer = changes.answer ?? (changes.answerIndex !== undefined ? choices[changes.answerIndex] : current.answer);
+    const answerIndex = choices.indexOf(answer);
+    if (answerIndex < 0 || (changes.answerIndex !== undefined && changes.answerIndex !== answerIndex)) {
+      throw new Error('Answer must match a choice and answerIndex');
+    }
+    if (changes.choiceAnalysis && (changes.choiceAnalysis.length !== choices.length
+      || new Set(changes.choiceAnalysis.map((entry) => entry.choice)).size !== choices.length
+      || changes.choiceAnalysis.some((entry) => !choices.includes(entry.choice)))) {
       throw new Error('choiceAnalysis must include every existing choice exactly once');
     }
-    const updated = normalizePracticeExplanations({ ...normalizePracticeExplanations(current), ...changes });
+    const merged = { ...normalizePracticeExplanations(current), ...changes, choices, answer, answerIndex };
+    if (changes.prompt !== undefined && changes.context === undefined && current.context === current.prompt) merged.context = changes.prompt;
+    if (changes.japaneseAnnotations === undefined && (changes.prompt !== undefined || changes.choices !== undefined || changes.context !== undefined || changes.instruction !== undefined)) {
+      const replaced = new Set([changes.prompt !== undefined ? current.prompt : null,
+        changes.context !== undefined || merged.context !== current.context ? current.context : null,
+        changes.instruction !== undefined ? current.instruction : null,
+        ...(changes.choices !== undefined ? current.choices : [])]);
+      merged.japaneseAnnotations = (current.japaneseAnnotations ?? []).filter((entry) => !replaced.has(entry.text));
+    }
+    const updated = normalizePracticeExplanations(merged);
     assertPracticeExplanations([updated]);
     practice.questions = practice.questions.map((question) => question === current ? updated : question);
     database.prepare('UPDATE daily_practices SET practice_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')

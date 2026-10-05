@@ -258,3 +258,21 @@ domains must include `localhost`; use that hostname instead of `127.0.0.1`.
 先读 `get_daily_practice_source_context`：窗口是 `[start,end)`，默认按用户时区的前一天或最近指定小时。可传 ISO 时间边界。卡片来源按窗口内任意符合评分的事件选中卡片，按卡片去重，只取其 `practice_questions`，没有现有题目则返回 `skippedCards`。调用 `generate_daily_practice` 时传同一 `start/end` 与 AI 准备的 `generated_questions`（纯卡片复习传空数组）；服务端附加原有卡片题目，以独立实例 ID 保存，不覆盖历史答案。
 
 `card_reviews` 为独立事件表。Web/iOS 自评携带稳定 `reviewEventId` 与 `reviewedAt`；离线同步保留原时间。MCP `rate_review_card` 支持 `event_id`，重试请复用。事件与进度在同一事务保存。日报做题正确率只来自客观答案；卡片复习另报次数、去重卡片数与四种评分。旧累计进度不能回填独立事件。
+
+### 修改已发布练习题目
+
+`update_practice_question`（需要 `library:write`）直接修改指定的已发布每日／专项练习副本。先通过 `get_daily_practice` 读取当前内容及真实 ID，然后提交局部修改：
+
+```json
+{
+  "practice_id": "<practice.id>",
+  "question_id": "<practice.questions[n].id>",
+  "patch": { "prompt": "修正后的日文题干", "promptTarget": "目标词" }
+}
+```
+
+支持 `prompt`、`promptTarget`、`instruction`、`context`、`choices`、`answer`、`answerIndex`、`japaneseAnnotations`，以及上述解析字段。未提供的字段保留；选项必须不重复且包含答案。`answerIndex` 从 0 开始，若同时提供 `answer`，二者必须一致。若旧 `context` 与旧题干相同，仅修改题干也会同步更新 `context`。文本替换会清除对应旧分词标注，或使用提交的新标注。
+
+题目 ID、条目 ID 和已有答题历史保持不变；不修改源草稿、题库种子或其他已发布副本。修改答案不会追溯重算历史得分。更新练习的 `updated_at`，供设备下次增量同步获取。
+
+HTTP 对应接口：`PATCH /api/daily-practices/:practiceId/questions/:questionId`，请求体为 `patch` 对象本身。原有 `/explanation` 接口继续只接受解析字段。

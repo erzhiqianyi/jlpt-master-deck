@@ -7,6 +7,16 @@ const question = {
   correctReason: '承认购买事实，但还没使用，用ものの。「からには」：后接决心或义务，本题仅陈述未使用。「ばかりに」：表示不良因果，忙碌不是购买造成的。「あげく」：表示曲折后的结果，本题没有曲折过程。',
 };
 
+test('pronunciation questions only require a valid correct answer', () => {
+  const result = normalize({ kind: 'kanji_to_kana', choices: ['しょてあて', 'しょうてあて'], answer: 'しょてあて' });
+  validate([result]);
+  assert.equal(result.correctReason, '正确答案是「しょてあて」。');
+  assert.equal(result.choiceAnalysis[1].explanation, '');
+  validate([normalize({ ...result, correctReason: '是正确答案。' })]);
+  assert.throws(() => validate([{ ...result, answer: 'invalid' }]), /有效的正确答案/);
+  assert.throws(() => validate([{ ...result, kind: 'meaning' }]), /缺少正确理由|缺少具体辨析/);
+});
+
 test('recovers legacy explanations by choice text, preserving answer order and idempotence', () => {
   const result = normalize(question);
   validate([result]);

@@ -13,7 +13,7 @@ export function normalizePracticeExplanations(question) {
   const answer = question.answer ?? choices[question.answerIndex];
   return {
     ...question,
-    correctReason: correctReason || combined,
+    correctReason: correctReason || combined || (isPronunciationQuestion(question) && answer ? `正确答案是「${answer}」。` : ''),
     choiceAnalysis: choices.map((choice) => {
       const entry = provided.find((value) => value.choice === choice);
       const existing = String(entry?.explanation ?? entry?.explanation_zh ?? '').trim();
@@ -34,9 +34,19 @@ export function isEmptyReason(text) {
   return !value || /^(?:「[^」]+」)?(?:不符合本题(?:目标|语境)|是本题正确答案|是正确答案|与本题要求的词义、读音或句子结构不一致)[。！]?$/u.test(value);
 }
 
+function isPronunciationQuestion(question) {
+  return question.kind === 'kanji_to_kana' || question.questionTypeId === 'vocabulary-kanji-reading'
+    || question.question_type_id === 'vocabulary-kanji-reading';
+}
+
 export function assertPracticeExplanations(questions) {
   const problems = [];
   for (const [index, question] of questions.entries()) {
+    if (isPronunciationQuestion(question)) {
+      const answer = question.answer ?? question.choices?.[question.answerIndex];
+      if (!answer || !question.choices?.includes(answer)) problems.push(`第 ${index + 1} 题缺少有效的正确答案`);
+      continue;
+    }
     if (isEmptyReason(question.correctReason) || /^正确答案是/u.test(question.correctReason)) {
       problems.push(`第 ${index + 1} 题缺少正确理由`);
     }

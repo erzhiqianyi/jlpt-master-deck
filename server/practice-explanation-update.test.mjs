@@ -68,3 +68,49 @@ test('HTTP PATCH updates all option explanations and subsequent GET returns them
   assert.deepEqual(read.result.practice.questions[0].choiceAnalysis.map((entry) => entry.correct), [true, false]);
   assert.deepEqual(db.prepare('SELECT * FROM answers').all(), savedAnswers);
 });
+
+test('MCP edits published prompt and target, preserving IDs, history and neighboring copies', async () => {
+  const tool = tools.find((entry) => entry.name === 'update_practice_question');
+  assert.equal(tool.scope, 'library:write');
+  const before = storage.getDailyPractice(alice.id, 'p1');
+  const patch = { prompt: '水（ ）あれば十分だ。', promptTarget: 'さえ' };
+  await tool.handler({ practice_id: 'p1', question_id: 'q1', patch }, { ownerId: String(alice.id) });
+  const after = storage.getDailyPractice(alice.id, 'p1');
+  assert.equal(after.questions[0].prompt, patch.prompt);
+  assert.equal(after.questions[0].promptTarget, patch.promptTarget);
+  assert.equal(after.questions[0].id, 'q1');
+  assert.equal(after.questions[0].itemId, 'i1');
+  assert.equal(after.questions[0].answer, before.questions[0].answer);
+  assert.deepEqual(after.questions[1], before.questions[1]);
+  assert.notEqual(after.updated_at, before.updated_at);
+  assert.deepEqual(db.prepare('SELECT * FROM answers').all(), savedAnswers);
+});
+
+test('general question updates reject unknown fields, invalid answers and other owners atomically', () => {
+  const before = db.prepare('SELECT practice_json FROM daily_practices').get();
+  for (const patch of [{ prompt: '' }, { id: 'replacement' }, { choices: ['さえ', 'さえ'] },
+    { answer: 'unknown' }, { answer: 'さえ', answerIndex: 1 }, { answerIndex: 7 }]) {
+    assert.throws(() => storage.updatePracticeQuestion(alice.id, 'p1', 'q1', patch));
+  }
+  assert.throws(() => storage.updatePracticeQuestion(bob.id, 'p1', 'q1', { prompt: '変更' }), /not found/);
+  assert.deepEqual(db.prepare('SELECT practice_json FROM daily_practices').get(), before);
+});
+
+test('HTTP question PATCH persists corrected reading choices and clears stale prompt annotations', async () => {
+  const reading = { id: 'reading-q', itemId: 'reading-item', kind: 'kanji_to_kana', prompt: '手当', context: '手当', choices: ['てあて', 'てとう'], answer: 'てあて', answerIndex: 0, japaneseAnnotations: [{ text: '手当', tokens: [{ surface: '手当', reading: 'てあて' }] }] };
+  db.prepare("INSERT INTO daily_practices(id,user_id,practice_date,version,title,minutes,practice_json,created_at,updated_at) VALUES(?,?,'2026-10-06',1,'読み',10,?,'old','old')")
+    .run('reading-p', alice.id, JSON.stringify({ questions: [reading] }));
+  const token = storage.loginUser('explanation-alice', 'password-one').token;
+  const req = Readable.from([Buffer.from(JSON.stringify({ prompt: '諸手当', choices: ['しょてあて', 'しょうてあて'], answerIndex: 0, correctReason: '正确答案是「しょてあて」。' }))]);
+  Object.assign(req, { method: 'PATCH', url: '/api/daily-practices/reading-p/questions/reading-q', headers: { host: 'localhost', authorization: `Bearer ${token}` } });
+  let status;
+  await createApiHandler({})(req, { writeHead(code) { status = code; }, end() {} });
+  assert.equal(status, 200);
+  const result = storage.getDailyPractice(alice.id, 'reading-p').questions[0];
+  assert.equal(result.prompt, '諸手当');
+  assert.equal(result.context, '諸手当');
+  assert.equal(result.answer, 'しょてあて');
+  assert.equal(result.answerIndex, 0);
+  assert.deepEqual(result.japaneseAnnotations, []);
+  assert.deepEqual(db.prepare('SELECT * FROM answers').all(), savedAnswers);
+});

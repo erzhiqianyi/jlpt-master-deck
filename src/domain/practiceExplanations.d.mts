@@ -1,4 +1,7 @@
 interface ExplanationInput {
+  kind?: string;
+  questionTypeId?: string;
+  question_type_id?: string;
   choices?: string[];
   answer?: string;
   answerIndex?: number;

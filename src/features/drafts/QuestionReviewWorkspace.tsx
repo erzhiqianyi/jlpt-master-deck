@@ -99,6 +99,9 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
         <button type="button" className="question-review-navigation-trigger" aria-haspopup="dialog" disabled={busy} onClick={() => navigationDialog.current?.showModal()}>第 {current + 1} / {questions.length} 题 ▾</button>
         <button type="button" disabled={current === questions.length - 1 || busy} onClick={() => {setIndex(current + 1); setNotice(''); setError('');}}>下一题</button>
       </nav>
+      <button type="button" className="question-review-mobile-confirm-all question-review-confirm-all" disabled={busy || count === questions.length || archived} onClick={confirmAll}>
+        {busy ? '正在保存…' : count === questions.length ? '全部已确认' : `确认全部 ${questions.length} 题`}
+      </button>
       <div className="question-review-section-heading"><h2>看题目</h2>
       <label className="question-review-check">
         <input type="checkbox" checked={confirmed} disabled={busy || archived} onChange={(event) => save(event.target.checked)} />
@@ -117,7 +120,7 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
       <label htmlFor="question-review-note">这题哪里需要调整？</label>
       <textarea id="question-review-note" value={note} disabled={busy || archived} onChange={(event) => { const value = event.target.value; setNotes((currentNotes) => ({ ...currentNotes, [key]: value })); setNotice(''); setError(''); }} placeholder="例如：解释再详细一些，或选项不太自然。" />
       <button type="button" className="preview-disclosure-trigger" disabled={busy || !dirty || archived} onClick={() => save(false)}>保存批注</button>
-      <p role="status">{notice || (dirty ? '还没保存，记得保存批注。' : confirmed ? '这题已确认。修改后请重新确认。' : '阅读后，请勾选确认这题。')}</p>
+      <p role="status">{notice || (dirty ? '还没保存，记得保存批注。' : confirmed ? '这题已确认。修改后请重新确认。' : '阅读后，可以一键确认全部题目。')}</p>
       {error ? <p role="alert">{error}</p> : null}
       </section>
       <div className="question-review-final">

@@ -734,6 +734,7 @@ private enum DraftPresentation {
 }
 
 private struct NativeDraftQuestion: View {
+    @State private var answerRevealed = false
     let fields: [String: SettingValue]
     let number: Int
     private var choices: [SettingValue] { DraftPresentation.array(fields["choices"]) }
@@ -762,13 +763,17 @@ private struct NativeDraftQuestion: View {
             JapaneseText(text: DraftPresentation.text(fields, "prompt", "question", "title") ?? "题目内容待补充", japanese: true)
                 .font(.headline).fixedSize(horizontal: false, vertical: true)
             ForEach(choices.indices, id: \.self) { index in
+                let isCorrect = answerRevealed && answer == choice(choices[index])
                 HStack(alignment: .top, spacing: 12) {
                     Text("\(index + 1)").font(.subheadline.monospacedDigit()).foregroundStyle(DeckTheme.muted)
                         .frame(width: 24)
                     JapaneseText(text: choice(choices[index]), japanese: true).frame(maxWidth: .infinity, alignment: .leading)
-                }.padding(12).background(DeckTheme.green.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+                    if isCorrect { Label("正确", systemImage: "checkmark.circle.fill").font(.caption.bold()).foregroundStyle(DeckTheme.green) }
+                }.padding(12)
+                    .background(DeckTheme.green.opacity(isCorrect ? 0.14 : 0.05), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(isCorrect ? DeckTheme.green : .clear, lineWidth: 1.5) }
             }
-            DisclosureGroup("答案与解析") {
+            DisclosureGroup("答案与解析", isExpanded: $answerRevealed) {
                 VStack(alignment: .leading, spacing: 12) {
                     if let answer { JapaneseText(text: "正确答案：" + answer, weight: .semibold).foregroundStyle(DeckTheme.green) }
                     if let explanation = DraftPresentation.text(fields, "explanation_zh", "explanation", "correctReason") { JapaneseText(text: explanation, explanation: true) }

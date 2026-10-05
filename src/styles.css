@@ -7075,3 +7075,11 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 }
 .gentle-draft .question-review-group-title { margin: 18px 0 6px; font-size: 16px; color: #526659; }
 .question-review-group-instruction { margin: 0 0 12px; font-size: 14px; color: #627568; }
+
+.gentle-draft-questions li[data-answer-state="correct"] {
+  background: #e3efe7;
+  color: #285941;
+  border: 1px solid #abc6b0;
+  border-left: 3px solid #285941;
+}
+.gentle-draft-questions li[data-answer-state="correct"] > p.font-semibold { color: #285941; }

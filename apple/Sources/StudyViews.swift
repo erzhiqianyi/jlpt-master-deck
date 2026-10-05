@@ -167,7 +167,7 @@ struct MemoryReviewView: View {
                                 ConfiguredCardView(item: item, fields: activeFields, revealed: revealed,
                                     speechControls: AnyView(HStack(spacing: 0) {
                                         NativeSpeechControls(text: item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original, iconOnly: true, identifier: "review.speech", showsDownload: false)
-                                        if sizeClass != .compact {
+                                        if revealed && sizeClass != .compact {
                                             Menu {
                                                 Button("放到左侧") { speechSide = "left" }
                                                 Button("放到右侧") { speechSide = "right" }

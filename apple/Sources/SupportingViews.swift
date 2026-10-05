@@ -298,17 +298,48 @@ struct NativeMistakesView: View {
 }
 struct NativeDraftStatisticsView: View {
     @Environment(AppStore.self) private var store
+    @State private var reviewingDraft: PracticeDraft?
+    @State private var round: NativeRound?
+    @State private var confirmedPack: NativePack?
+
     var body: some View {
         List(store.drafts) { draft in
-            VStack(alignment: .leading, spacing: 8) {
-                Text(draft.title).font(.headline); Text(draft.status).font(.caption).foregroundStyle(DeckTheme.muted)
-                if let pack = store.packs.first(where: { $0.sourceDraftId == draft.id }) {
-                    NavigationLink("开始练习 · \(pack.questions.count) 题") { NativeQuizView(round: NativeRound(title: pack.title, questions: pack.questions.filter(\.isUsable), view: "daily-practice", practiceId: pack.id)) }
-                }
+            let pack = store.packs.first { $0.sourceDraftId == draft.id }
+            Button {
+                if let pack { start(pack) }
+                else { reviewingDraft = draft }
+            } label: {
+                DeckRow(title: draft.title,
+                        subtitle: pack.map { "开始练习 · \($0.questions.count) 题" } ?? "\(statusLabel(draft.status)) · 查看题目",
+                        icon: "doc.text")
             }
-        }.navigationTitle("练习草稿")
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("draft.open.\(draft.id)")
+        }
+        .navigationTitle("练习草稿")
+        .fullScreenCover(item: $round) { NativeQuizView(round: $0) }
+        .fullScreenCover(item: $reviewingDraft, onDismiss: {
+            if let pack = confirmedPack { confirmedPack = nil; start(pack) }
+        }) { draft in
+            NativeTopicConfirmationView(draftID: draft.id, isDaily: !draft.isTopic) { confirmedPack = $0 }
+        }
+    }
+
+    private func start(_ pack: NativePack) {
+        round = NativeRound(title: pack.title, questions: pack.questions.filter(\.isUsable), view: "daily-practice", practiceId: pack.id)
+    }
+
+    private func statusLabel(_ status: String) -> String {
+        switch status {
+        case "draft": "待审核"
+        case "needs_revision": "待修改"
+        case "approved": "已确认"
+        case "archived": "已归档"
+        default: status
+        }
     }
 }
+
 struct AccountView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -397,7 +428,7 @@ struct CardSettingsView: View {
     @State private var message: String?
     var body: some View {
         Form {
-            Section { Text("与 Web 端共用正反面内容设置，缺少内容的字段自动省略。保存需要联网。") }
+            Section { Text("与 Web 端共用正反面内容设置，缺少内容的字段自动省略。正面读音默认隐藏，可在「卡片正面」中开启「读音」。保存需要联网。") }
             fields("卡片正面", selection: $front)
             fields("卡片背面", selection: $back)
             Section {
@@ -459,13 +490,19 @@ struct ConfiguredCardView: View {
     private var heading: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let original = item.cardText("original", locale: locale), fields.contains("original") {
-                HStack(spacing: 8) {
-                    if speechSide == "left" { speechControls }
-                    JapaneseText(text: original, item: item, japanese: true, allowsRuby: true, fontSize: (revealed ? 36 : 48) * store.textScale, alignment: revealed ? .left : .center, weight: .bold)
-                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: revealed ? .leading : .center)
-                    NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
-                    if speechSide != "left" { speechControls }
+                if revealed {
+                    HStack(spacing: 8) {
+                        if speechSide == "left" { speechControls }
+                        headingWord(original)
+                        NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
+                        if speechSide != "left" { speechControls }
+                    }
+                } else {
+                    VStack(spacing: 12) {
+                        headingWord(original)
+                        NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
+                        speechControls
+                    }.frame(maxWidth: .infinity)
                 }
             } else { speechControls }
             if revealed, metadata.contains("reading"), !store.displayFlag("showReviewRuby") {
@@ -479,6 +516,13 @@ struct ConfiguredCardView: View {
             }
         }.padding(revealed ? 22 : 0).frame(maxWidth: .infinity, alignment: .leading)
             .background(revealed ? DeckTheme.green.opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 24))
+    }
+    private func headingWord(_ original: String) -> some View {
+        JapaneseText(text: original, item: item, japanese: true, allowsRuby: revealed,
+                     fontSize: (revealed ? 36 : 48) * store.textScale,
+                     alignment: revealed ? .left : .center, weight: .bold)
+            .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: revealed ? .leading : .center)
     }
     private func metadataEntry(_ field: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {

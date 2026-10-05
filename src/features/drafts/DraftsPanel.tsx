@@ -945,7 +945,7 @@ function QuestionList({ questions, sections, grammarItems = [], labels, startNum
                 {question.choices.map((choice, choiceIndex) => {
                   const isAnswer = isRevealed && (answerChoiceNumber !== null ? choiceIndex + 1 === answerChoiceNumber : choice === question.answer);
                   return (
-                    <li key={`${choice}-${choiceIndex}`} className={`rounded-md border px-3 py-2 text-sm leading-6 ${isAnswer ? 'border-[#31564c] bg-[#edf4ef] text-[#24473f]' : 'border-[#d7dfd6] bg-white text-[#4f5b55]'}`}>
+                    <li key={`${choice}-${choiceIndex}`} data-answer-state={isAnswer ? 'correct' : undefined} className={`rounded-md border px-3 py-2 text-sm leading-6 ${isAnswer ? 'border-[#31564c] bg-[#edf4ef] text-[#24473f]' : 'border-[#d7dfd6] bg-white text-[#4f5b55]'}`}>
                       <span className="font-semibold">{choiceIndex + 1}. </span>{choice}
                       {isAnswer ? <span className="ml-2 text-xs font-semibold">{labels.draftCorrectAnswer}</span> : null}
                     </li>
@@ -966,7 +966,7 @@ function QuestionList({ questions, sections, grammarItems = [], labels, startNum
                     <h5 className="font-semibold text-[#27312c]">{labels.choiceAnalysisLabel ?? '选项辨析'}</h5>
                     <ol className="mt-2 grid gap-2">
                       {explanationDetails.choiceAnalysis.map((choice, choiceIndex) => (
-                        <li key={`${choice.choice}-${choiceIndex}`} className="rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3">
+                        <li key={`${choice.choice}-${choiceIndex}`} data-answer-state={choice.correct ? 'correct' : undefined} className="rounded-md border border-[#d8e1d9] bg-[#f8faf7] p-3">
                           <p className="font-semibold text-[#27312c]">{choiceIndex + 1}. {choice.choice}{choice.correct ? <span className="ml-2 text-xs text-[#31564c]">{labels.draftCorrectAnswer}</span> : null}</p>
                           <p className="mt-1 whitespace-pre-wrap">{choice.explanation || '这项还没有记录具体解析。'}</p>
                         </li>

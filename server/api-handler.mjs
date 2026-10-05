@@ -64,6 +64,7 @@ import {
   loginUser,
   reviewDataPath,
   saveAnswer,
+  replayPendingAnswer,
   savePracticeState,
   saveProgressEntry,
   saveSettings,
@@ -395,13 +396,19 @@ return async (req, res) => {
     }
 
     const progressMatch = /^\/api\/study-state\/progress\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && progressMatch) {
-      const itemId = decodeURIComponent(progressMatch[1]);
+    if (progressMatch && ['GET', 'PUT'].includes(req.method)) {
+      const requestedId = decodeURIComponent(progressMatch[1]);
+      const isReference = /^[A-Z]{2}-\d{6,}$/i.test(requestedId);
+      const resolved = isReference ? resolveReference(getDb(), user.id, requestedId) : null;
+      const itemId = isReference ? (resolved?.entity === 'item' ? resolved.id : null) : requestedId;
+      if (!itemId) return json(res, 404, { error: 'Review item not found' });
+      if (req.method === 'PUT') return json(res, 200, saveProgressEntry(user.id, itemId, await readJson(req)));
       const state = getStudyState(user.id);
       return json(res,200,{ progress:state.progress[itemId] ? {[itemId]:state.progress[itemId]} : {}, answers:{}, attemptHistory:state.attemptHistory });
     }
-    if (req.method === 'PUT' && progressMatch) {
-      return json(res, 200, saveProgressEntry(user.id, decodeURIComponent(progressMatch[1]), await readJson(req)));
+
+    if (req.method === 'POST' && url.pathname === '/api/answers/replay') {
+      return json(res, 200, replayPendingAnswer(user.id, await readJson(req)));
     }
 
     if (req.method === 'POST' && url.pathname === '/api/answers') {

@@ -1573,6 +1573,87 @@ function saveStudyPlanDocument(userId, plan) {
   return { ...normalized, dailySummaries: buildDailySummaries(userId, normalized.tasks), updatedAt: now };
 }
 
+// Stable replay identities replace client-side GET/compare/POST for native answers.
+// Old snapshots cannot prove whether a divergent cloud result already includes them.
+export function replayPendingAnswer(userId, { eventId, before, input, legacy = true, decision }) {
+  if (typeof eventId !== 'string' || !eventId || eventId.length > 200 || !before || !input
+      || typeof input.itemId !== 'string' || !input.itemId || typeof input.questionId !== 'string' || !input.questionId
+      || typeof input.selected !== 'string' || typeof input.correct !== 'boolean' || !input.progressEntry
+      || (decision !== undefined && !['merge', 'already_counted'].includes(decision))) throw new Error('Invalid answer replay');
+  const target = input.progressEntry;
+  if (typeof legacy !== 'boolean' || [before.correct,before.wrong,target.correct,target.wrong].some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error('Invalid answer replay counts');
+  if (String(input.questionId).startsWith('memory-card:') && ['forgot','hard','remembered','easy'].includes(input.selected)) throw new Error('Use card review event endpoint');
+  const time = target.lastReviewedAt;
+  if (!Number.isFinite(Date.parse(time))) throw new Error('Invalid answer replay timestamp');
+  const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.keys(value).sort().filter(key => value[key] != null).map(key => [key, stable(value[key])])) : value;
+  const canonical = value => JSON.stringify(stable(value));
+  // History can expand as other devices sync. It is not part of answer identity.
+  const identity = { itemId: input.itemId, questionId: input.questionId, selected: input.selected, correct: input.correct, time, before, target };
+  const hash = createHash('sha256').update(canonical(identity)).digest('hex');
+  const database = getDb();
+  database.exec(`CREATE TABLE IF NOT EXISTS answer_replay_receipts (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id TEXT NOT NULL, payload_hash TEXT NOT NULL, payload_json TEXT NOT NULL,
+    outcome TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(user_id,event_id)
+  )`);
+  let outcome;
+  transaction(database, () => {
+    const existing = database.prepare('SELECT * FROM answer_replay_receipts WHERE user_id=? AND event_id=?').get(userId,eventId);
+    if (existing) {
+      if (existing.payload_hash !== hash) throw new Error('Answer replay event ID conflicts with saved event');
+      outcome = 'duplicate'; return;
+    }
+    const knownItem = loadReviewData(userId).items.some(item => item.id === input.itemId)
+      || listReadingQuestions(userId).some(item => item.id === input.itemId)
+      || listListeningQuestions(userId).some(item => item.id === input.itemId)
+      || listDailyPractices(userId).some(pack => (getDailyPractice(userId,pack.id)?.questions ?? []).some(question => question.itemId === input.itemId));
+    if (!knownItem) throw new Error('Study item not found');
+    const current = getStudyState(userId).progress[input.itemId] ?? { correct:0, wrong:0, status:'new' };
+    const same = canonical(current) === canonical(before);
+    if (legacy && !same && !decision) { outcome = 'needs_resolution'; return; }
+    if (decision !== 'already_counted') {
+      // One queue operation must describe one answer, never an arbitrary accumulated delta.
+      if (target.correct - before.correct !== (input.correct ? 1 : 0)
+          || target.wrong - before.wrong !== (input.correct ? 0 : 1)) throw new Error('Invalid answer replay increment');
+      let next = progressAfterAnswer(current, input.correct, new Date(time));
+      if (Date.parse(current.lastReviewedAt) > Date.parse(time)) {
+        // A delayed answer contributes history/counts without rewinding a newer schedule.
+        for (const key of ['lastReviewedAt','nextReviewAt','ease','intervalDays','status','lastPracticeSessionId']) {
+          if (current[key] !== undefined) next[key] = current[key]; else delete next[key];
+        }
+      } else if (target.lastPracticeSessionId) next.lastPracticeSessionId = target.lastPracticeSessionId;
+      if (!next.firstSeenAt || Date.parse(time) < Date.parse(next.firstSeenAt)) next.firstSeenAt = new Date(time).toISOString();
+      database.prepare(`INSERT INTO progress(user_id,item_id,progress_json,updated_at) VALUES(?,?,?,?)
+        ON CONFLICT(user_id,item_id) DO UPDATE SET progress_json=excluded.progress_json,updated_at=excluded.updated_at`)
+        .run(userId,input.itemId,JSON.stringify(next),new Date().toISOString());
+      // Subsequent card replay starts from the merged counts, not an old card baseline.
+      database.prepare('DELETE FROM card_review_sync_baselines WHERE user_id=? AND item_id=?').run(userId,input.itemId);
+      database.prepare('DELETE FROM card_review_sync_events WHERE user_id=? AND item_id=?').run(userId,input.itemId);
+    }
+    database.prepare(`INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)
+      ON CONFLICT(user_id,question_id) DO UPDATE SET item_id=excluded.item_id,selected=excluded.selected,correct=excluded.correct,answered_at=excluded.answered_at
+      WHERE julianday(excluded.answered_at)>=julianday(answers.answered_at)`)
+      .run(userId,input.questionId,input.itemId,input.selected,input.correct ? 1 : 0,new Date(time).toISOString());
+    if (Array.isArray(input.attemptHistory)) {
+      const history = new Map(getPracticeState(userId).attemptHistory.map(attempt => [attempt.id,attempt]));
+      for (const attempt of input.attemptHistory) {
+        if (!attempt?.id) throw new Error('Invalid replay attempt');
+        const previous = history.get(attempt.id);
+        if (previous?.completedAt) continue;
+        history.set(attempt.id,attempt);
+      }
+      upsertPracticeState(userId,[...history.values()].sort((a,b) => (b.completedAt ?? b.startedAt).localeCompare(a.completedAt ?? a.startedAt)),undefined,new Date().toISOString());
+    }
+    outcome = decision === 'already_counted' ? 'already_counted' : 'accepted';
+    database.prepare('INSERT INTO answer_replay_receipts VALUES(?,?,?,?,?,?)')
+      .run(userId,eventId,hash,JSON.stringify({before,input,legacy,decision}),outcome,new Date().toISOString());
+  });
+  const state = getStudyState(userId);
+  return { eventId, outcome, state: { progress:state.progress[input.itemId] ? {[input.itemId]:state.progress[input.itemId]} : {},
+    answers:state.answers[input.questionId] ? {[input.questionId]:state.answers[input.questionId]} : {}, attemptHistory:state.attemptHistory } };
+}
+
 export function saveAnswer(userId, { questionId, itemId, selected, correct, progressEntry, attemptHistory, activeAttempt, reviewEventId, reviewedAt, source }) {
   if (!questionId || !itemId || typeof selected !== 'string' || typeof correct !== 'boolean' || !progressEntry) {
     throw new Error('Invalid answer payload');

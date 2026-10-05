@@ -8,6 +8,11 @@ struct PendingAnswer: Codable, Identifiable {
     let before: ProgressEntry
     let input: AnswerInput
     var historyOnly: Bool? = nil
+    // Optional for backwards-compatible decoding of existing on-device queues.
+    var needsSyncReview: Bool? = nil
+    var syncDecision: String? = nil
+    var isCardReview: Bool { input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: input.selected) != nil }
+    var canAutomaticallyUpload: Bool { needsSyncReview != true }
     enum Disposition { case send, alreadyApplied, conflict }
     func disposition(cloud: ProgressEntry) -> Disposition {
         // Subjective ratings are immutable events. The server deduplicates and merges
@@ -42,6 +47,8 @@ struct LocalStudyData: Codable {
     var syncCursor: String?
     var hasPracticeCache = false
     var hasListeningCache = false
+    var uploadableCount: Int { pending.filter(\.canAutomaticallyUpload).count }
+    var syncReviewCount: Int { pending.count - uploadableCount }
     var responses: [String: LocalStudyResponse]?
 
     /// Downloaded content can advance independently of queued, unacknowledged answers.
@@ -162,9 +169,11 @@ extension LocalStudyData {
             let answer = answers[question.id]!
             let before = next.state.progress[question.itemId] ?? ProgressEntry()
             let progress = before.afterPractice(correct: answer.correct, now: StudyDates.parse(answer.answeredAt) ?? .now)
-            let operation = PendingAnswer(id: UUID(), before: before,
+            let eventID = UUID()
+            var operation = PendingAnswer(id: eventID, before: before,
                 input: .init(questionId: question.id, itemId: question.itemId, selected: answer.selected, correct: answer.correct,
-                             progressEntry: progress, attemptHistory: index == additions.count - 1 ? [attempt] : nil))
+                             progressEntry: progress, attemptHistory: index == additions.count - 1 ? [attempt] : nil, syncEventId: eventID.uuidString))
+            if next.pending.contains(where: { $0.input.itemId == question.itemId && $0.needsSyncReview == true }) { operation.needsSyncReview = true }
             next.pending.append(operation)
             next.state.progress[question.itemId] = progress
             next.state.answers[question.id] = .init(selected: answer.selected, correct: answer.correct, answeredAt: answer.answeredAt)

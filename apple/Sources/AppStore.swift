@@ -52,6 +52,8 @@ final class AppStore {
     @ObservationIgnored private var restoredSession = false
     private var generation = 0
     var pendingCount: Int { pending.count }
+    var uploadableCount: Int { pending.filter(\.canAutomaticallyUpload).count }
+    var syncReviewCount: Int { pendingCount - uploadableCount }
     var todayPacks: [NativePack] {
         let today = StudyDates.day()
         let topicIDs = Set(drafts.filter(\.isTopic).map(\.id))
@@ -146,14 +148,14 @@ final class AppStore {
     }
     func scheduleAutomaticRefresh() {
         guard !isRestoring, !isRestoringLocal, !isDemo, session != nil, isOnline, automaticRefreshTask == nil else { return }
-        guard AutomaticRefreshPolicy.shouldRefresh(lastSync: lastSync, lastAttempt: lastAutomaticAttempt, hasPending: !pending.isEmpty) else { return }
+        guard AutomaticRefreshPolicy.shouldRefresh(lastSync: lastSync, lastAttempt: lastAutomaticAttempt, hasPending: uploadableCount > 0) else { return }
         let expected = generation
         automaticRefreshTask = Task { [weak self] in
             do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
             guard let self, expected == self.generation else { return }
             defer { if expected == self.generation { self.automaticRefreshTask = nil } }
             guard !Task.isCancelled, self.isOnline, !self.isRestoringLocal, !self.isLoading, !self.isSaving else { return }
-            guard AutomaticRefreshPolicy.shouldRefresh(lastSync: self.lastSync, lastAttempt: self.lastAutomaticAttempt, hasPending: !self.pending.isEmpty) else { return }
+            guard AutomaticRefreshPolicy.shouldRefresh(lastSync: self.lastSync, lastAttempt: self.lastAutomaticAttempt, hasPending: self.uploadableCount > 0) else { return }
             self.lastAutomaticAttempt = .now
             await self.refresh()
         }
@@ -196,8 +198,7 @@ final class AppStore {
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             hasPracticeCache = true; hasListeningCache = true
             lastSync = data.lastSync; syncCursor = data.syncCursor
-            notice = result.uploadError.map { "云端学习数据已更新，\(pending.count) 条本机答题记录仍待上传。\n\($0)" }
-                ?? (pending.isEmpty ? "学习数据已同步到本机。" : "学习数据已更新，\(pending.count) 条答题记录等待同步。")
+            notice = result.uploadError.map { syncSummary + "\n" + $0 } ?? syncSummary
             error = nil
             startImageDownload()
             return result.data
@@ -319,7 +320,9 @@ final class AppStore {
         let before = state.progress[itemID] ?? ProgressEntry()
         let previous = state
         let previousResponses = responses
-        let operation = PendingAnswer(id: UUID(), before: before, input: AnswerInput(questionId: questionID, itemId: itemID, selected: selected, correct: correct, progressEntry: progress, attemptHistory: attempt.map { [$0] }, reviewEventId: questionID.hasPrefix("memory-card:") ? UUID().uuidString : nil, reviewedAt: questionID.hasPrefix("memory-card:") ? progress.lastReviewedAt : nil, source: questionID.hasPrefix("memory-card:") ? "ios" : nil))
+        let eventID = UUID()
+        var operation = PendingAnswer(id: eventID, before: before, input: AnswerInput(questionId: questionID, itemId: itemID, selected: selected, correct: correct, progressEntry: progress, attemptHistory: attempt.map { [$0] }, reviewEventId: questionID.hasPrefix("memory-card:") ? UUID().uuidString : nil, reviewedAt: questionID.hasPrefix("memory-card:") ? progress.lastReviewedAt : nil, source: questionID.hasPrefix("memory-card:") ? "ios" : nil, syncEventId: eventID.uuidString))
+        if !operation.isCardReview && pending.contains(where: { $0.input.itemId == itemID && $0.needsSyncReview == true }) { operation.needsSyncReview = true }
         pending.append(operation)
         if newResponses.isEmpty {
             let title = items.first { $0.id == itemID }?.original
@@ -340,7 +343,7 @@ final class AppStore {
         let expected = generation
         do {
             try await flushPending(expected: expected)
-            if expected == generation { notice = pending.isEmpty ? nil : "答题记录等待同步。" }
+            if expected == generation { notice = pending.isEmpty ? nil : syncSummary }
         } catch {
             guard expected == generation else { return }
             if case APIError.http(401, _) = error { handle(error) }
@@ -348,25 +351,15 @@ final class AppStore {
         }
     }
     private func flushPending(expected: Int) async throws {
-        guard !pending.isEmpty else { return }
+        guard uploadableCount > 0 else { return }
         isSaving = true
         let total = pending.count
         defer { isSaving = false; if !isLoading { syncStage = nil } }
-        var blocked = Set<UUID>()
-        var conflictTitles: [String] = []
-        while let operation = pending.first(where: { !blocked.contains($0.id) }) {
+        while let operation = pending.first(where: \.canAutomaticallyUpload) {
             syncStage = "正在上传答题记录 \(total - pending.count) / \(total)…"
             let isCardReview = operation.input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: operation.input.selected) != nil
             var cloud = state
-            if !isCardReview {
-                let id = operation.input.itemId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?#"))) ?? operation.input.itemId
-                let remote: StudyState = try await api.get("api/study-state/progress/\(id)")
-                cloud.progress[operation.input.itemId] = remote.progress[operation.input.itemId]
-                cloud.attemptHistory = remote.attemptHistory
-            }
-            guard expected == generation else { return }
-            switch operation.disposition(cloud: cloud.progress[operation.input.itemId] ?? ProgressEntry()) {
-            case .alreadyApplied:
+            if operation.historyOnly == true {
                 if let attempts = operation.input.attemptHistory {
                     let merged = NativeAttempt.merging(cloud.attemptHistory ?? [], attempts)
                     if merged != cloud.attemptHistory {
@@ -374,7 +367,7 @@ final class AppStore {
                         cloud = try await api.put("api/study-state/practice", body: HistoryUpdate(attemptHistory: merged))
                     }
                 }
-            case .send:
+            } else if isCardReview {
                 var input = operation.input
                 if let attempts = input.attemptHistory { input.attemptHistory = NativeAttempt.merging(cloud.attemptHistory ?? [], attempts) }
                 let acknowledgment: StudyState = try await api.post("api/answers?compact=1", body: input)
@@ -386,14 +379,30 @@ final class AppStore {
                     events.removeAll { $0.eventId == event.eventId }; events.append(event)
                     cloud.cardReviews = events
                 }
-            case .conflict:
-                let title = responses[operation.input.questionId]?.title
-                    ?? items.first { $0.id == operation.input.itemId }?.original
-                    ?? operation.input.itemId
-                blocked.insert(operation.id)
-                conflictTitles.append(title)
-                // Other records can still be acknowledged and persisted.
-                continue
+            } else {
+                struct Replay: Encodable {
+                    let eventId: String; let before: ProgressEntry; let input: AnswerInput
+                    let legacy: Bool; let decision: String?
+                }
+                struct Receipt: Decodable { let eventId: String; let outcome: String; let state: StudyState }
+                let receipt: Receipt = try await api.post("api/answers/replay", body: Replay(
+                    eventId: operation.input.syncEventId ?? operation.id.uuidString, before: operation.before,
+                    input: operation.input, legacy: operation.input.syncEventId == nil, decision: operation.syncDecision))
+                guard expected == generation else { return }
+                guard receipt.eventId == (operation.input.syncEventId ?? operation.id.uuidString) else { throw APIError.invalidResponse }
+                if receipt.outcome == "needs_resolution" {
+                    let previousPending = pending
+                    // Dependent operations must wait too; persist this once, across logins.
+                    for index in pending.indices where pending[index].input.itemId == operation.input.itemId && !pending[index].isCardReview && pending[index].historyOnly != true {
+                        pending[index].needsSyncReview = true
+                    }
+                    do { try persist() } catch { pending = previousPending; throw error }
+                    continue
+                }
+                guard ["accepted", "duplicate", "already_counted"].contains(receipt.outcome) else { throw APIError.invalidResponse }
+                cloud.progress.merge(receipt.state.progress) { _, new in new }
+                cloud.answers.merge(receipt.state.answers) { _, new in new }
+                if let attempts = receipt.state.attemptHistory { cloud.attemptHistory = attempts }
             }
             guard expected == generation else { return }
             let previous = state
@@ -410,9 +419,19 @@ final class AppStore {
                 throw error
             }
         }
-        if !conflictTitles.isEmpty {
-            throw IdentityError.message("\(conflictTitles.count) 条记录需要处理冲突（\(conflictTitles.prefix(3).joined(separator: "、"))）。其余记录已继续上传；冲突记录保留在本机。")
-        }
+    }
+    var syncSummary: String {
+        String(format: interfaceText("学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。"), uploadableCount, syncReviewCount)
+    }
+    func resolveSyncRecord(_ id: UUID, decision: String) async {
+        guard ["merge", "already_counted"].contains(decision), !isRestoringLocal, !isLoading, !isSaving,
+              let index = pending.firstIndex(where: { $0.id == id && $0.needsSyncReview == true }) else { return }
+        let previous = pending
+        pending[index].needsSyncReview = false
+        pending[index].syncDecision = decision
+        do { try persist() }
+        catch { pending = previous; notice = error.localizedDescription; return }
+        await refresh()
     }
     private func applyPending() {
         for operation in pending {

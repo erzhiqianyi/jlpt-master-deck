@@ -702,6 +702,35 @@ final class OfflineStudyTests: XCTestCase {
         XCTAssertEqual(pending.disposition(cloud: next), .alreadyApplied)
         XCTAssertEqual(pending.disposition(cloud: before.rated(.forgot)), .conflict)
     }
+    func testSyncReviewStateSurvivesDiskAndDoesNotTriggerAutomaticUploads() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = LocalStudyFiles(root: root)
+        var snapshot = LocalStudyData()
+        let before = ProgressEntry()
+        var operation = PendingAnswer(id: UUID(), before: before, input: .init(questionId: "q", itemId: "i", selected: "A", correct: true, progressEntry: before.rated(.remembered)))
+        operation.needsSyncReview = true
+        snapshot.pending = [operation]
+        snapshot.lastSync = .now
+        try files.save(snapshot, userID: 1)
+        let restored = try XCTUnwrap(files.load(userID: 1))
+        XCTAssertEqual(restored.syncReviewCount, 1)
+        XCTAssertEqual(restored.uploadableCount, 0)
+        XCTAssertFalse(AutomaticRefreshPolicy.shouldRefresh(lastSync: restored.lastSync, lastAttempt: nil, hasPending: restored.uploadableCount > 0))
+        operation.needsSyncReview = false
+        operation.syncDecision = "merge"
+        snapshot.pending = [operation]
+        try files.save(snapshot, userID: 1)
+        XCTAssertEqual(try files.load(userID: 1)?.pending.first?.syncDecision, "merge")
+        XCTAssertEqual(try files.load(userID: 1)?.uploadableCount, 1)
+    }
+    func testLegacyQueueDecodesWithoutSyncMetadata() throws {
+        let operation = PendingAnswer(id: UUID(), before: ProgressEntry(), input: .init(questionId: "q", itemId: "i", selected: "A", correct: true, progressEntry: ProgressEntry()))
+        let decoded = try JSONDecoder().decode(PendingAnswer.self, from: JSONEncoder().encode(operation))
+        XCTAssertNil(decoded.needsSyncReview)
+        XCTAssertNil(decoded.input.syncEventId)
+        XCTAssertTrue(decoded.canAutomaticallyUpload)
+    }
     @MainActor func testDailyOrderingChangesOnlyAfterEveryQuestionHasAnAnswer() {
         let pack = NativePack(id: "today", title: "Today", date: StudyDates.day(), questions: [question(), question(id: "q2")])
         var answers: [String: StudyState.Answer] = [:]

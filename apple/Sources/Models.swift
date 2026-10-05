@@ -139,6 +139,7 @@ struct AnswerInput: Codable {
     var reviewEventId: String?
     var reviewedAt: String?
     var source: String?
+    var syncEventId: String?
 }
 
 enum StudyDates {

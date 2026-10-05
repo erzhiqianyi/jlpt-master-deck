@@ -2841,7 +2841,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     const target = String(question.tested ?? question.target ?? '').trim().normalize('NFKC');
     const matchingItems = target ? reviewItems.filter((candidate) =>
       candidate.original?.trim().normalize('NFKC') === target &&
-      (draftQuestionKind(question.kind) !== 'grammar' || candidate.deck === 'grammar_expression')) : [];
+      (draftQuestionKind(question.kind ?? question.type) !== 'grammar' || candidate.deck === 'grammar_expression')) : [];
     const item = seededItem ?? (matchingItems.length === 1 ? matchingItems[0] : undefined);
     const explanation = String(question.explanation_zh ?? question.explanation ?? question.correctReason ?? '').trim();
     const sourceReference = String(question.source_reference ?? '').trim().slice(0, 200);
@@ -2855,11 +2855,11 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       ...(sourceOrigin ? { source_origin: sourceOrigin } : {}),
       ...(sourceOrigin === 'textbook_original' ? { source_reference: sourceReference } : {}),
       itemId: item?.id ?? String(question.id ?? `draft-q${index + 1}`),
-      kind: draftQuestionKind(question.kind),
+      kind: draftQuestionKind(question.kind ?? question.type),
       title: String(section.title ?? `問題${section.id ?? ''}`).trim(),
       instruction: String(section.instruction ?? '').trim(),
       prompt: String(question.prompt ?? '').trim(),
-      promptTarget: repairReadingTarget({ kind: draftQuestionKind(question.kind), prompt: String(question.prompt ?? ""), promptTarget: question.target, tested: question.tested }).promptTarget,
+      promptTarget: repairReadingTarget({ kind: draftQuestionKind(question.kind ?? question.type), prompt: String(question.prompt ?? ""), promptTarget: question.target, tested: question.tested }).promptTarget,
       choices,
       answer,
       answerIndex,
@@ -2919,6 +2919,8 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
 }
 
 function draftQuestionKind(value) {
+  const normalized = normalizeQuestionKind(value);
+  if (normalized) return normalized;
   const text = String(value ?? '');
   if (text.includes('文脈')) return 'moji_goi';
   if (text.includes('語形成')) return 'word_formation';

@@ -7046,7 +7046,7 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 .question-review-navigation h2 { margin: 0; font-size: 17px; }
 .question-review-navigation p { margin: 10px 0 16px; font-size: 13px; color: #526659; }
 .question-review-number-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.question-review-number-grid button { position: relative; min-height: 40px; padding: 6px; border: 1px solid #cddbd2; border-radius: 8px; background: white; color: #526659; }
+.question-review-number-grid button { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; height: 40px; min-height: 40px; padding: 4px 2px; white-space: nowrap; word-break: normal; overflow-wrap: normal; font-size: 14px; line-height: 1; font-variant-numeric: tabular-nums; border: 1px solid #cddbd2; border-radius: 8px; background: white; color: #526659; }
 .question-review-number-grid button.is-confirmed { background: #e3efe7; border-color: #abc6b0; color: #285941; }
 .question-review-number-grid button[aria-current] { outline: 2px solid #285941; outline-offset: 2px; font-weight: 700; }
 .question-review-number-grid button span { position: absolute; top: 1px; right: 3px; font-size: 10px; }

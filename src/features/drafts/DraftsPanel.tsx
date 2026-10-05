@@ -1,3 +1,4 @@
+import { QuestionPrompt } from '../../components/QuestionPrompt';
 import { draftReviewQuestions } from './questionReviewState';
 import { usePageHeaderActions } from '../../components/PageChrome';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
@@ -928,7 +929,7 @@ function QuestionList({ questions, sections, grammarItems = [], labels, startNum
             <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
               <span className="pt-0.5 text-base font-semibold text-[#31564c]">{startNumber + index}.</span>
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <p className="text-base font-semibold leading-7 text-[#27312c]">{question.prompt}</p>
+                <p className="text-base font-semibold leading-7 text-[#27312c]"><QuestionPrompt text={question.prompt ?? ''} target={question.promptTarget} /></p>
                 {SourceIcon ? <span className="shrink-0 pt-1 text-[#52645b]" role="img" aria-label={sourceIconLabel} title={sourceIconLabel}><SourceIcon size={18} aria-hidden="true" /></span> : null}
               </div>
             </div>

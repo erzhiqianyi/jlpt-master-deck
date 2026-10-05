@@ -14,13 +14,13 @@ const { outputFiles } = await build({
     import { renderToStaticMarkup } from 'react-dom/server';
     import { DraftsPanel, grammarPointsForQuestion } from './src/features/drafts/DraftsPanel';
     export { draftReviewQuestions, reviewedDraftSections, questionReviewKey } from './src/features/drafts/questionReviewState';
-    export function renderDraft(answer = 'が早いか', review = false) {
+    export function renderDraft(answer = 'が早いか', review = false, promptFields = {}) {
       const draft = {
         id: 'sample', title: 'N1 文法・第1課「時間関係」专项练习', status: 'draft',
         updated_at: '2026-09-27T00:00:00Z', annotations: [],
         content: {
           question_count: 56,
-          sections: [{ title: '第1課・時間関係', questions: [{ id: 'e1-1', prompt: '空港に着く（　）、コンビニに駆け込んだ。', tested: '～が早いか', choices: ['が早いか', 'そばから'], answer }] }],
+          sections: [{ title: '第1課・時間関係', questions: [{ id: 'e1-1', prompt: '空港に着く（　）、コンビニに駆け込んだ。', tested: '～が早いか', choices: ['が早いか', 'そばから'], answer, ...promptFields }] }],
           grammar_points: [{ grammar_point: '～が早いか', core_memory: ['【核心】直后发生', '【接续】动词普通形'] }],
         },
       };
@@ -87,4 +87,17 @@ test('legacy arrays retain precedence without duplicating questions and preserve
   }
   assert.deepEqual(draftReviewQuestions({ quiz: [], sections: [{ questions }] }).questions, questions);
   assert.deepEqual(draftReviewQuestions(null).questions, []);
+});
+
+ test('draft preview marks promptTarget in both preview and confirmation workspace without changing prompt text', () => {
+  const prompt = 'この会社は客先常駐の案件が多いです。';
+  for (const review of [false, true]) {
+    const html = renderDraft('が早いか', review, { prompt, promptTarget: '客先常駐' });
+    assert.match(html, /この会社は<span class="font-semibold underline decoration-2 underline-offset-4">客先常駐<\/span>の案件が多いです。/);
+    for (const promptTarget of [undefined, '', '存在しない単語']) {
+      const fallback = renderDraft('が早いか', review, { prompt, promptTarget });
+      assert.ok(fallback.includes(prompt));
+      assert.doesNotMatch(fallback, /underline-offset-4/);
+    }
+  }
 });

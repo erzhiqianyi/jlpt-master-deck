@@ -12,9 +12,9 @@ const navigation = await loadSource('../src/domain/appNavigation.ts');
 const replay = await loadSource('../src/domain/attemptReplay.ts');
 
 test('primary navigation has a shared order and classifies by task', () => {
-  assert.deepEqual(navigation.primaryNavigationViews, ['home', 'mixed', 'market', 'history', 'study']);
+  assert.deepEqual(navigation.primaryNavigationViews, ['home', 'market', 'history', 'study']);
   for (const view of ['vocabulary', 'grammar', 'listening', 'reading']) {
-    for (const page of ['questions', 'review']) assert.equal(navigation.primaryNavigationView({ view, page }), 'mixed');
+    for (const page of ['questions', 'review']) assert.equal(navigation.primaryNavigationView({ view, page }), 'home');
     for (const page of ['words', 'tips', 'bank']) assert.equal(navigation.primaryNavigationView({ view, page }), 'study');
   }
   assert.equal(navigation.primaryNavigationView({ view: 'drafts', page: 'questions' }), 'history');

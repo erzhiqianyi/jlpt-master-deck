@@ -1,9 +1,13 @@
 import SwiftUI
 import GoogleSignIn
+import OSLog
 
 @main
 struct JLPTMasterDeckApp: App {
     @State private var store = AppStore()
+    init() {
+        Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Performance").info("App initialized")
+    }
     var body: some Scene {
         WindowGroup {
             Group {
@@ -13,7 +17,7 @@ struct JLPTMasterDeckApp: App {
                         VStack(spacing: 20) {
                             Image("BrandMark").resizable().scaledToFit().frame(width: 64, height: 64)
                             Text("JLPT Master Deck").font(.title2.bold())
-                            ProgressView("正在读取本机学习记录…")
+                            ProgressView("正在恢复登录状态…")
                         }
                     }
                 }
@@ -26,6 +30,9 @@ struct JLPTMasterDeckApp: App {
             .environment(store)
             .tint(DeckTheme.accent)
             .preferredColorScheme(.light)
+            .onAppear {
+                Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Performance").info("Root view appeared")
+            }
             .task { await store.restore() }
             .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
             .alert("提示", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {

@@ -1,3 +1,4 @@
+import { discoveryPresentation } from '../src/domain/discoveryPresentation.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, join, resolve } from 'node:path';
@@ -372,6 +373,7 @@ export function listShares(userId) {
       const pkg = JSON.parse(row.package_json);
       return {
         id: row.id,
+        ...discoveryPresentation(pkg),
         kind: pkg.kind,
         title: pkg.title,
         description: pkg.description,

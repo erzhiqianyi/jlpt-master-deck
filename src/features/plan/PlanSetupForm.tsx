@@ -52,8 +52,13 @@ export function PlanSetupForm({ labels, profile, onSave, onCancel }: { labels: R
       <fieldset disabled={saving} className="plan-profile-fields">
       <FormSection initiallyOpen icon={Target} title={labels.planBasicInfo} body={labels.planProfileOverviewBody}>
         <div className="plan-basic-fields">
+          <Field label="考试名称">
+            <input value={draft.examName ?? (draft.level ? 'JLPT' : '')} placeholder="JLPT、TOEIC 或其他考试" maxLength={120}
+              onChange={(event) => setDraft({ ...draft, examName: event.target.value, level: event.target.value.trim() === 'JLPT' ? draft.level : '' })} className={inputClass} />
+          </Field>
           <Field label={labels.planLevel}>
-            <select value={draft.level} onChange={(event) => setDraft({ ...draft, level: event.target.value as StudyPlanProfile['level'] })} className={inputClass}>
+            <select disabled={Boolean(draft.examName?.trim() && draft.examName.trim() !== 'JLPT')} value={draft.level} onChange={(event) => setDraft({ ...draft, examName: event.target.value ? 'JLPT' : draft.examName, level: event.target.value as StudyPlanProfile['level'] })} className={inputClass}>
+              <option value="">未设置</option>
               {['N1', 'N2', 'N3', 'N4', 'N5'].map((level) => <option key={level}>{level}</option>)}
             </select>
           </Field>

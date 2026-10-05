@@ -34,3 +34,75 @@
 .market-management-dialog h3 { font-size: calc(20px * var(--ui-font-scale, 1)); font-weight: 650; }
 .market-management-dialog button { min-height: 44px; min-width: 44px; }
 .market-management-dialog > button { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 12px; border-radius: 8px; background: #faf0eb; color: #ad4638; }
+
+/* Cover-led discovery: the same collection and preview model at every width. */
+.discovery-catalog { max-width: 1180px; margin-inline: auto; }
+.discovery-catalog > .list-header { margin: 0; padding: 0; border: 0; }
+.discovery-categories { display: flex; gap: 26px; padding: 0 2px 18px; overflow-x: auto; }
+.discovery-categories button { flex-shrink: 0; min-height: 44px; padding: 4px 0; border-bottom: 3px solid transparent; color: var(--ui-muted); font-size: 1rem; }
+.discovery-categories button[aria-pressed='true'] { color: var(--ui-ink); border-color: var(--ui-green); font-weight: 700; }
+.discovery-cover-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
+.discovery-cover-card { position: relative; min-width: 0; }
+.discovery-open-card { display: block; width: 100%; text-align: left; color: var(--ui-ink); }
+.discovery-open-card:focus-visible { outline: 3px solid var(--ui-green); outline-offset: 5px; border-radius: 10px; }
+.discovery-artwork { position: relative; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; isolation: isolate; background: #f5e6d5; }
+.discovery-artwork > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+.discovery-cover-type { padding: 14% 8% 0; color: #182b2c; }
+.discovery-cover-type > span { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Songti SC', serif; font-size: clamp(1.3rem, 2.5vw, 2rem); font-weight: 700; line-height: 1.3; text-wrap: pretty; }
+.discovery-cover-type small { display: block; margin-top: 10px; font-family: Georgia, serif; font-size: 1rem; }
+.discovery-card-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 10px 0 6px; font-size: .96rem; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+.discovery-card-meta { display: flex; justify-content: space-between; align-items: center; gap: 4px; color: var(--ui-muted); font-size: .76rem; }
+.discovery-card-meta > span:first-child { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.discovery-card-meta > span:last-child { flex-shrink: 0; }
+.discovery-card-meta svg, .market-detail-author svg { flex-shrink: 0; padding: 3px; border-radius: 50%; background: #dfe7e8; color: #637b88; width: 23px; height: 23px; }
+.discovery-select { position: absolute; z-index: 2; top: 8px; right: 8px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: #fffefa; }
+.discovery-select input { width: 22px; height: 22px; accent-color: var(--ui-green); }
+.discovery-panel .market-preview { max-width: 780px; padding: 0 0 28px; }
+.discovery-preview-gallery { margin: 0 0 20px; min-width: 0; }
+.discovery-preview-rail { display: flex; align-items: stretch; gap: 16px; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.discovery-preview-rail::-webkit-scrollbar { display: none; }
+.discovery-preview-slide { position: relative; flex: 0 0 calc(100% - 14px); min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.discovery-preview-slide .discovery-artwork { height: 100%; min-height: 430px; }
+.discovery-preview-slide .discovery-cover-type { padding: 15% 8% 0; }
+.discovery-preview-slide .discovery-cover-type > span { font-size: clamp(2rem, 7vw, 3.5rem); -webkit-line-clamp: 5; }
+.discovery-preview-slide .discovery-cover-type small { font-size: 1.6rem; }
+.discovery-page-counter { position: absolute; z-index: 1; top: 12px; right: 12px; padding: 4px 10px; background: #765d4bcc; color: white; border-radius: 99px; font-size: .82rem; }
+.discovery-gallery-controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 4px; color: var(--ui-muted); font-size: .8rem; }
+.discovery-gallery-controls button { display: grid; place-items: center; width: 44px; height: 36px; }
+.market-preview .market-question-preview { display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--ui-border); border-radius: 16px; background: var(--ui-surface); }
+.market-question-caption { align-items: center; color: var(--ui-muted); font-size: .82rem; }
+.market-question-caption > span { border-radius: 99px; background: #f0f3f3; padding: 4px 8px; }
+.market-question-instruction { margin-top: 14px; font-size: .85rem; color: var(--ui-muted); }
+.market-preview .market-question-prompt { padding: 0; margin: 24px 0; background: transparent; font-size: 1.25rem; line-height: 1.65; }
+.market-question-preview > ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.market-question-preview li { display: block; padding: 0; min-height: 0; border: 0; }
+.market-question-preview li button { display: flex; align-items: baseline; gap: 12px; width: 100%; min-height: 50px; padding: 12px; border: 1px solid var(--ui-border); border-radius: 9px; text-align: left; font-size: 1rem; line-height: 1.5; }
+.market-question-preview li svg { flex-shrink: 0; align-self: center; color: var(--ui-muted); }
+.market-question-preview li button[aria-checked='true'] { background: #edf5f0; border-color: var(--ui-green); }
+.market-question-preview li button[aria-checked='true'] svg { fill: var(--ui-green); color: var(--ui-green); }
+.discovery-preview-only { margin: auto 0 0; padding-top: 20px; color: var(--ui-muted); font-size: .76rem; text-align: center; }
+.discovery-word-slide { display: flex; flex-direction: column; gap: 20px; justify-content: center; padding: 30px; border: 1px solid var(--ui-border); border-radius: 16px; background: var(--ui-surface); }
+.discovery-word-slide h3 { font-size: 2rem; font-weight: 650; }
+.discovery-word-slide small { margin-top: auto; color: var(--ui-muted); }
+.market-detail-heading { border-top: 1px solid var(--ui-border); padding-top: 20px; align-items: baseline; gap: 12px; }
+.discovery-panel .market-detail-heading h2 { font-size: 1.2rem; line-height: 1.5; }
+.market-detail-count { flex-shrink: 0; color: var(--ui-muted); font-size: .9rem; }
+.market-detail-author { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; color: var(--ui-muted); font-size: .9rem; }
+.market-detail-author svg { width: 30px; height: 30px; }
+.market-introduction { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 20px; }
+.market-introduction > p { flex: 1; min-width: 0; font-size: .9rem; line-height: 1.75; }
+.market-introduction > button { flex-shrink: 0; min-height: 32px; color: var(--ui-green); font-size: .85rem; }
+.market-preview-actions { position: sticky; bottom: 0; z-index: 2; padding: 12px 0 max(10px, env(safe-area-inset-bottom)); background: var(--ui-paper); }
+.market-preview-actions > p { font-size: .72rem; }
+.market-bookmark { flex-shrink: 0; min-height: 44px; min-width: 44px; }
+@media (min-width: 768px) {
+  .discovery-cover-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 24px; }
+  .discovery-preview-rail { max-width: 450px; margin-inline: auto; }
+}
+@media (min-width: 1200px) { .discovery-cover-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .discovery-preview-rail { scroll-behavior: auto; } }
+@media (max-width: 767px) {
+  .mobile-app-header.is-discovery-header > div:first-child { display: flex; justify-content: space-between; height: 68px; padding-inline: 22px; }
+  .mobile-app-header.is-discovery-header > div:first-child > div:first-child { display: none; }
+  .mobile-app-header.is-discovery-header h1 { padding: 0; max-width: none; font-size: 1.75rem; font-weight: 750; color: var(--ui-ink); }
+}

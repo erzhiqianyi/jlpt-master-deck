@@ -41,6 +41,7 @@ export function routeFromHash(hash: string): AppRoute {
       : page === 'tips' && ['topics', 'dialogue', 'opinion'].includes(itemValue)
         ? itemValue
         : undefined;
+    if (page === 'tips' && !itemId) return { view: 'home', page: 'questions' };
     return { view, page, itemId };
   }
   if (view === 'daily-practice') {

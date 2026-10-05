@@ -118,8 +118,8 @@ struct ListeningDetailView: View {
                         } else {
                             ForEach(Array(item.choices.enumerated()), id: \.offset) { index, choice in
                                 Button { selected[item.id] = index } label: {
-                                    HStack { Text("\(index + 1)."); Text(choice.isEmpty ? "选项 \(index + 1)（请听音频）" : choice); Spacer(); if selected[item.id] == index { Image(systemName: "checkmark.circle.fill") } }
-                                        .padding(16).foregroundStyle(DeckTheme.ink).background(selected[item.id] == index ? DeckTheme.accent.opacity(0.12) : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 10))
+                                    StudyAnswerChoice(number: index + 1, text: choice.isEmpty ? "选项 \(index + 1)（请听音频）" : choice,
+                                        selected: selected[item.id] == index, correct: revealed ? index == item.answerIndex : nil, flat: true)
                                 }.disabled(revealed || saving)
                             }
                         }
@@ -130,7 +130,7 @@ struct ListeningDetailView: View {
                                 VStack(alignment: .leading) { Text("选项 \(index + 1)").font(.subheadline.bold()); if let translation = detail.translation { Text(translation) }; if let explanation = detail.explanation { Text(explanation) } }.font(.subheadline)
                             }
                         }
-                    }.padding(24).background(DeckTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+                    }.padding(.vertical, 16).overlay(alignment: .bottom) { Rectangle().fill(DeckTheme.line).frame(height: 1) }
                 }
                 if let error { Text(error).foregroundStyle(.red) }
                 if !revealed {
@@ -147,12 +147,7 @@ struct ListeningDetailView: View {
                 }
             }.frame(maxWidth: 1120, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            DetailStudyCompanion(context: "听力：\(group.title)", captureTitle: "记录这段听力的疑问", celebration: celebration) {
-                Button { Task { await toggleAudio() } } label: { Label(playing ? "暂停音频" : "播放音频", systemImage: playing ? "pause.fill" : "play.fill") }.disabled(loading)
-                Button { player?.currentTime = 0; player?.play(); playing = player != nil } label: { Label("从头播放", systemImage: "backward.end.fill") }.disabled(player == nil)
-            }
-        }.background(DeckTheme.paper).navigationTitle("听力练习").navigationBarTitleDisplayMode(.inline).onDisappear { player?.stop(); playing = false }
+        .background(DeckTheme.paper).navigationTitle("听力练习").navigationBarTitleDisplayMode(.inline).onDisappear { player?.stop(); playing = false }
     }
     private func confirm() async {
         guard complete, !saving else { return }; saving = true; error = nil

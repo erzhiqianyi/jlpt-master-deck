@@ -305,29 +305,30 @@ function ReadingPassage({ items, labels, locale, onDelete, onRecordPractice }: {
   const rubyTerms = items.flatMap((question) => question.rubyTerms ?? []);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
+  const reviewAvailable = items.every((question) => completedIds.includes(question.id));
   const [passageOpen, setPassageOpen] = useState(true);
   const [manageOpen, setManageOpen] = useState(false);
   useAuthoringNavigation(!passageOpen ? (locale === 'ja' ? '読解の解答' : locale === 'en' ? 'Reading questions' : '阅读作答') : null, () => setPassageOpen(true), { kind: 'practice' });
   const manageLabel = locale === 'ja' ? '管理' : locale === 'en' ? 'Manage' : '管理';
   const hasHeaderActions = usePageHeaderActions(onDelete ? [{ key: 'reading-manage', label: manageLabel, onClick: () => setManageOpen((open) => !open) }] : [], 20);
-  return <ReadingRubyProvider terms={rubyTerms} enabled={showRuby}><article className="reading-passage min-w-0">
+  return <ReadingRubyProvider terms={rubyTerms} enabled={reviewAvailable && showRuby}><article className="reading-passage min-w-0">
     <div className="reading-content-heading"><h2><ReadingText text={item.title} /></h2>{onDelete && !hasHeaderActions ? <button type="button" onClick={() => setManageOpen((open) => !open)} aria-expanded={manageOpen}>{manageLabel}</button> : null}</div>
-    <div className="reading-session-summary"><PracticeTimer locale={locale} running={!items.every((question) => completedIds.includes(question.id))} /><span>{questionCountLabel(items.length, locale)}</span></div>
+    <div className="reading-session-summary"><PracticeTimer locale={locale} running={!reviewAvailable} /><span>{questionCountLabel(items.length, locale)}</span></div>
     {manageOpen ? <div className="reading-management"><RecordReference reference={item.reference} locale={locale} /><p>{[...new Set(items.flatMap((question) => question.tags ?? []))].join(' · ')}</p><p>{locale === 'ja' ? '追加日' : locale === 'en' ? 'Added' : '添加时间'} · {formatListDate(item.createdAt, '—', locale)}</p></div> : null}
-    <div className="reading-display-options"><label><span>{locale === 'ja' ? 'ふりがなを表示' : locale === 'en' ? 'Show furigana' : '显示假名'}</span><input type="checkbox" role="switch" checked={showRuby} onChange={(event) => setShowRuby(event.target.checked)} /></label><label><span>{locale === 'ja' ? '分かち書き・単語検索' : locale === 'en' ? 'Word lookup' : '分词查词'}</span><input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} /></label></div>
-    {showRuby && !rubyTerms.length ? <p role="status" className="mt-2 text-sm text-[#68716b]">{locale === 'ja' ? 'この文章にはまだ読みが登録されていません。' : locale === 'en' ? 'No readings have been added to this passage yet.' : '这篇文章尚未补充读音，补充后即可显示假名。'}</p> : null}
+    {reviewAvailable ? <div className="reading-display-options"><label><span>{locale === 'ja' ? 'ふりがなを表示' : locale === 'en' ? 'Show furigana' : '显示假名'}</span><input type="checkbox" role="switch" checked={showRuby} onChange={(event) => setShowRuby(event.target.checked)} /></label><label><span>{locale === 'ja' ? '分かち書き・単語検索' : locale === 'en' ? 'Word lookup' : '分词查词'}</span><input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} /></label></div> : null}
+    {reviewAvailable && showRuby && !rubyTerms.length ? <p role="status" className="mt-2 text-sm text-[#68716b]">{locale === 'ja' ? 'この文章にはまだ読みが登録されていません。' : locale === 'en' ? 'No readings have been added to this passage yet.' : '这篇文章尚未补充读音，补充后即可显示假名。'}</p> : null}
     <div className={`reading-practice-layout${passageOpen ? ' is-passage-open' : ' is-answering'}`}>
     <details className="reading-passage-body" open={passageOpen} onToggle={(event) => setPassageOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
-      <SpeechControls text={item.passage} label={locale === 'ja' ? '本文を読み上げる' : locale === 'en' ? 'Read passage' : '朗读全文'} />
+      {reviewAvailable ? <div className="reading-passage-speech"><SpeechControls text={item.passage} label={locale === 'ja' ? '本文を読み上げる' : locale === 'en' ? 'Read passage' : '朗读全文'} /></div> : null}
       {item.passage.split(/\n\s*\n|\n/).filter((paragraph) => paragraph.trim()).map((paragraph, index) => <div key={index}>
-        <p lang="ja" className={`reading-original-text mt-3 whitespace-pre-wrap break-words text-base leading-8 text-[#37473f]${segmented ? ' reading-segmented' : ''}`}><ReadingText text={paragraph} lookup={segmented} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /></p>
-        <SpeechControls text={paragraph} label={locale === 'ja' ? `段落 ${index + 1}` : locale === 'en' ? `Paragraph ${index + 1}` : `朗读第 ${index + 1} 段`} />
+        <p lang="ja" className={`reading-original-text whitespace-pre-wrap break-words${reviewAvailable && segmented ? ' reading-segmented' : ''}`}><ReadingText text={paragraph} lookup={reviewAvailable && segmented} source={`阅读 ${item.reference ?? item.id} · ${item.title}`} /></p>
+        {reviewAvailable ? <div className="reading-paragraph-speech"><SpeechControls iconOnly text={paragraph} label={locale === 'ja' ? `段落 ${index + 1}` : locale === 'en' ? `Paragraph ${index + 1}` : `朗读第 ${index + 1} 段`} /></div> : null}
       </div>)}
       <button type="button" className="reading-start-answer" onClick={() => { setPassageOpen(false); window.requestAnimationFrame(() => document.getElementById('reading-questions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>{locale === 'ja' ? '本文を閉じて解答する' : locale === 'en' ? 'Close passage and answer' : '收起原文并作答'}</button>
     </details>
     <div id="reading-questions" className="reading-question-column divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={segmented} labels={labels} locale={locale} onDelete={manageOpen ? onDelete : undefined} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={reviewAvailable && segmented} labels={labels} locale={locale} onDelete={manageOpen ? onDelete : undefined} />)}
     </div>
     </div>
     {items.some((question) => revealedIds.includes(question.id)) ? <div className="reading-explanations mt-8">
@@ -358,14 +359,14 @@ function ReadingQuestionItem({ item, number, revealed, setRevealed, onRecordPrac
   }
 
   return (
-    <section className="min-w-0 py-6 first:pt-0" aria-label={locale === 'en' ? `Question ${number}` : `問 ${number}`}>
+    <section className="reading-question min-w-0 py-6 first:pt-0" aria-label={locale === 'en' ? `Question ${number}` : `問 ${number}`}>
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-[#31564c]">{locale === 'en' ? `Question ${number}` : `問 ${number}`}</h3>
         {onDelete ? <QuestionAction label={`${labels.readingDelete}: ${item.question}`} title={labels.readingDelete} onClick={remove} disabled={deleting}><Trash2 size={16} /></QuestionAction> : null}
       </div>
       {onDelete ? <RecordReference reference={item.reference} locale={locale} /> : null}
       {onDelete && (item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
-      <p className="mt-5 whitespace-pre-wrap text-lg font-bold leading-8"><ReadingText text={item.question} /></p>
+      <p className="reading-question-stem whitespace-pre-wrap"><ReadingText text={item.question} /></p>
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
       <ReadingChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
       <div className="mt-4 flex flex-wrap items-center gap-3">

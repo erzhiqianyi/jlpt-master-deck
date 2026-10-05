@@ -255,7 +255,7 @@ export default function App() {
   const pendingPracticeSave = useRef<Promise<unknown>>(Promise.resolve());
   const activeView = route.view;
   const studyPage = route.page;
-  const mockExamCount = useMockExamCount(authToken, Boolean(user) && !authLoading && activeView === 'mixed' && studyPage === 'tips' && !route.itemId);
+  const mockExamCount = useMockExamCount(authToken, Boolean(user) && !authLoading && (activeView === 'home' || (activeView === 'mixed' && studyPage === 'tips' && !route.itemId)));
 
   useEffect(() => {
     let cancelled = false;
@@ -463,7 +463,7 @@ export default function App() {
     },
     [items, needsActiveQuestions, selectedDeck],
   );
-  const mixedQuestionCount = useMemo(() => activeView === 'mixed' && studyPage === 'tips'
+  const mixedQuestionCount = useMemo(() => activeView === 'home' || (activeView === 'mixed' && studyPage === 'tips')
     ? buildQuestionIndex(selectedDeck === 'all' ? items.filter(item => item.deck !== 'name_reading' && item.type !== 'proper_name') : items).length
     : undefined, [activeView, studyPage, items, selectedDeck]);
   const pagedVocabulary = activeView === 'vocabulary' && studyPage === 'questions';
@@ -600,7 +600,7 @@ export default function App() {
       return undefined;
     }
     return drafts
-      .filter((draft) => ['draft', 'needs_revision', 'approved'].includes(draft.status) && localDateString(new Date(draft.created_at)) === today)
+      .filter((draft) => !isTopicDraft(draft) && ['draft', 'needs_revision', 'approved'].includes(draft.status) && localDateString(new Date(draft.created_at)) === today)
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
   }, [drafts, needsHomeMetrics, today]);
   const moduleStats = useMemo(
@@ -657,7 +657,7 @@ export default function App() {
     await apiRequest('/api/market', { token: authToken, method: 'POST', body });
   }
   const topicPracticeEntries = useMemo(() => {
-    if (activeView !== 'mixed' || studyPage !== 'tips') {
+    if (activeView !== 'home' && (activeView !== 'mixed' || studyPage !== 'tips')) {
       return [];
     }
     return drafts.filter(isTopicDraft).map((draft) => {
@@ -1692,7 +1692,7 @@ export default function App() {
   }
   if (consentPage) return <AgentConsentPage authToken={authToken} username={user.username} />;
   if (activeView === 'memory-review' && !memoryReviewReady) return <LoadingScreen />;
-  if (activeView === 'memory-review') return <SpeechProvider settings={settings} token={authToken}><WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} wordSpacing={settings.memoryCardWordSpacing} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider></SpeechProvider>;
+  if (activeView === 'memory-review') return <SpeechProvider settings={settings} token={authToken} cacheScope={user ? String(user.id) : undefined}><WordLookupProvider items={data.items} captures={captures} locale={locale} enabled={Boolean(authToken)} onCapture={createCapture} authToken={authToken} ttsProvider={settings.ttsProvider}><FocusedMemoryReview items={memoryReviewItems} locale={locale} token={authToken} wordSpacing={settings.memoryCardWordSpacing} frontFields={settings.memoryCardFrontFields} backFields={settings.memoryCardBackFields} onExit={() => navigateTo('home')} onRate={rateMemoryItem} /></WordLookupProvider></SpeechProvider>;
 
   const captureDetailOpen = isDataManagementView(activeView) && dataTab === 'captures' && Boolean(activeCaptureDetailId);
   const draftDetailOpen = isDataManagementView(activeView) && dataTab === 'drafts' && Boolean(activeDraftDetailId);
@@ -1794,12 +1794,14 @@ export default function App() {
         : activeView === 'plan' || activeView === 'settings' ? 'function' : 'list');
 
   return (
-    <SpeechProvider settings={settings} token={authToken}><PageChromeProvider>
+    <SpeechProvider settings={settings} token={authToken} cacheScope={user ? String(user.id) : undefined}><PageChromeProvider>
     <AuthoringNavigationProvider onChange={setAuthoringLocation}>
     <main data-bottom-navigation={showMobileBottomNavigation ? 'visible' : 'hidden'} className="cute-shell light-workspace flex min-h-[100dvh] max-w-full flex-col overflow-x-clip text-[#28312d]">
       <GlobalSearch locale={locale} open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery} onOpenResult={openSearchResult} onClose={() => setSearchOpen(false)} />
       <MobileAppHeader
-        onSettings={() => navigateTo('settings')}
+        discovery={activeView === 'market' && !route.itemId}
+        library={activeView === 'study'}
+        onSettings={activeView === 'market' ? undefined : () => navigateTo('settings')}
         settingsLabel={labels.settings}
         filterLabel={showQuestionBookFilter ? questionBookFilterLabel : undefined}
         filterName={showQuestionBookFilter ? questionBookFilterName : undefined}
@@ -1891,18 +1893,17 @@ export default function App() {
           </div> : null}
           {!pageLoading && activeView === 'home' ? (
             <HomeDashboard
-              token={authToken}
-              username={user.username}
-              labels={labels}
               locale={locale}
-              items={data.items}
-              progress={progress}
-              readingQuestions={readingQuestions}
               dueItems={memoryReviewItems}
-              onOpenReviewItem={(item) => navigateTo(item.deck === 'grammar_expression' ? 'grammar' : 'vocabulary', 'words', item.id)}
               plan={studyPlan}
               todayPractices={homeTodayPractices}
-              dailyAnswers={activeDailyPractice?.id === homeTodayPractices[0]?.id ? answers : {}}
+              dailyAnswers={answers}
+              topicCount={topicPracticeEntries.length}
+              topicRounds={topicPracticeEntries.every(entry => entry.completedCount !== undefined) ? topicPracticeEntries.reduce((sum, entry) => sum + (entry.completedCount ?? 0), 0) : undefined}
+              mixedQuestionCount={mixedQuestionCount}
+              mixedRounds={attemptHistory.filter(attempt => attempt.view === 'mixed' && attempt.completedAt).length}
+              mockExamCount={mockExamCount}
+              mockRounds={attemptHistory.filter(attempt => attempt.view === 'mock-exams' && attempt.completedAt).length}
               latestDraft={latestHomeDraft}
               onOpenDraft={(id) => {
                 setActiveDraft(null);
@@ -1913,9 +1914,7 @@ export default function App() {
               onNavigate={navigateTo}
               onStartDailyPractice={openDailyPractice}
               onCreateDailyPractice={createDailyPracticeAndStart}
-              onOpenPracticeHistory={() => navigateTo('history')}
               onStartMock={() => openMockExam()}
-              onTaskStatus={updateStudyPlanTask}
             />
           ) : null}
 
@@ -2631,8 +2630,8 @@ function navItems(labels: Record<string, string>) {
 }
 
 function primaryNavigationItems(labels: Record<string, string>, locale: Locale): AppRouteNavItem[] {
-  const titles = locale === 'zh-CN' ? ['今日', '练习', '发现', '统计', '题库']
-    : locale === 'ja' ? ['今日', '練習', '発見', '統計', '問題集'] : ['Today', 'Practice', 'Discover', 'Statistics', 'Library'];
+  const titles = locale === 'zh-CN' ? ['学习', '发现', '统计', '题库']
+    : locale === 'ja' ? ['学習', '発見', '統計', '問題集'] : ['Learn', 'Discover', 'Statistics', 'Library'];
   return primaryNavigationViews.map((view, index) => ({ view, label: titles[index] }));
 }
 
@@ -2668,8 +2667,10 @@ function studyModeNavItems(view: AppView, labels: Record<string, string>, allowL
 
 function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale: Locale, activeDataTab?: DataTab, detail?: { capture: boolean; draft: boolean; attempt: boolean; question: boolean }) {
   const activeView = route.view;
+  if (activeView === 'home') return locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn';
+  if (activeView === 'history' && !route.itemId && !detail?.capture && !detail?.draft && !detail?.attempt && !detail?.question) return labels.navBottomHistory;
   if (activeView === 'study') return labels.homeStudyArea;
-  if (activeView === 'market') return route.itemId ? labels.navMarketDetail : labels.navMarket;
+  if (activeView === 'market') return route.itemId ? '' : labels.navMarket;
   if (activeView === 'about') return isAboutSection(route.itemId) ? aboutSectionTitle(route.itemId, locale) : labels.aboutTitle;
   if (activeView === 'profile') return labels.account;
   if (activeView === 'mixed' && route.page === 'tips' && !route.itemId) return labels.navPracticeHome ?? labels.navMixed;
@@ -2749,13 +2750,13 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     { label: route.page === 'review' ? labels.reviewPage : labels.questionPage, route },
   ];
   if (route.view === 'study') return [{ label: labels.homeStudyArea, route }];
-  if (route.view === 'home') return [{ label: labels.navTaskHome ?? labels.navHome, route }];
+  if (route.view === 'home') return [{ label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route }];
   if (route.view === 'market') return [
     { label: labels.navMarket, route: { view: 'market', page: 'questions' } },
     ...(route.itemId ? [{ label: labels.navMarketDetail, route }] : []),
   ];
   if (route.view === 'history') return [
-    { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } },
+    { label: locale === 'zh-CN' ? '统计' : locale === 'ja' ? '統計' : 'Statistics', route: { view: 'history', page: 'questions' } },
     ...(route.itemId ? [{ label: route.itemId === 'today' ? labels.historyFilterToday : labels.historyPracticeTab, route }] : []),
   ];
   if (route.view === 'settings') return [
@@ -2816,7 +2817,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (['captures', 'drafts', 'insights'].includes(route.view)) {
-    crumbs[0] = { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } };
+    crumbs[0] = { label: locale === 'zh-CN' ? '统计' : locale === 'ja' ? '統計' : 'Statistics', route: { view: 'history', page: 'questions' } };
     const visibleTab = activeDataTab ?? dataTabForRoute(route.view);
     if (route.view !== 'insights' || visibleTab !== 'captures') {
       crumbs.push({ label: dataTabLabel(visibleTab, labels) });
@@ -2828,7 +2829,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (['capture', 'mistakes', 'memory', 'data'].includes(route.view)) {
-    crumbs[0] = { label: labels.navBottomHistory ?? labels.historyPracticeTab, route: { view: 'history', page: 'questions' } };
+    crumbs[0] = { label: locale === 'zh-CN' ? '统计' : locale === 'ja' ? '統計' : 'Statistics', route: { view: 'history', page: 'questions' } };
     if (route.view === 'capture') crumbs.push({ label: labels.historyCaptureTab, route: { view: 'captures', page: 'questions' } });
   }
 

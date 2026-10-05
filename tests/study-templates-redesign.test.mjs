@@ -110,7 +110,7 @@ test('answer detail Back returns to the same attempt results rather than leaving
   let leaves = 0;
   const question = { id: 'q1', itemId: word.id, kind: 'meaning', prompt: '問題一', choices: ['甲', '乙'], answer: '乙', correctReason: '解析' };
   await render(ui.PracticeReviewPanel, { questions: [question], answers: { q1: { selected: '甲', correct: false } }, items: [], labels, locale: 'zh-CN', showRuby: false, onBackToPractice: () => leaves++ });
-  await click(document.querySelector('.practice-result-rows button'));
+  await click(document.querySelector('.practice-completion-actions button'));
   assert.equal(location.kind, 'detail');
   assert.equal(document.querySelector('.practice-result-summary'), null);
   assert.ok(document.querySelector('.practice-review-detail'));

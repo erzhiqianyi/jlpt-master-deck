@@ -1,12 +1,12 @@
 import SwiftUI
 
 enum Destination: String, CaseIterable, Identifiable {
-    case today = "今日", practice = "练习", discovery = "发现", history = "记录"
+    case today = "学习", practice = "练习", discovery = "发现", history = "统计"
     case vocabulary = "词汇", grammar = "语法", reading = "阅读", listening = "听力"
     var id: String { rawValue }
     var icon: String {
         switch self {
-        case .today: "house"; case .practice: "doc.text"; case .discovery: "safari"; case .history: "chart.bar"
+        case .today: "book"; case .practice: "doc.text"; case .discovery: "safari"; case .history: "chart.bar"
         case .vocabulary: "character.book.closed"; case .grammar: "list.bullet.rectangle"; case .reading: "book"; case .listening: "headphones"
         }
     }
@@ -49,7 +49,7 @@ struct WorkspaceView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @AppStorage private var savedDestination: String
     private var selection: Destination? {
-        get { savedDestination.isEmpty ? nil : Destination(rawValue: savedDestination) ?? .today }
+        get { savedDestination.isEmpty ? nil : Destination(rawValue: savedDestination == "记录" ? "统计" : ["今日", "练习"].contains(savedDestination) ? "学习" : savedDestination) ?? .today }
         nonmutating set {
             if let newValue, Destination.allCases.suffix(4).contains(newValue) {
                 navigation.openModule(newValue)
@@ -64,15 +64,21 @@ struct WorkspaceView: View {
     @State private var companionPractice: PracticeEntry?
     @State private var foregroundGate = ForegroundRefreshGate()
     init(accountID: String) {
-        _savedDestination = AppStorage(wrappedValue: Destination.today.rawValue,
-                                      "workspace.destination.\(accountID)")
+        let key = "workspace.destination.\(accountID)"
+        _savedDestination = AppStorage(wrappedValue: Destination.today.rawValue, key)
+        var initialNavigation = WorkspaceNavigation()
+        if let raw = UserDefaults.standard.string(forKey: key), let destination = Destination(rawValue: raw),
+           Destination.allCases.suffix(4).contains(destination) {
+            initialNavigation.openModule(destination)
+        }
+        _navigation = State(initialValue: initialNavigation)
     }
     private var usesTabs: Bool { UIDevice.current.userInterfaceIdiom == .phone || sizeClass == .compact }
     var body: some View {
         Group {
             if usesTabs {
                 TabView(selection: compactSelection) {
-                    ForEach(Array(Destination.allCases.prefix(4))) { destination in
+                    ForEach([Destination.today, .discovery, .history]) { destination in
                         NavigationStack(path: path(for: destination)) {
                             detail(destination).navigationDestination(for: WorkspaceRoute.self, destination: routeView)
                         }
@@ -94,7 +100,7 @@ struct WorkspaceView: View {
                         List(selection: Binding<Destination?>(get: { compactDestination }, set: { value in
                             if let value { compactSelection.wrappedValue = value }
                         })) {
-                            ForEach(Array(Destination.allCases.prefix(4))) { destination in nav(destination) }
+                            ForEach([Destination.today, .discovery, .history]) { destination in nav(destination) }
                             NavigationLink(value: Destination.reading) {
                                 Label("题库", systemImage: "square.grid.2x2").padding(.vertical, 8)
                             }.tag(Destination.reading).accessibilityIdentifier("nav.题库")
@@ -121,11 +127,16 @@ struct WorkspaceView: View {
         .sheet(item: $sheet) { value in
             switch value { case .capture(let context): CaptureView(initialContext: context); case .account: AccountView(); case .database: DatabaseCheckSheet() }
         }
-        .fullScreenCover(item: $companionPractice) { NativePracticeScreen(entry: $0) }
+        .fullScreenCover(item: $companionPractice) { entry in Group { if entry.id == "mock" { NativeMockExamView() } else { NativePracticeScreen(entry: entry) } } }
         .fullScreenCover(item: $review) { session in MemoryReviewView(items: session.items) }
-        .onAppear {
-            if let selection, Destination.allCases.suffix(4).contains(selection) {
-                navigation.openModule(selection)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if store.isRestoringLocal {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("正在后台恢复本机记录，完成后自动同步…").font(.footnote)
+                    Spacer(minLength: 0)
+                }.padding(12).background(DeckTheme.paper)
+                    .accessibilityIdentifier("workspace.restoringLocal")
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -135,7 +146,7 @@ struct WorkspaceView: View {
     // All four study modules belong to the final tab, while retaining their route.
     private var compactDestination: Destination {
         guard let selection else { return .reading }
-        return Destination.allCases.prefix(4).contains(selection) ? selection : .reading
+        return [Destination.today, .discovery, .history].contains(selection) ? selection : .reading
     }
     private var compactSelection: Binding<Destination> {
         Binding(get: { compactDestination }, set: { value in
@@ -147,26 +158,75 @@ struct WorkspaceView: View {
     }
     private func path(for destination: Destination) -> Binding<[WorkspaceRoute]> {
         Binding(get: { navigation.paths[destination, default: []] },
-                set: { navigation.paths[destination] = $0 })
+                set: { routes in
+                    guard navigation.paths[destination, default: []] != routes else { return }
+                    navigation.paths[destination] = routes
+                })
     }
     private var bankPath: Binding<[WorkspaceRoute]> {
         Binding(get: { navigation.bank }, set: { routes in
+            guard navigation.bank != routes else { return }
             navigation.bank = routes
-            if compactDestination == .reading { savedDestination = navigation.bankModule?.rawValue ?? "" }
+            if compactDestination == .reading {
+                let next = navigation.bankModule?.rawValue ?? ""
+                if savedDestination != next { savedDestination = next }
+            }
         })
     }
-    private var bankRoot: some View {
-        List(Array(Destination.allCases.suffix(4))) { destination in
-            Button { selection = destination } label: {
-                DeckRow(title: destination.rawValue, subtitle: "", icon: destination.icon)
-            }.buttonStyle(.plain)
-                .listRowBackground(DeckTheme.surface)
-                .accessibilityIdentifier("nav.\(destination.id)")
+    private func bankCounts(_ destination: Destination) -> (total: Int, studied: Int, unit: String, asset: String) {
+        func studied(_ id: String) -> Bool {
+            guard let value = store.state.progress[id] else { return false }
+            return (value.reviewCount ?? 0) > 0 || value.correct + value.wrong > 0
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        switch destination {
+        case .vocabulary, .grammar:
+            let values = store.items.filter { ($0.deck == "grammar_expression") == (destination == .grammar) }
+            return (values.count, values.filter { studied($0.id) }.count, destination == .grammar ? "项" : "词", destination == .grammar ? "grammar" : "vocabulary")
+        case .reading:
+            let groups = Dictionary(grouping: store.reading) { question in
+                let passage = question.passage.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                return passage.isEmpty ? question.id : passage
+            }
+            return (groups.count, groups.values.filter { $0.contains { studied($0.id) } }.count, "篇", "reading")
+        case .listening:
+            let groups = ListeningGroup.make(store.listening)
+            return (groups.count, groups.filter { studied("listening-audio:\($0.id)") }.count, "套", "listening")
+        default: return (0, 0, "", "vocabulary")
+        }
+    }
+    private var bankRoot: some View {
+        GeometryReader { geometry in
+            let artworkHeight = min(160, max(64, (geometry.size.height - 240) / 2))
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 0), GridItem(.flexible(), spacing: 0)], spacing: 0) {
+                    ForEach(Array(Destination.allCases.suffix(4).enumerated()), id: \.element.id) { index, destination in
+                        let counts = bankCounts(destination)
+                        Button { selection = destination } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Image("Library-\(counts.asset)").resizable().scaledToFit().frame(height: artworkHeight).frame(maxWidth: .infinity).accessibilityHidden(true)
+                                HStack {
+                                    Text(destination.rawValue).font(.title2.bold())
+                                    Spacer(minLength: 4)
+                                    Image(systemName: "chevron.right").font(.body).foregroundStyle(DeckTheme.muted)
+                                }
+                                HStack(spacing: 5) {
+                                    Text("\(counts.total) \(counts.unit) ·")
+                                    Image(systemName: index < 2 ? "checkmark.circle" : "arrow.triangle.2.circlepath")
+                                    Text("\(counts.studied)")
+                                }.font(.subheadline).foregroundStyle(DeckTheme.green)
+                                    .accessibilityLabel("共 \(counts.total) \(counts.unit)，\(index < 2 ? "已学" : "已练") \(counts.studied)")
+                            }.padding(.horizontal, 18).padding(.vertical, 16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                            .overlay(alignment: .trailing) { if index.isMultiple(of: 2) { Rectangle().fill(DeckTheme.line).frame(width: 1) } }
+                            .overlay(alignment: .bottom) { if index < 2 { Rectangle().fill(DeckTheme.line).frame(height: 1) } }
+                            .accessibilityIdentifier("nav.\(destination.id)")
+                    }
+                }.frame(maxWidth: 680).padding(.horizontal, 20).padding(.vertical, 12).frame(maxWidth: .infinity)
+            }
+        }
         .modifier(WorkspacePageStyle(title: "题库"))
-        .safeAreaInset(edge: .bottom, spacing: 0) { companion(nil) }
         .toolbar { workspaceToolbar(showAccount: true) }
     }
     private func routeView(_ route: WorkspaceRoute) -> some View {
@@ -210,26 +270,18 @@ struct WorkspaceView: View {
             case .listening: ListeningLibraryView()
             }
         }
-        .modifier(WorkspacePageStyle(title: destination == .today ? "今日学习" : destination.rawValue))
-        .toolbar { workspaceToolbar(showAccount: Destination.allCases.prefix(4).contains(destination)) }
-        .safeAreaInset(edge: .bottom, spacing: 0) { companion(destination).id(destination) }
+        .modifier(WorkspacePageStyle(title: destination == .today ? "学习" : destination.rawValue))
+        .toolbar { workspaceToolbar(showAccount: [.today, .discovery, .history].contains(destination)) }
         .modifier(LibrarySearch(enabled: [.vocabulary, .grammar].contains(destination), query: $query))
     }
     @ToolbarContentBuilder
     private func workspaceToolbar(showAccount: Bool) -> some ToolbarContent {
-        if usesTabs && showAccount {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { sheet = .account } label: { Image(systemName: "person.crop.circle") }
+        if showAccount {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { sheet = .account } label: { Image(systemName: "gearshape") }
                     .accessibilityLabel("账户").accessibilityIdentifier("workspace.account")
             }
         }
-    }
-    private func companion(_ destination: Destination?) -> some View {
-        StudyCompanion(destination: destination, capture: {
-            sheet = .capture(destination?.rawValue ?? "题库")
-        }, review: { startReview(in: destination) }, practice: { id in
-            companionPractice = PracticeEntry.all.first { $0.id == id }
-        }, open: { selection = $0 }, database: { sheet = .database })
     }
     private func nav(_ destination: Destination) -> some View {
         NavigationLink(value: destination) {
@@ -243,7 +295,7 @@ struct WorkspaceView: View {
         let items = store.dueItems.filter { item in
             destination == .grammar ? item.isGrammar : destination == .vocabulary ? !item.isGrammar : true
         }
-        if items.isEmpty { store.error = "本机暂无待复习词条。可以在题库中选择词条，或通过学习伙伴同步数据。" }
+        if items.isEmpty { store.error = "本机暂无待复习词条。可以在题库中选择词条，或前往账户设置同步数据。" }
         else { review = ReviewSession(items: items) }
     }
 
@@ -252,115 +304,143 @@ struct WorkspaceView: View {
 struct TodayView: View {
     @Environment(AppStore.self) private var store
     @State private var round: NativeRound?
+    @State private var showingPlan = false
+    @State private var reviewingDraft: PracticeDraft?
+    @State private var confirmedPack: NativePack?
+    @Environment(\.horizontalSizeClass) private var sizeClass
     let open: (Destination) -> Void
     let review: () -> Void
     let capture: () -> Void
-    var body: some View {
-        GeometryReader { geometry in
-            let due = store.dueItems
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    Text(Date.now.formatted(.dateTime.month(.wide).day().weekday(.wide).locale(Locale(identifier: "zh_CN"))))
-                        .font(.subheadline).foregroundStyle(DeckTheme.muted)
-                    if geometry.size.width >= 850 {
-                        HStack(alignment: .top, spacing: 32) {
-                            mainColumn(dueCount: due.count).frame(maxWidth: .infinity)
-                            Rectangle().fill(DeckTheme.line).frame(width: 1)
-                            supportColumn(dueItems: due).frame(width: 265)
-                        }.fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        mainColumn(dueCount: due.count)
-                        Divider()
-                        supportColumn(dueItems: due)
-                    }
-                }.padding(geometry.size.width > 700 ? 32 : 20)
-            }.refreshable { await store.refresh() }
-                .fullScreenCover(item: $round) { NativeQuizView(round: $0) }
-        }
+    private var examDays: Int? {
+        guard let value = store.plan.profile?.examDate else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        guard let date = formatter.date(from: value) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = formatter.timeZone
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: .now), to: date).day
     }
-    private func mainColumn(dueCount: Int) -> some View {
-        VStack(alignment: .leading, spacing: 28) {
-            DeckPanel {
-                VStack(alignment: .leading, spacing: 22) {
-                    Text("今日计划").font(.title3.bold())
-                    if store.todayTasks.isEmpty {
-                        Text("今天还没有安排任务").font(.title2.weight(.medium))
-                        Text("可以先复习到期词条，学习计划会从网页版同步。").foregroundStyle(DeckTheme.muted)
-                    } else {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text("\(store.completedTasks) / \(store.todayTasks.count)").font(.system(size: 30, weight: .semibold, design: .rounded))
-                            Text("项任务已完成").foregroundStyle(DeckTheme.muted)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Button { showingPlan = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "calendar").font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(store.plan.profile?.examLabel ?? "考试日期").font(.subheadline.bold())
+                            if let date = store.plan.profile?.examDate { Text(date).font(.caption).foregroundStyle(DeckTheme.muted) }
                         }
-                        ProgressView(value: Double(store.completedTasks), total: Double(max(1, store.todayTasks.count))).tint(DeckTheme.green)
-                        Text(store.todayTasks.prefix(3).map(\.title).joined(separator: " · ")).font(.subheadline).foregroundStyle(DeckTheme.muted)
-                    }
-                    Button(action: review) { Label("开始记忆复习", systemImage: "arrow.right") }.buttonStyle(PrimaryButton()).accessibilityIdentifier("today.review")
-                    Text("\(dueCount) 项待复习 · 今日已复习 \(store.reviewedToday) 项")
-                        .font(.footnote).foregroundStyle(DeckTheme.muted).frame(maxWidth: .infinity)
+                        Spacer()
+                        if let days = examDays {
+                            Text(days > 0 ? "还有 \(days) 天" : days == 0 ? "今天考试" : "请更新考试日期").font(.headline)
+                        } else {
+                            Text("设置考试日期").font(.subheadline)
+                        }
+                        Image(systemName: "chevron.right").font(.caption)
+                    }.foregroundStyle(DeckTheme.green).padding(16)
+                        .background(DeckTheme.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                }.buttonStyle(.plain).accessibilityIdentifier("learning.countdown")
+                let layout = sizeClass == .regular ? AnyLayout(HStackLayout(alignment: .top, spacing: 16)) : AnyLayout(VStackLayout(spacing: 16))
+                layout { dailyPractice; dueReview }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("自主练习").font(.headline)
+                    IndependentPracticeEntries()
                 }
+            }.frame(maxWidth: 800).padding(20).frame(maxWidth: .infinity)
+        }.refreshable { await store.refresh() }
+            .fullScreenCover(item: $round) { NativeQuizView(round: $0) }
+            .fullScreenCover(item: $reviewingDraft, onDismiss: {
+                if let pack = confirmedPack {
+                    confirmedPack = nil
+                    round = NativeRound(title: pack.title, questions: pack.questions.filter(\.isUsable), view: "daily-practice", practiceId: pack.id, resumeSavedAnswers: true)
+                }
+            }) { draft in
+                NativeTopicConfirmationView(draftID: draft.id, isDaily: true) { confirmedPack = $0 }
             }
-            DeckPanel {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("今日练习").font(.title3.bold())
-                    if store.todayPacks.isEmpty {
-                        Text(store.hasPracticeCache ? "今天暂无已同步的练习" : "尚未下载今日练习")
-                            .foregroundStyle(DeckTheme.muted)
-                        Button(store.isLoading ? "正在同步…" : "同步学习数据") {
-                            Task { await store.refresh() }
-                        }.disabled(store.isLoading || !store.isOnline || store.isDemo)
-                    } else {
-                        ForEach(store.todayPacks) { pack in
-                            let questions = pack.questions.filter(\.isUsable)
-                            let answered = questions.filter { store.state.answers[$0.id] != nil }.count
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(pack.title).font(.headline)
-                                Text("\(questions.count) 题 · 已答 \(answered) 题")
-                                    .font(.subheadline).foregroundStyle(DeckTheme.muted)
-                                Button {
-                                    round = NativeRound(title: pack.title, questions: questions)
-                                } label: {
-                                    Label("开始练习", systemImage: "arrow.right")
-                                }.buttonStyle(PrimaryButton()).disabled(questions.isEmpty)
-                                    .accessibilityIdentifier("today.practice.\(pack.id)")
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button { showingPlan = true } label: { Image(systemName: "calendar") }.accessibilityLabel("学习计划")
+            } }
+            .sheet(isPresented: $showingPlan) {
+                NavigationStack {
+                    List {
+                        Section("考试目标") {
+                            NavigationLink { ExamGoalSettingsView() } label: {
+                                DeckRow(title: store.plan.profile?.examLabel ?? "设置考试目标", subtitle: store.plan.profile?.examDate ?? "设置考试日期", icon: "target")
                             }
                         }
-                    }
+                        Section("今日计划") {
+                            if store.todayTasks.isEmpty { Text("今天还没有安排任务") }
+                            ForEach(store.todayTasks) { task in Label(task.title, systemImage: task.status == "completed" ? "checkmark.circle.fill" : "circle") }
+                        }
+                    }.navigationTitle("学习计划")
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { showingPlan = false } } }
                 }
             }
-            VStack(alignment: .leading, spacing: 0) {
-                Text("继续学习").font(.title3.bold()).padding(.bottom, 14)
-                Divider()
-                Button { open(.reading) } label: { DeckRow(title: "阅读理解", subtitle: store.reading.first?.title ?? "打开阅读题库", icon: "book") }.buttonStyle(.plain)
-                Divider()
-                Button { open(.grammar) } label: { DeckRow(title: "语法表达", subtitle: "\(store.items.filter(\.isGrammar).count) 个学习词条", icon: "list.bullet.rectangle") }.buttonStyle(.plain)
-                Divider()
-            }
-            Button(action: capture) {
-                HStack { Image(systemName: "square.and.pencil"); Text("遇到不懂的日语？记下来。"); Spacer(); Image(systemName: "plus") }.font(.subheadline).padding(18)
-                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(DeckTheme.line))
-            }.buttonStyle(.plain)
-        }
     }
-    private func supportColumn(dueItems: [StudyItem]) -> some View {
-        VStack(alignment: .leading, spacing: 22) {
-            HStack { Text("待复习").font(.title3.bold()); Spacer(); Button("查看全部") { open(.vocabulary) }.font(.caption) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(dueItems.count)").font(.system(size: 54, weight: .medium, design: .rounded)).foregroundStyle(DeckTheme.green)
-                Text("项可开始复习").foregroundStyle(DeckTheme.muted)
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(dueItems.prefix(3))) { item in
-                    Divider()
-                    Button { open(item.isGrammar ? .grammar : .vocabulary) } label: {
-                        DeckRow(title: item.original, subtitle: item.reading ?? "语法表达", icon: item.isGrammar ? "list.bullet" : "character.book.closed")
-                    }.buttonStyle(.plain)
-                }
-                if dueItems.isEmpty { Text("没有到期内容，休息一下也很好。").font(.subheadline).foregroundStyle(DeckTheme.muted) }
-            }
-            Divider().padding(.vertical, 6)
-            Text("最近 7 天").font(.title3.bold())
-            WeekActivityView(summaries: store.plan.dailySummaries)
+    private func compactPracticeTitle(_ title: String) -> String {
+        let trimmed = title.replacingOccurrences(of: #"^(?:\d{4}-\d{2}-\d{2}|\d{1,2}月\d{1,2}日)[\s・｜|：:—-]*"#, with: "", options: .regularExpression)
+        if let separator = trimmed.firstIndex(of: "｜") {
+            let focus = String(trimmed[trimmed.index(after: separator)...]).trimmingCharacters(in: .whitespaces)
+            if !focus.isEmpty { return focus }
         }
+        return trimmed.replacingOccurrences(of: "每日薄弱点强化练习", with: "弱点强化")
+            .replacingOccurrences(of: "每日强化练习", with: "弱点强化")
+    }
+    private var dueReview: some View {
+        Button(action: review) {
+            HStack(spacing: 16) {
+                Image(systemName: "clock.arrow.circlepath").font(.system(size: 30)).foregroundStyle(DeckTheme.green)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("到期复习").font(.headline)
+                    Text(store.dueItems.isEmpty ? "今天已完成" : "开始复习").font(.subheadline).foregroundStyle(DeckTheme.green)
+                }
+                Spacer()
+                Text("\(store.dueItems.count)").font(.title.bold().monospacedDigit()).foregroundStyle(DeckTheme.green)
+                Text("项").font(.subheadline).foregroundStyle(DeckTheme.muted)
+                Image(systemName: "chevron.right").font(.caption)
+            }.padding(.horizontal, 20).padding(.vertical, 18).frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+                .background(DeckTheme.green.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+        }.buttonStyle(.plain).disabled(store.dueItems.isEmpty).accessibilityIdentifier("today.review")
+    }
+    private var dailyPractice: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let pack = store.todayPacks.first {
+                let questions = pack.questions.filter(\.isUsable)
+                let answered = questions.filter { store.state.answers[$0.id] != nil }.count
+                let complete = !questions.isEmpty && answered == questions.count
+                HStack {
+                    Text("今日练习").font(.headline)
+                    Spacer()
+                    Text(complete ? "已完成" : answered > 0 ? "进行中" : "待开始")
+                        .font(.caption.bold()).padding(.horizontal, 12).padding(.vertical, 6)
+                        .foregroundStyle(answered > 0 ? DeckTheme.green : DeckTheme.accent)
+                        .background((answered > 0 ? DeckTheme.green : DeckTheme.accent).opacity(0.12), in: Capsule())
+                }
+                Text(compactPracticeTitle(pack.title)).font(.title3.bold()).lineLimit(2)
+                Text(["\(answered)/\(questions.count) 题", pack.minutes.map { "约 \($0) 分钟" }].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline).foregroundStyle(DeckTheme.muted)
+                ProgressView(value: Double(answered), total: Double(max(1, questions.count))).tint(DeckTheme.green)
+                Button { round = NativeRound(title: pack.title, questions: questions, view: "daily-practice", practiceId: pack.id, resumeSavedAnswers: true) } label: {
+                    Label(complete ? "查看练习" : answered > 0 ? "继续练习" : "开始练习", systemImage: "arrow.right")
+                }.buttonStyle(PrimaryButton()).disabled(questions.isEmpty).accessibilityIdentifier("today.practice.\(pack.id)")
+            } else if let draft = store.todayDraft {
+                HStack {
+                    Text("今日练习").font(.headline)
+                    Spacer()
+                    Text(draft.status == "approved" ? "已确认" : "待确认").font(.caption.bold())
+                }
+                Text(compactPracticeTitle(draft.title)).font(.title3.bold()).lineLimit(2)
+                Button(draft.status == "approved" ? "开始练习" : "确认题目") { reviewingDraft = draft }
+                    .buttonStyle(PrimaryButton()).disabled(!store.isOnline).accessibilityIdentifier("today.draft.\(draft.id)")
+            } else {
+                Text("今日练习").font(.headline)
+                Text(store.hasPracticeCache ? "今天暂无已同步的练习" : "尚未下载今日练习").foregroundStyle(DeckTheme.muted)
+                Button(store.isLoading ? "正在同步…" : "同步学习数据") { Task { await store.refresh() } }
+                    .buttonStyle(PrimaryButton()).disabled(store.isLoading || !store.isOnline || store.isDemo)
+            }
+        }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
+            .background(DeckTheme.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
     }
 }
 

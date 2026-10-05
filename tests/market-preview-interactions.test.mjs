@@ -13,7 +13,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
 window.requestAnimationFrame = callback => { callback(); return 1; };
 window.scrollTo = () => {};
-window.HTMLElement.prototype.scrollIntoView = () => {};
+window.HTMLElement.prototype.scrollTo = () => {};
 window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
 window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new Event('close')); };
 await mkdir('.local', { recursive: true });
@@ -51,7 +51,7 @@ async function render(props = {}, fresh = false) {
   await act(async () => root.render(h(ConfirmationProvider, null, h(MarketPanelHarness, { ...defaults, ...props, key: mount }))));
 }
 async function click(element) { assert.ok(element, 'expected control exists'); await act(async () => element.click()); }
-const button = text => [...document.querySelectorAll('button')].find(element => element.textContent.trim() === text);
+const button = text => [...document.querySelectorAll('button')].find(element => element.textContent.trim() === text || element.getAttribute('aria-label') === text);
 const choice = index => document.querySelectorAll('button.cute-choice')[index];
 function baseFetch(call) {
   if (call.path === '/api/market') return response({ shares: [share] });
@@ -65,7 +65,7 @@ test('trial completes into results, returns with answers, restarts and exits wit
   await render({}, true);
   assert.equal(document.querySelector('.practice-session'), null);
   assert.match(document.body.textContent, /not saved to study history or progress/);
-  await click(button('Try without saving'));
+  await click(button('Start practice'));
   assert.equal(document.querySelector('.discovery-heading'), null);
   assert.equal(button('View trial results'), undefined);
   await click(choice(1));
@@ -83,8 +83,8 @@ test('trial completes into results, returns with answers, restarts and exits wit
   assert.equal(choice(0).disabled, false);
   assert.equal(button('View trial results'), undefined);
   await click(button('Back to share details'));
-  assert.ok(button('Try without saving'));
-  await click(button('Try without saving'));
+  assert.ok(button('Start practice'));
+  await click(button('Start practice'));
   assert.equal(choice(0).disabled, false, 're-entering a discarded trial starts cleanly');
   assert.equal(calls.filter(call => call.method !== 'GET').length, 0, 'trial answers/results never write a practice record');
 });
@@ -134,7 +134,7 @@ test('a slow previous share cannot replace the newer preview or carry answers in
   await render({ initialShareId: 'share-b' });
   await act(async () => finishA(response({ package: practice })));
   assert.equal(document.querySelector('.market-preview h2').textContent, second.title);
-  await click(button('Try without saving'));
+  await click(button('Start practice'));
   assert.match(document.querySelector('.practice-session').textContent, /Only B question/);
   assert.equal(button('View trial results'), undefined);
 });
@@ -148,7 +148,7 @@ test('failed detail loading offers a real retry and empty practice cannot start'
   assert.ok(button('Header back'));
   await click(button('Retry'));
   assert.equal(attempt, 2);
-  assert.equal(button('Try without saving').disabled, true);
+  assert.equal(button('Start practice').disabled, true);
   assert.match(document.body.textContent, /No questions are available/);
 });
 
@@ -175,14 +175,14 @@ test('detail shows a real sample and expandable introduction while header Back r
   calls = []; fetchHandler = baseFetch;
   await render({}, true);
   assert.equal(document.querySelector('.market-question-prompt').textContent, 'First question');
-  assert.equal(document.querySelectorAll('.market-question-preview li').length, 2);
+  assert.equal(document.querySelector('.market-question-preview').querySelectorAll('li').length, 2);
   assert.equal(button('Expand introduction').getAttribute('aria-expanded'), 'false');
   await click(button('Expand introduction'));
   assert.equal(button('Collapse introduction').getAttribute('aria-expanded'), 'true');
-  await click(button('Try without saving'));
+  await click(button('Start practice'));
   await click(choice(0));
   await click(button('Header back'));
-  assert.ok(button('Try without saving'));
+  assert.ok(button('Start practice'));
   assert.equal(document.querySelector('.practice-session'), null);
   assert.equal(calls.filter(call => call.method !== 'GET').length, 0);
 });
@@ -193,8 +193,8 @@ test('discovery list contains title and type/count, with optional tools in its s
   assert.equal(document.querySelector('.discovery-panel h1'), null);
   assert.equal(document.querySelector('.market-row-withdraw'), null);
   assert.equal(document.querySelector('.market-row-add'), null);
-  assert.match(document.querySelector('.standard-list-description').textContent, /topic practice · 2 questions/);
-  assert.doesNotMatch(document.querySelector('.learning-list').textContent, /Two trial questions/);
+  assert.match(document.querySelector('.discovery-card-meta').textContent, /2 questions/);
+  assert.doesNotMatch(document.querySelector('.discovery-cover-grid').textContent, /Two trial questions/);
   await click(document.querySelector('header .page-header-action'));
   assert.equal(document.querySelector('.list-controls-dialog').open, true);
   const scope = document.querySelector('select[aria-label="Share scope"]');
@@ -202,4 +202,38 @@ test('discovery list contains title and type/count, with optional tools in its s
   assert.match(document.querySelector('.list-applied-summary').textContent, /My shares/);
   await click(button('Reset'));
   assert.equal(document.querySelector('.list-applied-summary'), null);
+});
+
+
+test('cover carousel previews every question with local-only selections', async () => {
+  calls = []; fetchHandler = baseFetch;
+  await render({}, true);
+  assert.equal(document.querySelectorAll('.discovery-preview-slide').length, 3);
+  assert.match(document.querySelector('.discovery-page-counter').textContent, /1 \/ 3/);
+  await click(button('Next page'));
+  assert.match(document.querySelector('.discovery-gallery-controls').textContent, /2 \/ 3/);
+  const option = document.querySelector('.market-question-preview [role="radio"]');
+  await click(option);
+  assert.equal(option.getAttribute('aria-checked'), 'true');
+  await click(button('Next page'));
+  assert.equal(button('Next page').disabled, true);
+  assert.equal(calls.filter(call => call.method !== 'GET').length, 0);
+});
+
+test('visible category tabs filter by public subject metadata, including grammar wordbooks', async () => {
+  calls = [];
+  fetchHandler = call => call.path === '/api/market' ? response({ shares: [
+    {...share, id:'grammar', title:'Grammar book', kind:'wordbook', categories:['grammar']},
+    {...share, id:'vocab', title:'Vocabulary practice', categories:['vocabulary']},
+    {...share, id:'listen', title:'Listening', kind:'listening', categories:['listening']},
+  ] }) : baseFetch(call);
+  await render({initialShareId:undefined},true);
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 3);
+  await click(button('Grammar'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
+  assert.match(document.querySelector('.discovery-card-title').textContent, /Grammar book/);
+  await click(button('Words'));
+  assert.match(document.querySelector('.discovery-card-title').textContent, /Vocabulary practice/);
+  await click(button('Listening'));
+  assert.match(document.querySelector('.discovery-card-title').textContent, /Listening/);
 });

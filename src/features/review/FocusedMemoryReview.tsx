@@ -4,7 +4,7 @@ import { conjugationReading } from '../../domain/conjugationReading';
 import { LookupText } from './WordLookup';
 import { RecordReference } from '../../components/RecordReference';
 import { StudyText } from '../../components/StudyText';
-import { ArrowLeft, CheckCircle2, Eye, RotateCcw, Target, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, MoreHorizontal, RotateCcw, Target, Sparkles, TriangleAlert } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { ItemImage } from '../../components/ItemImage';
 import { distinctReading, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
@@ -31,12 +31,30 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [error, setError] = useState('');
+  const [speechSide, setSpeechSide] = useState<'left' | 'right'>(() => {
+    try { return window.localStorage.getItem('jlpt-memory-speech-side') === 'left' ? 'left' : 'right'; } catch { return 'right'; }
+  });
   const t = (zh: string, ja: string, en: string) => locale === 'zh-CN' ? zh : locale === 'ja' ? ja : en;
   const item = queue[index];
   const speech = useSpeech()?.settings.speech;
   const grammar = item?.type === 'grammar' || item?.deck?.includes('grammar');
-  const auto = speech?.cardAuto && speech.cardAuto !== 'off' && (!grammar || speech.grammarAuto) && (speech.cardAuto === 'front' || revealed);
+  const auto = speech?.cardAuto && speech.cardAuto !== 'off' && (!grammar || speech.grammarAuto) && (speech.cardAuto === 'front' ? !revealed : revealed);
   const speechText = item ? [item.reading || item.original, ...(auto && speech?.includeExample ? [item.examples?.find((example) => !isMetaLearningExample(example.ja))?.ja ?? ''] : [])].filter(Boolean).join('。') : '';
+
+  const speechControls = <div className="memory-card-speech" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+    <SpeechControls iconOnly downloadable key={item?.id} text={speechText} auto={Boolean(auto)} />
+    <details className="memory-speech-position">
+      <summary aria-label={t('朗读按钮位置', '読み上げボタンの位置', 'Speech button position')} title={t('朗读按钮位置', '読み上げボタンの位置', 'Speech button position')}><MoreHorizontal size={18} aria-hidden="true" /></summary>
+      <div className="memory-speech-position-menu">
+        <span>{t('朗读按钮位置', '読み上げボタンの位置', 'Speech button position')}</span>
+        {(['left', 'right'] as const).map((side) => <button type="button" key={side} aria-pressed={speechSide === side} onClick={(event) => {
+          setSpeechSide(side);
+          try { window.localStorage.setItem('jlpt-memory-speech-side', side); } catch { /* Keep the in-session choice when storage is unavailable. */ }
+          event.currentTarget.closest('details')?.removeAttribute('open');
+        }}>{side === 'left' ? t('左侧', '左側', 'Left') : t('右侧', '右側', 'Right')}</button>)}
+      </div>
+    </details>
+  </div>;
 
   async function rate(rating: MemoryRating) {
     if (!item || savingRef.current) return;
@@ -78,9 +96,8 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
         <span>{reviewed + 1} / {queue.length}</span>
       </header>
       <div className="ledger-focus-progress" role="progressbar" aria-label={t('复习进度', '復習の進捗', 'Review progress')} aria-valuemin={0} aria-valuemax={queue.length} aria-valuenow={reviewed}><i style={{ width: `${(reviewed / queue.length) * 100}%` }} /></div>
-      <div className="memory-review-speech"><SpeechControls iconOnly key={item.id} text={speechText} auto={Boolean(auto)} /></div>
       <section
-        className={`ledger-focus-stage ${wordSpacing ? 'has-word-spacing' : ''} ${revealed ? 'has-ratings' : 'can-reveal'}`}
+        className={`ledger-focus-stage ${wordSpacing ? 'has-word-spacing' : ''} ${revealed ? 'has-ratings' : 'can-reveal'} ${(revealed ? backFields : frontFields).includes('images') && item.images?.length ? 'has-memory-images' : ''}`}
         onClick={!revealed ? () => setRevealed(true) : undefined}
       >
         <div
@@ -98,12 +115,12 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
           <div className="ledger-memory-flip-inner">
             <article className="ledger-memory-card ledger-memory-face ledger-memory-front" aria-hidden={revealed} inert={revealed}>
               <div className="ledger-memory-content">
-                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={frontFields} revealed={false} />
+                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={frontFields} revealed={false} speechControls={!revealed ? speechControls : null} speechSide={speechSide} />
               </div>
             </article>
             <article className="ledger-memory-card ledger-memory-face ledger-memory-back" aria-hidden={!revealed} inert={!revealed}>
               <div className="ledger-memory-content">
-                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={backFields} revealed />
+                <ConfiguredMemoryCardContent item={item} locale={locale} token={token} fields={backFields} revealed speechControls={revealed ? speechControls : null} speechSide={speechSide} />
                 {item.reference ? (
                   <div className="ledger-memory-tracking-id">
                     <RecordReference key={item.id} reference={item.reference} locale={locale} />
@@ -133,12 +150,14 @@ export function FocusedMemoryReview({ items, locale, token, wordSpacing, frontFi
 const summaryCardFields: MemoryCardField[] = ['reading', 'jlpt_level', 'part_of_speech'];
 const featuredCardFields: MemoryCardField[] = ['original', 'images', 'patterns', 'meaning', 'core_memory'];
 
-function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: {
+function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed, speechControls, speechSide }: {
   item: VocabItem;
   locale: Locale;
   token?: string;
   fields: MemoryCardField[];
   revealed: boolean;
+  speechControls?: ReactNode;
+  speechSide: 'left' | 'right';
 }) {
   const labels = memoryCardFieldLabels[locale];
   const entries = fields
@@ -153,10 +172,11 @@ function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: 
   const summaryFields = revealed ? entries.filter((candidate) => summaryCardFields.includes(candidate.field)) : [];
   const details = entries.filter((candidate) => !featuredCardFields.includes(candidate.field) && !summaryFields.includes(candidate));
   return (
-    <>
+    <div className={`memory-card-layout ${images.length ? 'has-images' : ''}`}>
+      <div className="memory-card-summary">
       {revealed && (original || summaryFields.length) ? (
         <div className="ledger-memory-back-summary">
-          {original ? <h1 lang="ja">{original.content}</h1> : null}
+          {original || speechControls ? <div className={`memory-card-heading is-${speechSide}`}>{original ? <h1 lang="ja">{original.content}</h1> : null}{speechControls}</div> : null}
           {summaryFields.length ? (
             <dl>
               {summaryFields.map(({ field, content }) => (
@@ -168,21 +188,23 @@ function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: 
             </dl>
           ) : null}
         </div>
-      ) : original ? <h1 lang="ja">{original.content}</h1> : null}
+      ) : !revealed ? <div className={`memory-card-heading is-${speechSide}`}>{original ? <h1 lang="ja">{original.content}</h1> : null}{speechControls}</div> : null}
+      {revealed && !original && !summaryFields.length ? <div className={`memory-card-heading is-${speechSide}`}>{speechControls}</div> : null}
+      </div>
       {images.length ? (
         <div className={`ledger-memory-images ${images.length > 1 ? 'is-multiple' : ''}`}>
           {images.map((image) => (
             <figure key={image.id ?? image.url}>
               <ItemImage image={image} token={token} alt={image.caption || `${item.original} ${labels.images}`} />
-              {image.caption ? <figcaption>{image.caption}</figcaption> : null}
             </figure>
           ))}
         </div>
       ) : null}
       {patterns || meaning || details.length || coreMemory ? (
         <div className={`ledger-memory-answer ${revealed ? '' : 'is-front'}`}>
+          {coreMemory && revealed ? <section className="memory-recall-note"><h2><Sparkles size={20} aria-hidden="true" />{labels.core_memory}</h2><div>{coreMemory.content}</div></section> : null}
+          {meaning ? <div className="ledger-memory-configured-meaning">{revealed ? <span className="memory-sense-number" aria-hidden="true">1</span> : null}<div>{meaning.content}</div></div> : null}
           {patterns ? <div className="ledger-memory-featured">{patterns.content}</div> : null}
-          {meaning ? <p className="ledger-memory-configured-meaning">{meaning.content}</p> : null}
           <dl>
             {details.map(({ field, content }) => (
               <div key={field} className={`ledger-memory-field ledger-memory-field--${memoryFieldPresentation(field)}`}>
@@ -190,7 +212,7 @@ function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: 
                 <dd>{content}</dd>
               </div>
             ))}
-            {coreMemory ? (
+            {coreMemory && !revealed ? (
               <div className="ledger-memory-field ledger-memory-field--memory">
                 <dt>{labels.core_memory}</dt>
                 <dd>{coreMemory.content}</dd>
@@ -199,7 +221,7 @@ function ConfiguredMemoryCardContent({ item, locale, token, fields, revealed }: 
           </dl>
         </div>
       ) : !revealed && !images.length ? <span className="ledger-memory-rule" /> : null}
-    </>
+    </div>
   );
 }
 
@@ -251,7 +273,7 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
     case 'conjugations': return item.conjugations?.length ? <ConjugationPattern item={item} locale={locale} /> : null;
     case 'examples': {
       const example = item.examples?.find((candidate) => !isMetaLearningExample(candidate.ja));
-      return example ? <><span lang="ja"><LookupText text={example.ja} /> <SpeechControls iconOnly text={example.ja} /></span><small>{example.zh}</small></> : null;
+      return example ? <><span lang="ja"><LookupText text={example.ja} /> <SpeechControls iconOnly downloadable text={example.ja} /></span><small>{example.zh}</small></> : null;
     }
     case 'notes': return lines(item.notes ?? []);
     case 'tags': return item.tags?.length ? <span>{item.tags.join(' · ')}</span> : null;

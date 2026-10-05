@@ -64,7 +64,6 @@ export function ItemImage({ image, token, alt, className }: { image: ItemImageRe
       >
         <button type="button" className="item-image-dialog-close" onClick={() => dialogRef.current?.close()} aria-label="关闭大图">×</button>
         <img src={src} alt={alt} referrerPolicy="no-referrer" />
-        <p>{alt}</p>
       </dialog>,
       document.body,
     )}

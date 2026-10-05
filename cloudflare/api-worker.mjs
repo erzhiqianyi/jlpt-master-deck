@@ -58,7 +58,7 @@ export class JlptDatabase extends DurableObject {
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
       const files = requestFiles();
-      const platform = { ttsCacheBucket: this.env.MEDIA, ttsCacheEnv: this.env, db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, aiHomeHtml, dataSource: 'cloudflare-sqlite',
+      const platform = { afterCommit: [], ttsCacheBucket: this.env.MEDIA, ttsCacheEnv: this.env, db: this.db, files: files.files, firebase: this.firebase, ttsSecretKey: this.ttsSecretKey, practiceHtml, reviewCardsHtml, aiHomeHtml, dataSource: 'cloudflare-sqlite',
         readMedia: async (path, limit) => {
           const object = await this.env.MEDIA.get(objectKey(path));
           if (!object) return null;
@@ -78,6 +78,11 @@ export class JlptDatabase extends DurableObject {
           this.ctx.storage.kv.put('media-deletes', [...new Set([...pending, ...files.deleteKeys()])]);
           return result;
         }));
+        if (platform.afterCommit.length) {
+          this.ctx.waitUntil(Promise.resolve().then(() => this.ctx.blockConcurrencyWhile(() => withPlatform(platform, async () => {
+            for (const run of platform.afterCommit) await run();
+          }))));
+        }
         await this.flushDeletes();
         try { if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + 86400000); }
         catch { console.warn('TTS cache maintenance scheduling failed'); }

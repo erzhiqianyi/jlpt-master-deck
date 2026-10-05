@@ -70,3 +70,39 @@ struct DeckDismissButton: View {
         .keyboardShortcut(.cancelAction)
     }
 }
+
+/// Shared answer states match the web practice and reading screens.
+struct StudyAnswerChoice: View {
+    let number: Int
+    let text: String
+    let selected: Bool
+    var correct: Bool? = nil
+    var flat = false
+    var tint: Color { correct == true ? DeckTheme.green : correct == false && selected ? DeckTheme.accent : DeckTheme.ink }
+    var fill: Color { correct == true ? DeckTheme.green.opacity(0.08) : selected ? DeckTheme.accent.opacity(0.08) : .clear }
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text("\(number)").font(.body.monospacedDigit()).frame(width: 30, height: 30)
+                .background(tint.opacity(0.07), in: Circle())
+            Text(text).font(.system(size: 18)).lineSpacing(5).multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+            if correct == true { Image(systemName: "checkmark.circle.fill") }
+            else if selected { Image(systemName: correct == false ? "xmark.circle.fill" : "checkmark.circle.fill") }
+        }.padding(.vertical, 14).padding(.horizontal, flat ? 4 : 16)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading).foregroundStyle(tint)
+            .background(fill, in: RoundedRectangle(cornerRadius: flat ? 0 : 10))
+            .overlay { if !flat { RoundedRectangle(cornerRadius: 10).stroke(selected || correct == true ? tint.opacity(0.5) : DeckTheme.line, lineWidth: 1) } }
+            .overlay(alignment: .bottom) { if flat { Rectangle().fill(DeckTheme.line).frame(height: 1) } }
+            .contentShape(Rectangle())
+    }
+}
+
+
+extension MemoryRating {
+    var symbol: String {
+        switch self { case .forgot: "arrow.counterclockwise"; case .hard: "exclamationmark.triangle"; case .remembered: "checkmark.circle"; case .easy: "target" }
+    }
+    var tint: Color {
+        switch self { case .forgot: DeckTheme.accent; case .hard: Color(red: 0.62, green: 0.46, blue: 0.25); case .remembered: DeckTheme.green; case .easy: Color(red: 0.28, green: 0.53, blue: 0.74) }
+    }
+}

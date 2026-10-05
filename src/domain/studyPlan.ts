@@ -4,7 +4,8 @@ const DEFAULT_EXAM_DATE = '2026-12-06';
 
 export function createDefaultStudyPlanProfile(now = new Date()): StudyPlanProfile {
   return {
-    level: 'N1',
+    level: '',
+    examName: '',
     startDate: localDateString(now),
     examDate: DEFAULT_EXAM_DATE,
     studyDaysPerWeek: 6,

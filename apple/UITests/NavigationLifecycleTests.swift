@@ -8,7 +8,10 @@ final class NavigationLifecycleTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--demo"]
         app.launch()
-        XCTAssertTrue(app.buttons["workspace.companion"].firstMatch.waitForExistence(timeout: 10))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.app.buttons["workspace.account"].firstMatch.exists || self.app.buttons["nav.阅读"].exists || self.app.tabBars.firstMatch.exists
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
     }
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
@@ -31,23 +34,87 @@ final class NavigationLifecycleTests: XCTestCase {
     }
     private func reveal(_ element: XCUIElement) {
         for _ in 0..<6 {
-            if element.isHittable { return }
+            if element.isHittable && element.frame.midY > 140 && element.frame.midY < app.frame.height - 140 { return }
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable)
     }
+    private func revealStatistics(_ element: XCUIElement) {
+        let scroll = app.scrollViews["statistics.dashboard"]
+        for _ in 0..<15 {
+            if element.isHittable && element.frame.midY > 140 && element.frame.midY < app.frame.height - 160 { return }
+            scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.70)).press(forDuration: 0.1, thenDragTo: scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
+        }
+        XCTAssertTrue(element.isHittable)
+    }
+    func testStatisticsDashboardMatchesWebReference() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--statistics-fixture"]; app.launch()
+        primary("统计")
+        XCTAssertTrue(app.staticTexts["今天的积累"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["90%"].exists)
+        XCTAssertTrue(app.staticTexts["234 次作答"].exists)
+        capture("statistics-reference-top")
+        revealStatistics(app.staticTexts["累计概况"])
+        XCTAssertTrue(app.staticTexts["404"].exists)
+        XCTAssertTrue(app.staticTexts["89%"].exists)
+        XCTAssertTrue(app.staticTexts["5 / 7"].exists)
+        capture("statistics-reference-overall")
+        revealStatistics(app.staticTexts["模块表现"])
+        capture("statistics-reference-modules")
+        revealStatistics(app.buttons["statistics.history"])
+        app.buttons["statistics.history"].tap()
+        XCTAssertTrue(app.staticTexts["综合练习 · 每组 20 题"].waitForExistence(timeout: 5))
+        app.buttons.containing(.staticText, identifier: "综合练习 · 每组 20 题").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["你的答案：そくてい"].firstMatch.waitForExistence(timeout: 5))
+        capture("statistics-reference-attempt-detail")
+    }
+    func testStatisticsMockExamAndCardSettingsPersist() throws {
+        primary("练习")
+        XCTAssertTrue(app.buttons["practice.mock"].waitForExistence(timeout: 5))
+        app.buttons["practice.mock"].tap()
+        XCTAssertTrue(app.staticTexts["登录后查看账户里的试卷和考试安排。"].waitForExistence(timeout: 5))
+        app.buttons["practice.back"].tap()
+        primary("统计")
+        XCTAssertTrue(app.staticTexts["今天的积累"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["近七天作答"].exists)
+        capture("native-statistics")
+        app.buttons["workspace.account"].firstMatch.tap()
+        app.buttons["settings.cards"].tap()
+        let image = app.switches["settings.cards.back.images"]
+        reveal(image)
+        XCTAssertEqual(image.value as? String, "1")
+        image.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        XCTAssertEqual(image.value as? String, "0")
+        let save = app.buttons["settings.cards.save"]
+        reveal(save); save.tap()
+        XCTAssertTrue(app.staticTexts["卡片设置已保存"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["settings.cards"].tap()
+        reveal(image)
+        XCTAssertEqual(image.value as? String, "0")
+        capture("native-memory-image-settings-saved")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["settings.speech"].tap()
+        XCTAssertTrue(app.buttons["settings.speech.save"].waitForExistence(timeout: 5))
+        capture("native-speech-settings")
+    }
     func testReadingSelectionAndScrollSurviveBackground() throws {
-        primary("今日"); capture("today-portrait")
+        primary("学习"); capture("today-portrait")
         primary("练习"); capture("practice-portrait")
         primary("题库")
         capture("library-portrait")
         app.buttons["nav.阅读"].tap()
         app.buttons.containing(.staticText, identifier: "学び続けるために").firstMatch.tap()
+        XCTAssertFalse(app.buttons["reading.speak"].exists, "Reading speech stays hidden before confirmation")
         let answer = app.buttons["reading.choice.2"]
         XCTAssertTrue(answer.waitForExistence(timeout: 5))
         reveal(answer)
+        capture("reading-option-visible-before-tap")
         answer.tap()
-        XCTAssertEqual(answer.value as? String, "已选择")
+        XCTAssertTrue(NSPredicate(format: "value == %@", "已选择").evaluate(with: answer) || {
+            let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "已选择"), object: answer)
+            return XCTWaiter.wait(for: [expectation], timeout: 3) == .completed
+        }())
         let beforeY = answer.frame.minY
         capture("reading-selected-before-background")
         XCUIDevice.shared.press(.home)
@@ -60,14 +127,115 @@ final class NavigationLifecycleTests: XCTestCase {
         let confirm = app.buttons["确认答案"]
         reveal(confirm); confirm.tap()
         XCTAssertTrue(app.staticTexts["回答正确"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["reading.speak"].exists, "Confirmed answers unlock reading speech")
         capture("reading-correct-feedback")
     }
-    func testWaveOpensPracticeAndModalSurvivesBackground() throws {
+    func testReviewSpeechMovesWithinContentAndRemembersSide() throws {
+        primary("学习")
+        let start = app.buttons["today.review"]
+        reveal(start); start.tap()
+        let speech = app.buttons["review.speech"]
+        XCTAssertTrue(speech.waitForExistence(timeout: 5))
+        app.buttons["review.speech-position"].tap()
+        app.buttons["放到右侧"].tap()
+        let term = app.staticTexts["測定"].firstMatch
+        XCTAssertTrue(term.exists)
+        XCTAssertGreaterThan(speech.frame.minX, term.frame.minX)
+        app.buttons["review.speech-position"].tap()
+        app.buttons["放到左侧"].tap()
+        XCTAssertLessThan(speech.frame.minX, term.frame.minX)
+        capture("review-speech-left-inside-card")
+        app.buttons["显示答案"].tap()
+        XCTAssertTrue(speech.exists)
+        XCTAssertLessThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
+        app.terminate(); app.launch()
+        primary("学习")
+        reveal(start); start.tap()
+        XCTAssertTrue(speech.waitForExistence(timeout: 5))
+        XCTAssertLessThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
+        app.buttons["review.speech-position"].tap()
+        app.buttons["放到右侧"].tap()
+    }
+    func testReviewViewportAndRatingDockStayStable() throws {
+        primary("学习")
+        let start = app.buttons["today.review"]
+        reveal(start); start.tap()
+        let revealButton = app.buttons["review.reveal"]
+        XCTAssertTrue(revealButton.waitForExistence(timeout: 5))
+        let term = app.staticTexts["測定"].firstMatch
+        XCTAssertTrue(term.exists)
+        XCTAssertGreaterThan(term.frame.midY, app.frame.height * 0.25)
+        XCTAssertLessThan(term.frame.midY, app.frame.height * 0.7)
+        capture("review-centered-front")
+        revealButton.tap()
+        let ratings = ["forgot", "hard", "remembered", "easy"].map { app.buttons["review.\($0)"] }
+        for rating in ratings { XCTAssertTrue(rating.isHittable); XCTAssertEqual(rating.frame.minY, ratings[0].frame.minY, accuracy: 2) }
+        let dockY = ratings[0].frame.minY
+        capture("review-back-redesigned-top")
+        app.swipeUp()
+        XCTAssertEqual(ratings[0].frame.minY, dockY, accuracy: 2)
+        capture("review-back-fixed-rating-dock")
+    }
+    func testVocabularyAndGrammarAnswerAndExplanationMatchWeb() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--practice-fixture"]; app.launch()
+        primary("学习")
+        let start = app.buttons["today.practice.ui-fixture"]
+        reveal(start); start.tap()
+        let confirm = app.buttons["quiz.confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        XCTAssertFalse(confirm.isEnabled)
+        XCTAssertFalse(app.staticTexts["解题依据"].exists)
+        let wrong = app.buttons["quiz.choice.1"]
+        reveal(wrong); wrong.tap(); confirm.tap()
+        let outcome = app.staticTexts["回答错误"]
+        XCTAssertTrue(outcome.waitForExistence(timeout: 5)); reveal(outcome)
+        capture("vocabulary-wrong-answer-feedback")
+        let analysis = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "选项辨析")).firstMatch
+        reveal(analysis); analysis.tap()
+        XCTAssertTrue(app.staticTexts["「測」的读音不能省略く。"].exists)
+        capture("vocabulary-expanded-choice-analysis")
+        XCTAssertTrue(app.buttons["quiz.next"].isHittable)
+        app.buttons["quiz.next"].tap()
+        // Page-style TabView may retain the adjacent page in the accessibility tree.
+        XCTAssertFalse(app.staticTexts["回答错误"].isHittable)
+        XCTAssertFalse(app.staticTexts["解题依据"].isHittable)
+        let right = app.buttons["quiz.choice.1"]
+        reveal(right); right.tap(); app.buttons["quiz.confirm"].tap()
+        let correct = app.staticTexts["回答正确"]
+        XCTAssertTrue(correct.waitForExistence(timeout: 5)); reveal(correct)
+        capture("grammar-correct-answer-feedback")
+        reveal(analysis); analysis.tap()
+        XCTAssertTrue(app.staticTexts["承认味道，同时强调外观符合题意。"].exists)
+        let translation = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "完整中文翻译")).firstMatch
+        reveal(translation); translation.tap()
+        XCTAssertTrue(app.staticTexts["味道自不必说，外观也很漂亮。"].exists)
+        capture("grammar-expanded-explanation-and-translation")
+        app.buttons["quiz.next"].tap()
+        let mistakes = app.buttons["quiz.review.mistakes"]
+        XCTAssertTrue(mistakes.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["解题依据"].exists, "Summary must not contain question explanations")
+        XCTAssertTrue(app.buttons["quiz.review.all"].exists)
+        capture("practice-summary-only")
+        mistakes.tap()
+        XCTAssertTrue(app.staticTexts["原题第 1 题"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["回答错误"].exists)
+        XCTAssertFalse(app.staticTexts["原题第 2 题"].isHittable)
+        capture("practice-review-wrong-only")
+        app.buttons["quiz.review.summary"].tap()
+        XCTAssertFalse(app.staticTexts["解题依据"].exists)
+        app.buttons["quiz.review.all"].tap()
+        app.swipeLeft()
+        XCTAssertTrue(app.staticTexts["原题第 2 题"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["原题第 2 题"].isHittable)
+        capture("practice-review-all-swiped")
+    }
+    func testPracticeEntryWorksWithoutFloatingActionsAndSurvivesBackground() throws {
         primary("练习")
-        app.buttons["workspace.companion"].firstMatch.tap()
-        let topic = app.buttons["专项练习"].firstMatch
+        XCTAssertFalse(app.buttons["workspace.companion"].exists)
+        XCTAssertFalse(app.buttons["detail.companion"].exists)
+        let topic = app.buttons["practice.topics"].firstMatch
         XCTAssertTrue(topic.waitForExistence(timeout: 5))
-        capture("companion-shortcuts")
+        capture("native-practice-without-floating-action")
         topic.tap()
         XCTAssertTrue(app.staticTexts["演示模式"].waitForExistence(timeout: 5))
         XCUIDevice.shared.press(.home)

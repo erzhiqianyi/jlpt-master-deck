@@ -1,11 +1,11 @@
 import type { AppRoute, AppView } from '../types';
 
-export const primaryNavigationViews = ['home', 'mixed', 'market', 'history', 'study'] as const;
+export const primaryNavigationViews = ['home', 'market', 'history', 'study'] as const;
 
-/** Only the five destination roots expose phone tabs. Local screens take precedence. */
+/** Only the four destination roots expose phone tabs. Local screens take precedence. */
 export function isPrimaryNavigationRoot(route: AppRoute, hasLocalScreen = false) {
   if (hasLocalScreen || route.itemId) return false;
-  if (route.view === 'mixed') return route.page === 'tips';
+  if (route.view === 'mixed') return false;
   return ['home', 'market', 'history', 'study'].includes(route.view) && route.page === 'questions';
 }
 
@@ -17,7 +17,7 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
     if (route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
     if (route.page === 'words') return { view: 'study', page: 'questions' };
     if (route.page === 'review') return { view: 'mixed', page: 'questions' };
-    return { view: 'mixed', page: 'tips' };
+    return { view: 'home', page: 'questions' };
   }
   if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
     if (route.itemId) return { view: route.view, page: route.page };
@@ -30,7 +30,7 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
   if (route.view === 'question-types') return route.itemId ? { view: 'question-types', page: 'questions' } : { view: 'study', page: 'questions' };
   if (route.view === 'mock-exams') {
     if (route.itemId) return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
-    return { view: 'mixed', page: 'tips' };
+    return { view: 'home', page: 'questions' };
   }
   if (route.view === 'daily-practice') return route.page === 'review'
     ? { view: 'daily-practice', page: 'questions', itemId: route.itemId }
@@ -47,13 +47,13 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
 /** Primary destination is based on the task, not just the module in the URL. */
 export function primaryNavigationView(route: AppRoute): AppView {
   if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
-    return route.page === 'questions' || route.page === 'review' ? 'mixed' : 'study';
+    return route.page === 'questions' || route.page === 'review' ? 'home' : 'study';
   }
-  if (['daily-practice', 'mock-exams', 'news-cycle', 'memory-review'].includes(route.view)) return 'mixed';
+  if (['daily-practice', 'mock-exams', 'news-cycle', 'memory-review'].includes(route.view)) return 'home';
   if (route.view === 'question-types' || (route.view === 'mixed' && route.page === 'words')) return 'study';
   if (['captures', 'capture', 'drafts', 'mistakes', 'insights', 'memory', 'data'].includes(route.view)) return 'history';
   if (['plan', 'settings', 'profile', 'about', 'mcp'].includes(route.view)) return 'home';
-  return route.view;
+  return route.view === 'mixed' ? 'home' : route.view;
 }
 
 /** Legacy focused-task classification; primary tab visibility uses isPrimaryNavigationRoot. */

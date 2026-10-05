@@ -1,4 +1,5 @@
-import { apiRequest, ApiError } from './api';
+import { apiRequest } from './api';
+import { speechAudioChunk, hasDownloadedSpeech } from './speechAudio';
 import type { TtsProviderId } from '../types';
 
 export type TtsCredentialField = { key: string; label: string; secret: boolean };
@@ -32,7 +33,7 @@ export type SpeechVoice = { id: string; name: string; styles: string[]; roles: s
 export function fetchSpeechVoices(token: string, provider: string) {
   return apiRequest<{ voices: SpeechVoice[] }>(`/api/tts/voices?provider=${encodeURIComponent(provider)}`, { token });
 }
-export type SpeechOptions = { provider: TtsProviderId; token: string; voice?: string; style?: string; role?: string; rate?: number; owner?: string };
+export type SpeechOptions = { provider: TtsProviderId; token: string; voice?: string; style?: string; role?: string; rate?: number; owner?: string; cacheScope?: string };
 let controller: AbortController | null = null;
 let currentAudio: HTMLAudioElement | null = null;
 let state = { owner: '', status: 'idle' as 'idle' | 'loading' | 'playing' | 'paused' };
@@ -93,16 +94,7 @@ export async function speak(text: string, options: SpeechOptions) {
           window.speechSynthesis.speak(utterance); update('playing');
         });
       } else {
-        const response = await fetch('/api/tts/speak', {
-          method: 'POST', signal,
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${options.token}` },
-          body: JSON.stringify({ text: chunk, provider: options.provider, voice: options.voice, style: options.style, role: options.role }),
-        });
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}));
-          throw new ApiError(typeof payload.error === 'string' ? payload.error : `朗读请求失败：${response.status}`, response.status);
-        }
-        const blob = await response.blob(); signal.throwIfAborted();
+        const blob = await speechAudioChunk(chunk, { ...options, provider: options.provider }, signal);
         const url = URL.createObjectURL(blob);
         try {
           await new Promise<void>((resolve, reject) => {
@@ -119,4 +111,15 @@ export async function speak(text: string, options: SpeechOptions) {
   } finally {
     if (controller === operation) { controller = null; currentAudio = null; update('idle', ''); }
   }
+}
+
+export async function downloadSpeech(text: string, options: SpeechOptions, signal?: AbortSignal) {
+  if (options.provider === 'browser') throw new Error('系统内置语音不提供音频下载，请选择已配置的云端朗读服务。');
+  for (const chunk of splitSpeechText(text)) {
+    signal?.throwIfAborted();
+    await speechAudioChunk(chunk, { ...options, provider: options.provider }, signal, true);
+  }
+}
+export function speechDownloaded(text: string, options: SpeechOptions) {
+  return options.provider === 'browser' ? Promise.resolve(false) : hasDownloadedSpeech(splitSpeechText(text), { ...options, provider: options.provider });
 }

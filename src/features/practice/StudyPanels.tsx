@@ -17,7 +17,7 @@ import { normalizePracticeExplanations } from '../../domain/practiceExplanations
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from '../../components/ListBatch';
 import { useMobileList } from '../../hooks/useMobileList';
-import { BookOpenText, Pencil, ChevronLeft, ChevronRight, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
+import { CheckCircle2, CircleMinus, BookOpenText, Pencil, ChevronLeft, ChevronRight, ImagePlus, Lightbulb, LoaderCircle, Plus, RotateCcw, ScrollText, Settings, Target, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { defaultRubyTerms } from '../../data/rubyTerms';
 import { distinctReading, localized, itemExplanation, itemMeaning, itemMemoryPoints } from '../../domain/items';
@@ -146,7 +146,8 @@ export function PracticeReviewPanel({
 }) {
   const model = practiceReviewModel(questions, answers, attempt);
   const [reviewIndex, setReviewIndex] = useState<number | null>(null);
-  const [filter, setFilter] = useState<'all' | 'wrong' | 'unanswered'>(() => model.wrong ? 'wrong' : 'all');
+  const [filter, setFilter] = useState<'all' | 'wrong' | 'unanswered'>(() => model.wrong + model.unanswered ? 'wrong' : 'all');
+  const reviewTouch = useRef<{ x: number; y: number } | null>(null);
   const questionRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const activeRow = reviewIndex === null ? undefined : model.rows[reviewIndex];
@@ -154,12 +155,23 @@ export function PracticeReviewPanel({
   const activeAnswer = activeRow?.answer;
   const reviewTitle = attempt?.title ?? practiceTitle ?? labels.reviewSummaryTitle;
   const copy = locale === 'zh-CN'
-    ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习', back: '返回练习', results: '练习结果', returnResults: '返回结果', all: '全部题目', wrong: '错题', unanswered: '未答', accuracy: '整组正确率', scoreNote: '按整组题目计分，未答计入总题数。', emptyWrong: '没有错题。可以查看全部题目。', emptyUnanswered: '所有题目都已作答。', allCorrect: '全部答对了！', evidence: '查看答案与解析', unansweredBody: '这道题尚未作答；以下是正确答案与解析。', missing: '部分原题当前不可用；历史成绩已保留，缺失题目不会计为未答。', historicalScore: '成绩按当时保存的记录展示。', currentVersion: '以下答案与解析来自当前题目版本，可能与作答时不同。', currentAnswer: '当前题目答案' }
+    ? { list: '题目列表', previous: '上一题', next: '下一题', restart: '重新练习', back: '返回练习', results: '练习结果', returnResults: '返回结果', all: '全部题目', wrong: '错题', unanswered: '未答', accuracy: '整组正确率', scoreNote: '按整组题目计分；只看错题也包含未作答的题目。', emptyWrong: '没有错题。可以查看全部题目。', emptyUnanswered: '所有题目都已作答。', allCorrect: '全部答对了！', evidence: '查看答案与解析', unansweredBody: '这道题尚未作答；以下是正确答案与解析。', missing: '部分原题当前不可用；历史成绩已保留，缺失题目不会计为未答。', historicalScore: '成绩按当时保存的记录展示。', currentVersion: '以下答案与解析来自当前题目版本，可能与作答时不同。', currentAnswer: '当前题目答案' }
     : locale === 'ja'
       ? { list: '問題一覧', previous: '前の問題', next: '次の問題', restart: 'もう一度練習', back: '練習に戻る', results: '練習結果', returnResults: '結果に戻る', all: 'すべて', wrong: '不正解', unanswered: '未解答', accuracy: '全問の正答率', scoreNote: '未解答を含む全問題数で計算しています。', emptyWrong: '不正解はありません。すべての問題を確認できます。', emptyUnanswered: 'すべて解答済みです。', allCorrect: '全問正解です！', evidence: '答えと解説を見る', unansweredBody: '未解答の問題です。正解と解説を確認できます。', missing: '元の問題の一部が利用できません。保存済みの成績は保持し、欠落した問題を未解答には数えません。', historicalScore: '当時保存された成績を表示しています。', currentVersion: '以下の正解と解説は現在の問題版です。解答時と異なる場合があります。', currentAnswer: '現在の問題の正解' }
       : { list: 'Questions', previous: 'Previous', next: 'Next', restart: 'Restart practice', back: 'Back to practice', results: 'Practice results', returnResults: 'Back to results', all: 'All questions', wrong: 'Incorrect', unanswered: 'Unanswered', accuracy: 'Whole-set accuracy', scoreNote: 'Accuracy includes every question, including unanswered ones.', emptyWrong: 'No incorrect answers. You can review all questions.', emptyUnanswered: 'Every question has been answered.', allCorrect: 'Every answer is correct!', evidence: 'View answer and explanation', unansweredBody: 'This question was not answered. Review the correct answer and explanation below.', missing: 'Some original questions are unavailable. Saved results are preserved; missing questions are not counted as unanswered.', historicalScore: 'Showing the result saved at the time of this attempt.', currentVersion: 'Answers and explanations below use the current question version and may differ from the original.', currentAnswer: 'Current question answer' };
-  const rows = model.rows.filter((row) => filter === 'all' || row.status === filter);
+  const rows = model.rows.filter((row) => filter === 'all' || (filter === 'wrong' ? row.status !== 'correct' : row.status === filter));
 
+  const reviewPosition = rows.findIndex(row => row.index === reviewIndex);
+  function moveReview(delta: number) {
+    const next = rows[reviewPosition + delta];
+    if (next) openQuestion(next.index);
+  }
+  function startReview(value: typeof filter) {
+    setFilter(value);
+    const first = model.rows.find(row => value === 'all' || (value === 'wrong' ? row.status !== 'correct' : row.status === value));
+    if (first) openQuestion(first.index);
+    else setReviewIndex(null);
+  }
   function openQuestion(index: number) {
     setReviewIndex(index);
     window.requestAnimationFrame(() => {
@@ -182,23 +194,42 @@ export function PracticeReviewPanel({
         <div><p>{copy.results}</p><h1>{reviewTitle}</h1></div>
         {onRestart ? <button type="button" className="practice-text-action" onClick={onRestart}><RotateCcw size={17} aria-hidden="true" />{copy.restart}</button> : null}
       </header> : null}
-      {!activeQuestion ? <section className="practice-result-summary" aria-label={copy.results}>
+      {!activeQuestion && model.total > 0 ? <div className="practice-completion-hero">
+        <img src="/study-companion.png" width="112" height="112" alt="" />
+        <span><CheckCircle2 size={18} aria-hidden="true" />{locale === 'zh-CN' ? '本轮练习完成' : locale === 'ja' ? '今回の練習が完了しました' : 'Practice complete'}</span>
+        <h2>{model.correct === model.total ? (locale === 'zh-CN' ? '全对，做得漂亮！' : locale === 'ja' ? '全問正解、お見事！' : 'Every answer correct. Well done!') : (locale === 'zh-CN' ? '每一次练习，都在向前一步' : locale === 'ja' ? '一問ずつ、着実に前へ' : 'Every practice is a step forward')}</h2>
+        <p>{model.correct === model.total ? (locale === 'zh-CN' ? '这一轮的努力收获满满。回顾一下，让知识记得更牢。' : locale === 'ja' ? '努力が実りました。復習して、知識を定着させましょう。' : 'Your effort paid off. A quick review will help it stick.') : (locale === 'zh-CN' ? '错题帮你找到下一步的方向。一起把还不熟悉的地方练扎实。' : locale === 'ja' ? '間違いは次の一歩のヒント。復習して少しずつ身につけましょう。' : 'Mistakes show what to work on next. Take it one question at a time.')}</p>
+      </div> : null}
+      {!activeQuestion ? <section className="practice-result-summary" ref={listRef} tabIndex={-1} aria-label={copy.results}>
         <div className="practice-result-score"><strong>{Math.round(model.accuracy * 100)}<small>%</small></strong><span>{copy.accuracy}</span></div>
-        <dl><div><dt>{labels.correct}</dt><dd>{model.correct} / {model.total}</dd></div><div><dt>{copy.wrong}</dt><dd>{model.wrong}</dd></div><div><dt>{copy.unanswered}</dt><dd>{model.unanswered}</dd></div><div><dt>{labels.elapsed}</dt><dd>{formatDuration(model.elapsedMs)}</dd></div></dl>
+        <dl><div><dt><CheckCircle2 size={16} aria-hidden="true" />{labels.correct}</dt><dd>{model.correct} / {model.total}</dd></div><div><dt><RotateCcw size={16} aria-hidden="true" />{copy.wrong}</dt><dd>{model.wrong}</dd></div><div><dt><CircleMinus size={16} aria-hidden="true" />{copy.unanswered}</dt><dd>{model.unanswered}</dd></div><div><dt>{labels.elapsed}</dt><dd>{formatDuration(model.elapsedMs)}</dd></div></dl>
         <p>{attempt ? copy.historicalScore : model.total > 0 && model.correct === model.total ? copy.allCorrect : copy.scoreNote}</p>
         {model.missingOriginals > 0 ? <p role="status">{copy.missing} ({model.missingOriginals})</p> : null}
       </section> : null}
+      {!activeQuestion && model.rows.length > 0 ? <div className="practice-completion-actions">
+        <button type="button" disabled={!(model.wrong + model.unanswered)} onClick={() => startReview('wrong')}><RotateCcw size={18} aria-hidden="true" />{locale === 'zh-CN' ? '只看错题' : copy.wrong} ({model.wrong + model.unanswered})</button>
+        <button type="button" onClick={() => startReview('all')}><BookOpenText size={18} aria-hidden="true" />{locale === 'zh-CN' ? '查看全部解析' : copy.all} ({model.rows.length})</button>
+      </div> : null}
       <div className={`practice-review-workspace${activeQuestion ? ' has-question' : ''}`}>
-        {!activeQuestion ? <section className="practice-result-list" ref={listRef} tabIndex={-1} aria-label={copy.list}>
-          <div className="practice-result-filters" role="group" aria-label={copy.list}>
-            {([['wrong', copy.wrong, model.wrong], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} onClick={() => { setFilter(value); setReviewIndex(null); }}>{title} <span>{count}</span></button>)}
-          </div>
-          {rows.length ? <ol className="practice-result-rows">{rows.map(({ question, index, status }) => <li key={question.id}><button type="button" aria-current={reviewIndex === index ? 'true' : undefined} onClick={() => openQuestion(index)}>
-            <span className={`practice-result-number is-${status}`}>{index + 1}</span><span><strong>{question.prompt || question.title}</strong><small>{status === 'unanswered' ? copy.unanswered : status === 'correct' ? labels.correct : labels.wrong} · {copy.evidence}</small></span><ChevronRight size={18} aria-hidden="true" />
-          </button></li>)}</ol> : <p className="practice-results-empty" role="status">{model.missingOriginals > 0 ? copy.missing : !model.rows.length ? labels.noAttemptHistory : filter === 'wrong' ? copy.emptyWrong : copy.emptyUnanswered}</p>}
-        </section> : null}
-        {activeQuestion && activeRow ? <article key={activeQuestion.id} ref={questionRef} tabIndex={-1} className="practice-review-detail" aria-label={`${copy.list} ${activeRow.index + 1}`}>
-          <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{activeRow.index + 1} / {model.rows.length}</span></div>
+        {activeQuestion && activeRow ? <article key={activeQuestion.id} ref={questionRef} tabIndex={-1} className="practice-review-detail"
+          onTouchStart={event => {
+            reviewTouch.current = event.touches.length === 1 && !(event.target as HTMLElement).closest('button, a, input, select, audio, summary')
+              ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+          }}
+          onTouchCancel={() => { reviewTouch.current = null; }}
+          onTouchEnd={event => {
+            const start = reviewTouch.current; reviewTouch.current = null;
+            if (!start || event.changedTouches.length !== 1) return;
+            const dx = event.changedTouches[0].clientX - start.x;
+            const dy = event.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy) * 1.5) moveReview(dx < 0 ? 1 : -1);
+          }}
+          onKeyDown={event => {
+            if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); moveReview(event.key === 'ArrowRight' ? 1 : -1); }
+          }} aria-label={`${copy.list} ${activeRow.index + 1}`}>
+          <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{reviewPosition + 1} / {rows.length} · {copy.list} {activeRow.index + 1}</span></div>
+          <div className="practice-result-filters" role="group" aria-label={copy.list}>{([['wrong', copy.wrong, model.wrong + model.unanswered], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} disabled={!count} onClick={() => startReview(value)}>{title} <span>{count}</span></button>)}</div>
           {activeQuestion.instruction ? <p className="practice-question-instruction">{activeQuestion.instruction}</p> : null}
           <p className="practice-review-prompt"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
           {attempt ? <p className="practice-historical-version" role="note">{copy.currentVersion}</p> : null}
@@ -214,7 +245,7 @@ export function PracticeReviewPanel({
           {!activeAnswer ? <p className="practice-unanswered-explanation">{copy.unansweredBody}</p> : null}
           <AnswerPanel question={activeQuestion} answer={activeAnswer} historical={Boolean(attempt)} items={items} showRuby={showRuby} labels={labels} locale={locale} />
           <div className="practice-question-reference">{!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
-          {model.rows.length > 1 ? <nav className="practice-review-footer" aria-label={copy.list}><button type="button" onClick={() => openQuestion(safeIndex(activeRow.index - 1, model.rows.length))}><ChevronLeft size={18} aria-hidden="true" />{copy.previous}</button><button type="button" onClick={() => openQuestion(safeIndex(activeRow.index + 1, model.rows.length))}>{copy.next}<ChevronRight size={18} aria-hidden="true" /></button></nav> : null}
+          {rows.length > 1 ? <nav className="practice-review-footer" aria-label={copy.list}><button type="button" disabled={reviewPosition <= 0} onClick={() => moveReview(-1)}><ChevronLeft size={18} aria-hidden="true" />{copy.previous}</button><button type="button" disabled={reviewPosition >= rows.length - 1} onClick={() => moveReview(1)}>{copy.next}<ChevronRight size={18} aria-hidden="true" /></button></nav> : null}
         </article> : null}
       </div>
     </section>

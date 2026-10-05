@@ -27,8 +27,9 @@ test('stopped pending requests cannot begin playback even if fetch ignores cance
   t.mock.property(globalThis, 'Audio', class { constructor() { constructed++; } });
   const pending = tts.speak('日本語', { provider: 'azure', token: 'test', owner: 'card' });
   assert.equal(tts.speechSnapshot().status, 'loading');
+  await new Promise((resolve) => setImmediate(resolve));
   tts.stopSpeech();
-  finishFetch(new Response(new Uint8Array([1])));
+  finishFetch(new Response(new Uint8Array([1]), { headers: { 'content-type': 'audio/mpeg' } }));
   await assert.rejects(pending, { name: 'AbortError' });
   assert.equal(constructed, 0);
   assert.equal(tts.speechSnapshot().status, 'idle');
@@ -36,7 +37,7 @@ test('stopped pending requests cannot begin playback even if fetch ignores cance
 
 test('playback waits for each chunk, forwards voice settings and releases URLs', async (t) => {
   const requests = [], players = [], revoked = [];
-  t.mock.method(globalThis, 'fetch', async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response(new Uint8Array([1])); });
+  t.mock.method(globalThis, 'fetch', async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response(new Uint8Array([1]), { headers: { 'content-type': 'audio/mpeg' } }); });
   t.mock.property(globalThis, 'Audio', class {
     constructor() { players.push(this); }
     async play() {}

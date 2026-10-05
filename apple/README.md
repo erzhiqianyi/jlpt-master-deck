@@ -10,8 +10,10 @@ Native SwiftUI first version, minimum iOS/iPadOS 17. Open `JLPTMasterDeck.xcodep
 - The existing orange study companion sits above the bottom safe area and opens page-specific shortcuts. Sync/capture moved out of the navigation bar. Its supplied 72pt transparent frames blink while idle and wave before opening the original shortcuts; newly saved correct answers celebrate and return to idle. One cancellable timeline owns each character, stops when inactive and uses a static fallback for Reduce Motion or missing assets. Chinese tab labels are all two characters: 今日、练习、发现、记录、题库.
 - Phone layouts use a flat practice catalog (topic and mixed practice; daily work stays on Today) and compact margins for login, review, item details, listening and native exercises. Library search stays within library screens.
 - Real cloud library, plans, review progress, reading questions and captures from `https://jlpt.erzhiqian.cc`.
-- Searchable vocabulary/grammar library, Japanese system speech, reveal-and-rate memory review.
-- Reading passage and question side by side on wide windows; stacked on compact windows; result saved before revealing the explanation.
+- Searchable vocabulary/grammar library, Japanese system speech for entries and individual examples, reveal-and-rate memory review. Entry speech prefers the supplied reading when available; speech uses the synchronized web provider and voice settings for cloud audio, or Apple system Japanese voices when the browser/system provider is selected.
+- Entry and example cloud speech uses the existing authenticated `/api/tts/speak` endpoint and its R2 cache. Playback saves account-scoped MP3 files locally; the speaker controls can download a single clip, and Account → local data can download the current vocabulary/grammar entries and examples in bulk. Downloads can be stopped and resumed without fetching completed clips again. Downloaded clips play offline; changing provider/voice/style/role uses a different local key.
+- Memory-review speaker controls sit beside the entry within the card. The position menu selects left or right and saves the preference on this device.
+- Reading passage and question side by side on wide windows; stacked on compact windows with compact margins and flat, separated answer rows. Results are saved before revealing the explanation and full-passage speech controls.
 - Listening library grouped by audio with search/type filters, authenticated playback/pause/restart, native multiple-choice and free-response input, group confirmation and post-answer explanations/transcripts. Practice counts use the same per-audio session key as the web. As on the current web flow, submitted listening selections/free text are stored on this device and visible in History; cloud persistence records the audio practice count. Recording/read-along are not implemented.
 - Capture composer, recent item progress and captured-input list.
 - Native practice hub, topic/daily pack lists, multiple-choice questions, saved-answer feedback and round summary. Mixed rounds sample up to 20 existing formal vocabulary/grammar questions; this does not yet reproduce all browser-generated questions. Unpublished drafts and mock exams are not supported by the native practice flow. There is no embedded web practice UI.
@@ -64,3 +66,21 @@ See `docs/apple-client-architecture.md` in the repository. QR login is deliberat
 - End-to-end real account and Apple provider checks require the configuration above.
 
 Regenerating the project discovers all Swift files in `Sources/` and `Tests/`. Keep the generated project and the package resolution lockfile in version control; do not commit local signing settings or provider files.
+
+答题与复习界面与网页保持同一布局规则：iPhone 使用紧凑单列、阅读分隔线选项和固定底部操作；iPad 使用有最大宽度的内容区，阅读在可用宽度至少 760pt 时左右排列。复习正面居中，背面将读音、等级、词性收进标题摘要，四个评分按钮始终同排固定；宽屏助记图位于右侧，窄屏上下排列，点击图片可放大，图片说明仅用于辅助阅读。
+
+单词与语法共用原生答题和解析组件：未确认时隐藏解析，确认后显示答题结果、所选答案、编号后的正确答案、解题依据摘要和记忆点；完整依据、逐项辨析、完整翻译及来源词条按需展开。逐项辨析依照题目选项排序，正确标记以题目答案为准，旧版合并解析中的「选项」理由会保留。计时在确认成功后冻结，下一题重置计时及展开状态。Debug UI 测试使用独立示例，不修改正式练习数据。
+
+原生 iPhone、iPad 仅在练习完成总结页展示学习伙伴形象，配合一次挥手或庆祝动作及鼓励文案，遵循系统减少动态效果设置。上下文快捷操作使用省略号菜单，答题底部只保留确认或下一题按钮；菜单直接打开，无动画等待。
+
+练习首页提供专项、综合和模拟考试入口。模拟考试在 App 内复用网页试卷与考试流程，网页数据按原生账户隔离保留，需要联网；普通练习仍使用原生离线答题组件。“统计”首页与网页采用同一已完成练习口径，显示今天的积累、近七天作答柱状图、累计概况、模块表现、最近练习、回顾与巩固和学习资料。iPhone 单列，iPad 可用宽度至少 720pt 时两列；今日、七天和累计值均来自练习历史，按东京日期汇总，未完成练习不计入。统计页不显示底部快捷菜单。旧版“记录”导航偏好自动映射到“统计”。
+
+账户设置包含发音设置：系统/云端服务、服务凭据、音色、Azure 风格与角色、语速、卡片正面/背面自动朗读、语法详情自动朗读、例句朗读和批量离线下载。卡片只保留播放按钮，不显示下载状态图标。卡片字段保存明确发送版本 2，返回结果与选择不一致时报告错误；返回设置页不会重新覆盖尚未保存的选择。
+
+原生单词/语法练习随每题将练习记录写入本机待同步队列，最后一题确认后标记完成；上传时按练习 ID 合并云端历史，不覆盖网页当前正在进行的练习。同步得到的练习历史随本机学习快照保存，统计和历史回顾可离线读取。Debug 专用 `--statistics-fixture` 仅用于截图和测试，不写入真实账户。
+
+原生 iPhone、iPad 各页已移除右下角悬浮快捷操作按钮及其占位；练习入口、朗读、答题确认与账户同步仍使用页面内的操作。
+
+同步下载与答题上传失败分开处理：进度冲突或上传错误不会阻止题库、图片关联和练习更新；待上传队列、作答内容与本机进度保留，401 或取消仍中止。新快照原子写入成功后才更新同步时间。数据库检查顶部显示结果，并分别统计有图词汇和有图语法（关联数量，不是离线图片文件数）。助记图使用黑底全屏预览，支持双指缩放、双击放大、拖动及还原；加载失败可重试，同源图片携带账户凭据，外部图片不携带凭据。
+
+启动分为登录状态恢复、本机快照恢复和云端同步三个阶段。登录状态确认后立即挂载主界面，本机快照在后台读取，顶部显示恢复提示；本机待上传记录加载完成前，自动/手动同步暂不执行，本机学习数据写入会提示稍后重试，避免空快照覆盖现有记录。恢复结束后按现有策略自动同步，退出或切换账户后旧恢复结果不再应用。Performance 日志分别记录登录状态恢复、本机数据恢复和云端同步耗时。

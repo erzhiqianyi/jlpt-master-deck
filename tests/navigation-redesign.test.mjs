@@ -21,6 +21,8 @@ const output = resolve(directory, 'components.mjs');
 await build({
   stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
     export * from './src/domain/appNavigation';
+    export { HomeDashboard } from './src/features/home/HomeDashboard';
+    export { routeFromHash } from './src/domain/appRoutes';
     export * from './src/components/AuthoringNavigation';
     export { PageChromeProvider, PageHeaderActions } from './src/components/PageChrome';
     export { DialoguePracticePanel } from './src/features/practice/DialoguePracticePanel';
@@ -32,7 +34,7 @@ await build({
   bundle: true, platform: 'node', format: 'esm', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, outfile: output,
 });
 const {
-  isPrimaryNavigationRoot, contextualBackRoute, createNavigationRegistry, AuthoringNavigationProvider,
+  HomeDashboard, routeFromHash, isPrimaryNavigationRoot, contextualBackRoute, createNavigationRegistry, AuthoringNavigationProvider,
   DialoguePracticePanel, QuestionTypeGuide, QuestionTypeDetail, translations, officialN1QuestionTypes,
   PageChromeProvider, PageHeaderActions,
 } = await import(pathToFileURL(output));
@@ -64,9 +66,9 @@ after(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
-test('phone tabs are reserved for exactly five roots and never a local child screen', () => {
+test('phone tabs are reserved for exactly four roots and never a local child screen', () => {
   const roots = [
-    { view: 'home', page: 'questions' }, { view: 'mixed', page: 'tips' },
+    { view: 'home', page: 'questions' },
     { view: 'market', page: 'questions' }, { view: 'history', page: 'questions' }, { view: 'study', page: 'questions' },
   ];
   for (const route of roots) {
@@ -94,8 +96,8 @@ test('one semantic Back hierarchy covers detail, list, form, replay and nested e
     [{ view: 'settings', page: 'questions' }, { view: 'home', page: 'questions' }],
     [{ view: 'plan', page: 'questions' }, { view: 'home', page: 'questions' }],
     [{ view: 'mixed', page: 'tips', itemId: 'opinion/topic' }, { view: 'mixed', page: 'tips', itemId: 'opinion' }],
-    [{ view: 'mixed', page: 'tips', itemId: 'dialogue' }, { view: 'mixed', page: 'tips' }],
-    [{ view: 'mixed', page: 'questions' }, { view: 'mixed', page: 'tips' }],
+    [{ view: 'mixed', page: 'tips', itemId: 'dialogue' }, { view: 'home', page: 'questions' }],
+    [{ view: 'mixed', page: 'questions' }, { view: 'home', page: 'questions' }],
     [{ view: 'mixed', page: 'review' }, { view: 'mixed', page: 'questions' }],
     [{ view: 'mixed', page: 'review', itemId: 'replay:old' }, { view: 'history', page: 'questions', itemId: 'history' }],
     [{ view: 'vocabulary', page: 'words', itemId: 'word' }, { view: 'vocabulary', page: 'words' }],
@@ -231,4 +233,37 @@ test('App uses the same Back handler for both headers and root-only bottom navig
   assert.match(app, /const showMobileBottomNavigation = isPrimaryRoot;/);
   assert.doesNotMatch(app, /const showMobileBottomNavigation = !isImmersiveRoute/);
   assert.doesNotMatch(app, /parentCrumbRoute/);
+});
+
+
+test('legacy practice home converges on Learn while topic routes stay deep-linkable', () => {
+  for (const hash of ['#/mixed', '#/mixed/tips']) assert.deepEqual(routeFromHash(hash), {view: 'home', page: 'questions'});
+  assert.deepEqual(routeFromHash('#/mixed/tips/topics'), {view: 'mixed', page: 'tips', itemId: 'topics'});
+});
+
+test('learning dashboard uses saved answers and preserves every practice destination and countdown', async () => {
+  const opened = [];
+  const questions = Array.from({length: 20}, (_, i) => ({id: `q${i}`}));
+  const props = {
+    locale: 'zh-CN', plan: {profile: {examDate: '2099-12-06', level: 'N1'}, tasks: []}, dueItems: [{id: 'due'}],
+    todayPractices: [{id: 'today-pack', title: '词汇与语法', minutes: 15, questions}],
+    onNavigate: (...route) => opened.push(route), onStartDailyPractice: id => opened.push(['daily', id]),
+    onStartMock: () => opened.push(['mock']), topicCount: 12, mixedQuestionCount: 180, mockExamCount: 4,
+  };
+  await render(HomeDashboard, props);
+  assert.ok(button('开始练习'));
+  assert.equal(document.querySelector('progress').value, 0);
+  assert.match(document.body.textContent, /JLPT 考试倒计时/);
+  await render(HomeDashboard, {...props, dailyAnswers: Object.fromEntries(questions.slice(0,8).map(q => [q.id, {selected: 'A'}]))});
+  assert.equal(document.querySelector('progress').value, 8);
+  assert.match(document.body.textContent, /进行中/);
+  await click(button('继续练习'));
+  await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('专项练习')));
+  await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('综合练习')));
+  await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('模拟考试')));
+  await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('到期复习')));
+  assert.deepEqual(opened, [['daily','today-pack'], ['mixed','tips','topics'], ['mixed','questions'], ['mock'], ['memory-review']]);
+  await render(HomeDashboard, {...props, dailyAnswers: Object.fromEntries(questions.map(q => [q.id, {selected: 'A'}]))});
+  assert.ok(button('查看练习'));
+  assert.equal(document.querySelector('progress').value, 20);
 });

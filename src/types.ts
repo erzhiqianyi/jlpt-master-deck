@@ -364,7 +364,8 @@ export type StudyPlanMaterial = {
   currentPosition?: string;
 };
 export type StudyPlanProfile = {
-  level: 'N1' | 'N2' | 'N3' | 'N4' | 'N5';
+  level: '' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5';
+  examName?: string;
   startDate: string;
   examDate: string;
   studyDaysPerWeek: number;

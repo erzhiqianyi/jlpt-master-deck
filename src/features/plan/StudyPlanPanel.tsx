@@ -50,7 +50,8 @@ export function StudyPlanPanel({
   const [copied, setCopied] = useState(false);
   useAuthoringNavigation(profileMode === 'edit' ? labels.planEditProfile : null, () => setProfileMode('read'), { kind: 'form', priority: 1 });
   const isTextbooks = section === 'textbooks';
-  const prompt = labels.planMcpPrompt.replace('{level}', plan.profile.level);
+  const examLabel = [plan.profile.examName?.trim() || (plan.profile.level ? 'JLPT' : ''), plan.profile.level].filter(Boolean).join(' · ');
+  const prompt = labels.planMcpPrompt.replace('{level}', plan.profile.level || examLabel || '未设置');
   const evidence = useMemo(
     () => isTextbooks ? [] : buildDayEvidence(drafts, captures, attempts, listeningQuestions, readingQuestions),
     [attempts, captures, drafts, listeningQuestions, readingQuestions, isTextbooks],
@@ -100,7 +101,7 @@ export function StudyPlanPanel({
           <h2 id="plan-today-title" className="sr-only">{copy.today}</h2>
           <PlanCalendar labels={labels} locale={locale} tasks={plan.tasks} summaries={plan.dailySummaries} evidence={evidence} onTaskStatus={onTaskStatus} />
           <button type="button" className="plan-destination-row" onClick={() => setPlanView('arrangement')}><BookOpenCheck size={22} aria-hidden="true" /><span>{copy.arrangement}</span><ArrowRight size={18} aria-hidden="true" /></button>
-          <button type="button" className="plan-destination-row" onClick={() => setPlanView('arrangement')}><Target size={22} aria-hidden="true" /><span>{copy.settings}<small>JLPT {plan.profile.level} · {formatDateRange(plan.profile.startDate, plan.profile.examDate, locale)}</small></span><ArrowRight size={18} aria-hidden="true" /></button>
+          <button type="button" className="plan-destination-row" onClick={() => setPlanView('arrangement')}><Target size={22} aria-hidden="true" /><span>{copy.settings}<small>{examLabel} · {formatDateRange(plan.profile.startDate, plan.profile.examDate, locale)}</small></span><ArrowRight size={18} aria-hidden="true" /></button>
         </section>
         <section className="plan-arrangement-page" hidden={planView !== 'arrangement'} aria-label={copy.arrangement}>
           <PlanOverviewPanel labels={labels} locale={locale} plan={plan} phases={phases} onAdjust={() => setProfileMode('edit')} />
@@ -248,7 +249,7 @@ function PlanReferencePanel({ labels, locale, plan, phases, mode }: { mode: 'pha
           </summary>
           <div className="mt-4 border-t border-[#edf1ec] pt-4">
             <div className="space-y-3 text-sm">
-              <SnapshotRow icon={Target} label={labels.planLevel} value={`JLPT ${plan.profile.level}`} />
+              <SnapshotRow icon={Target} label={labels.planLevel} value={[plan.profile.examName?.trim() || (plan.profile.level ? 'JLPT' : ''), plan.profile.level].filter(Boolean).join(' · ') || '未设置'} />
               <SnapshotRow icon={CalendarRange} label={labels.planExamDate} value={formatDateRange(plan.profile.startDate, plan.profile.examDate, locale)} />
               <SnapshotRow icon={Clock3} label={labels.planDailyMinutes} value={`${plan.profile.studyDaysPerWeek} ${labels.planDaysUnit} · ${plan.profile.dailyMinutes} ${labels.minutes}`} />
               <SnapshotRow icon={School} label={labels.planFixedSchedule} value={plan.profile.fixedSchedule || labels.planNoValue} />

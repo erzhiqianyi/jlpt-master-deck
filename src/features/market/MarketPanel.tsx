@@ -2,10 +2,11 @@ import { usePageHeaderActions } from '../../components/PageChrome';
 import './market.css';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { loadDiscoveryShares } from '../../lib/discovery';
-import { ChevronDown, Plus, Undo2 } from 'lucide-react';
+import { discoveryCategories, discoveryPresentation } from '../../domain/discoveryPresentation.mjs';
+import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Plus, Search, Undo2, UserRound } from 'lucide-react';
 import { PracticePanel, PracticeReviewPanel } from "../practice/StudyPanels";
 import type { Question, AnswerState, DisplaySettings, Locale } from "../../types";
-import { LearningList, LearningListFrame, LearningListHeader, LearningListPagination, LearningListRow, LearningListSearch, LearningListSelect } from "../../components/LearningList";
+import { LearningListFrame, LearningListHeader, LearningListPagination, LearningListSearch, LearningListSelect } from "../../components/LearningList";
 import { useMobileList } from "../../hooks/useMobileList";
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from "../../components/ListBatch";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -49,6 +50,7 @@ type Share = {
   description: string;
   count: number;
   mine: boolean;
+  categories?: string[]; cover?: string; level?: string; coverTitle?: string;
 };
 export function MarketPanel({
   token, initialShareId,
@@ -62,7 +64,7 @@ export function MarketPanel({
   locale: Locale;
 }) {
   const [tab, setTab] = useState<"market" | "mine">("market");
-  const [kind, setKind] = useState<SharedContent["kind"] | "all">("all");
+  const [kind, setKind] = useState<"all" | "vocabulary" | "grammar" | "listening">("all");
   const [shares, setShares] = useState<Share[]>([]);
   const [preview, setPreview] = useState<SharedContent | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -176,8 +178,8 @@ export function MarketPanel({
       setNotice(copy.withdrawn);
     });
   }
-  const filtered = shares.filter((s) => (kind === "all" || s.kind === kind) && (tab !== "mine" || s.mine) &&
-    `${s.title} ${s.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = shares.filter((s) => (kind === "all" || discoveryCategories(s).includes(kind)) && (tab !== "mine" || s.mine) &&
+    `${s.title} ${s.coverTitle ?? ""} ${s.description}`.toLowerCase().includes(query.trim().toLowerCase()));
   const mobileList = useMobileList(filtered.length, `${tab}:${kind}:${query}`, 8);
   const pageCount = Math.max(1, Math.ceil(filtered.length / 8));
   const currentPage = Math.min(page, pageCount - 1);
@@ -197,47 +199,48 @@ export function MarketPanel({
       {!preview && error && <button type="button" className="cute-button min-h-11 px-4 py-2" onClick={() => setLoadRevision((value) => value + 1)}>{copy.retry}</button>}
       {initialShareId && !preview && <section className="market-preview" aria-label={copy.preview}>{busy && <p role="status">{copy.loading}</p>}</section>}
       {notice && <p role="status">{notice}</p>}
-      {!preview && !initialShareId && <LearningListFrame className="learning-catalog topic-library" label={copy.shareList} locale={locale}>
-        <LearningListHeader appliedSummary={[query.trim() ? `${copy.search}: ${query.trim()}` : '', tab === 'mine' ? copy.myShares : '', kind === 'all' ? '' : kind === 'practice' ? copy.topicPractice : kind === 'listening' ? copy.listening : copy.wordbooks].filter(Boolean).join(' · ')} onReset={() => { setQuery(''); setTab('market'); setKind('all'); setPage(0); }} title={copy.shares} count={`${filtered.length} ${kind === "all" ? copy.items : kind === "practice" ? copy.sets : kind === "listening" ? copy.clips : copy.books}`} search={<LearningListSearch value={query} onChange={(value) => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale}/> }>
-          <LearningListSelect label={copy.shareScope} hideLabel value={tab} onChange={(value) => { setTab(value as "market" | "mine"); setPage(0); }}>
-            <option value="market">{copy.allShares}</option><option value="mine">{copy.myShares}</option>
-          </LearningListSelect>
-          <div className="list-tools" aria-label={copy.categories}>
-            {([["all", copy.all], ["wordbook", copy.words], ["practice", copy.topicPractice], ["listening", copy.listening]] as const).map(([value, label]) =>
-              <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>
-            )}
-          </div>
-          <div className="list-tools"><BatchManageButton batch={batch} locale={locale} /></div>
+      {!preview && !initialShareId && <LearningListFrame className="discovery-catalog" label={copy.shareList} locale={locale}>
+        <LearningListHeader showDensity={false} controlIcon={<Search size={22} />} expandedOnWide={false} appliedSummary={[query.trim() ? `${copy.search}: ${query.trim()}` : '', tab === 'mine' ? copy.myShares : ''].filter(Boolean).join(' · ')} onReset={() => { setQuery(''); setTab('market'); setKind('all'); setPage(0); }} title={copy.discover} count={`${filtered.length} ${copy.items}`} search={<LearningListSearch value={query} onChange={value => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale} />}>
+          <LearningListSelect label={copy.shareScope} hideLabel value={tab} onChange={value => { setTab(value as 'market' | 'mine'); setPage(0); }}><option value="market">{copy.allShares}</option><option value="mine">{copy.myShares}</option></LearningListSelect>
+          <BatchManageButton batch={batch} locale={locale} />
         </LearningListHeader>
+        <div className="discovery-categories" role="group" aria-label={copy.categories}>
+          {([['all', copy.all], ['vocabulary', copy.words], ['grammar', copy.grammar], ['listening', copy.listening]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>)}
+        </div>
         <BatchActionBar batch={batch} actions={batchActions} locale={locale} />
-        {busy ? <p role="status" className="list-empty">{copy.loading}</p> :
-          <LearningList selection={batch.selection} locale={locale} columnLabels={[copy.content, copy.description, null]}>{visibleShares.map((s) =>
-            <LearningListRow key={s.id} selectId={s.id} title={s.title} locale={locale}
-              description={`${s.kind === "practice" ? copy.topicPractice : s.kind === "listening" ? copy.listening : copy.wordbooks} · ${s.count} ${s.kind === "wordbook" ? copy.wordUnit : copy.questionUnit}`}
-              onOpen={() => { window.location.hash = `#/market/${encodeURIComponent(s.id)}`; }} />
-          )}</LearningList>}
+        {busy ? <p role="status" className="list-empty">{copy.loading}</p> : <div className="discovery-cover-grid">
+          {visibleShares.map(share => <article key={share.id} className="discovery-cover-card">
+            {batch.active ? <label className="discovery-select"><input type="checkbox" checked={batch.selected.has(share.id)} onChange={() => batch.toggle(share.id)} aria-label={`${copy.select}: ${share.title}`} /></label> : null}
+            <button type="button" className="discovery-open-card" onClick={() => batch.active ? batch.toggle(share.id) : window.location.hash = `#/market/${encodeURIComponent(share.id)}`}>
+              <DiscoveryCover content={share} />
+              <strong className="discovery-card-title">{share.title}</strong>
+              <span className="discovery-card-meta"><span><UserRound size={18} aria-hidden="true" />{share.mine ? copy.ownShareShort : copy.communityAuthor}</span><span>{share.count} {share.kind === 'wordbook' ? copy.wordUnit : copy.questionUnit}</span></span>
+            </button>
+          </article>)}
+          {!filtered.length ? <p className="list-empty" role="status">{copy.noResults}</p> : null}
+        </div>}
         {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? copy.endOfList : null}</div> : null}
-        {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`} previous={copy.previous} next={copy.next}/> : null}
+        {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`} previous={copy.previous} next={copy.next} /> : null}
       </LearningListFrame>}
       {preview && previewId && (
         <section className="market-preview" aria-label={copy.preview}>
           {!practiceActive && <>
+            <SharePreviewCarousel key={previewId} content={preview} copy={copy} presentation={shares.find(share => share.id === previewId)} />
             <div className="market-detail-heading">
-              <h2>{preview.title}</h2>
-              {mineIds.has(previewId) ? <ShareManagement copy={copy} busy={busy} onWithdraw={() => void withdrawShare(previewId)} /> : null}
+              <h2>{preview.title}</h2><span className="market-detail-count">{preview.kind === 'wordbook' ? `${preview.items?.length ?? 0} ${copy.wordUnit}` : `${preview.questions?.length ?? 0} ${copy.questionUnit}`}</span>
+              {mineIds.has(previewId) ? <ShareManagement copy={copy} busy={busy} onWithdraw={() => void withdrawShare(previewId)} /> : <ShareBookmark copy={copy} busy={busy || importingIds.has(previewId)} added={importedIds.has(previewId)} onAdd={() => void addShare(previewId, preview.kind)} />}
             </div>
-            <p className="market-detail-summary">{preview.kind === 'wordbook' ? `${preview.items?.length ?? 0} ${copy.wordUnit}` : `${preview.questions?.length ?? 0} ${copy.questionUnit}`} · {mineIds.has(previewId) ? copy.ownShareShort : preview.kind === 'practice' ? copy.topicPractice : preview.kind === 'listening' ? copy.listening : copy.wordbooks}</p>
+            <p className="market-detail-author"><UserRound size={24} aria-hidden="true" />{mineIds.has(previewId) ? copy.ownShareShort : copy.communityAuthor}</p>
             {preview.description ? <div className="market-introduction">
               <p className={descriptionExpanded ? '' : 'is-collapsed'} id="market-introduction">{preview.description}</p>
-              <button type="button" aria-expanded={descriptionExpanded} aria-controls="market-introduction" onClick={() => setDescriptionExpanded((expanded) => !expanded)}>{descriptionExpanded ? copy.collapseIntro : copy.expandIntro}<ChevronDown size={16} aria-hidden="true" /></button>
+              <button type="button" aria-expanded={descriptionExpanded} aria-controls="market-introduction" onClick={() => setDescriptionExpanded(expanded => !expanded)}>{descriptionExpanded ? copy.collapseIntro : copy.expandIntro}<ChevronDown size={16} aria-hidden="true" /></button>
             </div> : null}
-            {preview.kind === 'practice' && <>
-              {preview.questions?.[0] ? <SharedQuestionPreview question={preview.questions[0]} total={preview.questions.length} copy={copy} /> : <p role="status">{copy.emptyPractice}</p>}
-              <div className="market-preview-actions"><button type="button" className="cute-button-primary" disabled={!preview.questions?.length} onClick={() => setPracticeActive(true)}>{copy.startPreview}</button><p>{copy.previewNotice}</p></div>
-            </>}
+            {preview.kind === 'practice' && !preview.questions?.length ? <p role="status">{copy.emptyPractice}</p> : null}
             {preview.kind === 'listening' ? <SharedListening content={preview} shareId={previewId} token={token} locale={locale} /> : null}
-            {preview.items?.length ? <ol className="market-word-preview">{preview.items.map((item, i) => <li key={i}><strong>{item.original}</strong> {item.reading}<p>{item.meaning_zh}</p></li>)}</ol> : null}
-            {!mineIds.has(previewId) && <div className="market-import"><button type="button" className="cute-button" disabled={busy || importingIds.has(previewId) || importedIds.has(previewId)} onClick={() => void addShare(previewId, preview.kind)}><Plus size={17} aria-hidden="true" />{importingIds.has(previewId) ? copy.adding : importedIds.has(previewId) ? copy.added : copy.addToMine}</button><p>{copy.importNotice}</p></div>}
+            <div className="market-preview-actions">
+              {preview.kind === 'practice' ? <button type="button" className="cute-button-primary" disabled={!preview.questions?.length} onClick={() => setPracticeActive(true)}>{copy.startPreview}</button> : !mineIds.has(previewId) ? <button type="button" className="cute-button-primary" disabled={busy || importingIds.has(previewId) || importedIds.has(previewId)} onClick={() => void addShare(previewId, preview.kind)}>{importingIds.has(previewId) ? copy.adding : importedIds.has(previewId) ? copy.added : copy.addToMine}</button> : null}
+              <p>{preview.kind === 'practice' ? copy.previewNotice : copy.importNotice}</p>
+            </div>
             <p className="market-source-notice">{copy.sourceNotice}</p>
           </>}
           {preview.kind === 'practice' && practiceActive && <SharedPractice key={previewId} content={preview} labels={labels} settings={settings} locale={locale} onBack={() => setPracticeActive(false)} importAction={!mineIds.has(previewId) ? <button type="button" className="cute-button min-h-11 px-4 py-2" disabled={importingIds.has(previewId) || importedIds.has(previewId)} onClick={() => void addShare(previewId, preview.kind)}>{importingIds.has(previewId) ? copy.adding : importedIds.has(previewId) ? copy.added : copy.addToMine}</button> : null} />}
@@ -261,13 +264,61 @@ function ShareManagement({ copy, busy, onWithdraw }: { copy: ReturnType<typeof m
   </>;
 }
 
-function SharedQuestionPreview({ question, total, copy }: { question: NonNullable<SharedContent['questions']>[number]; total: number; copy: ReturnType<typeof marketCopy> }) {
-  const prompt = question.prompt ?? question.question ?? '';
-  return <section className="market-question-preview" aria-label={copy.sampleQuestion}>
-    <div className="market-question-caption"><strong>{question.instruction || copy.sampleQuestion}</strong><span>1 / {total}</span></div>
-    <p className="market-question-prompt" lang="ja">{prompt}</p>
-    <ol>{question.choices.map((choice, index) => <li key={index}><span aria-hidden="true">{String.fromCharCode(65 + index)}</span><p lang="ja">{choice}</p></li>)}</ol>
-  </section>;
+function ShareBookmark({ copy, busy, added, onAdd }: { copy: ReturnType<typeof marketCopy>; busy: boolean; added: boolean; onAdd: () => void }) {
+  const label = busy ? copy.adding : added ? copy.added : copy.addToMine;
+  const icon = added ? <Check size={22} /> : <Bookmark size={22} />;
+  const registered = usePageHeaderActions([{ key: 'share-bookmark', label, icon, onClick: onAdd, disabled: busy || added }], 20);
+  return registered ? null : <button type="button" className="market-bookmark" aria-label={label} title={label} disabled={busy || added} onClick={onAdd}>{icon}</button>;
+}
+
+export function DiscoveryCover({ content, page }: { content: { title: string; kind: string; categories?: string[]; cover?: string; coverTitle?: string; level?: string }; page?: string }) {
+  const fallback = discoveryPresentation(content);
+  const cover = ['stairs', 'clock', 'coffee', 'gold'].includes(content.cover ?? '') ? content.cover : fallback.cover;
+  return <div className={`discovery-artwork cover-${cover}`}>
+    <img src={`/images/discovery/${cover}.png`} alt="" loading="lazy" />
+    {page ? <span className="discovery-page-counter">{page}</span> : null}
+    <div className="discovery-cover-type"><span lang="ja">{content.coverTitle || fallback.coverTitle}</span>{content.level || fallback.level ? <small>{content.level || fallback.level}</small> : null}</div>
+  </div>;
+}
+
+function SharePreviewCarousel({ content, copy, presentation }: { content: SharedContent; copy: ReturnType<typeof marketCopy>; presentation?: Share }) {
+  const [index, setIndex] = useState(0);
+  const [selections, setSelections] = useState<Record<number, number>>({});
+  const rail = useRef<HTMLDivElement>(null);
+  const questions = content.questions ?? [];
+  const words = content.kind === 'wordbook' ? content.items ?? [] : [];
+  const total = 1 + (words.length || questions.length);
+  function go(next: number) {
+    const clamped = Math.max(0, Math.min(total - 1, next));
+    setIndex(clamped);
+    const el = rail.current;
+    const width = (el?.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
+    el?.scrollTo({ left: clamped * (width + 16), behavior: 'smooth' });
+  }
+  return <div className="discovery-preview-gallery">
+    <div ref={rail} className="discovery-preview-rail" aria-label={copy.preview} onScroll={event => {
+      const el = event.currentTarget;
+      const width = (el.firstElementChild as HTMLElement | null)?.offsetWidth ?? el.clientWidth;
+      setIndex(Math.max(0, Math.min(total - 1, Math.round(el.scrollLeft / (width + 16)))));
+    }}>
+      <div className="discovery-preview-slide"><DiscoveryCover content={{ ...content, ...presentation, title: content.title }} page={`1 / ${total}`} /></div>
+      {questions.map((question, q) => <section key={q} className="discovery-preview-slide market-question-preview" inert={index !== q + 1} aria-label={`${copy.sampleQuestion} ${q + 1}`}>
+        <div className="market-question-caption"><strong>{copy.sampleQuestion} · {q + 1}</strong><span>{q + 2} / {total}</span></div>
+        {question.instruction ? <p className="market-question-instruction">{question.instruction}</p> : null}
+        <p className="market-question-prompt" lang="ja">{question.prompt ?? question.question ?? question.title ?? ''}</p>
+        <ol role="radiogroup" aria-label={`${copy.sampleQuestion} ${q + 1}`}>{question.choices.map((choice, c) => <li key={c}><button type="button" role="radio" tabIndex={(selections[q] ?? 0) === c ? 0 : -1} onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+          event.preventDefault();
+          const next = (c + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) + question.choices.length) % question.choices.length;
+          setSelections(current => ({ ...current, [q]: next }));
+          (event.currentTarget.closest('ol')?.querySelectorAll('button')[next] as HTMLButtonElement | undefined)?.focus();
+        }} aria-checked={selections[q] === c} onClick={() => setSelections(current => ({ ...current, [q]: c }))}><Circle size={18} aria-hidden="true" /><span>{String.fromCharCode(65 + c)}</span><span lang="ja">{choice}</span></button></li>)}</ol>
+        <p className="discovery-preview-only">{copy.previewOnly}</p>
+      </section>)}
+      {words.map((word, w) => <section key={w} className="discovery-preview-slide discovery-word-slide"><span className="discovery-page-counter">{w + 2} / {total}</span><h3 lang="ja">{word.original}</h3><p lang="ja">{word.reading}</p><p>{word.meaning_zh}</p><small>{copy.previewOnly}</small></section>)}
+    </div>
+    <div className="discovery-gallery-controls"><button type="button" aria-label={copy.previous} disabled={index === 0} onClick={() => go(index - 1)}><ChevronLeft size={18} /></button><span aria-live="polite">{index === 0 ? copy.swipePreview : `${index + 1} / ${total}`}</span><button type="button" aria-label={copy.next} disabled={index === total - 1} onClick={() => go(index + 1)}><ChevronRight size={18} /></button></div>
+  </div>;
 }
 
 function SharedPractice({ content, labels, settings, locale, onBack, importAction }: {
@@ -334,8 +385,8 @@ function SharedListening({ content, shareId, token, locale }: { content: SharedC
 
 function marketCopy(locale: Locale) {
   if (locale === 'ja') return {
-    close: '閉じる', manage: '管理', ownShareShort: '自分の共有', expandIntro: '概要を展開', collapseIntro: '概要を閉じる', sampleQuestion: '問題プレビュー',
-    retry: '再試行', added: '追加済み', backToList: '共有一覧に戻る', backToPreview: '共有の詳細に戻る', startPreview: '保存せずに試す', previewResults: '試用の結果を見る', emptyPractice: '試せる問題がありません', previewNotice: '試用の解答はこの画面だけに保持されます。学習履歴や進捗には保存されません。', sourceNotice: 'ユーザーが共有した教材です。正確性と利用権限を確認してください。', ownShare: 'あなたが共有した教材です。', importNotice: '追加すると自分のライブラリにコピーされます。あなたの学習記録を公開する操作ではありません。',
+    grammar: '文法', communityAuthor: '学習者の共有', select: '選択', noResults: '該当する共有がありません', previewOnly: 'プレビューのみ・解答は保存されません', swipePreview: '左にスワイプして問題を見る', close: '閉じる', manage: '管理', ownShareShort: '自分の共有', expandIntro: '概要を展開', collapseIntro: '概要を閉じる', sampleQuestion: '問題プレビュー',
+    retry: '再試行', added: '追加済み', backToList: '共有一覧に戻る', backToPreview: '共有の詳細に戻る', startPreview: '練習を始める', previewResults: '試用の結果を見る', emptyPractice: '試せる問題がありません', previewNotice: '試用の解答はこの画面だけに保持されます。学習履歴や進捗には保存されません。', sourceNotice: 'ユーザーが共有した教材です。正確性と利用権限を確認してください。', ownShare: 'あなたが共有した教材です。', importNotice: '追加すると自分のライブラリにコピーされます。あなたの学習記録を公開する操作ではありません。',
     failed: '操作に失敗しました。もう一度お試しください', alreadyAdded: 'このコンテンツはすでに追加されています', addedTo: '追加先：', wordbooks: '単語帳', listeningBank: '聴解ライブラリ', topicPractice: '分野別練習', addedRefreshFailed: '追加しましたが、一覧を更新できませんでした。ページを再読み込みしてください',
     addToMine: '自分のコンテンツに追加', withdraw: '共有を取り消す', withdrawConfirm: (count: number) => `${count} 件の共有を取り消します。他のユーザーには表示されなくなります。`, withdrawn: '共有を取り消しました',
     discover: '発見', shareList: '共有コンテンツの一覧', shares: '共有コンテンツ', items: '件', sets: 'セット', clips: '件', books: '冊', search: '共有コンテンツを検索', shareScope: '共有範囲', allShares: 'すべての共有', myShares: '自分の共有', categories: 'コンテンツの種類', all: 'すべて', words: '単語', listening: '聴解',
@@ -343,8 +394,8 @@ function marketCopy(locale: Locale) {
     audioUnavailable: '共有された音声を再生できません', audioFailed: '音声を読み込めませんでした', sharedAudio: '共有された聴解音声', audioLoading: '音声を読み込み中…', transcript: '聴解の全文', transcriptTranslation: '全文の翻訳',
   };
   if (locale === 'en') return {
-    close: 'Close', manage: 'Manage', ownShareShort: 'Shared by you', expandIntro: 'Expand introduction', collapseIntro: 'Collapse introduction', sampleQuestion: 'Question preview',
-    retry: 'Retry', added: 'Added', backToList: 'Back to shared content', backToPreview: 'Back to share details', startPreview: 'Try without saving', previewResults: 'View trial results', emptyPractice: 'No questions are available to try', previewNotice: 'Trial answers stay on this screen only. They are not saved to study history or progress.', sourceNotice: 'Material shared by a user. Check its accuracy and your rights to use it.', ownShare: 'Material you shared.', importNotice: 'Adding saves a copy to your library. It does not publish your study records.',
+    grammar: 'Grammar', communityAuthor: 'Community share', select: 'Select', noResults: 'No matching shares', previewOnly: 'Preview only · answers are not saved', swipePreview: 'Swipe left to preview', close: 'Close', manage: 'Manage', ownShareShort: 'Shared by you', expandIntro: 'Expand introduction', collapseIntro: 'Collapse introduction', sampleQuestion: 'Question preview',
+    retry: 'Retry', added: 'Added', backToList: 'Back to shared content', backToPreview: 'Back to share details', startPreview: 'Start practice', previewResults: 'View trial results', emptyPractice: 'No questions are available to try', previewNotice: 'Trial answers stay on this screen only. They are not saved to study history or progress.', sourceNotice: 'Material shared by a user. Check its accuracy and your rights to use it.', ownShare: 'Material you shared.', importNotice: 'Adding saves a copy to your library. It does not publish your study records.',
     failed: 'Action failed. Please try again', alreadyAdded: 'This content is already in your library', addedTo: 'Added to ', wordbooks: 'wordbooks', listeningBank: 'listening library', topicPractice: 'topic practice', addedRefreshFailed: 'Added, but the list could not refresh. Reload the page to view it',
     addToMine: 'Add to my content', withdraw: 'Withdraw share', withdrawConfirm: (count: number) => `Withdraw ${count} shares? Others will no longer see them.`, withdrawn: 'Share withdrawn',
     discover: 'Discover', shareList: 'Shared content list', shares: 'Shared content', items: 'items', sets: 'sets', clips: 'clips', books: 'books', search: 'Search shared content', shareScope: 'Share scope', allShares: 'All shares', myShares: 'My shares', categories: 'Content types', all: 'All', words: 'Words', listening: 'Listening',
@@ -352,11 +403,11 @@ function marketCopy(locale: Locale) {
     audioUnavailable: 'Shared audio is unavailable', audioFailed: 'Could not load audio', sharedAudio: 'Shared listening audio', audioLoading: 'Loading audio…', transcript: 'Full transcript', transcriptTranslation: 'Transcript translation',
   };
   return {
-    close: '关闭', manage: '管理', ownShareShort: '我分享的内容', expandIntro: '展开简介', collapseIntro: '收起简介', sampleQuestion: '选择正确的表达',
-    retry: '重试', added: '已加入', backToList: '返回分享列表', backToPreview: '返回分享详情', startPreview: '开始试做', previewResults: '查看试做结果', emptyPractice: '暂无可试做的题目', previewNotice: '试做答案只保留在当前页面，不计入学习历史或进度。', sourceNotice: '内容由用户分享，请核对准确性及使用权限。', ownShare: '这是你分享的内容。', importNotice: '加入会复制到你的内容库，不会公开你的学习记录。',
+    grammar: '语法', communityAuthor: '学习者分享', select: '选择', noResults: '暂无符合条件的分享', previewOnly: '仅预览，不记录答案', swipePreview: '左滑预览题目', close: '关闭', manage: '管理', ownShareShort: '我分享的内容', expandIntro: '展开简介', collapseIntro: '收起简介', sampleQuestion: '题目预览',
+    retry: '重试', added: '已加入', backToList: '返回分享列表', backToPreview: '返回分享详情', startPreview: '开始练习', previewResults: '查看试做结果', emptyPractice: '暂无可试做的题目', previewNotice: '试做答案只保留在当前页面，不计入学习历史或进度。', sourceNotice: '内容由用户分享，请核对准确性及使用权限。', ownShare: '这是你分享的内容。', importNotice: '加入会复制到你的内容库，不会公开你的学习记录。',
     failed: '操作失败，请重试', alreadyAdded: '这份内容已在你的内容中', addedTo: '已添加到我的', wordbooks: '单词本', listeningBank: '听力题库', topicPractice: '专项练习', addedRefreshFailed: '内容已添加，但列表刷新失败，请刷新页面查看',
     addToMine: '添加到我的内容', withdraw: '撤回分享', withdrawConfirm: (count: number) => `将撤回你的 ${count} 份分享，其他人将无法再看到。`, withdrawn: '已撤回',
-    discover: '发现', shareList: '分享列表', shares: '分享', items: '项', sets: '套', clips: '段', books: '本', search: '搜索分享', shareScope: '分享范围', allShares: '全部分享', myShares: '我的分享', categories: '内容分类', all: '全部', words: '单词', listening: '听力',
+    discover: '发现', shareList: '分享列表', shares: '分享', items: '项', sets: '套', clips: '段', books: '本', search: '搜索分享', shareScope: '分享范围', allShares: '全部分享', myShares: '我的分享', categories: '内容分类', all: '全部', words: '词汇', listening: '听力',
     content: '分享内容', description: '内容简介', type: '类型', practice: '练习', wordUnit: '词', questionUnit: '题', add: '加入', loading: '加载中…', endOfList: '已经到底了', previous: '上一页', next: '下一页', preview: '分享内容预览', adding: '添加中…',
     audioUnavailable: '分享音频暂时无法播放', audioFailed: '音频加载失败', sharedAudio: '分享听力音频', audioLoading: '正在加载音频…', transcript: '听力原文', transcriptTranslation: '原文翻译',
   };

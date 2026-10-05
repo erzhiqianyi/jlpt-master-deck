@@ -41,6 +41,7 @@ struct StudyState: Codable {
     var settings: [String: SettingValue]?
     var progress: [String: ProgressEntry] = [:]
     var answers: [String: Answer] = [:]
+    var attemptHistory: [NativeAttempt]?
     struct Answer: Codable { let selected: String; let correct: Bool; var answeredAt: String? }
 }
 struct ProgressEntry: Codable, Equatable {
@@ -79,8 +80,14 @@ enum MemoryRating: String, CaseIterable, Identifiable {
 }
 struct PlanEnvelope: Decodable { let plan: StudyPlan }
 struct StudyPlan: Codable {
+    var profile: StudyPlanProfile?
     var tasks: [PlanTask] = []
     var dailySummaries: [DailySummary] = []
+}
+struct StudyPlanProfile: Codable {
+    var examName: String?
+    var examDate: String?
+    var level: String?
 }
 struct PlanTask: Codable, Identifiable {
     let id: String; let date: String; let title: String; let module: String
@@ -104,6 +111,7 @@ struct CaptureResult: Decodable { let capture: Capture }
 struct AnswerInput: Codable {
     let questionId: String; let itemId: String; let selected: String
     let correct: Bool; let progressEntry: ProgressEntry
+    var attemptHistory: [NativeAttempt]?
 }
 
 enum StudyDates {
@@ -191,4 +199,108 @@ extension StudyItem {
         }
         return value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? value : nil
     }
+}
+
+struct SpeechConfiguration {
+    let provider: String
+    let voice: String
+    let style: String
+    let role: String
+    let rate: Double
+    let cardAuto: String
+    let grammarAuto: Bool
+    let includeExample: Bool
+    func text(for item: StudyItem) -> String {
+        let word = item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original
+        return includeExample ? ([word] + (item.examples?.first.map { [$0.ja] } ?? [])).joined(separator: "。") : word
+    }
+    init(settings: [String: SettingValue]?) {
+        if case .string(let value) = settings?["ttsProvider"] { provider = value } else { provider = "browser" }
+        let speech: [String: SettingValue]
+        if case .object(let value) = settings?["speech"] { speech = value } else { speech = [:] }
+        if case .string(let value) = speech["cardAuto"], ["front", "back"].contains(value) { cardAuto = value } else { cardAuto = "off" }
+        if case .bool(let value) = speech["grammarAuto"] { grammarAuto = value } else { grammarAuto = false }
+        if case .bool(let value) = speech["includeExample"] { includeExample = value } else { includeExample = false }
+        let choice: [String: SettingValue]
+        if case .object(let voices) = speech["voices"], case .object(let value) = voices[provider] { choice = value } else { choice = [:] }
+        func string(_ key: String) -> String { if case .string(let value) = choice[key] { return value }; return "" }
+        voice = string("voice"); style = string("style"); role = string("role")
+        if case .number(let value) = speech["rate"], value.isFinite { rate = min(1.5, max(0.5, value)) } else { rate = 1 }
+    }
+    var usesSystemVoice: Bool { provider == "browser" }
+    func request(text: String) -> SpeechRequest { SpeechRequest(provider: provider, text: text, voice: voice, style: style, role: role) }
+    static func chunks(_ text: String) -> [String] {
+        var result: [String] = [], chunk = ""
+        for scalar in text.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars {
+            let part = String(scalar)
+            if chunk.utf16.count + part.utf16.count > 450 { result.append(chunk); chunk = "" }
+            chunk += part
+        }
+        if !chunk.isEmpty { result.append(chunk) }
+        return result
+    }
+}
+struct SpeechRequest: Codable, Hashable {
+    let provider: String
+    let text: String
+    let voice: String
+    let style: String
+    let role: String
+}
+
+
+struct NativeAttempt: Codable, Identifiable, Equatable {
+    let id: String
+    var title: String?
+    var practiceId: String?
+    let startedAt: String
+    var completedAt: String?
+    let view: String
+    let deck: String
+    let questionIds: [String]
+    var answers: [AttemptAnswer]
+    var summary: Summary?
+    var analysisStatus: String?
+    var analysisStartedAt: String?
+    var analysisCompletedAt: String?
+    struct AttemptAnswer: Codable, Equatable {
+        let questionId: String; let itemId: String; let kind: String; let selected: String; let correct: Bool
+        var startedAt: String?; let answeredAt: String; let elapsedMs: Int
+    }
+    struct Summary: Codable, Equatable { let total: Int; let correct: Int; let wrong: Int; let accuracy: Double; let elapsedMs: Int }
+    var total: Int { summary?.total ?? answers.count }
+    var correctCount: Int { summary?.correct ?? answers.filter(\.correct).count }
+    var dateKey: String { StudyStatistics.day(StudyDates.parse(completedAt ?? startedAt) ?? .distantPast) }
+    static func merging(_ existing: [Self], _ incoming: [Self]) -> [Self] {
+        var values = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+        for attempt in incoming { values[attempt.id] = attempt }
+        return values.values.sorted { ($0.completedAt ?? $0.startedAt) > ($1.completedAt ?? $1.startedAt) }
+    }
+}
+struct StudyStatistics {
+    let attempts: [NativeAttempt]
+    let today: [NativeAttempt]
+    let week: [Day]
+    struct Day: Identifiable { let id: String; let total: Int }
+    struct Metric { let total: Int; let correct: Int; var accuracy: String { total == 0 ? "—" : "\(Int((Double(correct) / Double(total) * 100).rounded()))%" } }
+    static var calendar: Calendar { var value = Calendar(identifier: .gregorian); value.timeZone = TimeZone(identifier: "Asia/Tokyo")!; return value }
+    static func day(_ date: Date) -> String {
+        let format = DateFormatter(); format.calendar = calendar; format.timeZone = calendar.timeZone; format.locale = Locale(identifier: "en_US_POSIX"); format.dateFormat = "yyyy-MM-dd"; return format.string(from: date)
+    }
+    init(attempts: [NativeAttempt], now: Date = .now) {
+        let completed = attempts.filter { $0.completedAt != nil }.sorted { ($0.completedAt ?? "") > ($1.completedAt ?? "") }
+        self.attempts = completed
+        today = completed.filter { $0.dateKey == Self.day(now) }
+        week = (0..<7).map { index in
+            let key = Self.day(Self.calendar.date(byAdding: .day, value: index - 6, to: now)!)
+            return Day(id: key, total: completed.filter { $0.dateKey == key }.reduce(0) { $0 + $1.total })
+        }
+    }
+    static func metric(_ attempts: [NativeAttempt]) -> Metric { Metric(total: attempts.reduce(0) { $0 + $1.total }, correct: attempts.reduce(0) { $0 + $1.correctCount }) }
+    var modules: [String] {
+        var result = ["vocabulary", "grammar", "reading", "listening"]
+        for attempt in attempts where !result.contains(attempt.view) { result.append(attempt.view) }
+        return result
+    }
+    static func label(_ view: String) -> String { ["vocabulary": "单词", "grammar": "语法", "reading": "阅读", "listening": "听力", "mixed": "综合", "daily-practice": "今日练习", "mock-exams": "模拟考试"][view] ?? view }
 }

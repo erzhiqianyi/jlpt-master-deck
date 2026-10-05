@@ -62,3 +62,28 @@ for (const [locale, read, reveal, rating] of [['ja', '読み上げ', '答えを�
     assert.doesNotMatch(document.querySelector('.ledger-review-complete').textContent, /今日复习完成|返回今天/);
   });
 }
+
+test('speech lives in the visible card heading and left/right changes persist without revealing the answer', async () => {
+  window.localStorage.removeItem('jlpt-memory-speech-side');
+  await render({ cardAuto: 'off' });
+  assert.equal(document.querySelector('.memory-review-speech'), null);
+  assert.ok(document.querySelector('.ledger-memory-front .memory-card-heading button[aria-label="朗读"]'));
+  assert.equal(document.querySelector('.ledger-memory-back .memory-card-speech'), null);
+  const left = [...document.querySelectorAll('.memory-speech-position-menu button')].find(button => button.textContent === '左侧');
+  await act(async () => left.click());
+  assert.ok(document.querySelector('.ledger-memory-front .memory-card-heading.is-left'));
+  assert.equal(document.querySelector('.is-flipped'), null);
+  assert.equal(window.localStorage.getItem('jlpt-memory-speech-side'), 'left');
+  await render({ cardAuto: 'off' });
+  assert.ok(document.querySelector('.ledger-memory-front .memory-card-heading.is-left'));
+  await act(async () => [...document.querySelectorAll('button')].find(button => button.textContent === '显示答案').click());
+  assert.ok(document.querySelector('.ledger-memory-back .memory-card-heading.is-left button[aria-label="朗读"]'));
+  assert.equal(document.querySelector('.ledger-memory-front .memory-card-speech'), null);
+});
+
+test('front autoplay does not read again merely because the card is revealed', async () => {
+  await render({ cardAuto: 'front', grammarAuto: true });
+  assert.deepEqual(spoken, ['に限らず']);
+  await act(async () => [...document.querySelectorAll('button')].find(button => button.textContent === '显示答案').click());
+  assert.deepEqual(spoken, ['に限らず']);
+});

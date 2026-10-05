@@ -94,7 +94,7 @@ test('Library renders four uniform entries and only supported study information'
   await render(StudyModulesHub, { locale: 'zh-CN', labels, items: [{ id: 'a', deck: 'n1_vocab' }], readingQuestions: [], listeningQuestions: [], onNavigate: (...args) => destinations.push(args) });
   const entries = [...document.querySelectorAll('.primary-library > button')];
   assert.deepEqual(entries.map(node => node.querySelector('strong').textContent), ['词汇', '语法', '阅读', '听力']);
-  assert.match(entries[0].textContent, /1 个/);
+  assert.match(entries[0].textContent, /1 词/);
   assert.doesNotMatch(document.querySelector('.primary-library').textContent, /已学|已练|更多工具/);
   assert.equal(document.querySelector('.primary-library h1'), null);
   for (const entry of entries) await click(entry);

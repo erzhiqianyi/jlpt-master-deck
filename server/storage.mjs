@@ -1,3 +1,5 @@
+import { repairReadingTarget } from './practice-reading-target.mjs';
+import { scheduleItemPronunciation } from './tts/prewarm.mjs';
 import { practiceModules } from '../src/domain/practiceModules.mjs';
 import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
 import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
@@ -494,7 +496,9 @@ export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
         updated_at = excluded.updated_at
     `)
     .run(normalized.id, JSON.stringify(normalized), String(source).slice(0, 120), existing?.created_at ?? now, now, userId);
-  return reviewItemById(normalized.id, userId);
+  const saved = reviewItemById(normalized.id, userId);
+  if (!existing && (saved.type === 'word' || saved.deck === 'grammar_expression')) scheduleItemPronunciation(userId, saved);
+  return saved;
 }
 
 export function reviewItemById(id, userId) {
@@ -2685,7 +2689,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       title: String(section.title ?? `問題${section.id ?? ''}`).trim(),
       instruction: String(section.instruction ?? '').trim(),
       prompt: String(question.prompt ?? '').trim(),
-      promptTarget: question.target ? String(question.target) : undefined,
+      promptTarget: repairReadingTarget({ kind: draftQuestionKind(question.kind), prompt: String(question.prompt ?? ""), promptTarget: question.target, tested: question.tested }).promptTarget,
       choices,
       answer,
       answerIndex,
@@ -2957,7 +2961,7 @@ function rowToDailyPractice(row) {
   return {
     ...rowToDailyPracticeSummary(row),
     ...practice,
-    questions: (practice.questions ?? []).map(repairDailyPracticeQuestionAnswer).map(normalizePracticeExplanations),
+    questions: (practice.questions ?? []).map(repairDailyPracticeQuestionAnswer).map(repairReadingTarget).map(normalizePracticeExplanations),
     id: row.id,
     date: row.practice_date,
     version: row.version ?? 1,
@@ -3525,7 +3529,8 @@ function normalizeStudyPlanProfile(value) {
     throw new Error('At least one study material is required');
   }
   return {
-    level: ['N1', 'N2', 'N3', 'N4', 'N5'].includes(value?.level) ? value.level : fallback.level,
+    examName: String(value?.examName ?? '').trim().slice(0, 120),
+    level: value?.examName && value.examName.trim() !== 'JLPT' ? '' : ['N1', 'N2', 'N3', 'N4', 'N5'].includes(value?.level) ? value.level : '',
     startDate,
     examDate,
     studyDaysPerWeek: clampInteger(value?.studyDaysPerWeek, 1, 7, fallback.studyDaysPerWeek),
@@ -3633,7 +3638,8 @@ function normalizeStudyPlanTasks(value, profile, required = true) {
 
 function defaultStudyPlanProfile() {
   return {
-    level: 'N1',
+    level: '',
+    examName: '',
     startDate: localDateString(new Date()),
     examDate: '2026-12-06',
     studyDaysPerWeek: 6,

@@ -102,10 +102,11 @@ test('review starts with results, supports wrong/all/unanswered and hides unavai
  let back=0;
  await render(PracticeReviewPanel,{questions,answers:{q1:{selected:'乙',correct:true},q2:{selected:'甲',correct:false}},items:[],labels,locale:'zh-CN',showRuby:false,onBackToPractice:()=>back++});
  assert.equal(document.querySelector('.practice-review-detail'),null);
- assert.equal(document.querySelectorAll('.practice-result-rows li').length,1);
+ assert.equal(document.querySelector('.practice-result-rows'),null);
+ assert.ok(!document.body.textContent.includes('問題 1'));
  assert.ok(!button('重新练习'));
- await click([...document.querySelectorAll('.practice-result-filters button')].find(n=>n.textContent.startsWith('未答')));
- await click(document.querySelector('.practice-result-rows button'));
+ await click(button('只看错题 (2)'));
+ await click(button('下一题'));
  assert.match(document.querySelector('.practice-review-detail').textContent,/尚未作答/);
  await click(button('返回结果'));assert.equal(document.querySelector('.practice-review-detail'),null);
  await click(button('返回练习'));assert.equal(back,1);
@@ -172,7 +173,7 @@ test('historical scores survive edited keys and missing originals without invent
  assert.equal(model.rows[1].answer.correct,false,'saved wrong answer stays wrong even when it matches the current key');
  await render(PracticeReviewPanel,{attempt,questions:[questions[0],questions[1]],answers:{},items:[],labels,locale:'zh-CN',showRuby:false,onBackToPractice:noop});
  assert.match(document.querySelector('.practice-result-summary').textContent,/67%|历史成绩已保留/);
- await click(document.querySelector('.practice-result-rows button'));
+ await click(button('只看错题 (1)'));
  assert.equal(document.querySelector('.practice-feedback-status strong').textContent,labels.wrong);
  assert.match(document.querySelector('.practice-feedback-answer').textContent,/当前题目答案/);
  assert.match(document.querySelector('.practice-historical-version').textContent,/当前题目版本/);
@@ -238,4 +239,30 @@ test('restart is secondary and cancellation preserves the current attempt',async
  window.confirm=()=>true;
  await click(button(labels.restartPractice));
  assert.equal(restarted,1);
+});
+
+
+test('question review stays in its filter, swipes horizontally and stops at boundaries', async () => {
+ await render(PracticeReviewPanel,{questions,answers:{q1:{selected:'甲',correct:false},q2:{selected:'乙',correct:true}},items:[],labels,locale:'zh-CN',showRuby:false,onBackToPractice:noop});
+ await click(button('只看错题 (2)'));
+ const prompt=()=>document.querySelector('.practice-review-prompt').textContent;
+ assert.equal(prompt(),'問題 1');
+ assert.equal(button('上一题').disabled,true);
+ async function swipe(dx,dy=0) {
+  const article=document.querySelector('.practice-review-detail');
+  await act(async()=>{
+   const start=new Event('touchstart',{bubbles:true});
+   Object.defineProperty(start,'touches',{value:[{clientX:200,clientY:200}]});article.dispatchEvent(start);
+   const end=new Event('touchend',{bubbles:true});
+   Object.defineProperty(end,'changedTouches',{value:[{clientX:200+dx,clientY:200+dy}]});article.dispatchEvent(end);
+  });
+ }
+ await swipe(-10,-120);assert.equal(prompt(),'問題 1','vertical reading does not change questions');
+ await swipe(-120);assert.equal(prompt(),'問題 3','skips correct question and includes unanswered');
+ assert.equal(button('下一题').disabled,true);
+ await swipe(-120);assert.equal(prompt(),'問題 3','does not wrap at end');
+ await swipe(120);assert.equal(prompt(),'問題 1');
+ await click([...document.querySelectorAll('.practice-review-detail .practice-result-filters button')].find(b=>b.textContent.startsWith('全部')));
+ await click(button('下一题'));assert.equal(prompt(),'問題 2');
+ await click(button('返回结果'));assert.equal(document.querySelector('.practice-review-detail'),null);
 });

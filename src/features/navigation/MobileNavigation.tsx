@@ -1,6 +1,6 @@
 import { PageHeaderActions } from '../../components/PageChrome';
 import { primaryNavigationView, primaryNavigationViews } from '../../domain/appNavigation';
-import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
+import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, LayoutGrid, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
 import { wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
@@ -10,7 +10,9 @@ export type MobileStudyPanel = 'task' | 'filter' | null;
 type NavItem = { view: AppView; label: string };
 type RouteNavItem = NavItem & { page?: StudyPage; itemId?: string; activeViews?: AppView[]; children?: RouteNavItem[]; group?: 'today' | 'study' | 'review' | 'record' | 'manage' };
 
-export function MobileAppHeader({ onSettings, settingsLabel, onSearch, searchLabel, filterLabel, filterName, filterIconOnly, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+export function MobileAppHeader({ library = false, discovery = false, onSettings, settingsLabel, onSearch, searchLabel, filterLabel, filterName, filterIconOnly, onHeaderFilter, title, backLabel, showBack, onBack, navOpen, navLabel, navCloseLabel, onNavToggle, actionLabel, onAction, studyActionLabel, studyActionAriaLabel, onStudyAction, filterActionLabel, filterActionAriaLabel, onFilterAction }: {
+  discovery?: boolean;
+  library?: boolean;
   onSettings?: () => void;
   settingsLabel?: string;
   onSearch?: () => void;
@@ -36,19 +38,19 @@ export function MobileAppHeader({ onSettings, settingsLabel, onSearch, searchLab
   filterActionAriaLabel?: string;
   onFilterAction?: () => void;
 }) {
-  if (!showBack && !onSettings && !onNavToggle && !onSearch && !onHeaderFilter) {
+  if (!discovery && !showBack && !onSettings && !onNavToggle && !onSearch && !onHeaderFilter) {
     return null;
   }
 
   return (
-    <header className="mobile-app-header sticky top-0 z-30 border-b border-[#f0d4dd] bg-white/95 backdrop-blur md:hidden">
+    <header className={`mobile-app-header ${discovery ? 'is-discovery-header' : library ? 'is-library-header' : ''} sticky top-0 z-30 border-b border-[#f0d4dd] bg-white/95 backdrop-blur md:hidden`}>
       <div className="grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-2">
         <div className="flex min-w-0 items-center justify-start">
           {showBack ? (
             <button type="button" onClick={onBack} aria-label={backLabel} title={backLabel} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#6b5a61] hover:bg-[#fff0f5]">
               <ArrowLeft size={21} />
             </button>
-          ) : onSettings && settingsLabel ? (
+          ) : !library && onSettings && settingsLabel ? (
             <button type="button" onClick={onSettings} aria-label={settingsLabel} title={settingsLabel} className="mobile-settings-entry cute-focus">
               <Settings size={20} aria-hidden="true" />
             </button>
@@ -58,6 +60,7 @@ export function MobileAppHeader({ onSettings, settingsLabel, onSearch, searchLab
           {title}
         </h1>
         <div className="flex min-w-0 items-center justify-end gap-1">
+          {library && onSettings && settingsLabel ? <button type="button" onClick={onSettings} aria-label={settingsLabel} title={settingsLabel} className="mobile-settings-entry cute-focus"><Settings size={24} aria-hidden="true" /></button> : null}
           <PageHeaderActions />
           {onHeaderFilter ? <button type="button" onClick={onHeaderFilter} aria-label={`${filterName}：${filterLabel}`} title={`${filterName}：${filterLabel}`} className={`cute-focus flex h-10 min-w-0 max-w-full items-center justify-center gap-1 rounded-full text-[#a84269] ${filterIconOnly ? 'w-10' : 'px-2'}`}><Filter size={filterIconOnly ? 21 : 18} className="shrink-0" />{filterIconOnly ? null : <span className="truncate text-sm">{filterLabel}</span>}</button> : null}
           {onSearch ? <button type="button" onClick={onSearch} aria-label={searchLabel} className="cute-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#a84269]"><Search size={21} /></button> : null}
@@ -592,13 +595,13 @@ function SheetChoice({ active, label, onClick }: { active: boolean; label: strin
 function mobileNavIcon(view: AppView) {
   switch (view) {
     case 'study':
-      return Library;
+      return LayoutGrid;
     case 'vocabulary': return BookA;
     case 'grammar': return Captions;
     case 'reading': return BookOpen;
     case 'listening': return Headphones;
     case 'home':
-      return House;
+      return BookOpen;
     case 'mixed':
     case 'daily-practice':
       return FileText;

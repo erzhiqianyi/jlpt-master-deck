@@ -102,7 +102,7 @@ export function LearningListRow({ selectId, title, references, reading, descript
 }
 
 /** Slots keep feature-specific filters, row content and actions outside the layout. */
-export function LearningListHeader({ title, count, search, children, appliedSummary, onReset, expandedOnWide = true }: { expandedOnWide?: boolean; title?: ReactNode; count?: ReactNode; search?: ReactNode; children?: ReactNode; appliedSummary?: ReactNode; onReset?: () => void }) {
+export function LearningListHeader({ title, count, search, children, appliedSummary, onReset, expandedOnWide = true, controlIcon, showDensity = true }: { showDensity?: boolean; controlIcon?: ReactNode; expandedOnWide?: boolean; title?: ReactNode; count?: ReactNode; search?: ReactNode; children?: ReactNode; appliedSummary?: ReactNode; onReset?: () => void }) {
   const [wide, setWide] = useState(() => window.matchMedia('(min-width: 768px)').matches);
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)');
@@ -111,7 +111,8 @@ export function LearningListHeader({ title, count, search, children, appliedSumm
     return () => media.removeEventListener('change', update);
   }, []);
   const inline = expandedOnWide && wide;
-  const density = useContext(ListDensityContext);
+  const densityContext = useContext(ListDensityContext);
+  const density = showDensity ? densityContext : null;
   const locale = density?.locale ?? (isValidElement<{ locale?: string }>(search) ? search.props.locale : undefined) ?? 'zh-CN';
   const ja = locale === 'ja'; const en = locale === 'en';
   const label = ja ? '検索・絞り込み' : en ? 'Search and filters' : '搜索与筛选';
@@ -125,7 +126,7 @@ export function LearningListHeader({ title, count, search, children, appliedSumm
   const show = () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setOpen(true); };
   const close = () => { dialog.current?.close(); setOpen(false); };
   const [searchHost, setSearchHost] = useState<HTMLDivElement | null>(null);
-  const inHeader = usePageHeaderActions(inline && search ? [{ key: `list-search-${id}`, label, content: <div ref={setSearchHost} />, onClick: () => {} }] : hasControls && !inline ? [{ key: `list-controls-${id}`, label, icon: <SlidersHorizontal size={21}/>, onClick: show }] : []);
+  const inHeader = usePageHeaderActions(inline && search ? [{ key: `list-search-${id}`, label, content: <div ref={setSearchHost} />, onClick: () => {} }] : hasControls && !inline ? [{ key: `list-controls-${id}`, label, icon: controlIcon ?? <SlidersHorizontal size={21}/>, onClick: show }] : []);
   useEffect(() => { if (inline) setOpen(false); }, [inline]);
   const query = isValidElement<{ value?: string }>(search) ? search.props.value : undefined;
   const summary = appliedSummary || (query ? `${ja ? '検索' : en ? 'Search' : '搜索'}: ${query}` : null);

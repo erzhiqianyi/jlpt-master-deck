@@ -5,8 +5,10 @@ struct PendingAnswer: Codable, Identifiable {
     let id: UUID
     let before: ProgressEntry
     let input: AnswerInput
+    var historyOnly: Bool? = nil
     enum Disposition { case send, alreadyApplied, conflict }
     func disposition(cloud: ProgressEntry) -> Disposition {
+        if historyOnly == true { return .alreadyApplied }
         if cloud == input.progressEntry { return .alreadyApplied }
         return cloud == before ? .send : .conflict
     }
@@ -35,6 +37,39 @@ struct LocalStudyData: Codable {
     var hasPracticeCache = false
     var hasListeningCache = false
     var responses: [String: LocalStudyResponse]?
+
+    /// Downloaded content can advance independently of queued, unacknowledged answers.
+    func preservingLocalWork(pending: [PendingAnswer], responses: [String: LocalStudyResponse], syncedAt: Date) -> Self {
+        var result = self
+        result.pending = pending
+        result.responses = responses
+        result.lastSync = syncedAt
+        for operation in pending {
+            let input = operation.input
+            if operation.historyOnly != true { result.state.progress[input.itemId] = input.progressEntry }
+            if let attempts = input.attemptHistory {
+                result.state.attemptHistory = NativeAttempt.merging(result.state.attemptHistory ?? [], attempts)
+            }
+            if operation.historyOnly != true && !input.questionId.hasPrefix("memory-card:") {
+                result.state.answers[input.questionId] = .init(selected: input.selected, correct: input.correct, answeredAt: input.progressEntry.lastReviewedAt)
+            }
+        }
+        return result
+    }
+}
+
+enum StudySynchronization {
+    @MainActor
+    static func fetch(upload: () async throws -> Void, download: () async throws -> LocalStudyData) async throws -> (data: LocalStudyData, uploadError: String?) {
+        var uploadError: String?
+        do { try await upload() }
+        catch APIError.http(401, let message) { throw APIError.http(401, message) }
+        catch is CancellationError { throw CancellationError() }
+        catch let error as URLError where error.code == .cancelled { throw error }
+        catch { uploadError = error.localizedDescription }
+        try Task.checkCancellation()
+        return (try await download(), uploadError)
+    }
 }
 
 struct LocalStudyFiles {
@@ -54,6 +89,12 @@ struct LocalStudyFiles {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try JSONEncoder().encode(snapshot).write(to: folder.appendingPathComponent("study.json"), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
+    /// Sync callers hold the store's saving gate until this atomic write completes.
+    func saveInBackground(_ snapshot: LocalStudyData, userID: Int) async throws {
+        try await Task.detached(priority: .utility) {
+            try self.save(snapshot, userID: userID)
+        }.value
+    }
     func downloadedAudioCount(userID: Int, items: [ListeningItem]) throws -> Int {
         try ListeningGroup.make(items).reduce(0) { count, group in
             guard let item = group.questions.first else { return count }
@@ -63,9 +104,72 @@ struct LocalStudyFiles {
             return count + (values.isRegularFile == true && (values.fileSize ?? 0) > 0 ? 1 : 0)
         }
     }
+    func speechAudio(userID: Int, request: SpeechRequest, download: () async throws -> Data) async throws -> Data {
+        let url = try speechURL(userID: userID, request: request)
+        if FileManager.default.fileExists(atPath: url.path) {
+            let bytes = try Data(contentsOf: url)
+            if !bytes.isEmpty { return bytes }
+        }
+        let bytes = try await download()
+        try Task.checkCancellation()
+        guard !bytes.isEmpty else { throw APIError.invalidResponse }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try bytes.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        return bytes
+    }
+    func speechURL(userID: Int, request: SpeechRequest) throws -> URL {
+        let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
+        let key = try encoder.encode(request)
+        let name = SHA256.hash(data: key).map { String(format: "%02x", $0) }.joined()
+        return directory(userID: userID).appendingPathComponent("speech-v1", isDirectory: true).appendingPathComponent(name + ".mp3")
+    }
     func audioURL(userID: Int, item: ListeningItem) -> URL {
         let key = "\(item.audioKey)|\(item.audioSize)|\(item.createdAt)"
         let name = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
         return directory(userID: userID).appendingPathComponent("audio", isDirectory: true).appendingPathComponent(name)
+    }
+}
+
+extension LocalStudyData {
+    /// Stage the whole submission before the caller saves once, so failed persistence is retryable.
+    func recordingNativeBatch(questions: [NativeQuestion], attempt: NativeAttempt, allowUnanswered: Bool = false) throws -> Self {
+        let questionIDs = Set(questions.map(\.id))
+        guard questionIDs.count == questions.count, Set(attempt.questionIds) == questionIDs,
+              Set(attempt.answers.map(\.questionId)).isSubset(of: questionIDs),
+              Set(attempt.answers.map(\.questionId)).count == attempt.answers.count,
+              allowUnanswered || attempt.answers.count == questions.count,
+              attempt.completedAt != nil else { throw IdentityError.message("题目尚未全部作答。") }
+        let answers = Dictionary(attempt.answers.map { ($0.questionId, $0) }, uniquingKeysWith: { _, last in last })
+        for question in questions {
+            guard let answer = answers[question.id] else { continue }
+            guard question.choices.contains(answer.selected),
+                  answer.correct == (answer.selected == question.answer), answer.itemId == question.itemId else {
+                throw IdentityError.message("答案内容无效，请重新选择。")
+            }
+        }
+        let previousAttempt = state.attemptHistory?.first { $0.id == attempt.id }
+        if previousAttempt?.completedAt != nil { return self }
+        let recordedIDs = Set(previousAttempt?.answers.map(\.questionId) ?? [])
+        let additions = questions.filter { answers[$0.id] != nil && !recordedIDs.contains($0.id) }
+        var next = self
+        for (index, question) in additions.enumerated() {
+            let answer = answers[question.id]!
+            let before = next.state.progress[question.itemId] ?? ProgressEntry()
+            let progress = before.afterPractice(correct: answer.correct, now: StudyDates.parse(answer.answeredAt) ?? .now)
+            let operation = PendingAnswer(id: UUID(), before: before,
+                input: .init(questionId: question.id, itemId: question.itemId, selected: answer.selected, correct: answer.correct,
+                             progressEntry: progress, attemptHistory: index == additions.count - 1 ? [attempt] : nil))
+            next.pending.append(operation)
+            next.state.progress[question.itemId] = progress
+            next.state.answers[question.id] = .init(selected: answer.selected, correct: answer.correct, answeredAt: answer.answeredAt)
+            next.responses = next.responses ?? [:]
+            next.responses?[question.id] = .init(title: question.title, selected: answer.selected, correct: answer.correct, answeredAt: answer.answeredAt, sessionID: attempt.id)
+        }
+        if additions.isEmpty {
+            next.pending.append(PendingAnswer(id: UUID(), before: ProgressEntry(),
+                input: .init(questionId: "", itemId: "", selected: "", correct: false, progressEntry: ProgressEntry(), attemptHistory: [attempt]), historyOnly: true))
+        }
+        next.state.attemptHistory = NativeAttempt.merging(next.state.attemptHistory ?? [], [attempt])
+        return next
     }
 }

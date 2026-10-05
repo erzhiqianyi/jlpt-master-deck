@@ -21,3 +21,44 @@ enum DemoData {
         })
     }
 }
+
+#if DEBUG
+extension DemoData {
+    static var practiceFixture: NativePack {
+        let word = NativeQuestion(id: "fixture-word", itemId: "demo-sokutei", kind: "kanji_to_kana", title: "读音",
+            prompt: "温度を測定する。", choices: ["そくてい", "そってい", "そくじょう", "そくとう"], answer: "そくてい",
+            instruction: "「測定」の読み方を選びなさい。", translationZh: "测量温度。", correctReason: "「測定」读作「そくてい」，指用仪器或方法确定数量。例句中测量的是温度。",
+            memoryPoint: "測＝そく；定＝てい。结合温度、长度等被测量对象记忆。",
+            choiceAnalysis: ["「測」读作そく，「定」读作てい。", "「測」的读音不能省略く。", "「定」在该词中不读じょう。", "「定」在该词中不读とう。"].enumerated().map { .init(choice: ["そくてい", "そってい", "そくじょう", "そくとう"][$0.offset], correct: $0.offset == 0, explanation: $0.element) })
+        let grammar = NativeQuestion(id: "fixture-grammar", itemId: "demo-grammar", kind: "grammar", title: "语法",
+            prompt: "味も（　）、見た目も美しい。", choices: ["にかかわらず", "さることながら", "に反して", "を問わず"], answer: "さることながら",
+            instruction: "文に合う表現を選びなさい。", translationZh: "味道自不必说，外观也很漂亮。",
+            correctReason: "「Aもさることながら、B」承认A，同时把重点放在B。这里既认可味道，又进一步评价外观。",
+            memoryPoint: "A也很好，B更值得提起。用「も」引出前项。",
+            choiceAnalysis: ["表示不受前项影响，不是追加评价。", "承认味道，同时强调外观符合题意。", "表示与前项相反，句中没有转折。", "表示不论某种条件，句中不是范围条件。"].enumerated().map { .init(choice: ["にかかわらず", "さることながら", "に反して", "を問わず"][$0.offset], correct: $0.offset == 1, explanation: $0.element) })
+        return NativePack(id: "ui-fixture", title: "单词与语法 · 界面测试示例", date: StudyDates.day(), questions: [word, grammar])
+    }
+}
+#endif
+
+#if DEBUG
+extension DemoData {
+    // Independent visual/test data; never shown or stored in a real account.
+    static func statisticsFixture(now: Date = .now) -> [NativeAttempt] {
+        let rows: [(Int, Int, Int, String)] = [
+            (-15,25,22,"vocabulary"), (-14,20,18,"daily-practice"), (-13,20,18,"daily-practice"),
+            (-12,20,18,"daily-practice"), (-11,20,18,"daily-practice"), (-10,20,18,"daily-practice"),
+            (-9,20,18,"daily-practice"), (-8,25,22,"daily-practice"),
+            (-5,14,12,"daily-practice"), (-4,10,9,"daily-practice"), (-2,107,95,"daily-practice"),
+            (-1,83,74,"daily-practice"), (0,20,18,"mixed")
+        ]
+        return rows.enumerated().map { index, row in
+            let date = StudyStatistics.calendar.date(byAdding: .day, value: row.0, to: now)!.ISO8601Format()
+            let answers = (0..<row.1).map { answerIndex in
+                NativeAttempt.AttemptAnswer(questionId: answerIndex == 0 ? "fixture-word" : "fixture-\(index)-\(answerIndex)", itemId: "demo-measure", kind: "kanji_to_kana", selected: answerIndex < row.2 ? "そくてい" : "そってい", correct: answerIndex < row.2, answeredAt: date, elapsedMs: 1000)
+            }
+            return NativeAttempt(id: "statistics-fixture-\(index)", title: row.3 == "mixed" ? "综合练习 · 每组 20 题" : "界面测试练习 \(index + 1)", startedAt: date, completedAt: date, view: row.3, deck: "all", questionIds: answers.map(\.questionId), answers: answers, summary: .init(total: row.1, correct: row.2, wrong: row.1-row.2, accuracy: Double(row.2)/Double(row.1)*100, elapsedMs: row.1 * 1000))
+        }
+    }
+}
+#endif

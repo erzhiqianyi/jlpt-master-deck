@@ -1,4 +1,4 @@
-import { BookOpen, BookA, Headphones, Captions, ChevronRight } from 'lucide-react';
+import { CircleCheck, RefreshCw, ChevronRight } from 'lucide-react';
 import { listeningPracticeKey } from '../../domain/listeningPractice';
 import type { AppView, ListeningQuestion, Locale, ProgressEntry, ProgressState, ReadingQuestion, StudyPage, VocabItem } from '../../types';
 import './HomeDashboard.css';
@@ -35,24 +35,21 @@ export function StudyModulesHub({ locale, labels, onNavigate, items, progress, r
 }) {
   const counts = libraryModuleCounts(items ?? [], readingQuestions ?? [], listeningQuestions ?? [], progress ?? {});
   const cards = [
-    { view: 'vocabulary' as const, title: locale === 'zh-CN' ? '词汇' : labels.navVocabulary, icon: BookA, unit: locale === 'zh-CN' ? '个' : locale === 'ja' ? '語' : 'words', available: items !== undefined },
-    { view: 'grammar' as const, title: labels.navGrammar, icon: Captions, unit: locale === 'zh-CN' ? '条' : locale === 'ja' ? '項目' : 'entries', available: items !== undefined },
-    { view: 'reading' as const, title: labels.navReading, icon: BookOpen, unit: locale === 'zh-CN' ? '篇' : locale === 'ja' ? '篇' : 'passages', available: readingQuestions !== undefined },
-    { view: 'listening' as const, title: labels.navListening, icon: Headphones, unit: locale === 'zh-CN' ? '段' : locale === 'ja' ? '本' : 'recordings', available: listeningQuestions !== undefined },
+    { view: 'vocabulary' as const, title: locale === 'zh-CN' ? '词汇' : labels.navVocabulary, unit: locale === 'zh-CN' ? '词' : locale === 'ja' ? '語' : 'words', available: items !== undefined },
+    { view: 'grammar' as const, title: labels.navGrammar, unit: locale === 'zh-CN' ? '项' : locale === 'ja' ? '項目' : 'entries', available: items !== undefined },
+    { view: 'reading' as const, title: labels.navReading, unit: locale === 'zh-CN' ? '篇' : locale === 'ja' ? '篇' : 'passages', available: readingQuestions !== undefined },
+    { view: 'listening' as const, title: labels.navListening, unit: locale === 'zh-CN' ? '套' : locale === 'ja' ? '本' : 'recordings', available: listeningQuestions !== undefined },
   ];
-  function metadata(view: LibraryModule, unit: string) {
-    const count = counts[view];
-    const total = `${count.total} ${unit}`;
-    if (progress === undefined) return total;
-    // Reading only persists answer activity, not page-open/read tracking.
-    const label = locale === 'zh-CN' ? (view === 'reading' || view === 'listening' ? '已练' : '已学') : locale === 'ja' ? '学習済み' : 'studied';
-    return locale === 'en' ? `${total} · ${count.studied} ${label}` : `${total} · ${label} ${count.studied} ${unit}`;
-  }
+  const studiedLabel = (view: LibraryModule) => locale === 'zh-CN' ? (view === 'reading' || view === 'listening' ? '已练' : '已学') : locale === 'ja' ? '学習済み' : 'studied';
   return <main className="primary-library" aria-label={locale === 'zh-CN' ? '题库' : labels.homeStudyArea}>
-    {cards.map(({ view, title, icon: Icon, unit, available }) => <button type="button" key={view} className="primary-navigation-row" onClick={() => onNavigate(view, 'words')}>
-      <Icon className="primary-entry-icon" size={30} aria-hidden="true" />
-      <span className="primary-entry-copy"><strong>{title}</strong>{available ? <small>{metadata(view, unit)}</small> : null}</span>
-      <ChevronRight className="primary-entry-chevron" size={21} aria-hidden="true" />
-    </button>)}
+    {cards.map(({ view, title, unit, available }) => {
+      const StatusIcon = view === 'reading' || view === 'listening' ? RefreshCw : CircleCheck;
+      const count = counts[view];
+      return <button type="button" key={view} className="library-module-tile" onClick={() => onNavigate(view, 'words')}>
+        <img className="library-module-art" src={`/images/library/${view}.png`} alt="" />
+        <span className="library-module-heading"><strong>{title}</strong><ChevronRight size={20} aria-hidden="true" /></span>
+        {available ? <span className="library-module-count"><span>{count.total} {unit}</span>{progress !== undefined ? <><span aria-hidden="true">·</span><span className="library-module-studied" aria-label={`${studiedLabel(view)} ${count.studied}`} title={`${studiedLabel(view)} ${count.studied}`}><StatusIcon size={19} aria-hidden="true" /><span>{count.studied}</span></span></> : null}</span> : null}
+      </button>;
+    })}
   </main>;
 }

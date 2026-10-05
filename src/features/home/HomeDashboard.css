@@ -125,3 +125,76 @@
   .home-exam-days { flex-direction: column; gap: 0; align-items: flex-end; }
   .home-exam-identity strong { font-size: .875rem; }
 }
+
+/* Shared learning destination: daily practice, independent practice, due review. */
+.primary-today { max-width: 960px; }
+.primary-today .primary-daily-task { padding: 24px; border: 0; border-radius: 18px; background: #faf0ec; }
+.learning-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.learning-card-heading h2 { margin: 0; }
+.learning-status { flex-shrink: 0; padding: 5px 12px; border-radius: 999px; background: #f2ded7; color: #9d4030; font-size: .85rem; font-weight: 600; }
+.learning-status.is-active { background: #dbe9e4; color: #216a62; }
+.primary-today .home-practice-title { margin: 18px 0 8px; font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.4; }
+.learning-progress-copy { margin: 24px 0 8px; color: var(--ui-muted); }
+.learning-progress { display: block; width: 100%; height: 12px; overflow: hidden; border: 0; border-radius: 99px; background: #e8e5e4; accent-color: #397e73; }
+.learning-progress::-webkit-progress-bar { background: #e8e5e4; border-radius: 99px; }
+.learning-progress::-webkit-progress-value { background: #397e73; border-radius: 99px; }
+.learning-progress::-moz-progress-bar { background: #397e73; border-radius: 99px; }
+.primary-today .primary-daily-action { margin-top: 24px; min-height: 52px; justify-content: center; }
+.learning-independent { margin-top: 28px; }
+.learning-independent h2 { margin: 0 0 14px; font-size: 1.3rem; font-weight: 650; }
+.learning-practice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ui-border); border-radius: 18px; padding: 20px 0; }
+.learning-practice-grid button { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; padding: 4px 8px; background: transparent; }
+.learning-practice-grid button + button { border-left: 1px solid var(--ui-border); }
+.learning-practice-grid button > svg { color: #216a62; }
+.learning-practice-grid strong { font-size: 1rem; text-align: center; overflow-wrap: anywhere; }
+.learning-practice-grid small { display: flex; align-items: center; gap: 6px; color: var(--ui-muted); font-size: .9rem; }
+.learning-due { width: 100%; margin-top: 22px; border-top: 1px solid var(--ui-border); border-bottom: 0; }
+.learning-due .primary-entry-icon { color: #216a62; }
+@media (max-width: 400px) { .primary-today .primary-daily-task { padding: 20px; } .learning-practice-grid strong { font-size: .9rem; } }
+
+/* Illustrated library: one quiet four-part surface, with no card containers. */
+.primary-library { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 880px; padding: 24px 0 40px; }
+.library-module-tile { min-width: 0; display: flex; flex-direction: column; align-items: stretch; padding: 20px 8px 24px; text-align: left; background: transparent; border: 0; border-radius: 0; }
+.library-module-tile:nth-child(odd) { border-right: 1px solid var(--ui-border); }
+.library-module-tile:nth-child(-n+2) { border-bottom: 1px solid var(--ui-border); }
+.library-module-art { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; margin: 0 0 16px; }
+.library-module-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.library-module-heading strong { font-size: clamp(22px, 3vw, 30px); line-height: 1.4; font-weight: 750; }
+.library-module-heading svg { flex-shrink: 0; color: var(--ui-muted); }
+.library-module-count { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 5px; color: var(--ui-green); font-size: calc(15px * var(--ui-font-scale, 1)); line-height: 1.5; }
+.library-module-studied { display: inline-flex; align-items: center; gap: 6px; }
+.library-module-tile:hover { background: var(--ui-hover); }
+.mobile-app-header.is-library-header > div:first-child { display: flex; justify-content: space-between; height: 84px; padding-inline: 20px; }
+.mobile-app-header.is-library-header > div:first-child > div:first-child { display: none; }
+.mobile-app-header.is-library-header h1 { padding: 0; max-width: 75%; text-align: left; font-size: 32px; }
+.mobile-app-header.is-library-header { border-bottom: 0; background: var(--ui-paper, #faf9f6); }
+@media (min-width: 768px) {
+  .light-workspace .app-content > section:has(> .primary-library) { max-width: none !important; margin-inline: 0 !important; }
+  .primary-library { max-width: 720px; margin-inline: 0; padding: 12px 0 16px; }
+  .library-module-tile { padding: 16px 28px; }
+  /* Reserve space for page chrome and both rows of labels before sizing artwork. */
+  .library-module-art { height: clamp(64px, calc((100dvh - 400px) / 2), 160px); aspect-ratio: auto; margin-bottom: 10px; }
+  .library-module-heading strong { font-size: 24px; }
+  .library-module-count { font-size: calc(16px * var(--ui-font-scale, 1)); }
+}
+@media (max-width: 359px) { .library-module-tile { padding-inline: 10px; } .library-module-count { gap: 4px; font-size: 13px; } }
+
+/* Keep both daily actions together before independent practice. */
+.learning-today-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.learning-today-grid > * { min-width: 0; }
+.learning-today-grid .learning-due { margin: 0; padding: 24px; border: 0; border-radius: 18px; background: #edf4ef; align-self: stretch; }
+@media (max-width: 650px) { .learning-today-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Compact learning overview leaves the independent entries in the first viewport. */
+.primary-today .home-exam-countdown { padding: 12px 16px; margin-bottom: 16px; }
+.primary-today .home-exam-days b { font-size: 1.25rem; }
+.primary-today .primary-daily-task { padding: 18px; }
+.primary-today .home-practice-title { margin: 12px 0; font-size: 1.25rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.primary-today .primary-daily-action { margin-top: 14px; min-height: 44px; }
+.primary-today .learning-today-grid { gap: 12px; }
+.primary-today .learning-due { min-height: 58px; padding: 16px; }
+.primary-today .learning-due .primary-entry-copy { display: flex; align-items: center; gap: 12px; flex: 1; }
+.primary-today .learning-due .primary-entry-copy small { margin-left: auto; }
+.primary-today .learning-independent { margin-top: 18px; }
+.primary-today .learning-independent h2 { font-size: 1.125rem; margin-bottom: 10px; }
+.primary-today .learning-practice-grid { padding-block: 14px; }

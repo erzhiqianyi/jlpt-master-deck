@@ -1,8 +1,355 @@
 import XCTest
 import UIKit
+import SwiftUI
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    @MainActor
+    func testWorkspaceBecomesReadyBeforeSlowLocalRestoreAndBlocksPrematureWrites() async throws {
+        let reading = expectation(description: "Local read suspended")
+        var resume: CheckedContinuation<LocalStudyData?, Error>?
+        let store = AppStore(readSavedSession: { Session(user: Account(id: -901, username: "Startup test"), token: "test") }, readLocalData: { _ in
+            try await withCheckedThrowingContinuation { continuation in
+                resume = continuation
+                reading.fulfill()
+            }
+        })
+        let task = Task { await store.restore() }
+        await fulfillment(of: [reading], timeout: 3)
+        XCTAssertFalse(store.isRestoring, "The root must show the workspace while disk work is suspended")
+        XCTAssertTrue(store.isSignedIn)
+        XCTAssertTrue(store.isRestoringLocal)
+        let prematureSync = await store.refresh()
+        XCTAssertNil(prematureSync, "Do not replace a snapshot before restoring its pending answers")
+        XCTAssertFalse(store.isLoading)
+        XCTAssertThrowsError(try store.saveAnswerLocally(questionID: "q", itemID: "item", selected: "A", correct: true, progress: ProgressEntry()))
+        XCTAssertTrue(store.pending.isEmpty)
+        var cached = LocalStudyData()
+        cached.items = DemoData.items
+        cached.lastSync = .now
+        cached.hasPracticeCache = true
+        resume?.resume(returning: cached)
+        await task.value
+        XCTAssertFalse(store.isRestoringLocal)
+        XCTAssertEqual(store.items.map(\.id), cached.items.map(\.id))
+        XCTAssertTrue(store.hasPracticeCache)
+        store.startDemo()
+    }
+
+    @MainActor
+    func testAbandonedRestoreCannotPublishIntoAnotherWorkspace() async throws {
+        let reading = expectation(description: "Old account read suspended")
+        var resume: CheckedContinuation<LocalStudyData?, Error>?
+        let store = AppStore(readSavedSession: { Session(user: Account(id: -902, username: "Old account"), token: "test") }, readLocalData: { _ in
+            try await withCheckedThrowingContinuation { continuation in
+                resume = continuation
+                reading.fulfill()
+            }
+        })
+        let task = Task { await store.restore() }
+        await fulfillment(of: [reading], timeout: 3)
+        store.startDemo()
+        let currentIDs = store.items.map(\.id)
+        resume?.resume(returning: LocalStudyData())
+        await task.value
+        XCTAssertTrue(store.isDemo)
+        XCTAssertFalse(store.isRestoringLocal)
+        XCTAssertEqual(store.items.map(\.id), currentIDs)
+        XCTAssertFalse(store.isLoading)
+    }
+
+    func testBatchSubmissionStagesAllAnswersAndRetriesWithoutDoubleCounting() throws {
+        let questions = [
+            NativeQuestion(id: "q1", itemId: "shared", kind: "grammar", title: "第一题", prompt: "题干一", choices: ["A", "B"], answer: "A"),
+            NativeQuestion(id: "q2", itemId: "shared", kind: "grammar", title: "第二题", prompt: "题干二", choices: ["C", "D"], answer: "C")
+        ]
+        let answers = [
+            NativeAttempt.AttemptAnswer(questionId: "q1", itemId: "shared", kind: "grammar", selected: "A", correct: true, answeredAt: "2026-10-05T10:00:00Z", elapsedMs: 1000),
+            NativeAttempt.AttemptAnswer(questionId: "q2", itemId: "shared", kind: "grammar", selected: "D", correct: false, answeredAt: "2026-10-05T10:00:01Z", elapsedMs: 1000)
+        ]
+        let attempt = NativeAttempt(id: "batch-one", startedAt: "2026-10-05T09:59:00Z", completedAt: "2026-10-05T10:00:01Z", view: "daily-practice", deck: "all", questionIds: questions.map(\.id), answers: answers)
+        let original = LocalStudyData()
+        let next = try original.recordingNativeBatch(questions: questions, attempt: attempt)
+        XCTAssertTrue(original.pending.isEmpty)
+        XCTAssertEqual(next.pending.count, 2)
+        XCTAssertEqual(next.state.answers["q1"]?.selected, "A")
+        XCTAssertEqual(next.state.answers["q2"]?.selected, "D")
+        XCTAssertEqual(next.state.progress["shared"]?.correct, 1)
+        XCTAssertEqual(next.state.progress["shared"]?.wrong, 1)
+        XCTAssertEqual(next.pending[1].before, next.pending[0].input.progressEntry)
+        XCTAssertNil(next.pending[0].input.attemptHistory)
+        XCTAssertEqual(next.pending[1].input.attemptHistory?.first?.id, attempt.id)
+        let retry = try next.recordingNativeBatch(questions: questions, attempt: attempt)
+        XCTAssertEqual(retry.pending.count, 2)
+        XCTAssertEqual(retry.state.progress["shared"], next.state.progress["shared"])
+        var incomplete = attempt; incomplete.answers.removeLast()
+        XCTAssertThrowsError(try original.recordingNativeBatch(questions: questions, attempt: incomplete))
+        XCTAssertTrue(original.state.answers.isEmpty)
+        let partial = try original.recordingNativeBatch(questions: questions, attempt: incomplete, allowUnanswered: true)
+        XCTAssertEqual(partial.pending.count, 1)
+        XCTAssertNil(partial.state.answers["q2"])
+        XCTAssertEqual(partial.state.progress["shared"]?.reviewCount, 1)
+        XCTAssertEqual(partial.state.attemptHistory?.first?.questionIds.count, 2)
+        XCTAssertEqual(partial.state.attemptHistory?.first?.answers.count, 1)
+        let partialRetry = try partial.recordingNativeBatch(questions: questions, attempt: incomplete, allowUnanswered: true)
+        XCTAssertEqual(partialRetry.pending.count, 1)
+        var empty = incomplete; empty.answers = []
+        let emptySubmission = try original.recordingNativeBatch(questions: questions, attempt: empty, allowUnanswered: true)
+        XCTAssertEqual(emptySubmission.pending.count, 1)
+        XCTAssertTrue(emptySubmission.state.answers.isEmpty)
+        XCTAssertTrue(emptySubmission.state.progress.isEmpty)
+        XCTAssertEqual(emptySubmission.pending.first?.historyOnly, true)
+        let reloaded = try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(emptySubmission))
+        let restored = original.preservingLocalWork(pending: reloaded.pending, responses: [:], syncedAt: .now)
+        XCTAssertTrue(restored.state.answers.isEmpty)
+        XCTAssertTrue(restored.state.progress.isEmpty)
+        XCTAssertEqual(restored.state.attemptHistory?.first?.completedAt, empty.completedAt)
+        var invalid = attempt
+        invalid.answers[0] = .init(questionId: "q1", itemId: "shared", kind: "grammar", selected: "missing", correct: false, answeredAt: answers[0].answeredAt, elapsedMs: 1000)
+        XCTAssertThrowsError(try original.recordingNativeBatch(questions: questions, attempt: invalid))
+    }
+
+    func testReadingTargetRecoversAuthoredKanjiWithoutRevealingPronunciation() throws {
+        let question = try JSONDecoder().decode(NativeQuestion.self, from: Data(#"{"id":"q","itemId":"v","kind":"kanji_to_kana","title":"读音","prompt":"糖尿病や高血圧のデータ","promptTarget":"とうにょうびょう","memoryPoint":"糖尿病","choices":["とうにょうびょう","とうびょう"],"answer":"とうにょうびょう"}"#.utf8))
+        XCTAssertEqual(question.readingTarget, "糖尿病")
+        XCTAssertEqual(String(question.markedPrompt.characters), question.prompt)
+        XCTAssertTrue(question.markedPrompt.runs.contains { $0.underlineStyle == .single })
+    }
+
+    func testDailyDraftSelectionPreservesPendingStateAndExcludesTopicsAndOtherDates() throws {
+        let draft = try JSONDecoder().decode(PracticeDraft.self, from: Data(#"{"id":"daily","title":"2026-10-05 每日薄弱点强化练习","status":"draft","created_at":"2026-10-05T06:00:00+09:00","updated_at":"2026-10-05T06:00:00+09:00"}"#.utf8))
+        let day = StudyDates.day(try XCTUnwrap(StudyDates.parse(draft.created_at!)))
+        XCTAssertTrue(draft.isPendingDaily(on: day))
+        XCTAssertFalse(draft.isPendingDaily(on: "2026-10-01"))
+        XCTAssertFalse(PracticeDraft(id: "topic", title: "语法专项练习", status: "draft", created_at: draft.created_at).isPendingDaily(on: day))
+        XCTAssertFalse(PracticeDraft(id: "published", title: draft.title, status: "archived", created_at: draft.created_at).isPendingDaily(on: day))
+        XCTAssertTrue(PracticeDraft(id: "approved", title: draft.title, status: "approved", created_at: draft.created_at).isPendingDaily(on: day))
+        XCTAssertFalse(PracticeDraft(id: "legacy", title: draft.title, status: "draft").isPendingDaily(on: day))
+    }
+
+    func testTopicConfirmationDistinguishesApprovedDraftFromPublishableQuestionSet() throws {
+        let draft = try JSONDecoder().decode(NativeTopicDraft.self, from: Data(#"{"id":"topic","title":"语法专项","status":"draft","updated_at":"v1","content":{"sections":[{"questions":[{"prompt":"问题","choices":["A","B"],"answerIndex":0}]}]}}"#.utf8))
+        XCTAssertFalse(draft.approved)
+        XCTAssertTrue(draft.canPublish)
+        XCTAssertEqual(draft.sectionQuestions.count, 1)
+        let pending = try JSONDecoder().decode(NativeTopicDraft.self, from: Data(#"{"id":"topic","title":"语法专项","status":"approved","updated_at":"v2","content":{"notes":"等待生成题目"}}"#.utf8))
+        XCTAssertTrue(pending.approved)
+        XCTAssertFalse(pending.canPublish)
+    }
+
+    @MainActor
+    func testBackgroundSavePreservesPendingAnswersAndReportsDiskFailure() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = LocalStudyFiles(root: root)
+        let before = ProgressEntry()
+        let after = before.rated(.remembered)
+        let operation = PendingAnswer(id: UUID(), before: before, input: .init(questionId: "q", itemId: "v", selected: "A", correct: true, progressEntry: after))
+        let snapshot = LocalStudyData().preservingLocalWork(pending: [operation], responses: [:], syncedAt: .now)
+        try await files.saveInBackground(snapshot, userID: 1)
+        let restored = try XCTUnwrap(files.load(userID: 1))
+        XCTAssertEqual(restored.pending.map(\.id), [operation.id])
+        XCTAssertEqual(restored.state.progress["v"], after)
+        XCTAssertEqual(restored.state.answers["q"]?.selected, "A")
+        XCTAssertNil(try files.load(userID: 2))
+        let blocked = root.appendingPathComponent("not-a-directory")
+        try Data("blocked".utf8).write(to: blocked)
+        do {
+            try await LocalStudyFiles(root: blocked).saveInBackground(snapshot, userID: 1)
+            XCTFail("Disk failure must reach the caller before it acknowledges an upload")
+        } catch { }
+        XCTAssertEqual(try files.load(userID: 1)?.pending.map(\.id), [operation.id])
+    }
+    @MainActor
+    func testUploadConflictStillDownloadsAndPersistsNewImagesWithoutLosingLocalAnswers() async throws {
+        let before = ProgressEntry()
+        let after = before.rated(.remembered)
+        let operation = PendingAnswer(id: UUID(), before: before, input: .init(questionId: "q", itemId: "v", selected: "A", correct: true, progressEntry: after))
+        var vocabulary = StudyItem(id: "v", deck: "vocabulary", original: "青春")
+        vocabulary.images = [["id": "new-image"]]
+        var cloud = LocalStudyData(items: [vocabulary], state: StudyState(progress: ["other": before.rated(.easy)]))
+        cloud.hasPracticeCache = true; cloud.hasListeningCache = true
+        let result = try await StudySynchronization.fetch {
+            throw IdentityError.message("本机记录与云端进度冲突")
+        } download: { cloud }
+        XCTAssertNotNil(result.uploadError)
+        let now = Date()
+        let responses = ["q": LocalStudyResponse(title: "青春", selected: "A", correct: true, answeredAt: now.ISO8601Format(), sessionID: nil)]
+        let merged = result.data.preservingLocalWork(pending: [operation], responses: responses, syncedAt: now)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = LocalStudyFiles(root: root)
+        try files.save(merged, userID: 1)
+        let saved = try XCTUnwrap(files.load(userID: 1))
+        XCTAssertEqual(saved.items.first?.images?.first?["id"], "new-image")
+        XCTAssertEqual(saved.pending.map(\.id), [operation.id])
+        XCTAssertEqual(saved.pending.first?.before, before)
+        XCTAssertEqual(saved.state.progress["v"], after)
+        XCTAssertEqual(saved.state.progress["other"], cloud.state.progress["other"])
+        XCTAssertEqual(saved.state.answers["q"]?.selected, "A")
+        XCTAssertEqual(saved.responses?["q"]?.selected, "A")
+        XCTAssertEqual(saved.lastSync, now)
+        XCTAssertEqual(StudyDataCategory.vocabularyImages.count(in: saved), 1)
+        XCTAssertEqual(StudyDataCategory.grammarImages.count(in: saved), 0)
+    }
+    @MainActor
+    func testExpiredSessionAndCancellationDoNotContinueSync() async {
+        for failure: Error in [APIError.http(401, "expired"), CancellationError(), URLError(.cancelled)] {
+            var downloaded = false
+            do {
+                _ = try await StudySynchronization.fetch { throw failure } download: {
+                    downloaded = true; return LocalStudyData()
+                }
+                XCTFail("A cancelled or unauthenticated operation must stop")
+            } catch { XCTAssertFalse(downloaded) }
+        }
+    }
+    @MainActor
+    func testDownloadFailureIsNotReportedAsSuccessfulSync() async {
+        do {
+            _ = try await StudySynchronization.fetch { } download: { throw URLError(.timedOut) }
+            XCTFail("A failed download must not replace the local snapshot")
+        } catch { XCTAssertEqual((error as? URLError)?.code, .timedOut) }
+    }
+    func testImageRequestsHandleUploadedRelativeAndExternalImages() throws {
+        let uploaded = try APIClient.itemImageRequest(["id": "vocab-image"], token: "test-token")
+        XCTAssertEqual(uploaded.url?.path, "/api/item-images/vocab-image")
+        XCTAssertEqual(uploaded.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
+        let relative = try APIClient.itemImageRequest(["url": "/api/item-images/grammar-image"], token: "test-token")
+        XCTAssertEqual(relative.url?.host, APIClient.origin.host)
+        XCTAssertEqual(relative.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
+        let external = try APIClient.itemImageRequest(["url": "https://example.com/image.jpg"], token: "test-token")
+        XCTAssertNil(external.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertThrowsError(try APIClient.itemImageRequest(["url": "file:///private/image.jpg"], token: nil))
+    }
+    @MainActor
+    func testImagePreviewFitsAndResetsAfterRotation() {
+        let bitmap = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 800)).image { context in
+            UIColor.orange.setFill(); context.fill(CGRect(x: 0, y: 0, width: 1200, height: 800))
+        }
+        let view = MemoryImageScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 700))
+        view.imageView.image = bitmap
+        view.layoutIfNeeded()
+        XCTAssertEqual(view.minimumZoomScale, 390.0 / 1200, accuracy: 0.001)
+        XCTAssertEqual(view.zoomScale, view.minimumZoomScale, accuracy: 0.001)
+        view.setZoomScale(view.minimumZoomScale * 2, animated: false)
+        XCTAssertGreaterThan(view.zoomScale, view.minimumZoomScale)
+        view.frame = CGRect(x: 0, y: 0, width: 700, height: 300)
+        view.layoutIfNeeded()
+        XCTAssertEqual(view.zoomScale, 300.0 / 800, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual(view.contentInset.left, 0)
+    }
+    @MainActor
+    func testImagePreviewRendersPortraitAndLandscape() throws {
+        let bitmap = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 800)).image { context in
+            UIColor(red: 0.93, green: 0.88, blue: 0.77, alpha: 1).setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1200, height: 800))
+            UIColor(red: 0.25, green: 0.45, blue: 0.55, alpha: 1).setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1200, height: 420))
+            ("青春（せいしゅん）" as NSString).draw(at: CGPoint(x: 80, y: 490), withAttributes: [.font: UIFont.boldSystemFont(ofSize: 70), .foregroundColor: UIColor.black])
+            ("年轻时的时光 · Youth" as NSString).draw(at: CGPoint(x: 80, y: 600), withAttributes: [.font: UIFont.systemFont(ofSize: 46), .foregroundColor: UIColor.darkGray])
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first { $0.isKeyWindow }
+        let window = UIWindow(windowScene: scene)
+        defer { window.isHidden = true; previous?.makeKeyAndVisible() }
+        for size in [CGSize(width: 390, height: 844), CGSize(width: 844, height: 390)] {
+            window.frame = CGRect(origin: .zero, size: size)
+            let host = UIHostingController(rootView: MemoryImagePreview(selection: .init(bitmap: bitmap, caption: "青春：年轻时的时光")))
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            host.view.frame = window.bounds
+            host.view.setNeedsLayout(); host.view.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(size: size).image { _ in
+                XCTAssertTrue(host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true))
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "image-preview-\(Int(size.width))x\(Int(size.height))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+    func testSpeechSettingsAndChunkingPreserveJapaneseText() {
+        let settings: [String: SettingValue] = ["ttsProvider": .string("azure"), "speech": .object([
+            "rate": .number(0.8), "voices": .object(["azure": .object(["voice": .string("Nanami"), "style": .string("chat")])])
+        ])]
+        let configuration = SpeechConfiguration(settings: settings)
+        XCTAssertEqual(configuration.provider, "azure")
+        XCTAssertEqual(configuration.voice, "Nanami")
+        XCTAssertEqual(configuration.style, "chat")
+        XCTAssertEqual(configuration.rate, 0.8)
+        let text = String(repeating: "青春です。", count: 200) + String(repeating: "𠮷", count: 300)
+        let chunks = SpeechConfiguration.chunks(text)
+        XCTAssertEqual(chunks.joined(), text)
+        XCTAssertTrue(chunks.allSatisfy { $0.utf16.count <= 450 })
+    }
+    func testDownloadedSpeechSurvivesRestartAndIsIsolatedByAccountAndVoice() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = LocalStudyFiles(root: root)
+        let request = SpeechRequest(provider: "azure", text: "せいしゅん", voice: "Nanami", style: "", role: "")
+        let audio = Data([1, 2, 3])
+        var requests = 0
+        let downloaded = try await files.speechAudio(userID: 1, request: request) { requests += 1; return audio }
+        XCTAssertEqual(downloaded, audio)
+        let restored = LocalStudyFiles(root: root)
+        let offline = try await restored.speechAudio(userID: 1, request: request) { throw URLError(.notConnectedToInternet) }
+        XCTAssertEqual(offline, audio)
+        XCTAssertEqual(requests, 1)
+        XCTAssertNotEqual(try files.speechURL(userID: 1, request: request), try files.speechURL(userID: 2, request: request))
+        let changed = SpeechRequest(provider: "azure", text: "せいしゅん", voice: "Keita", style: "", role: "")
+        XCTAssertNotEqual(try files.speechURL(userID: 1, request: request), try files.speechURL(userID: 1, request: changed))
+        do {
+            _ = try await restored.speechAudio(userID: 2, request: request) { throw URLError(.notConnectedToInternet) }
+            XCTFail("A second account must not read another account's downloaded speech")
+        } catch { XCTAssertEqual((error as? URLError)?.code, .notConnectedToInternet) }
+    }
+    @MainActor
+    func testNativeAnswersAddCompletedHistoryWithoutCountingPartialRounds() async throws {
+        let store = AppStore(); store.startDemo()
+        var attempt = DemoData.statisticsFixture()[0]
+        attempt.completedAt = nil; attempt.analysisStatus = "completed"
+        let question = DemoData.practiceFixture.questions[0]
+        try await store.submitNativeQuestion(question, selected: question.answer, attempt: attempt)
+        XCTAssertEqual(store.state.attemptHistory?.count, 1)
+        XCTAssertTrue(StudyStatistics(attempts: store.state.attemptHistory ?? []).attempts.isEmpty)
+        attempt.completedAt = Date.now.ISO8601Format()
+        try await store.submitNativeQuestion(question, selected: question.answer, attempt: attempt)
+        XCTAssertEqual(StudyStatistics(attempts: store.state.attemptHistory ?? []).attempts.count, 1)
+        let request = AnswerInput(questionId: question.id, itemId: question.itemId, selected: question.answer, correct: true, progressEntry: ProgressEntry(), attemptHistory: [attempt])
+        let saved = try JSONDecoder().decode(AnswerInput.self, from: JSONEncoder().encode(request))
+        XCTAssertEqual(saved.attemptHistory?.first?.analysisStatus, "completed")
+    }
+    func testStatisticsUseCompletedAttemptsAndTokyoDates() throws {
+        let now = try XCTUnwrap(StudyDates.parse("2026-10-05T00:00:00Z"))
+        let values = DemoData.statisticsFixture(now: now)
+        let state = StudyState(attemptHistory: values)
+        let copy = try JSONDecoder().decode(StudyState.self, from: JSONEncoder().encode(state))
+        let statistics = StudyStatistics(attempts: copy.attemptHistory ?? [], now: now)
+        XCTAssertEqual(statistics.attempts.count, 13)
+        XCTAssertEqual(statistics.modules, ["vocabulary", "grammar", "reading", "listening", "mixed", "daily-practice"])
+        XCTAssertEqual(statistics.today.count, 1)
+        XCTAssertEqual(StudyStatistics.metric(statistics.today).accuracy, "90%")
+        XCTAssertEqual(statistics.week.map(\.total), [0,14,10,0,107,83,20])
+        XCTAssertEqual(StudyStatistics.metric(statistics.attempts).total, 404)
+        XCTAssertEqual(StudyStatistics.metric(statistics.attempts).accuracy, "89%")
+        XCTAssertEqual(statistics.week.filter { $0.total > 0 }.count, 5)
+        var partial = values[0]; partial.completedAt = nil
+        XCTAssertTrue(StudyStatistics(attempts: [partial], now: now).attempts.isEmpty)
+        XCTAssertEqual(StudyStatistics.day(try XCTUnwrap(StudyDates.parse("2026-10-04T15:00:00Z"))), "2026-10-05")
+        XCTAssertEqual(try JSONDecoder().decode(StudyState.self, from: Data(#"{"progress":{},"answers":{}}"#.utf8)).attemptHistory, nil)
+        XCTAssertEqual(NativeAttempt.merging(values, [values[0]]).count, 13)
+    }
+    func testSpeechAutoPreferencesAndImageRemovalRoundTrip() throws {
+        let settings: [String: SettingValue] = ["memoryCardFieldsVersion": .number(2), "memoryCardBackFields": .array([.string("original"), .string("meaning")]),
+            "speech": .object(["cardAuto": .string("back"), "grammarAuto": .bool(true), "includeExample": .bool(true), "rate": .number(1.25)])]
+        let copy = try JSONDecoder().decode([String: SettingValue].self, from: JSONEncoder().encode(settings))
+        XCTAssertFalse(CardFields.selected(copy, back: true).contains("images"))
+        let speech = SpeechConfiguration(settings: copy)
+        XCTAssertEqual(speech.cardAuto, "back")
+        XCTAssertTrue(speech.grammarAuto); XCTAssertTrue(speech.includeExample)
+        XCTAssertEqual(speech.rate, 1.25)
+    }
     func testCardFieldDefaultsAndNormalizationMatchWeb() throws {
         XCTAssertEqual(CardFields.selected(nil, back: false), ["original"])
         XCTAssertEqual(CardFields.selected(nil, back: true), ["original", "reading", "images", "patterns", "meaning", "examples", "core_memory"])
@@ -117,6 +464,21 @@ final class StudyTests: XCTestCase {
         XCTAssertTrue(items[1].isGrammar)
         XCTAssertEqual(items[1].sourceLabel, "AI 生成 · 待核验")
     }
+    func testPracticeExplanationPreservesLegacyReasonsAndCanonicalChoiceOrder() {
+        let question = NativeQuestion(id: "legacy", itemId: "item", kind: "grammar", title: "语法", prompt: "例句", choices: ["A", "B", "C"], answer: "B",
+            correctReason: "本题依据。\n「A」：接续不同。\n「B」：符合语境。\n「C」：含义不同。",
+            choiceAnalysis: [.init(choice: "A", correct: false, explanation: "不符合本题语境。"), .init(choice: "C", correct: true, explanation: "保留已有具体解析。")])
+        let details = question.explanationDetails
+        XCTAssertEqual(details.reason, "本题依据。")
+        XCTAssertEqual(details.choices.map(\.choice), ["A", "B", "C"])
+        XCTAssertEqual(details.choices.map(\.correct), [false, true, false])
+        XCTAssertEqual(details.choices.map(\.explanation), ["接续不同。", "符合语境。", "保留已有具体解析。"])
+        let excerpt = PracticeExcerpt("【核心】本题依据。\n完整依据仍保留。")
+        XCTAssertEqual(excerpt.summary, "本题依据。")
+        XCTAssertTrue(excerpt.hasMore)
+        XCTAssertFalse(PracticeExcerpt("简短依据。", limit: 120).hasMore)
+    }
+
 }
 
 final class OfflineStudyTests: XCTestCase {
@@ -301,4 +663,6 @@ final class CompanionAssetTests: XCTestCase {
         }
         XCTAssertEqual(names.count, 18)
     }
+
+
 }

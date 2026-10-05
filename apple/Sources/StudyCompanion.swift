@@ -60,7 +60,7 @@ struct StudyCompanion: View {
             Button(action: review) { Label(destination == .grammar ? "复习到期语法" : "复习到期词汇", systemImage: "rectangle.on.rectangle") }
             Button { practice("topics") } label: { Label("专项练习", systemImage: "scope") }
         case .reading:
-            Button { open(.history) } label: { Label("查看学习记录", systemImage: "chart.bar") }
+            Button { open(.history) } label: { Label("查看学习统计", systemImage: "chart.bar") }
         case .listening:
             Button { Task { await store.downloadListeningAudio() } } label: { Label("下载听力音频", systemImage: "arrow.down.circle") }
                 .disabled(busy || store.isDemo || !store.isOnline || !store.hasListeningCache)
@@ -125,6 +125,7 @@ enum CompanionMotion: String, CaseIterable {
 
 struct CompanionAvatar: View {
     var motion: CompanionMotion = .idle
+    var size: CGFloat = 72
     var request = 0
     var completion: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
@@ -149,7 +150,7 @@ struct CompanionAvatar: View {
             if let image = Self.images[frameName] { Image(uiImage: image).resizable().scaledToFit() }
             else { Image("StudyCompanion").resizable().scaledToFit() }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: size, height: size)
         .accessibilityHidden(true)
         .task(id: Playback(motion: motion, request: request, active: scenePhase == .active, reduced: reduceMotion)) {
             frameName = CompanionMotion.idle.asset(0)
@@ -180,25 +181,16 @@ struct CompanionActionButton<Actions: View>: View {
     let hint: String
     var celebration = 0
     @ViewBuilder var actions: Actions
-    @State private var waving = false
-    @State private var celebrating = false
-    @State private var presented = false
     var body: some View {
-        Button {
-            guard !waving else { return }
-            celebrating = false
-            waving = true
-        } label: {
-            CompanionAvatar(motion: waving ? .wave : celebrating ? .celebrate : .idle, request: celebration) {
-                if waving { waving = false; presented = true }
-                celebrating = false
-            }.contentShape(Rectangle())
+        Menu { actions } label: {
+            Image(systemName: "ellipsis").font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .foregroundStyle(DeckTheme.green)
+                .background(DeckTheme.surface, in: Circle())
+                .overlay { Circle().stroke(DeckTheme.line, lineWidth: 1) }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("学习伙伴")
+        .accessibilityLabel("快捷操作")
         .accessibilityHint(hint)
         .accessibilityIdentifier(identifier)
-        .onChange(of: celebration) { _, _ in if !waving { celebrating = true } }
-        .confirmationDialog("学习伙伴", isPresented: $presented, titleVisibility: .visible) { actions }
     }
 }

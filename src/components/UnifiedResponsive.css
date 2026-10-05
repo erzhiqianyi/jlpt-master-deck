@@ -311,7 +311,7 @@
 @media (min-width: 768px) {
   .light-workspace .app-content > .primary-today { padding-inline: 24px; }
 }
-.memory-review-speech { width: min(100%, 800px); margin-inline: auto; padding: 8px 20px; display: flex; justify-content: flex-end; }
+
 
 /* Learning details share the workspace edge; only text columns constrain line length. */
 @media (min-width: 768px) {

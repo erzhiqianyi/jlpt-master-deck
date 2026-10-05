@@ -33,3 +33,29 @@ export function allQuestionsConfirmed(questions: unknown[], annotations: DraftAn
   const reviews = getQuestionReviews(annotations);
   return questions.length > 0 && questions.every((question, index) => isQuestionConfirmed(questionReviewKey(question, index), reviews));
 }
+
+
+export function draftReviewQuestions(content: unknown): { questions: unknown[]; sections: Record<string, unknown>[]; grouped: boolean } {
+  if (!content || typeof content !== 'object' || Array.isArray(content)) return { questions: [], sections: [], grouped: false };
+  const fields = content as Record<string, unknown>;
+  const sections = Array.isArray(fields.sections) ? fields.sections.filter((section): section is Record<string, unknown> => Boolean(section) && typeof section === 'object' && !Array.isArray(section)) : [];
+  // Keep legacy precedence and raw question objects so existing confirmation keys remain valid.
+  const legacy = [fields.generated_practice, fields.quiz, fields.practice_questions, fields.review_questions].find((list) => Array.isArray(list) && list.length);
+  if (Array.isArray(legacy)) return { questions: legacy, sections, grouped: false };
+  return { questions: sections.flatMap((section) => Array.isArray(section.questions) ? section.questions : []), sections, grouped: true };
+}
+
+export function reviewedDraftSections(content: unknown, questions: unknown[], title: string): Record<string, unknown>[] {
+  const review = draftReviewQuestions(content);
+  if (!review.grouped) return [
+    ...review.sections.filter((section) => !Array.isArray(section.questions) || !section.questions.length),
+    { id: 'reviewed', title, questions },
+  ];
+  let offset = 0;
+  return review.sections.map((section) => {
+    if (!Array.isArray(section.questions)) return section;
+    const normalized = questions.slice(offset, offset + section.questions.length);
+    offset += section.questions.length;
+    return { ...section, questions: normalized };
+  });
+}

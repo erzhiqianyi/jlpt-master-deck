@@ -4,8 +4,8 @@ import { useRef, useState, type ReactNode } from 'react';
 import type { ReviewPackDraft } from '../../types';
 import { getQuestionReviews, isQuestionConfirmed, questionReviewKey, type QuestionReview } from './questionReviewState';
 
-export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSave, onFinalize }: {
-  draft: ReviewPackDraft; questions: unknown[];
+export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSave, onFinalize, topic = false }: {
+  draft: ReviewPackDraft; questions: unknown[]; topic?: boolean;
   renderQuestion: (index: number) => ReactNode;
   onSave: (id: string, body: string) => Promise<void>;
   onFinalize: (id: string) => Promise<void>;
@@ -62,7 +62,7 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
     actionPending.current = true;
     setBusy(true); setError('');
     try {
-      if (!(await confirm({ title: '生成最终版？', description: `已确认 ${questions.length} 题，生成后加入今日练习。`, confirmLabel: '生成最终版', cancelLabel: '再看看' }))) return;
+      if (!(await confirm({ title: '生成最终版？', description: `已确认 ${questions.length} 题，生成后${topic ? '保存为专项练习' : '加入今日练习'}。`, confirmLabel: '生成最终版', cancelLabel: '再看看' }))) return;
       await onFinalize(draft.id);
     }
     catch (cause) { setError(cause instanceof Error ? cause.message : '生成失败，请再试一次'); }
@@ -125,7 +125,7 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
         <progress value={count} max={questions.length} aria-label="题目确认进度" />
         <button type="button" className="question-review-confirm-all" disabled={busy || count === questions.length || archived} onClick={confirmAll}>{count === questions.length ? '全部已确认' : '一键确认全部'}</button>
         <button type="button" className="question-review-confirm" disabled={busy || count !== questions.length || archived} onClick={finalize}>{archived ? '已生成最终版' : busy ? '正在处理…' : '生成最终版'}</button>
-        <small>全部确认后，加入今日练习。批注不会自动修改题目。</small>
+        <small>全部确认后，{topic ? '保存为专项练习' : '加入今日练习'}。批注不会自动修改题目。</small>
       </div>
       {draft.annotations.some((entry) => !entry.body.startsWith('{"kind":"question_review"')) ? <details><summary>之前的批注</summary>{draft.annotations.filter((entry) => !entry.body.startsWith('{"kind":"question_review"')).map((entry) => <p key={entry.id}>{entry.body}</p>)}</details> : null}
     </aside>

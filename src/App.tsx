@@ -1,7 +1,7 @@
 import { syncStudy, syncCollection, syncValue, type StudySyncDocument } from './lib/studySync';
 import { normalizeVocabularyQuestionKinds } from './domain/vocabularyQuestionRules.mjs';
 import { SpeechProvider } from './components/SpeechControls';
-import { allQuestionsConfirmed } from './features/drafts/questionReviewState';
+import { allQuestionsConfirmed, draftReviewQuestions, reviewedDraftSections } from './features/drafts/questionReviewState';
 import { routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
 import { adjacentEntryId, contextualBackRoute, isPrimaryNavigationRoot, primaryNavigationView, primaryNavigationViews } from './domain/appNavigation';
 import { answersForAttempt, canReplayAttempt, createReplayAttempt, enqueuePracticeSave, replayPracticeSaveBody, questionsForAttempt, replayRouteAttemptId } from './domain/attemptReplay';
@@ -1446,7 +1446,7 @@ export default function App() {
   async function finalizeReviewedDraft(id: string) {
     const latest = await apiRequest<{ draft: ReviewPackDraft }>(`/api/drafts/${id}`, { token: authToken });
     const content = latest.draft.content as Record<string, unknown>;
-    const questions = [content.generated_practice, content.quiz, content.practice_questions, content.review_questions].find((list) => Array.isArray(list) && list.length) as unknown[] | undefined;
+    const { questions } = draftReviewQuestions(content);
     if (!questions?.length || !allQuestionsConfirmed(questions, latest.draft.annotations)) {
       setActiveDraft(latest.draft);
       throw new Error('题目或确认状态有更新，请重新检查后生成最终版。');
@@ -1462,10 +1462,10 @@ export default function App() {
     });
     await apiRequest(`/api/drafts/${id}`, { method: 'PATCH', token: authToken, body: {
       title: latest.draft.title,
-      content: { ...content, sections: [{ id: 'reviewed', title: latest.draft.title, questions: finalQuestions }] },
+      content: { ...content, sections: reviewedDraftSections(content, finalQuestions, latest.draft.title) },
     } });
     await apiRequest(`/api/drafts/${id}/confirm`, { method: 'POST', token: authToken, body: { unknownWords: '' } });
-    const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, { method: 'POST', token: authToken, body: { date: todayDateKey() } });
+    const response = await apiRequest<{ practice: DailyPractice }>(`/api/drafts/${id}/publish-daily-practice`, { method: 'POST', token: authToken, body: { date: todayDateKey(), title: isTopicDraft(latest.draft) ? latest.draft.title : undefined } });
     if (drafts.some((draft) => draft.id === id && isTopicDraft(draft))) {
       sessionStorage.setItem(`jlpt-topic-question-seed:${response.practice.id}`, String(Math.random()));
       setTopicShuffleEpoch((epoch) => epoch + 1);

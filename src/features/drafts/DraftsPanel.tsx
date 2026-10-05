@@ -1,3 +1,4 @@
+import { draftReviewQuestions } from './questionReviewState';
 import { usePageHeaderActions } from '../../components/PageChrome';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { RecordReference } from '../../components/RecordReference';
@@ -77,7 +78,18 @@ export function DraftsPanel({
   const showingDetail = Boolean(currentDetailDraftId);
   const detailDraft = activeDraft?.id === currentDetailDraftId ? activeDraft : null;
   const contentRecord = detailDraft && isRecord(detailDraft.content) ? detailDraft.content as GrammarReviewPack : null;
-  const reviewQuestions = [contentRecord?.generated_practice, contentRecord?.quiz, contentRecord?.practice_questions, contentRecord?.review_questions].find((list) => Array.isArray(list) && list.length) ?? [];
+  const reviewContent = draftReviewQuestions(contentRecord);
+  const reviewQuestions = reviewContent.questions as DraftQuestion[];
+  const reviewSectionForQuestion = (index: number) => {
+    if (!reviewContent.grouped) return undefined;
+    let offset = 0;
+    return reviewContent.sections.find((section) => {
+      const count = Array.isArray(section.questions) ? section.questions.length : 0;
+      const matches = index >= offset && index < offset + count;
+      offset += count;
+      return matches;
+    });
+  };
   const reviewGrammarItems = [...(contentRecord?.grammar_items ?? []), ...(contentRecord?.grammar_points ?? [])];
   const hasQuestionReview = Array.isArray(reviewQuestions) && reviewQuestions.length > 0 && onSaveQuestionReview && onFinalizeReviewedDraft;
 
@@ -264,7 +276,15 @@ export function DraftsPanel({
                     />
                   ) : (
                     hasQuestionReview ? <QuestionReviewWorkspace key={detailDraft.id} draft={detailDraft} questions={reviewQuestions}
-                      renderQuestion={(index) => <QuestionList key={JSON.stringify([index, reviewQuestions[index]])} questions={[reviewQuestions[index]]} grammarItems={reviewGrammarItems} labels={labels} startNumber={index + 1} hidePagination />}
+                      topic={isTopicDraft(detailDraft)}
+                      renderQuestion={(index) => {
+                        const section = reviewSectionForQuestion(index);
+                        return <>
+                          {typeof section?.title === 'string' ? <h3 className="question-review-group-title">{section.title}</h3> : null}
+                          {typeof section?.instruction === 'string' ? <p className="question-review-group-instruction">{section.instruction}</p> : null}
+                          <QuestionList key={JSON.stringify([index, reviewQuestions[index]])} questions={[reviewQuestions[index]]} grammarItems={reviewGrammarItems} labels={labels} startNumber={index + 1} hidePagination />
+                        </>;
+                      }}
                       onSave={onSaveQuestionReview!} onFinalize={onFinalizeReviewedDraft!} />
                       : <DraftContentPreview key={detailDraft.id} content={detailDraft.content} labels={labels} />
                   )}

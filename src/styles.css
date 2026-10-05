@@ -7073,3 +7073,5 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
   .question-review-navigation, .question-review-desktop-position { display: none; }
   .question-review-workspace .question-review-navigation-trigger { display: inline-flex; align-items: center; }
 }
+.gentle-draft .question-review-group-title { margin: 18px 0 6px; font-size: 16px; color: #526659; }
+.question-review-group-instruction { margin: 0 0 12px; font-size: 14px; color: #627568; }

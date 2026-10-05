@@ -35,6 +35,7 @@ export function InsightsPanel({ labels, captures, attempts, progress, summaries,
                 <span className="text-[#68716b]">{day.date.slice(5)}</span>
                 <div className="h-2 overflow-hidden rounded bg-[#e6ebe6]"><div className="h-full rounded bg-[#6f947c]" style={{ width: `${Math.max(day.attempted ? 8 : 0, (day.attempted / maxAttempted) * 100)}%` }} /></div>
                 <strong className="text-right text-[#34413b]">{day.attempted}</strong>
+                {!!day.cardReviews?.totalReviews && <span className="col-span-3 text-xs text-[#68716b]">{labels.insightsCardReviews ?? '卡片复习'}：{day.cardReviews.totalReviews} 次 · {day.cardReviews.uniqueCards} 张</span>}
               </div>
             ))}
           </div>

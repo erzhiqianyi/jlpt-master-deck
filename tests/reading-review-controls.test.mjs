@@ -23,8 +23,8 @@ const { createRoot } = await import('react-dom/client');
 const root = createRoot(document.getElementById('root'));
 const question = { id: 'reading-1', title: '読解', passage: '日本語を勉強します。\n毎日読みます。', question: '何を勉強しますか。', choices: ['日本語', '英語'], answerIndex: 0, explanation: '日本語です。', rubyTerms: [{ text: '日本語', reading: 'にほんご' }], tags: [], createdAt: '2026-10-05' };
 let key = 0;
-async function render(questions, record) {
-  await act(async () => root.render(h(SpeechProvider, { settings: { locale: 'zh-CN', ttsProvider: 'browser' }, token: '' }, h(WordLookupProvider, { items: [], captures: [], locale: 'zh-CN', enabled: false, onCapture: async () => {}, authToken: '', ttsProvider: 'browser' }, h(ReadingPanel, { key: ++key, mode: 'library', labels: { readingShowAnswer: '确认答案', readingSelectAnswer: '请先选择答案' }, locale: 'zh-CN', questions, activeQuestionId: question.id, onRecordPractice: record, onCreate: async () => {}, onDelete: async () => {} })))));
+async function render(questions, record, progress = {}, mode = 'library') {
+  await act(async () => root.render(h(SpeechProvider, { settings: { locale: 'zh-CN', ttsProvider: 'browser' }, token: '' }, h(WordLookupProvider, { items: [], captures: [], locale: 'zh-CN', enabled: false, onCapture: async () => {}, authToken: '', ttsProvider: 'browser' }, h(ReadingPanel, { key: ++key, mode, progress, labels: { readingShowAnswer: '确认答案', readingSelectAnswer: '请先选择答案' }, locale: 'zh-CN', questions, activeQuestionId: question.id, onRecordPractice: record, onCreate: async () => {}, onDelete: async () => {} })))));
 }
 const switches = () => document.querySelectorAll('[role="switch"]');
 const speech = () => document.querySelectorAll('button[aria-label^="朗读"]');
@@ -77,3 +77,21 @@ test('pending or failed saves never unlock review controls', async () => {
   assert.equal(switches().length, 0);
   assert.equal(speech().length, 0);
 });
+
+for (const mode of ['library', 'practice']) {
+  test(`${mode}: only previously answered questions allow viewing without recording`, async () => {
+    const records = [];
+    await render([question], async (...args) => records.push(args), {}, mode);
+    assert.equal(document.querySelector('.reading-view-answer'), null);
+    await render([question], async (...args) => records.push(args), { [question.id]: { correct: 0, wrong: 1, reviewCount: 1 } }, mode);
+    await act(async () => document.querySelector('.reading-view-answer').click());
+    assert.equal(records.length, 0);
+    assert.equal(document.querySelector('.reading-choice').dataset.answerState, 'correct');
+    assert.ok(document.querySelector('.reading-explanations'));
+    assert.equal(switches().length, 2);
+    await act(async () => document.querySelectorAll('.reading-choice')[1].click());
+    assert.equal(document.querySelector('.reading-explanations'), null);
+    await act(async () => document.querySelector('.reading-confirm-answer').click());
+    assert.equal(records.length, 1);
+  });
+}

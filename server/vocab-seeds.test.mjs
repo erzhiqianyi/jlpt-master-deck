@@ -8,7 +8,7 @@ const dir = mkdtempSync(join(tmpdir(), 'jlpt-vocab-seeds-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, createTopicPractice, getDailyPractice, upsertReviewItem } = await import('./storage.mjs');
+const { createUser, createTopicPractice, getDailyPractice, upsertReviewItem, getStudyState, saveSettings, loadReviewData, getDb } = await import('./storage.mjs');
 
 const user = createUser('seed-author', 'test-pass');
 
@@ -43,11 +43,13 @@ const item = {
   ],
 };
 
-test('authored vocab questions must explain every wrong choice', () => {
+test('authored vocab questions must explain every wrong choice when required', () => {
+  saveSettings(user.id, { ...getStudyState(user.id).settings, requireJlptVocabularyQuestions: true, jlptVocabularyQuestionKinds: ['usage'] });
   const { distractor_notes: _notes, ...withoutNotes } = usageSeed;
   assert.throws(() => upsertReviewItem({ ...item, practice_questions: [withoutNotes] }, { userId: user.id }), /distractor_notes/);
   assert.throws(() => upsertReviewItem({ ...item, practice_questions: [{ ...usageSeed, choices: usageSeed.choices.slice(0, 3) }] }, { userId: user.id }), /four distinct choices/);
   assert.throws(() => upsertReviewItem({ ...item, practice_questions: [{ ...usageSeed, explanation_zh: '' }] }, { userId: user.id }), /explanation_zh/);
+  saveSettings(user.id, { ...getStudyState(user.id).settings, requireJlptVocabularyQuestions: false, jlptVocabularyQuestionKinds: [] });
 });
 
 test('用法 seeds become usage practice questions with their authored explanations', () => {
@@ -86,4 +88,51 @@ test('語形成 seeds become word_formation questions; 表記 is accepted but ne
   assert.equal(question.kind, 'word_formation');
   assert.match(question.choiceAnalysis.find((entry) => entry.choice === '不').explanation, /不自由/);
   assert.throws(() => createTopicPractice(user.id, { deck: 'n1_vocab', kinds: ['kana_to_kanji'], count: 5 }), /No practice questions/);
+});
+
+const { tools } = await import('./mcp-tools.mjs');
+const call = async (name, args, owner) => {
+  const result = await tools.find(tool => tool.name === name).handler(args, { ownerId: String(owner.id) });
+  return result.structuredContent ?? JSON.parse(result.content[0].text);
+};
+
+test('MCP reads the saved owner rule and requires complete questions only when enabled', async () => {
+  const owner = createUser('required-questions', 'test-pass');
+  const other = createUser('optional-questions', 'test-pass');
+  assert.equal((await call('get_study_state', {}, owner)).settings.requireJlptVocabularyQuestions, false);
+  saveSettings(owner.id, { ...getStudyState(owner.id).settings, requireJlptVocabularyQuestions: true, jlptVocabularyQuestionKinds: ['usage'] });
+  assert.equal((await call('get_study_state', {}, owner)).settings.requireJlptVocabularyQuestions, true);
+  const requiredItem = { ...item, id: 'required-word' };
+  await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, requireJlptVocabularyQuestions: false, jlptVocabularyQuestionKinds: [] } }, owner), /jlptVocabularyQuestionKinds/);
+  await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ ...usageSeed, kind: 'grammar' }] } }, owner), /vocabulary kind/);
+  await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ ...usageSeed, prompt: '' }] } }, owner), /prompt/);
+  assert.ok(!loadReviewData(owner.id).items.some(entry => entry.id === requiredItem.id));
+  await call('upsert_review_item', { item: { ...requiredItem, practice_questions: [usageSeed] } }, owner);
+  await assert.rejects(call('upsert_review_item', { item: requiredItem }, owner), /jlptVocabularyQuestionKinds/);
+  await call('upsert_review_item', { item: requiredItem }, other);
+  await call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ kind: 'usage' }] } }, other);
+  await call('upsert_review_item', { item: { id: 'grammar-exempt', deck: 'grammar_expression', type: 'grammar', original: '〜にほかならない' } }, owner);
+  saveSettings(owner.id, { ...getStudyState(owner.id).settings, requireJlptVocabularyQuestions: false, jlptVocabularyQuestionKinds: [] });
+  await call('upsert_review_item', { item: requiredItem }, owner);
+});
+
+
+test('selected kinds are canonical, unique and each must have an authored question', async () => {
+  const owner = createUser('multi-kinds', 'test-pass');
+  saveSettings(owner.id, { jlptVocabularyQuestionKinds: ['usage', 'meaning', 'usage', 'invalid'] });
+  assert.deepEqual(getStudyState(owner.id).settings.jlptVocabularyQuestionKinds, ['meaning', 'usage']);
+  const input = { ...item, id: 'multi-kinds-word', practice_questions: [usageSeed] };
+  await assert.rejects(call('upsert_review_item', { item: input }, owner), /missing required questions: meaning/);
+  const meaningSeed = { ...usageSeed, id: 'meaning-seed', kind: 'meaning' };
+  await call('upsert_review_item', { item: { ...input, practice_questions: [usageSeed, meaningSeed] } }, owner);
+  saveSettings(owner.id, { jlptVocabularyQuestionKinds: [], requireJlptVocabularyQuestions: true });
+  assert.equal(getStudyState(owner.id).settings.requireJlptVocabularyQuestions, false);
+  await call('upsert_review_item', { item: { ...item, id: 'empty-selection-word' } }, owner);
+});
+
+test('legacy enabled rules migrate to all six vocabulary kinds', () => {
+  const owner = createUser('legacy-kinds', 'test-pass');
+  getDb().prepare('UPDATE user_settings SET settings_json = ? WHERE user_id = ?').run(JSON.stringify({ requireJlptVocabularyQuestions: true }), owner.id);
+  const saved = getStudyState(owner.id).settings;
+  assert.deepEqual(saved.jlptVocabularyQuestionKinds, ['kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'meaning', 'usage']);
 });

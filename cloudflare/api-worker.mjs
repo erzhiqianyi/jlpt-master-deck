@@ -11,6 +11,7 @@ import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs'
 import { ensureReferenceSchema } from '../server/references.mjs';
 import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
 import { ensureDailySummarySchema } from '../server/daily-summary.mjs';
+import { ensureCardReviewSchema } from '../server/card-review-history.mjs';
 import { ensureItemSchema } from '../server/item-schema.mjs';
 import schema from './migrations/0001.sql';
 import practiceCompletionSchema from './migrations/0002_practice_completion_stats.sql';
@@ -39,10 +40,16 @@ export class JlptDatabase extends DurableObject {
         migrateCloudSchemaV4(this.db);
         migrateCloudSchemaV6(this.db);
         migrateCloudReadingRuby(this.db);
+        for (const table of ['reading_questions', 'listening_questions']) {
+          if (!this.db.prepare(`PRAGMA table_info(${table})`).all().some(column => column.name === 'japanese_annotations_json')) {
+            this.db.exec(`ALTER TABLE ${table} ADD COLUMN japanese_annotations_json TEXT NOT NULL DEFAULT '[]'`);
+          }
+        }
         if (!this.db.prepare('SELECT version FROM cloud_schema_version WHERE version=7').get()) {
           this.db.exec(practiceCompletionSchema);
           this.db.exec('INSERT INTO cloud_schema_version(version) VALUES(7)');
         }
+        ensureCardReviewSchema(this.db);
         ensureDailySummarySchema(this.db);
         this.db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(5)');
         migrateReviewItemOwnership(this.db);

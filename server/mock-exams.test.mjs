@@ -63,3 +63,14 @@ test('new tools are hosted-capable and writing requires library:write', () => {
     assert.equal(tool.scope, 'library:write');
   }
 });
+
+test('exam questions preserve authored Japanese tokens and reject changed originals', async () => {
+  const annotated = structuredClone(input);
+  const annotations = [{ text: '選んでください。', tokens: [{ surface: '選んで', reading: 'えらんで', pos: 'verb' }, { surface: 'ください' }, { surface: '。' }] }];
+  annotated.sessions[0].questions[0].japaneseAnnotations = annotations;
+  const created = await call('create_mock_exam', annotated);
+  assert.deepEqual(created.sessions[0].questions[0].japaneseAnnotations, annotations);
+  assert.deepEqual((await api(`/api/mock-exams/${created.id}`)).result.exam.sessions[0].questions[0].japaneseAnnotations, annotations);
+  annotated.sessions[0].questions[0].japaneseAnnotations[0].text = '別の文';
+  await assert.rejects(call('create_mock_exam', annotated));
+});

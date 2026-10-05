@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { listCardReviews, cardReviewStats } from './card-review-history.mjs';
 
 const dateSchema = z.iso.date();
 const labeled = z.object({ label: z.string().min(1), detail: z.string().min(1) }).strict();
@@ -10,7 +11,7 @@ const byKind = z.object({ kind: z.string(), total: z.number().int().nonnegative(
 
 export const dailySummaryInput = z.object({
   date: dateSchema,
-  total_questions: z.number().int().positive(),
+  total_questions: z.number().int().nonnegative(),
   correct_count: z.number().int().nonnegative(),
   incorrect_count: z.number().int().nonnegative(),
   accuracy: z.number().min(0).max(1),
@@ -73,7 +74,9 @@ function mapSummary(row) {
 }
 
 export function getDailySummary(db, userId, date) {
-  return mapSummary(db.prepare('SELECT * FROM daily_summaries WHERE user_id = ? AND date = ?').get(userId, validSummaryDate(date)));
+  const day = validSummaryDate(date);
+  const summary = mapSummary(db.prepare('SELECT * FROM daily_summaries WHERE user_id = ? AND date = ?').get(userId, day));
+  return summary ? { ...summary, cardReviews: dailyCardReviewStats(db, userId, day) } : null;
 }
 
 export function listDailySummaries(db, userId, limit = 7) {
@@ -97,6 +100,11 @@ export function upsertDailySummary(db, userId, input) {
   return getDailySummary(db, userId, value.date);
 }
 
+export function dailyCardReviewStats(db, userId, date) {
+  const day = validSummaryDate(date);
+  const start = new Date(`${day}T00:00:00+09:00`);
+  return cardReviewStats(listCardReviews(db, userId, { start: start.toISOString(), end: new Date(start.getTime()+86400000).toISOString() }));
+}
 export function generateDailySummaryContext(db, userId, date, recentWeakPoints = {}) {
   const day = validSummaryDate(date);
   const rows = db.prepare(`SELECT a.question_id, a.item_id, a.selected, a.correct, a.answered_at,
@@ -127,11 +135,12 @@ export function generateDailySummaryContext(db, userId, date, recentWeakPoints =
     .all(userId, JSON.stringify([...itemIds])).map(({ id, reference, original, deck, pattern }) => ({ id, reference, original, deck, pattern }));
   return {
     date: day,
+    cardReviews: dailyCardReviewStats(db, userId, day),
     overallStats: { totalQuestions: rows.length, correctCount: correct, incorrectCount: wrongAnswers.length, accuracy: rows.length ? correct / rows.length : 0, uniqueItems: itemIds.size },
     statsByKind: [...kinds.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
     wrongAnswers, relatedItems,
     recentWeakPoints: { weakestItems: recentWeakPoints.weakest_items ?? [], dueItems: recentWeakPoints.due_items ?? [] },
-    instructions: ['Summarize evidence-based error patterns and grammar contrasts in Chinese. Do not infer a confusion solely from a wrong choice without checking the question and item context.', 'Use overallStats and statsByKind unchanged when calling upsert_daily_summary. Store only compact wrong-question references.', 'If no answers exist, do not invent a summary.'],
+    instructions: ['Summarize evidence-based error patterns and grammar contrasts in Chinese. Do not infer a confusion solely from a wrong choice without checking the question and item context.', 'Use overallStats and statsByKind unchanged when calling upsert_daily_summary. Store only compact wrong-question references.', 'Describe objective question performance and subjective card reviews separately. Card ratings are not answer correctness. If neither answers nor card reviews exist, do not invent activity. A review-only day may have total_questions=0 and accuracy=0.'],
   };
 }
 

@@ -1,3 +1,4 @@
+import { normalizeJapaneseAnnotations } from './japanese-annotations.mjs';
 import { discoveryPresentation } from '../src/domain/discoveryPresentation.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { createHash, randomUUID } from "node:crypto";
@@ -26,11 +27,11 @@ import {
 } from "./storage.mjs";
 const sharedAudioDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.local', 'listening-audio', 'shares');
 const itemFields =
-  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh core_memory part_of_speech inflection_class base_form conjugations examples patterns points comparisons register explanation_zh localizations ruby_terms tags content_origin verification_status question_kinds question_distractors images".split(
+  "deck type jlpt_level original reading meaning_ja paraphrase_ja meaning_zh core_memory part_of_speech inflection_class base_form conjugations examples patterns points comparisons register explanation_zh localizations ruby_terms japanese_annotations tags content_origin verification_status question_kinds question_distractors images".split(
     " ",
   );
 const questionFields =
-  "kind title instruction prompt promptTarget choices answer translationZh context correctReason memoryPoint choiceAnalysis answerIndex".split(
+  "kind title instruction prompt promptTarget choices answer translationZh context correctReason memoryPoint choiceAnalysis japaneseAnnotations answerIndex".split(
     " ",
   );
 const pick = (object, fields) =>
@@ -132,7 +133,7 @@ export function validatePackage(input) {
       if (!item.images.length) delete item.images;
     }
     for (const [key, value] of Object.entries(item)) {
-      if (stringListFields.has(key)) {
+      if (key === "japanese_annotations") { item[key] = normalizeJapaneseAnnotations(value); } else if (stringListFields.has(key)) {
         if (!Array.isArray(value) || !value.every((entry) => typeof entry === 'string')) throw new Error(`知识点字段 ${key} 格式无效`);
       } else if (objectLists[key]) {
         if (!Array.isArray(value)) throw new Error(`知识点字段 ${key} 格式无效`);
@@ -182,13 +183,14 @@ export function validatePackage(input) {
         question.sourceItemIndex = record.sourceItemIndex;
       }
       for (const field of questionFields.filter(
-        (key) => !["choices", "choiceAnalysis", "answerIndex"].includes(key),
+        (key) => !["choices", "choiceAnalysis", "answerIndex", "japaneseAnnotations"].includes(key),
       ))
         if (
           question[field] !== undefined &&
           typeof question[field] !== "string"
         )
           throw new Error(`题目字段 ${field} 应为文字`);
+      if (question.japaneseAnnotations !== undefined) question.japaneseAnnotations = normalizeJapaneseAnnotations(question.japaneseAnnotations);
       question.answerIndex = question.choices.indexOf(question.answer);
       if (question.choiceAnalysis !== undefined) {
         if (!Array.isArray(question.choiceAnalysis))
@@ -305,8 +307,8 @@ export async function publishListeningShare(userId, input) {
     audioMime: source.audioMime,
     transcript: source.transcript,
     transcriptTranslation: source.transcriptTranslation,
-    questions: questions.map(({ title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation }) =>
-      ({ title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation })),
+    questions: questions.map(({ title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation, japaneseAnnotations }) =>
+      ({ title, questionTypeId, question, choices, choiceDetails, answerIndex, explanation, japaneseAnnotations })),
   };
   if (!pkg.title || !pkg.questions.length || Buffer.byteLength(JSON.stringify(pkg)) > 750000) throw new Error('听力分享内容无效或超过 750 KB');
   const audio = await readListeningAudioForUser(userId, source.id);

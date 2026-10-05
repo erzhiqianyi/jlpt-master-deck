@@ -9,7 +9,7 @@ final class NavigationLifecycleTests: XCTestCase {
         app.launchArguments = ["--demo"]
         app.launch()
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.app.buttons["workspace.account"].firstMatch.exists || self.app.buttons["nav.阅读"].exists || self.app.tabBars.firstMatch.exists
+            self.app.buttons["workspace.account"].firstMatch.exists || self.app.buttons["nav.阅读"].exists || self.app.tabBars.firstMatch.exists || self.app.navigationBars.buttons.firstMatch.exists
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
     }
@@ -28,6 +28,7 @@ final class NavigationLifecycleTests: XCTestCase {
             if tab.exists || sidebar.exists { break }
             let back = app.buttons["BackButton"].firstMatch
             if back.exists { back.tap() }
+            else if app.navigationBars.buttons.firstMatch.exists { app.navigationBars.buttons.firstMatch.tap() }
         }
         if tab.exists { tab.tap() }
         else { sidebar.tap() }
@@ -47,6 +48,68 @@ final class NavigationLifecycleTests: XCTestCase {
         }
         XCTAssertTrue(element.isHittable)
     }
+    func testJapaneseRubySegmentationAndSettingsPersist() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--japanese-display-fixture"]; app.launch()
+        primary("题库")
+        app.buttons["nav.词汇"].tap()
+        app.buttons.containing(.staticText, identifier: "掲載").firstMatch.tap()
+        XCTAssertTrue(app.buttons["entry.practice"].waitForExistence(timeout: 5))
+        capture("japanese-ruby-detail-top")
+        app.swipeUp(); capture("japanese-ruby-segmented-examples")
+        XCTAssertFalse(app.staticTexts["掲載（けいさい）"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        primary("学习")
+        app.buttons["workspace.account"].firstMatch.tap()
+        app.buttons["settings.display"].tap()
+        let segmented = app.switches["settings.japanese.segmented"]
+        reveal(segmented)
+        XCTAssertEqual(segmented.value as? String, "1")
+        capture("japanese-display-settings")
+        segmented.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let disabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: segmented)
+        XCTAssertEqual(XCTWaiter.wait(for: [disabled], timeout: 5), .completed)
+        let save = app.buttons["settings.display.save"]
+        reveal(save); save.tap()
+        XCTAssertEqual(app.staticTexts["settings.display.status"].label, "已保存")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["settings.display"].tap()
+        reveal(segmented)
+        XCTAssertEqual(segmented.value as? String, "0")
+        segmented.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        reveal(app.staticTexts["settings.japanese.preview"].firstMatch)
+        capture("japanese-ruby-settings-preview")
+    }
+
+    func testItemDetailStartsVocabularyAndGrammarQuestions() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--item-detail-fixture"]; app.launch()
+        primary("题库")
+        app.buttons["nav.词汇"].tap()
+        app.buttons.containing(.staticText, identifier: "かつて").firstMatch.tap()
+        let start = app.buttons["entry.practice"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(start.isHittable, "Practice must be available without scrolling to the bottom")
+        capture("item-detail-katsute-top")
+        app.swipeUp(); capture("item-detail-katsute-examples")
+        start.tap()
+        XCTAssertTrue(app.buttons["quiz.back"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["review.reveal"].exists)
+        XCTAssertTrue(app.staticTexts["第 1 题 / 共 3 题"].exists)
+        capture("item-related-vocabulary-practice")
+        app.buttons["quiz.back"].tap()
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["nav.语法"].tap()
+        app.buttons.containing(.staticText, identifier: "もさることながら").firstMatch.tap()
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        start.tap()
+        XCTAssertTrue(app.buttons["quiz.back"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["review.reveal"].exists)
+        XCTAssertTrue(app.staticTexts["第 1 题 / 共 1 题"].exists)
+        capture("item-related-grammar-practice")
+    }
+
     func testStatisticsDashboardMatchesWebReference() throws {
         app.terminate(); app.launchArguments = ["--demo", "--statistics-fixture"]; app.launch()
         primary("统计")

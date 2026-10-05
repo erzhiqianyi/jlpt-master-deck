@@ -237,7 +237,7 @@ struct WorkspaceView: View {
         case .module(let destination): detail(destination)
         case .item(let id):
             if let item = store.items.first(where: { $0.id == id }) {
-                ItemDetailView(item: item, review: { review = ReviewSession(items: [item]) })
+                ItemDetailView(item: item)
             } else { unavailableRoute }
         case .reading(let id):
             if let question = store.reading.first(where: { $0.id == id }) {
@@ -264,7 +264,7 @@ struct WorkspaceView: View {
             case .practice: PracticeHub()
             case .discovery: DiscoveryView()
             case .vocabulary, .grammar:
-                LibraryView(grammarOnly: destination == .grammar, vocabularyOnly: destination == .vocabulary, query: query, review: { review = ReviewSession(items: [$0]) })
+                LibraryView(grammarOnly: destination == .grammar, vocabularyOnly: destination == .vocabulary, query: query)
             case .reading: ReadingLibraryView()
             case .history: HistoryView()
             case .listening: ListeningLibraryView()

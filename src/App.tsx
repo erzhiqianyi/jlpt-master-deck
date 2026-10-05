@@ -1,3 +1,5 @@
+import { syncStudy, syncCollection, syncValue, type StudySyncDocument } from './lib/studySync';
+import { normalizeVocabularyQuestionKinds } from './domain/vocabularyQuestionRules.mjs';
 import { SpeechProvider } from './components/SpeechControls';
 import { allQuestionsConfirmed } from './features/drafts/questionReviewState';
 import { routeFromHash, routeHash, supportsStudyPage, isOfficialSampleModule, isAppView, defaultDesktopStudyPage } from './domain/appRoutes';
@@ -121,6 +123,8 @@ const fallbackWordbooks: Wordbook[] = [
 ];
 
 const defaultSettings: DisplaySettings = {
+  jlptVocabularyQuestionKinds: [],
+  requireJlptVocabularyQuestions: false,
   showReviewRuby: true,
   memoryCardWordSpacing: true,
   showExplanationRuby: true,
@@ -212,6 +216,7 @@ export default function App() {
   const [practiceCompletionCounts, setPracticeCompletionCounts] = useState<Record<string, number>>({});
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
+  const pendingCardReviews = useRef(new Map<string, { rating: MemoryRating; progressEntry: ProgressEntry; reviewEventId: string; reviewedAt: string }>());
   const [settings, setSettings] = useState<DisplaySettings>(() => ({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale }));
   const settingsSaveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const settingsSaveRevision = useRef(0);
@@ -259,6 +264,7 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    let hasCachedStudy = false;
 
     async function restoreSession() {
       setSessionLoadError('');
@@ -270,48 +276,46 @@ export default function App() {
         const me = await apiRequest<{ user: AuthUser }>('/api/me', { token: authToken });
         if (cancelled) return;
         setUser(me.user);
-        const [reviewData, studyState, draftList, dailyPracticeList, listeningList, readingList, savedPlan, captureList, wordbookList] = await Promise.all([
-          apiRequest<ReviewData>('/api/review-data', { token: authToken }),
-          apiRequest<StudyState>('/api/study-state', { token: authToken }),
-          apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
-          apiRequest<{ practices: DailyPracticeSummary[] }>('/api/daily-practices', { token: authToken }),
-          apiRequest<{ questions: ListeningQuestion[] }>('/api/listening-questions', { token: authToken }),
-          apiRequest<{ questions: ReadingQuestion[] }>('/api/reading-questions', { token: authToken }),
-          apiRequest<{ plan: StudyPlanDocument }>('/api/study-plan', { token: authToken }),
-          apiRequest<{ captures: LearningCapture[] }>('/api/captures', { token: authToken }),
-          apiRequest<{ wordbooks: Wordbook[] }>('/api/wordbooks', { token: authToken }),
-        ]);
-        if (cancelled) return;
-        const resume = readPracticeResume(me.user.id);
-        if (restoreLastPage.current) {
-          restoreLastPage.current = false;
-          if (resume.hash) window.location.replace(resume.hash);
-        }
-        const requestedPracticeId = routeFromHash(window.location.hash).view === 'daily-practice'
+        function applyDocument(document: StudySyncDocument) {
+          if (cancelled) return;
+          const reviewData = { ...syncValue<Omit<ReviewData,'items'>>(document,'reviewMeta'), items:syncCollection<ReviewData['items'][number]>(document,'items') };
+          const studyState = { ...syncValue<StudyState>(document,'stateMeta'), progress:document.records.progress ?? {}, answers:document.records.answers ?? {}, attemptHistory:syncCollection<PracticeAttempt>(document,'attemptHistory'), cardReviews:syncCollection(document,'cardReviews') } as StudyState;
+          const draftList = { drafts:syncCollection<DraftSummary>(document,'drafts') };
+          const dailyPracticeList = { practices:syncCollection<DailyPracticeSummary>(document,'practiceSummaries') };
+          const listeningList = { questions:syncCollection<ListeningQuestion>(document,'listening') };
+          const readingList = { questions:syncCollection<ReadingQuestion>(document,'reading') };
+          const savedPlan = { plan:{ ...syncValue<StudyPlanDocument>(document,'plan'), tasks:syncCollection<StudyPlanDocument['tasks'][number]>(document,'planTasks'), dailySummaries:syncCollection<NonNullable<StudyPlanDocument['dailySummaries']>[number]>(document,'planDays') } };
+          const captureList = { captures:syncCollection<LearningCapture>(document,'captures') };
+          const wordbookList = { wordbooks:syncCollection<Wordbook>(document,'wordbooks') };
+          const resume = readPracticeResume(me.user.id);
+          if (restoreLastPage.current) {
+            restoreLastPage.current = false;
+            if (resume.hash) window.location.replace(resume.hash);
+          }
+          const requestedPracticeId = routeFromHash(window.location.hash).view === 'daily-practice'
           ? routeFromHash(window.location.hash).itemId ?? resume.practiceId
           : undefined;
-        setUser(me.user);
-        setData(reviewData);
-        applyStudyState(studyState);
-        setDrafts(draftList.drafts ?? []);
-        setDailyPractices(dailyPracticeList.practices ?? []);
-        const dailyPracticeDetails = await Promise.all((dailyPracticeList.practices ?? []).filter((practice) => practice.date === todayDateKey() || matchesPracticeRoute(requestedPracticeId, practice)).map(async (practice) => {
-          const response = await apiRequest<{ practice: DailyPractice }>(`/api/daily-practices/${practice.id}`, { token: authToken });
-          return response.practice;
-        }));
-        if (!cancelled) {
+          setUser(me.user);
+          setData(reviewData);
+          applyStudyState(studyState);
+          setDrafts(draftList.drafts ?? []);
+          setDailyPractices(dailyPracticeList.practices ?? []);
+          const dailyPracticeDetails = syncCollection<DailyPractice>(document, 'packs').sort((a,b) => b.date.localeCompare(a.date) || (b.version ?? 0) - (a.version ?? 0));
           setDailyPracticeDetails(dailyPracticeDetails);
           setActiveDailyPractice(dailyPracticeDetails.find((practice) => matchesPracticeRoute(requestedPracticeId, practice)) ?? dailyPracticeDetails.find((practice) => !topicDraftForPractice(practice, draftList.drafts ?? [])) ?? null);
+          if (cancelled) return;
+          setListeningQuestions(listeningList.questions ?? []);
+          setReadingQuestions(readingList.questions ?? []);
+          setStudyPlan(savedPlan.plan ?? { profile: createDefaultStudyPlanProfile(), status: 'profile_only', tasks: [], phases: [], dailySummaries: [] });
+          setCaptures(captureList.captures ?? []);
+          setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
+          const importedBook = new URLSearchParams(window.location.search).get('wordbook');
+          if (importedBook && wordbookList.wordbooks.some((book) => book.id === importedBook)) setSelectedWordbookId(importedBook);
+          setAuthError('');
+          setAuthLoading(false);
         }
-        if (cancelled) return;
-        setListeningQuestions(listeningList.questions ?? []);
-        setReadingQuestions(readingList.questions ?? []);
-        setStudyPlan(savedPlan.plan ?? { profile: createDefaultStudyPlanProfile(), status: 'profile_only', tasks: [], phases: [], dailySummaries: [] });
-        setCaptures(captureList.captures ?? []);
-        setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
-        const importedBook = new URLSearchParams(window.location.search).get('wordbook');
-        if (importedBook && wordbookList.wordbooks.some((book) => book.id === importedBook)) setSelectedWordbookId(importedBook);
-        setAuthError('');
+        const synced = await syncStudy(me.user.id,authToken,(cached) => { hasCachedStudy = true; applyDocument(cached); },() => cancelled);
+        applyDocument(synced);
       } catch (error) {
         if (!cancelled) {
           if (error instanceof ApiError && error.status === 401) {
@@ -320,7 +324,8 @@ export default function App() {
             setUser(null);
             setAuthError('登录已过期，请重新登录');
           } else {
-            setSessionLoadError(error instanceof Error ? error.message : '学习数据加载失败');
+            if (hasCachedStudy) setAuthError(`本机数据可用，后台同步未完成：${error instanceof Error ? error.message : '请稍后重试'}`);
+            else setSessionLoadError(error instanceof Error ? error.message : '学习数据加载失败');
           }
         }
       } finally {
@@ -340,12 +345,12 @@ export default function App() {
   }, [settings.fontSize]);
 
   useEffect(() => {
-    if (activeView !== 'plan' || !authToken) return;
+    if (activeView !== 'plan' || !authToken || !user) return;
     let cancelled = false;
     async function refreshPlan() {
       try {
-        const response = await apiRequest<{ plan: StudyPlanDocument }>('/api/study-plan', { token: authToken });
-        if (!cancelled) setStudyPlan(response.plan);
+        const document = await syncStudy(user!.id,authToken,() => {},() => cancelled);
+        if (!cancelled) applySyncedStudy(document);
       } catch {
         // The main session restore flow owns authentication errors.
       }
@@ -353,7 +358,7 @@ export default function App() {
     refreshPlan();
     const timer = window.setInterval(refreshPlan, 20_000);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, [activeView, authToken]);
+  }, [activeView, authToken, user?.id]);
 
   useEffect(() => {
     if (activeView !== 'daily-practice' || !authToken || authLoading || route.itemId || activeDailyPractice) return;
@@ -385,7 +390,7 @@ export default function App() {
 
   // Drafts may be created by an external agent while the home page stays open.
   useEffect(() => {
-    if (!authToken || activeView !== 'home') return;
+    if (!authToken || !user || activeView !== 'home' || authLoading) return;
     let cancelled = false;
     let refreshing = false;
     let idleHandle: number | undefined;
@@ -394,14 +399,8 @@ export default function App() {
       if (document.hidden || refreshing) return;
       refreshing = true;
       try {
-        const [result, practiceList] = await Promise.all([
-          apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
-          apiRequest<{ practices: DailyPracticeSummary[] }>('/api/daily-practices', { token: authToken }),
-        ]);
-        if (!cancelled) {
-          setDrafts(result.drafts ?? []);
-          setDailyPractices(practiceList.practices ?? []);
-        }
+        const document = await syncStudy(user!.id,authToken,() => {},() => cancelled);
+        if (!cancelled) applySyncedStudy(document);
       } catch {
         // Retain the last successful list during a temporary connection failure.
       } finally {
@@ -434,7 +433,7 @@ export default function App() {
       window.removeEventListener('focus', refreshHomeDrafts);
       document.removeEventListener('visibilitychange', refreshHomeDrafts);
     };
-  }, [authToken, activeView]);
+  }, [authToken, activeView, user?.id, authLoading]);
 
   useEffect(() => {
     if (!window.location.hash) {
@@ -628,13 +627,9 @@ export default function App() {
     }
     let cancelled = false;
     setMemoryReviewReady(false);
-    Promise.all([
-      apiRequest<ReviewData>('/api/review-data', { token: authToken }),
-      apiRequest<StudyState>('/api/study-state', { token: authToken }),
-    ]).then(([reviewData, studyState]) => {
+    syncStudy(user.id,authToken,() => {},() => cancelled).then((document) => {
       if (cancelled) return;
-      setData(reviewData);
-      applyStudyState(studyState);
+      applySyncedStudy(document);
     }).catch(() => {
       // Fall back to the data already in memory during a temporary connection failure.
     }).finally(() => {
@@ -1049,9 +1044,32 @@ export default function App() {
     window.location.hash = examId ? `#/mock-exams/${encodeURIComponent(examId)}` : '#/mock-exams';
   }
 
+  useEffect(() => {
+    if (!authToken) return;
+    let disposed = false;
+    const refreshSettings = async () => {
+      if (document.hidden) return;
+      const revision = settingsSaveRevision.current;
+      try {
+        await settingsSaveQueue.current.catch(() => undefined);
+        const latest = await apiRequest<StudyState>('/api/study-state/settings', { token: authToken });
+        if (!disposed && revision === settingsSaveRevision.current) setSettings(normalizeSettings(latest.settings));
+      } catch { /* Keep the saved local settings when offline. */ }
+    };
+    window.addEventListener('focus', refreshSettings);
+    document.addEventListener('visibilitychange', refreshSettings);
+    return () => {
+      disposed = true;
+      window.removeEventListener('focus', refreshSettings);
+      document.removeEventListener('visibilitychange', refreshSettings);
+    };
+  }, [authToken]);
+
   function updateSettings(nextSettings: DisplaySettings) {
     const revision = ++settingsSaveRevision.current;
     const normalized = normalizeSettings(nextSettings);
+    const changedSettings = Object.fromEntries(Object.entries(normalized).filter(([key, value]) =>
+      JSON.stringify(value) !== JSON.stringify(settings[key as keyof DisplaySettings])));
     setSettings(normalized);
     localStorage.setItem(LOGIN_LOCALE_STORAGE_KEY, normalized.locale);
     if (authToken) {
@@ -1064,7 +1082,15 @@ export default function App() {
         },
       };
       settingsSaveQueue.current = settingsSaveQueue.current.catch(() => undefined)
-        .then(() => apiRequest<{ settings: DisplaySettings }>('/api/study-state/settings', { method: 'PUT', token: authToken, body: compatibleSettings }))
+        .then(() => apiRequest<StudyState>('/api/study-state/settings', { token: authToken }))
+        .then((latest) => apiRequest<{ settings: DisplaySettings }>('/api/study-state/settings', {
+          method: 'PUT', token: authToken,
+          body: { ...latest.settings, ...changedSettings, questionTypeTips: changedSettings.questionTypeTips
+            ? compatibleSettings.questionTypeTips
+            : { ...latest.settings.questionTypeTips,
+                [MEMORY_CARD_FRONT_COMPAT_KEY]: (changedSettings.memoryCardFrontFields as string[] | undefined ?? latest.settings.memoryCardFrontFields)?.join(','),
+                [MEMORY_CARD_BACK_COMPAT_KEY]: (changedSettings.memoryCardBackFields as string[] | undefined ?? latest.settings.memoryCardBackFields)?.join(',') } },
+        }))
         .then((response) => { if (revision === settingsSaveRevision.current) setSettings(normalizeSettings(response.settings)); })
         .catch((error) => { if (revision === settingsSaveRevision.current) setAuthError(error instanceof Error ? error.message : 'Failed to save settings'); });
     }
@@ -1137,6 +1163,17 @@ export default function App() {
     });
   }
 
+  function applySyncedStudy(document: StudySyncDocument) {
+    setData({ ...syncValue<Omit<ReviewData,'items'>>(document,'reviewMeta'), items:syncCollection(document,'items') });
+    applyStudyState({ ...syncValue<StudyState>(document,'stateMeta'), progress:document.records.progress ?? {}, answers:document.records.answers ?? {}, attemptHistory:syncCollection(document,'attemptHistory'), cardReviews:syncCollection(document,'cardReviews') } as StudyState);
+    setDrafts(syncCollection(document,'drafts'));
+    setDailyPractices(syncCollection<DailyPracticeSummary>(document,'practiceSummaries').sort((a,b) => b.updated_at.localeCompare(a.updated_at)));
+    setDailyPracticeDetails(syncCollection(document,'packs'));
+    setListeningQuestions(syncCollection(document,'listening')); setReadingQuestions(syncCollection(document,'reading'));
+    setCaptures(syncCollection(document,'captures')); setWordbooks(normalizeWordbooks(syncCollection(document,'wordbooks')));
+    setStudyPlan({ ...syncValue<StudyPlanDocument>(document,'plan'), tasks:syncCollection(document,'planTasks'), dailySummaries:syncCollection(document,'planDays') });
+  }
+
   function applyStudyState(studyState: StudyState) {
     setPracticeCompletionCounts(studyState.practiceCompletionCounts ?? {});
     setAnswers(Object.fromEntries(Object.entries(studyState.answers ?? {}).filter(([id]) => !id.startsWith('memory-card:'))));
@@ -1184,6 +1221,7 @@ export default function App() {
     setProgress({});
     setAttemptHistory([]);
     setActiveAttempt(null);
+    pendingCardReviews.current.clear();
     setSettings({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale });
     setDrafts([]);
     setDailyPractices([]);
@@ -1195,15 +1233,9 @@ export default function App() {
   }
 
   async function refreshAddedShare() {
-    const [reviewData, wordbookList, draftList] = await Promise.all([
-      apiRequest<ReviewData>('/api/review-data', { token: authToken }),
-      apiRequest<{ wordbooks: Wordbook[] }>('/api/wordbooks', { token: authToken }),
-      apiRequest<{ drafts: DraftSummary[] }>('/api/drafts', { token: authToken }),
-    ]);
-    setData(reviewData);
-    setWordbooks(normalizeWordbooks(wordbookList.wordbooks));
-    setDrafts(draftList.drafts ?? []);
-    await refreshDailyPractices();
+    if (!user) return;
+    const document = await syncStudy(user.id,authToken,() => {},() => false);
+    applySyncedStudy(document);
   }
 
   async function refreshDailyPractices(selectId?: string) {
@@ -1592,14 +1624,18 @@ export default function App() {
       intervalDays: intervals[rating],
       nextReviewAt: nextDate.toISOString(),
     };
-    setProgress((state) => ({ ...state, [item.id]: nextEntry }));
+    const previousPending = pendingCardReviews.current.get(item.id);
+    const review = previousPending?.rating === rating ? previousPending : { rating, progressEntry: nextEntry, reviewEventId: crypto.randomUUID(), reviewedAt: now.toISOString() };
+    pendingCardReviews.current.set(item.id, review);
+    setProgress((state) => ({ ...state, [item.id]: review.progressEntry }));
     if (authToken) {
       const nextState = await apiRequest<StudyState>('/api/answers', {
         method: 'POST', token: authToken,
-        body: { questionId: `memory-card:${item.id}`, itemId: item.id, selected: rating, correct: rating !== 'forgot', progressEntry: nextEntry },
+        body: { reviewEventId: review.reviewEventId, reviewedAt: review.reviewedAt, source: 'web', questionId: `memory-card:${item.id}`, itemId: item.id, selected: rating, correct: rating !== 'forgot', progressEntry: review.progressEntry },
       });
       applyStudyState(nextState);
     }
+    pendingCardReviews.current.delete(item.id);
   }
 
   async function createCapture(input: { body: string; category: LearningCaptureCategory; context?: string; targetDeck?: Deck; targetWordbookId?: string }) {
@@ -2553,6 +2589,9 @@ function normalizeSettings(value: Partial<DisplaySettings> | undefined): Display
     fontSize: value?.fontSize === 'small' || value?.fontSize === 'large' ? value.fontSize : defaultSettings.fontSize,
     memoryCardFrontFields: normalizeMemoryCardFields(value?.memoryCardFrontFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[MEMORY_CARD_FRONT_COMPAT_KEY]), defaultMemoryCardFrontFields),
     memoryCardBackFields: normalizeMemoryCardFields(value?.memoryCardBackFields ?? compatibilityMemoryCardFields(rawQuestionTypeTips[MEMORY_CARD_BACK_COMPAT_KEY]), defaultMemoryCardBackFields),
+    jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(value),
+    requireJlptVocabularyQuestions: normalizeVocabularyQuestionKinds(value).length > 0,
+    japaneseDisplay: value?.japaneseDisplay,
     memoryCardWordSpacing: typeof value?.memoryCardWordSpacing === 'boolean' ? value.memoryCardWordSpacing : defaultSettings.memoryCardWordSpacing,
     questionTypeTips,
     customQuestionTypeTips: normalizeCustomQuestionTypeTips(value?.customQuestionTypeTips),

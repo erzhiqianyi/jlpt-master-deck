@@ -1,3 +1,8 @@
+export type JapaneseAnnotation = {
+  text: string;
+  tokens: { surface: string; reading?: string; pos?: 'noun' | 'verb' | 'particle' | 'adjective' | 'adverb' | 'other' }[];
+};
+
 export type Deck = 'n1_vocab' | 'name_reading' | 'grammar_expression';
 export type QuestionKind = 'grammar' | 'moji_goi' | 'meaning' | 'kana_to_kanji' | 'kanji_to_kana' | 'word_formation' | 'usage';
 export type Locale = 'zh-CN' | 'ja' | 'en';
@@ -81,6 +86,13 @@ export type PracticeAttempt = {
 };
 
 export type DisplaySettings = {
+  japaneseDisplay?: {
+    segmented: boolean;
+    styles: Record<'noun' | 'verb' | 'particle' | 'adjective', { mode: 'none' | 'underline' | 'text'; color: string }>;
+  };
+  dailyPracticeSources?: { answers: boolean; cardReviews: boolean; ratings: ('forgot' | 'hard' | 'remembered' | 'easy')[]; window: 'previous_day' | 'last_hours'; hours: number; timeZone: string; runAt: string };
+  jlptVocabularyQuestionKinds?: Array<'kanji_to_kana' | 'kana_to_kanji' | 'word_formation' | 'moji_goi' | 'meaning' | 'usage'>;
+  requireJlptVocabularyQuestions?: boolean;
   showReviewRuby: boolean;
   memoryCardWordSpacing: boolean;
   showExplanationRuby: boolean;
@@ -166,6 +178,7 @@ export type LearningCapture = {
 };
 
 export type ListeningQuestion = {
+  japaneseAnnotations?: JapaneseAnnotation[];
   reference?: string;
   id: string;
   audioAssetId?: string;
@@ -212,6 +225,7 @@ export type ListeningRecording = {
 };
 
 export type ReadingQuestion = {
+  japaneseAnnotations?: JapaneseAnnotation[];
   rubyTerms?: RubyTerm[];
   reference?: string;
   id: string;
@@ -241,6 +255,7 @@ export type MockExamSection = {
 };
 
 export type MockExamQuestion = {
+  japaneseAnnotations?: JapaneseAnnotation[];
   id: string;
   sectionId: string;
   group: string;
@@ -393,6 +408,7 @@ export type StudyPlanTask = {
   completedAt?: string;
 };
 export type StudyDailySummary = {
+  cardReviews?: { totalReviews: number; uniqueCards: number; ratings: Record<string, number> };
   date: string;
   attempted: number;
   correct: number;
@@ -441,6 +457,7 @@ export type LocalizedText = {
 };
 
 export type PracticeQuestionSeed = {
+  japanese_annotations?: JapaneseAnnotation[];
   id?: string;
   source_origin?: 'ai_generated' | 'textbook_original';
   source_reference?: string;
@@ -480,6 +497,7 @@ export type ItemSource = { sentence?: string; chat_summary?: string; draft_ids?:
 
 /** One shape for vocabulary, grammar and name entries (see server/item-schema.mjs). */
 export type VocabItem = {
+  japanese_annotations?: JapaneseAnnotation[];
   reference?: string;
   id: string;
   /** Capture timestamp; its first ten characters are the capture day. */
@@ -527,6 +545,7 @@ export type ReviewData = {
 };
 
 export type Question = {
+  japaneseAnnotations?: JapaneseAnnotation[];
   reference?: string;
   practiceReference?: string;
   sourceQuestionId?: string;

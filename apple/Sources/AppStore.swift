@@ -29,6 +29,7 @@ final class AppStore {
     private(set) var responses: [String: LocalStudyResponse] = [:]
     private(set) var pending: [PendingAnswer] = []
     private(set) var lastSync: Date?
+    @ObservationIgnored private var syncCursor: String?
     private(set) var hasPracticeCache = false
     private(set) var hasListeningCache = false
     private(set) var isDownloadingAudio = false
@@ -104,10 +105,10 @@ final class AppStore {
     }
     var completedTasks: Int { todayTasks.filter { $0.status == "completed" }.count }
     var reviewedToday: Int {
-        state.progress.values.filter { value in
-            guard let raw = value.lastReviewedAt, let date = StudyDates.parse(raw) else { return false }
-            return Calendar.current.isDateInToday(date)
-        }.count
+        Set((state.cardReviews ?? []).filter { event in
+            guard let date = StudyDates.parse(event.reviewedAt) else { return false }
+            return StudyDates.day(date) == StudyDates.day()
+        }.map(\.itemId)).count
     }
     func restore() async {
         guard !restoredSession else { return }
@@ -174,10 +175,10 @@ final class AppStore {
                 try await self.flushPending(expected: expected)
             } download: {
                 guard expected == self.generation else { throw CancellationError() }
-                self.syncStage = "正在下载题库和学习记录…"
-                return try await self.api.fetchStudySnapshot { completed, total in
+                self.syncStage = "正在检查数据变化…"
+                return try await self.api.fetchIncrementalStudy(cached: self.snapshot()) { completed, total in
                     guard expected == self.generation else { return }
-                    self.syncStage = "正在下载练习详情 \(completed) / \(total)…"
+                    self.syncStage = "正在同步变化记录 \(completed) / \(total)…"
                 }
             }
             guard expected == generation else { return nil }
@@ -194,7 +195,7 @@ final class AppStore {
             reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             hasPracticeCache = true; hasListeningCache = true
-            lastSync = data.lastSync
+            lastSync = data.lastSync; syncCursor = data.syncCursor
             notice = result.uploadError.map { "云端学习数据已更新，\(pending.count) 条本机答题记录仍待上传。\n\($0)" }
                 ?? (pending.isEmpty ? "学习数据已同步到本机。" : "学习数据已更新，\(pending.count) 条答题记录等待同步。")
             error = nil
@@ -254,7 +255,7 @@ final class AppStore {
         defer { isSaving = false }
         var settings = state.settings ?? [:]
         if !isDemo {
-            let latest: StudyState = try await api.get("api/study-state")
+            let latest: StudyState = try await api.get("api/study-state/settings")
             guard expected == generation else { throw CancellationError() }
             settings = latest.settings ?? [:]
         }
@@ -265,7 +266,7 @@ final class AppStore {
             guard expected == generation else { throw CancellationError() }
             settings = result.settings
         }
-        for key in ["memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "showReviewRuby", "showExplanationRuby"] {
+        for key in ["memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "showReviewRuby", "showExplanationRuby", "japaneseDisplay", "requireJlptVocabularyQuestions", "jlptVocabularyQuestionKinds"] {
             if let requested = changes[key], settings[key] != requested {
                 throw APIError.http(409, "服务器未保留设置，请同步后重试。")
             }
@@ -318,7 +319,7 @@ final class AppStore {
         let before = state.progress[itemID] ?? ProgressEntry()
         let previous = state
         let previousResponses = responses
-        let operation = PendingAnswer(id: UUID(), before: before, input: AnswerInput(questionId: questionID, itemId: itemID, selected: selected, correct: correct, progressEntry: progress, attemptHistory: attempt.map { [$0] }))
+        let operation = PendingAnswer(id: UUID(), before: before, input: AnswerInput(questionId: questionID, itemId: itemID, selected: selected, correct: correct, progressEntry: progress, attemptHistory: attempt.map { [$0] }, reviewEventId: questionID.hasPrefix("memory-card:") ? UUID().uuidString : nil, reviewedAt: questionID.hasPrefix("memory-card:") ? progress.lastReviewedAt : nil, source: questionID.hasPrefix("memory-card:") ? "ios" : nil))
         pending.append(operation)
         if newResponses.isEmpty {
             let title = items.first { $0.id == itemID }?.original
@@ -351,9 +352,18 @@ final class AppStore {
         isSaving = true
         let total = pending.count
         defer { isSaving = false; if !isLoading { syncStage = nil } }
-        while let operation = pending.first {
+        var blocked = Set<UUID>()
+        var conflictTitles: [String] = []
+        while let operation = pending.first(where: { !blocked.contains($0.id) }) {
             syncStage = "正在上传答题记录 \(total - pending.count) / \(total)…"
-            var cloud: StudyState = try await api.get("api/study-state")
+            let isCardReview = operation.input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: operation.input.selected) != nil
+            var cloud = state
+            if !isCardReview {
+                let id = operation.input.itemId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?#"))) ?? operation.input.itemId
+                let remote: StudyState = try await api.get("api/study-state/progress/\(id)")
+                cloud.progress[operation.input.itemId] = remote.progress[operation.input.itemId]
+                cloud.attemptHistory = remote.attemptHistory
+            }
             guard expected == generation else { return }
             switch operation.disposition(cloud: cloud.progress[operation.input.itemId] ?? ProgressEntry()) {
             case .alreadyApplied:
@@ -367,16 +377,28 @@ final class AppStore {
             case .send:
                 var input = operation.input
                 if let attempts = input.attemptHistory { input.attemptHistory = NativeAttempt.merging(cloud.attemptHistory ?? [], attempts) }
-                cloud = try await api.post("api/answers", body: input)
+                let acknowledgment: StudyState = try await api.post("api/answers?compact=1", body: input)
+                cloud.progress.merge(acknowledgment.progress) { _, new in new }
+                cloud.answers.merge(acknowledgment.answers) { _, new in new }
+                if let attempts = acknowledgment.attemptHistory { cloud.attemptHistory = attempts }
+                for event in acknowledgment.cardReviews ?? [] {
+                    var events = cloud.cardReviews ?? []
+                    events.removeAll { $0.eventId == event.eventId }; events.append(event)
+                    cloud.cardReviews = events
+                }
             case .conflict:
                 let title = responses[operation.input.questionId]?.title
                     ?? items.first { $0.id == operation.input.itemId }?.original
                     ?? operation.input.itemId
-                throw IdentityError.message("「\(title)」（\(operation.input.itemId)）的云端进度与本机待上传记录冲突，上传队列已暂停。本机记录已保留，未覆盖云端。")
+                blocked.insert(operation.id)
+                conflictTitles.append(title)
+                // Other records can still be acknowledged and persisted.
+                continue
             }
             guard expected == generation else { return }
             let previous = state
-            pending.removeFirst()
+            guard let operationIndex = pending.firstIndex(where: { $0.id == operation.id }) else { continue }
+            pending.remove(at: operationIndex)
             state = cloud
             applyPending()
             do {
@@ -384,9 +406,12 @@ final class AppStore {
                 try await files.saveInBackground(snapshot(), userID: userID)
                 guard expected == generation else { throw CancellationError() }
             } catch {
-                if expected == generation { pending.insert(operation, at: 0); state = previous }
+                if expected == generation { pending.insert(operation, at: operationIndex); state = previous }
                 throw error
             }
+        }
+        if !conflictTitles.isEmpty {
+            throw IdentityError.message("\(conflictTitles.count) 条记录需要处理冲突（\(conflictTitles.prefix(3).joined(separator: "、"))）。其余记录已继续上传；冲突记录保留在本机。")
         }
     }
     private func applyPending() {
@@ -394,6 +419,12 @@ final class AppStore {
             let input = operation.input
             if operation.historyOnly != true { state.progress[input.itemId] = input.progressEntry }
             if let attempts = input.attemptHistory { state.attemptHistory = NativeAttempt.merging(state.attemptHistory ?? [], attempts) }
+            if operation.historyOnly != true && input.questionId.hasPrefix("memory-card:"), let time = input.reviewedAt ?? input.progressEntry.lastReviewedAt {
+                let eventID = input.reviewEventId ?? "card:\(input.itemId):\(time):\(input.selected)"
+                if !(state.cardReviews ?? []).contains(where: { $0.eventId == eventID }) {
+                    state.cardReviews = (state.cardReviews ?? []) + [CardReview(eventId: eventID, itemId: input.itemId, rating: input.selected, reviewedAt: time, source: "ios")]
+                }
+            }
             if operation.historyOnly != true && !input.questionId.hasPrefix("memory-card:") {
                 state.answers[input.questionId] = .init(selected: input.selected, correct: input.correct, answeredAt: input.progressEntry.lastReviewedAt)
             }
@@ -402,7 +433,7 @@ final class AppStore {
     private func snapshot() -> LocalStudyData {
         LocalStudyData(items: items, state: state, plan: plan, reading: reading, captures: captures,
                        packs: packs, drafts: drafts, listening: listening, shares: shares, pending: pending,
-                       lastSync: lastSync, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses)
+                       lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses)
     }
     private func persist() throws {
         guard !isRestoringLocal else { throw IdentityError.message("本机记录仍在恢复，请稍后保存。") }
@@ -424,7 +455,7 @@ final class AppStore {
             guard expected == generation, session?.user.id == id, let data = cached else { return }
             items = data.items; state = data.state; plan = data.plan; reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
-            pending = data.pending; lastSync = data.lastSync; responses = data.responses ?? [:]
+            pending = data.pending; lastSync = data.lastSync; syncCursor = data.syncCursor; responses = data.responses ?? [:]
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
             applyPending()
             Task { await self.updateImageCount() }
@@ -561,7 +592,7 @@ final class AppStore {
         isDownloadingSpeech = false; speechDownloadProgress = ""
         automaticRefreshTask?.cancel(); automaticRefreshTask = nil; lastAutomaticAttempt = nil
         items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
-        packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil
+        packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil; syncCursor = nil
         syncStage = nil
         hasPracticeCache = false; hasListeningCache = false
     }
@@ -572,6 +603,13 @@ final class AppStore {
         items = DemoData.items
         reading = DemoData.reading
         #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--japanese-display-fixture") {
+            items.insert(DemoData.japaneseDisplayFixture, at: 0)
+            var display = JapaneseDisplay(); display.segmented = true
+            display.styles["noun"]?.mode = "text"
+            state.settings = ["showReviewRuby": .bool(true), "showExplanationRuby": .bool(true), "japaneseDisplay": display.setting]
+        }
+        if ProcessInfo.processInfo.arguments.contains("--item-detail-fixture") { items.insert(DemoData.itemDetailFixture, at: 0) }
         if ProcessInfo.processInfo.arguments.contains("--practice-fixture") { packs = [DemoData.practiceFixture] }
         if ProcessInfo.processInfo.arguments.contains("--statistics-fixture") { state.attemptHistory = DemoData.statisticsFixture(); packs = [DemoData.practiceFixture] }
         #endif

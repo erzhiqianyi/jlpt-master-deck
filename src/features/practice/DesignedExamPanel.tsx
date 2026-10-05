@@ -1,3 +1,4 @@
+import { JapaneseText } from '../../components/JapaneseText';
 import './practice-layout.css';
 import { conciseEvidence } from './practicePresentation';
 import { useEffect, useState } from 'react';
@@ -99,18 +100,18 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
       <article className="px-4 py-5 md:px-7">
         {question.type ? <p className="text-sm">{question.type}</p> : null}
         {question.audioUrl ? question.audioUrl.startsWith('/api/') ? <ExamAudio src={question.audioUrl} token={token} loading={t.audioLoading} unavailable={t.audioError}/> : <audio controls preload="none" src={question.audioUrl}/> : null}
-        {question.passage ? <div className="mt-4 whitespace-pre-wrap border-l-4 border-[#31564c] bg-[#f4f6f1] px-5 py-4 leading-8">{question.passage}</div> : null}
-        <h2 className="my-5 whitespace-pre-wrap text-xl leading-9">{question.prompt}</h2>
+        {question.passage ? <div className="mt-4 whitespace-pre-wrap border-l-4 border-[#31564c] bg-[#f4f6f1] px-5 py-4 leading-8">{<JapaneseText text={question.passage} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</div> : null}
+        <h2 className="my-5 whitespace-pre-wrap text-xl leading-9">{<JapaneseText text={question.prompt} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</h2>
         {!scorable ? <p role="status">{t.noScore}</p> : null}
         <div className="grid gap-3">{question.choices.map((choice, i) => <button key={i} type="button" disabled={attempt.submitted || !scorable} aria-pressed={attempt.answers[question.id] === i}
           onClick={() => setAttempt(current => ({ ...current, answers: { ...current.answers, [question.id]: i } }))}
           className={`study-answer-option rounded-lg border p-4 text-left ${attempt.submitted && scorable && question.answerIndex === i ? 'border-green-700 bg-green-50' : attempt.answers[question.id] === i ? 'border-[#a84269] bg-[#fff0f5]' : 'border-[#d8d1c8] bg-white'}`}>
-          {i + 1}. {choice}
+          {i + 1}. {<JapaneseText text={choice} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}
         </button>)}</div>
-        {attempt.submitted && scorable ? <div className="practice-designed-answer mt-5 space-y-3 border-t pt-4"><strong>{t.answer}: {question.answerIndex + 1}. {question.choices[question.answerIndex]}</strong><h3>{t.explanation}</h3><p className="whitespace-pre-wrap">{conciseEvidence(question.explanation).summary}</p>
-          <details key={question.id}><summary>{t.more}</summary><p className="whitespace-pre-wrap">{question.explanation}</p>
-          {question.choiceExplanations?.map((text, i) => <p key={i}>{i + 1}. {text}</p>)}
-          {question.translation ? <p className="whitespace-pre-wrap">{question.translation}</p> : null}{question.transcript ? <p className="whitespace-pre-wrap">{question.transcript}</p> : null}
+        {attempt.submitted && scorable ? <div className="practice-designed-answer mt-5 space-y-3 border-t pt-4"><strong>{t.answer}: {question.answerIndex + 1}. {<JapaneseText text={question.choices[question.answerIndex]} annotations={question.japaneseAnnotations} ruby />}</strong><h3>{t.explanation}</h3><p className="whitespace-pre-wrap">{<JapaneseText text={conciseEvidence(question.explanation).summary} annotations={question.japaneseAnnotations} ruby />}</p>
+          <details key={question.id}><summary>{t.more}</summary><p className="whitespace-pre-wrap">{<JapaneseText text={question.explanation} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</p>
+          {question.choiceExplanations?.map((text, i) => <p key={i}>{i + 1}. <JapaneseText text={text} annotations={question.japaneseAnnotations} ruby /></p>)}
+          {question.translation ? <p className="whitespace-pre-wrap">{<JapaneseText text={question.translation} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</p> : null}{question.transcript ? <p className="whitespace-pre-wrap">{<JapaneseText text={question.transcript} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</p> : null}
           {question.sourceUrl ? <a className="gentle-direct-link" href={question.sourceUrl} target="_blank" rel="noreferrer">{question.sourceLabel || t.source}</a> : null}
           </details>
         </div> : null}

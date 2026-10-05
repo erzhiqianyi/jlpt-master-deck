@@ -1,6 +1,6 @@
 import { buildMistakeEntries } from '../../domain/mistakes';
 import { StudyText } from '../../components/StudyText';
-import { DailySummaryPanel } from './DailySummaryPanel';
+import { DailySummaryPanel, CardReviewDailyPanel } from './DailySummaryPanel';
 import './RecordHome.css';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListSearch, LearningListPagination, LearningListRow, LearningListSelect } from '../../components/LearningList';
 import { useMobileList } from '../../hooks/useMobileList';
@@ -126,7 +126,7 @@ export function HistoryPanel({ labels, locale, captures, attempts, questions = [
             <RecordHome labels={labels} locale={locale} todayAttempts={todayAttempts} attempts={sortedAttempts} captures={captures} draftCount={draftCount} mistakeCount={buildMistakeEntries(sortedAttempts, questions, []).length} onSelectAttempt={setSelectedAttemptId} onOpenToday={() => openRecordSection('today')} onOpenHistory={() => { openRecordSection('history'); setPage(0); }} />
           ) : null}
           {recordSection === 'today' ? (
-            <><label className="record-statistics-date"><span className="sr-only">{locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'}</span><input type="date" aria-label={locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'} value={statisticsDate} onChange={event => { if (event.target.value) setStatisticsDate(event.target.value); }} /></label><TodayPracticeSummary labels={labels} locale={locale} attempts={statisticsAttempts} onSelect={setSelectedAttemptId} />{summaryToken ? <details className="record-summary-disclosure"><summary>{locale === 'zh-CN' ? '学习总结' : locale === 'ja' ? '学習まとめ' : 'Learning summary'}</summary><DailySummaryPanel token={summaryToken} locale={locale} date={statisticsDate} hideDatePicker /></details> : null}</>
+            <><label className="record-statistics-date"><span className="sr-only">{locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'}</span><input type="date" aria-label={locale === 'zh-CN' ? '统计日期' : locale === 'ja' ? '集計日' : 'Statistics date'} value={statisticsDate} onChange={event => { if (event.target.value) setStatisticsDate(event.target.value); }} /></label><TodayPracticeSummary labels={labels} locale={locale} attempts={statisticsAttempts} onSelect={setSelectedAttemptId} />{summaryToken ? <CardReviewDailyPanel token={summaryToken} locale={locale} date={statisticsDate} /> : null}{summaryToken ? <details className="record-summary-disclosure"><summary>{locale === 'zh-CN' ? '学习总结' : locale === 'ja' ? '学習まとめ' : 'Learning summary'}</summary><DailySummaryPanel token={summaryToken} locale={locale} date={statisticsDate} hideDatePicker hideCardReviews /></details> : null}</>
           ) : null}
           {showAttemptHistory ? (
             <>

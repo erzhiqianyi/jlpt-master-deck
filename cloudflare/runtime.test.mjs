@@ -42,6 +42,17 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await json('/api/auth/config')).market,'database');
     const source = await json('/api/market/import','POST',{format:'jlpt-share',version:1,kind:'wordbook',title:'Cloud public snapshot',items:[{deck:'n1_vocab',original:'共有',reading:'きょうゆう',meaning_zh:'共享'}]});
     const share = await json('/api/market','POST',{kind:'wordbook',sourceId:source.id});
+    const reviewItem = (await json('/api/review-data')).items.find(item => item.original === '共有');
+    assert.ok(reviewItem);
+    const reviewInput = { questionId: `memory-card:${reviewItem.id}`, itemId: reviewItem.id, selected: 'hard', correct: true,
+      reviewEventId: 'cloud-review-1', reviewedAt: '2026-10-04T01:00:00Z', source: 'ios',
+      progressEntry: { correct: 1, wrong: 0, status: 'review', reviewCount: 1, lastReviewedAt: '2026-10-04T01:00:00Z', nextReviewAt: '2026-10-05T01:00:00Z' } };
+    await json('/api/answers', 'POST', reviewInput);
+    await json('/api/answers', 'POST', reviewInput);
+    assert.equal((await json('/api/daily-summaries/2026-10-04')).cardReviews.totalReviews, 1);
+    assert.equal((await json('/api/daily-summaries/2026-10-04','GET',undefined,'test-2')).cardReviews.totalReviews, 0);
+    assert.ok(!(reviewInput.questionId in (await json('/api/study-state')).answers));
+
     assert.ok((await json('/api/market','GET',undefined,'test-2')).shares.some(s=>s.id===share.id&&!s.mine));
     const coverPayload = { mime: 'image/png', imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=' };
     assert.equal((await request(`/api/market/${share.id}/cover`, 'PUT', coverPayload, 'test-2')).status, 404);
@@ -70,6 +81,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     assert.equal((await json('/api/health')).databaseReady, true);
     assert.equal((await json('/api/mock-exams/' + mock.id)).exam.title, '変更');
+    assert.equal((await json('/api/daily-summaries/2026-10-04')).cardReviews.ratings.hard, 1);
     assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '更新总解析');
     const failed=await mf.dispatchFetch(origin+'/api/listening-questions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
     assert.equal(failed.status,503);

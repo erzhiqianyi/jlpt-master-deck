@@ -1,3 +1,5 @@
+import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
+import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japanese-annotations.mjs';
 import { repairReadingTarget } from './practice-reading-target.mjs';
 import { scheduleItemPronunciation } from './tts/prewarm.mjs';
 import { practiceModules } from '../src/domain/practiceModules.mjs';
@@ -19,6 +21,7 @@ import { ensureQuerySchema } from './mcp-query-schema.mjs';
 import { withSqlVariableLimit } from './sql-limits.mjs';
 import { ensureTtsSchema } from './tts/schema.mjs';
 import { ensureDailySummarySchema, listDailySummaries } from './daily-summary.mjs';
+import { ensureCardReviewSchema, mergedCardProgress, insertCardReview, listCardReviews, cardReviewStats, normalizeDailyPracticeSources, practiceSourceWindow } from './card-review-history.mjs';
 import { providerIds as ttsProviderIds } from './tts/registry.mjs';
 import { canonicalizeItemFields, ensureItemSchema, normalizeItemImages, patternTexts, MAX_ITEM_IMAGES } from './item-schema.mjs';
 
@@ -49,6 +52,8 @@ const memoryCardFrontCompatKey = '_memory_card_front_fields';
 const memoryCardBackCompatKey = '_memory_card_back_fields';
 
 const defaultSettings = {
+  jlptVocabularyQuestionKinds: [],
+  requireJlptVocabularyQuestions: false,
   showReviewRuby: true,
   memoryCardWordSpacing: true,
   showExplanationRuby: true,
@@ -310,6 +315,8 @@ END;
     ensureColumn('reading_questions', 'passage_translation', "TEXT NOT NULL DEFAULT ''");
     ensureColumn('reading_questions', 'choice_explanations_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'ruby_terms_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('reading_questions', 'japanese_annotations_json', "TEXT NOT NULL DEFAULT '[]'");
+    ensureColumn('listening_questions', 'japanese_annotations_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'reading_analysis_json', "TEXT NOT NULL DEFAULT '{}'");
     ensureDailyPracticesMultiVersion();
     ensureReviewItemsSeeded();
@@ -320,6 +327,7 @@ END;
     ensureQuerySchema(db);
     ensureReferenceSchema(db);
     ensureTtsSchema(db);
+    ensureCardReviewSchema(db);
     ensureDailySummarySchema(db);
   }
   return db;
@@ -476,13 +484,29 @@ function ensureReviewItemsSeeded() {
 export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
   const normalized = normalizeReviewItem(item);
-  if (normalized.deck !== 'grammar_expression') assertVocabSeeds(normalized.practice_questions);
+  const requiredKinds = normalized.deck === 'grammar_expression' ? [] : getStudyState(userId).settings.jlptVocabularyQuestionKinds;
+  if (requiredKinds.length) {
+    const seeds = normalized.practice_questions;
+    if (!Array.isArray(seeds) || !seeds.length) {
+      throw new Error(`jlptVocabularyQuestionKinds requires questions for: ${requiredKinds.join(', ')}; include them in practice_questions before saving`);
+    }
+    for (const [index, seed] of seeds.entries()) {
+      const kind = normalizeQuestionKind(seed?.kind);
+      if (!kind || kind === 'grammar') throw new Error(`practice_questions[${index}] requires a JLPT vocabulary kind`);
+      if (!String(seed?.prompt ?? '').trim()) throw new Error(`practice_questions[${index}] requires prompt`);
+    }
+    const missingKinds = requiredKinds.filter(kind => !seeds.some(seed => normalizeQuestionKind(seed.kind) === kind));
+    if (missingKinds.length) throw new Error(`jlptVocabularyQuestionKinds missing required questions: ${missingKinds.join(', ')}`);
+    assertVocabSeeds(seeds);
+  }
   const now = new Date().toISOString();
-  const existing = getDb().prepare('SELECT created_at, user_id FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  const existing = getDb().prepare('SELECT created_at, user_id, item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  if (item.japanese_annotations === undefined && existing) normalized.japanese_annotations = parseJson(existing.item_json, {}).japanese_annotations ?? [];
   const book = wordbookById(userId, itemWordbookId(normalized));
   if (!book) throw new Error('Wordbook not found');
-  const imported = getDb().prepare('SELECT user_id FROM user_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  const imported = getDb().prepare('SELECT user_id, item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
   if (imported) {
+    if (item.japanese_annotations === undefined) normalized.japanese_annotations = parseJson(imported.item_json, {}).japanese_annotations ?? [];
     getDb().prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(normalized), normalized.id, userId);
     return normalized;
   }
@@ -764,6 +788,8 @@ function normalizeReviewItem(item) {
   }
   return {
     ...canonicalItem,
+    japanese_annotations: normalizeJapaneseAnnotations(item.japanese_annotations),
+    ...(canonicalItem.practice_questions ? { practice_questions: canonicalItem.practice_questions.map((seed) => ({ ...seed, ...(seed.japanese_annotations === undefined ? {} : { japanese_annotations: normalizeJapaneseAnnotations(seed.japanese_annotations) }) })) } : {}),
     id,
     deck,
     type,
@@ -937,6 +963,7 @@ export function findListeningAudioQuestions(userId, hash) {
 }
 
 export function createListeningQuestion(userId, payload) {
+  const japaneseAnnotations = normalizeJapaneseAnnotations(payload?.japaneseAnnotations);
   const question = String(payload?.question ?? '').trim();
   const questionTypeId = normalizeListeningQuestionTypeId(payload?.questionTypeId);
   const rawChoices = Array.isArray(payload?.choices)
@@ -990,8 +1017,8 @@ export function createListeningQuestion(userId, payload) {
   if (payload.existingQuestionId) {
     const existing = findListeningAudioQuestions(userId, audioHash).find((item) => item.id === payload.existingQuestionId);
     if (!existing) throw new Error('Question does not belong to this audio');
-    getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, choice_details_json=?, answer_index=?, explanation=? WHERE user_id=? AND id=?')
-      .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, String(payload.explanation ?? '').slice(0,2000), userId, existing.id);
+    getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, choice_details_json=?, answer_index=?, explanation=?, japanese_annotations_json=? WHERE user_id=? AND id=?')
+      .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, String(payload.explanation ?? '').slice(0,2000), JSON.stringify(payload.japaneseAnnotations === undefined ? existing.japaneseAnnotations : japaneseAnnotations), userId, existing.id);
     if (payload.transcript !== undefined || payload.transcriptTranslation !== undefined) {
       updateListeningTranscript(userId, existing.id, {
         ...(payload.transcript !== undefined ? { transcript } : {}),
@@ -1027,11 +1054,11 @@ export function createListeningQuestion(userId, payload) {
       database.prepare(`
         INSERT INTO listening_questions (
           id, user_id, library_number, title, question_type_id, question, choices_json, choice_details_json, answer_index, explanation,
-          audio_file_name, audio_mime, audio_size, audio_path, audio_asset_id, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          audio_file_name, audio_mime, audio_size, audio_path, audio_asset_id, japanese_annotations_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, userId, libraryNumber, title, questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, explanation,
-        storedAudioFileName, storedAudioMime, storedAudioSize, storedAudioPath, assetId, now,
+        storedAudioFileName, storedAudioMime, storedAudioSize, storedAudioPath, assetId, JSON.stringify(japaneseAnnotations), now,
       );
       if (!existingAsset) {
         database.prepare(`INSERT INTO listening_audio_assets (id, user_id, file_name, mime, size, sha256, transcript, transcript_translation, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
@@ -1051,7 +1078,7 @@ export function createListeningQuestion(userId, payload) {
 
 export function listListeningQuestions(userId) {
   return getDb().prepare(`
-    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation,
+    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation, q.japanese_annotations_json,
       q.audio_asset_id, a.transcript, a.transcript_translation,
       q.audio_file_name, q.audio_mime, q.audio_size, q.created_at
     FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
@@ -1062,7 +1089,7 @@ export function listListeningQuestions(userId) {
 
 export function listeningQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation,
+    SELECT q.id, q.library_number, q.title, q.question_type_id, q.question, q.choices_json, q.choice_details_json, q.answer_index, q.explanation, q.japanese_annotations_json,
       q.audio_asset_id, a.transcript, a.transcript_translation,
       q.audio_file_name, q.audio_mime, q.audio_size, q.created_at
     FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
@@ -1160,6 +1187,7 @@ function reorderListeningQuestion(userId, id, rawNumber) {
 
 /** Partial update of an owned listening question's text metadata and/or its 题号 (library_number) position. Audio is unchanged. */
 export function updateListeningQuestion(userId, id, payload) {
+  if (payload.japaneseAnnotations !== undefined) normalizeJapaneseAnnotations(payload.japaneseAnnotations);
   const current = listeningQuestionForUser(userId, id);
   if (!current) return null;
   const has = (key) => payload != null && Object.prototype.hasOwnProperty.call(payload, key);
@@ -1194,9 +1222,9 @@ export function updateListeningQuestion(userId, id, payload) {
 
   getDb().prepare(`
     UPDATE listening_questions
-    SET title = ?, question_type_id = ?, question = ?, choices_json = ?, choice_details_json = ?, answer_index = ?, explanation = ?
+    SET title = ?, question_type_id = ?, question = ?, choices_json = ?, choice_details_json = ?, answer_index = ?, explanation = ?, japanese_annotations_json = ?
     WHERE user_id = ? AND id = ?
-  `).run(title, questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, explanation, userId, id);
+  `).run(title, questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, explanation, JSON.stringify(payload.japaneseAnnotations ?? current.japaneseAnnotations ?? []), userId, id);
 
   if (has('libraryNumber')) {
     reorderListeningQuestion(userId, id, payload.libraryNumber);
@@ -1354,7 +1382,7 @@ export function saveListeningRecordingAnalysis(userId, id, payload) {
 function readingQuestionValues(value) {
   return [value.title, value.passage, value.question, JSON.stringify(value.choices), value.answerIndex,
     value.explanation, JSON.stringify(value.tags), JSON.stringify(value.explanationNodes), JSON.stringify(value.translationLines),
-    value.passageTranslation, JSON.stringify(value.choiceExplanations), JSON.stringify(value.readingAnalysis), JSON.stringify(value.rubyTerms)];
+    value.passageTranslation, JSON.stringify(value.choiceExplanations), JSON.stringify(value.readingAnalysis), JSON.stringify(value.rubyTerms), JSON.stringify(value.japaneseAnnotations)];
 }
 
 export function createReadingQuestion(userId, payload) {
@@ -1363,8 +1391,8 @@ export function createReadingQuestion(userId, payload) {
   getDb().prepare(`
     INSERT INTO reading_questions (
       id, user_id, title, passage, question, choices_json, answer_index, explanation, tags_json,
-      explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, japanese_annotations_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, userId, ...readingQuestionValues(value), new Date().toISOString());
   return readingQuestionForUser(userId, id);
 }
@@ -1377,7 +1405,7 @@ export function updateReadingQuestion(userId, id, payload) {
   const value = normalizeReadingQuestion({ ...fields, ...patch });
   getDb().prepare(`UPDATE reading_questions SET
     title = ?, passage = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?, tags_json = ?,
-    explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?, ruby_terms_json = ?
+    explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?, ruby_terms_json = ?, japanese_annotations_json = ?
     WHERE user_id = ? AND id = ?
   `).run(...readingQuestionValues(value), userId, id);
   return readingQuestionForUser(userId, id);
@@ -1385,7 +1413,7 @@ export function updateReadingQuestion(userId, id, payload) {
 
 export function listReadingQuestions(userId) {
   return getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, japanese_annotations_json, created_at
     FROM reading_questions
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -1394,7 +1422,7 @@ export function listReadingQuestions(userId) {
 
 export function readingQuestionForUser(userId, id) {
   const row = getDb().prepare(`
-    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, created_at
+    SELECT id, title, passage, question, choices_json, answer_index, explanation, tags_json, explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, japanese_annotations_json, created_at
     FROM reading_questions
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
@@ -1406,6 +1434,11 @@ export function deleteReadingQuestion(userId, id) {
   return result.changes > 0;
 }
 
+export function getStudySettings(userId) {
+  ensureSettings(userId);
+  return normalizeSettings(JSON.parse(getDb().prepare('SELECT settings_json FROM user_settings WHERE user_id=?').get(userId).settings_json));
+}
+
 export function getStudyState(userId) {
   ensureSettings(userId);
   const settingsRow = getDb().prepare('SELECT settings_json FROM user_settings WHERE user_id = ?').get(userId);
@@ -1413,6 +1446,7 @@ export function getStudyState(userId) {
   const progressRows = getDb().prepare('SELECT item_id, progress_json FROM progress WHERE user_id = ?').all(userId);
   const practice = getPracticeState(userId);
   return {
+    cardReviews: listCardReviews(getDb(), userId),
     settings: normalizeSettings(JSON.parse(settingsRow.settings_json)),
     answers: Object.fromEntries(answerRows.map((row) => [row.question_id, { selected: row.selected, correct: Boolean(row.correct), answeredAt: row.answered_at }])),
     progress: Object.fromEntries(progressRows.map((row) => [row.item_id, JSON.parse(row.progress_json)])),
@@ -1424,7 +1458,7 @@ export function getStudyState(userId) {
 
 export function saveSettings(userId, settings) {
   // Settings sent by the app are already in the current card-field vocabulary.
-  const normalized = normalizeSettings({ ...settings, memoryCardFieldsVersion });
+  const normalized = normalizeSettings({ ...getStudyState(userId).settings, ...settings, memoryCardFieldsVersion });
   getDb()
     .prepare('UPDATE user_settings SET settings_json = ?, updated_at = ? WHERE user_id = ?')
     .run(JSON.stringify(normalized), new Date().toISOString(), userId);
@@ -1539,12 +1573,12 @@ function saveStudyPlanDocument(userId, plan) {
   return { ...normalized, dailySummaries: buildDailySummaries(userId, normalized.tasks), updatedAt: now };
 }
 
-export function saveAnswer(userId, { questionId, itemId, selected, correct, progressEntry, attemptHistory, activeAttempt }) {
+export function saveAnswer(userId, { questionId, itemId, selected, correct, progressEntry, attemptHistory, activeAttempt, reviewEventId, reviewedAt, source }) {
   if (!questionId || !itemId || typeof selected !== 'string' || typeof correct !== 'boolean' || !progressEntry) {
     throw new Error('Invalid answer payload');
   }
   if (String(questionId).startsWith('memory-card:')) {
-    saveProgressEntry(userId, itemId, progressEntry);
+    saveCardReview(userId, itemId, selected, progressEntry, { eventId: reviewEventId, reviewedAt, source });
     return;
   }
   const now = new Date().toISOString();
@@ -1569,10 +1603,52 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
           updated_at = excluded.updated_at
       `)
       .run(userId, itemId, JSON.stringify(progressEntry), now);
+    database.prepare('DELETE FROM card_review_sync_baselines WHERE user_id=? AND item_id=?').run(userId,itemId);
+    database.prepare('DELETE FROM card_review_sync_events WHERE user_id=? AND item_id=?').run(userId,itemId);
   });
   if (Array.isArray(attemptHistory) || activeAttempt !== undefined) {
     savePracticeState(userId, { attemptHistory, activeAttempt });
   }
+}
+
+export function saveCardReview(userId, itemId, rating, progressEntry, { eventId, reviewedAt, source = 'app' } = {}) {
+  if (!loadReviewData(userId).items.some(item => item.id === itemId)) throw new Error('Review card not found');
+  const time = reviewedAt ?? progressEntry.lastReviewedAt ?? new Date().toISOString();
+  // Older clients have stable pending payloads; the timestamp supplies a retry-safe fallback ID.
+  const id = eventId ?? `card:${itemId}:${time}:${rating}`;
+  transaction(getDb(), () => {
+    if (insertCardReview(getDb(), userId, { eventId: id, itemId, rating, reviewedAt: time, source })) {
+      const current = getStudyState(userId).progress[itemId];
+      saveProgressEntry(userId, itemId, mergedCardProgress(getDb(), userId, itemId, id, current));
+    }
+  });
+  return getStudyState(userId);
+}
+
+export function getDailyPracticeSourceContext(userId, options = {}) {
+  const state = getStudyState(userId);
+  const settings = state.settings.dailyPracticeSources;
+  const window = practiceSourceWindow(settings, options);
+  const events = listCardReviews(getDb(), userId, window);
+  const items = loadReviewData(userId).items;
+  const selectedIds = new Set(settings.cardReviews ? events.filter(e => settings.ratings.includes(e.rating)).map(e => e.itemId) : []);
+  const reusableQuestions = [];
+  const skippedCards = [];
+  for (const id of selectedIds) {
+    const item = items.find(i => i.id === id);
+    const questions = (item?.practice_questions ?? []).filter(q => normalizeQuestionKind(q.kind ?? q.type) && q.prompt && Array.isArray(q.choices) && q.choices.length && q.choices.includes(q.answer));
+    if (!questions.length) skippedCards.push({ itemId: id, reason: item ? 'no_existing_questions' : 'item_unavailable' });
+    questions.forEach((q, index) => reusableQuestions.push({ ...q, id: q.id ?? `${id}:existing:${index}`, itemId: id, source: 'card_review' }));
+  }
+  const currentAnswers = settings.answers ? getDb().prepare(`SELECT a.question_id AS questionId,a.item_id AS itemId,a.selected,a.correct,a.answered_at AS answeredAt,
+    q.kind,q.prompt,q.context,q.answer AS correctAnswer,q.correct_reason AS correctReason
+    FROM answers a LEFT JOIN mcp_questions q ON q.user_id=a.user_id AND q.id=a.question_id
+    WHERE a.user_id=? AND julianday(a.answered_at)>=julianday(?) AND julianday(a.answered_at)<julianday(?) ORDER BY a.answered_at`).all(userId,window.start,window.end) : [];
+  const attempts = settings.answers ? (state.attemptHistory ?? []).flatMap(attempt => (attempt.answers ?? []).filter(a => !a.questionId?.startsWith('memory-card:'))) : [];
+  const answers = [...new Map([...currentAnswers, ...attempts].filter(answer => Date.parse(answer.answeredAt) >= Date.parse(window.start) && Date.parse(answer.answeredAt) < Date.parse(window.end))
+    .map(answer => [`${answer.questionId}:${Date.parse(answer.answeredAt)}`, { ...answer, correct: Boolean(answer.correct) }])).values()];
+  return { settings, window, answers, relatedItems: items.filter(item => answers.some(answer => answer.itemId === item.id)).map(item => ({ id: item.id, original: item.original, reading: item.reading, meaning: item.meaning_zh })), cardReviews: events, cardReviewStats: cardReviewStats(events), reusableQuestions, skippedCards,
+    instructions: ['Run scheduling belongs to the learner’s own AI client; runAt and timeZone are preferences, not a server scheduler.', 'Use only enabled sources. Reuse reusableQuestions unchanged for card reviews; skip cards with no existing questions. Never generate replacement questions for those cards.', 'Do not treat card ratings or cumulative progress.correct as objective answer accuracy.', 'Repeated qualifying reviews select a card once; any selected rating in the window qualifies.'] };
 }
 
 export function saveProgressEntry(userId, itemId, progressEntry) {
@@ -1601,6 +1677,7 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
         VALUES (?, ?, ?, ?, ?, ?)
       `);
       for (const [questionId, answer] of Object.entries(answers)) {
+        if (questionId.startsWith('memory-card:')) continue;
         const itemId = answerItemIds?.[questionId] ?? String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
         insert.run(userId, questionId, itemId, String(answer.selected ?? ''), answer.correct ? 1 : 0, answer.answeredAt ?? now);
       }
@@ -1630,6 +1707,7 @@ export function buildStudyRecord(userId) {
     data_generated_at: data.generated_at,
     data_source: 'backend',
     storage: 'sqlite',
+    progress_counts_semantics: 'Legacy progress correct/wrong mixes objective answers and subjective card ratings; use answers or attempt_history for objective accuracy, and card_reviews for self-assessments.',
     summary: {
       items: data.items.length,
       answered,
@@ -1648,6 +1726,8 @@ export function buildStudyRecord(userId) {
     })),
     answers: state.answers,
     progress: state.progress,
+    card_reviews: listCardReviews(getDb(), userId),
+    daily_practice_sources: getDailyPracticeSourceContext(userId),
     attempt_history: state.attemptHistory,
     active_attempt: state.activeAttempt,
     learning_captures: listLearningCaptures(userId),
@@ -2200,18 +2280,19 @@ function generatedQuestionForKind(item, kind, index) {
   return generatedMeaningQuestion(item, index) ?? generatedGrammarQuestion(item, index) ?? generatedKanjiToKanaQuestion(item, index);
 }
 
-function buildTargetedReviewPack(userId, { title, minutes = 30 } = {}) {
+function buildTargetedReviewPack(userId, { title, minutes = 30, sourceContext } = {}) {
   const data = loadReviewData(userId);
   const state = getStudyState(userId);
   const allAnswers = answerHistoryFor(state);
   const yesterdayDate = yesterdaysDateKey();
-  const analysisAnswers = answersByDate(allAnswers, yesterdayDate);
-  const focusedAnswers = analysisAnswers.length ? analysisAnswers : allAnswers;
+  const analysisAnswers = sourceContext ? sourceContext.answers : answersByDate(allAnswers, yesterdayDate);
+  const focusedAnswers = sourceContext ? analysisAnswers : analysisAnswers.length ? analysisAnswers : allAnswers;
   const dueItems = listDueReviews(userId);
   const questionTargetCount = estimateDailyQuestionCount(focusedAnswers, minutes);
   const kindPerformance = summarizeKindPerformance(focusedAnswers);
   const wrongAnswers = recentWrongAnswers(focusedAnswers, questionTargetCount);
-  const candidates = targetedItems(data, state, dueItems, wrongAnswers);
+  const evidenceItemIds = new Set(sourceContext?.answers.map(answer => answer.itemId) ?? []);
+  const candidates = targetedItems(data, state, dueItems, wrongAnswers).filter(item => !sourceContext || evidenceItemIds.has(item.id));
   const priorityKinds = kindPerformance.filter((kind) => kind.wrong > 0).map((kind) => kind.kind);
   if (!priorityKinds.length) priorityKinds.push('meaning', 'grammar', 'kanji_to_kana');
 
@@ -2350,9 +2431,12 @@ export function createDailyReviewPackDraft(userId, { title, minutes = 30 } = {})
   });
 }
 
-export function createDailyPractice(userId, { title, minutes = 30, date } = {}) {
+export function createDailyPractice(userId, { title, minutes = 30, date, start, end, generated_questions } = {}) {
   const practiceDate = normalizePracticeDate(date);
-  const content = buildTargetedReviewPack(userId, { title, minutes });
+  const sourceContext = getDailyPracticeSourceContext(userId, { start, end });
+  const content = sourceContext.settings.answers && sourceContext.answers.length > 0 && generated_questions === undefined
+    ? buildTargetedReviewPack(userId, { title, minutes, sourceContext })
+    : { strategy: 'configured_sources', generated_practice: sourceContext.settings.answers && sourceContext.answers.length > 0 ? (generated_questions ?? []) : [] };
   const id = `daily-${practiceDate}-${randomBytes(6).toString('base64url')}`;
   const now = new Date().toISOString();
   const version = nextDailyPracticeVersion(userId, practiceDate);
@@ -2368,7 +2452,10 @@ export function createDailyPractice(userId, { title, minutes = 30, date } = {}) 
     source_title: typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : undefined,
     diagnosis: content.diagnosis,
     practice_plan: content.practice_plan,
-    questions: dailyPracticeQuestions(content.generated_practice ?? content.quiz ?? [], id, userId).map(normalizePracticeExplanations),
+    source_window: sourceContext.window,
+    source_settings: sourceContext.settings,
+    skipped_cards: sourceContext.skippedCards,
+    questions: dailyPracticeQuestions([...(content.generated_practice ?? content.quiz ?? []), ...sourceContext.reusableQuestions], id, userId).map(normalizePracticeExplanations),
   };
   if (!practice.questions.length) {
     throw new Error('No daily practice questions could be generated from the current study history');
@@ -2481,6 +2568,7 @@ function seededQuestionForKind(item, kind) {
     id: seed.id ?? `${item.id}-${kind}`,
     item_id: item.id,
     generated_from: 'item_seed',
+    japaneseAnnotations: normalizeJapaneseAnnotations(seed.japanese_annotations ?? item.japanese_annotations),
     type: seed.kind,
     instruction: seed.instruction ?? '',
     prompt: seed.prompt ?? item.original,
@@ -2674,13 +2762,14 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       candidate.original?.trim().normalize('NFKC') === target &&
       (draftQuestionKind(question.kind) !== 'grammar' || candidate.deck === 'grammar_expression')) : [];
     const item = seededItem ?? (matchingItems.length === 1 ? matchingItems[0] : undefined);
-    const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
+    const explanation = String(question.explanation_zh ?? question.explanation ?? question.correctReason ?? '').trim();
     const sourceReference = String(question.source_reference ?? '').trim().slice(0, 200);
     const sourceOrigin = question.source_origin === 'ai_generated' ? 'ai_generated'
       : question.source_origin === 'textbook_original' && sourceReference ? 'textbook_original' : undefined;
     return normalizePracticeExplanations({
       id: `${id}-q${String(index + 1).padStart(2, '0')}`,
       sourceQuestionId: String(question.id ?? `draft-q${index + 1}`),
+      japaneseAnnotations: normalizeJapaneseAnnotations(question.japaneseAnnotations ?? question.japanese_annotations ?? item?.japanese_annotations),
       sourceDraftId: draft.id,
       ...(sourceOrigin ? { source_origin: sourceOrigin } : {}),
       ...(sourceOrigin === 'textbook_original' ? { source_reference: sourceReference } : {}),
@@ -2694,7 +2783,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       answer,
       answerIndex,
       context: String(question.prompt ?? '').trim(),
-      translationZh: String(question.translation_zh ?? '').trim() || undefined,
+      translationZh: String(question.translation_zh ?? question.translationZh ?? '').trim() || undefined,
       correctReason: explanation || `正确答案是「${answer}」。`,
       memoryPoint: String(question.tested ?? question.target ?? answer),
       choiceAnalysis: question.choiceAnalysis ?? question.choice_analysis ?? [],
@@ -3009,25 +3098,28 @@ function normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems
   const prompt = String(question.prompt ?? '').trim();
   if (!kind || !choices.length || !answer || !itemId || !prompt) return null;
   const id = `${practiceId}-q${String(index + 1).padStart(2, '0')}`;
-  const explanation = String(question.explanation_zh ?? question.explanation ?? '').trim();
+  const explanation = String(question.explanation_zh ?? question.explanation ?? question.correctReason ?? '').trim();
   const sourceItem = reviewItems.find((item) => item.id === itemId);
   const correctReason = explanation || `正确答案是「${answer}」。`;
   return {
     id,
     sourceQuestionId: question.id,
+    source: question.source,
+    sourceKind: question.source === 'card_review' ? 'card_review' : 'answer_history',
+    japaneseAnnotations: normalizeJapaneseAnnotations(question.japaneseAnnotations ?? question.japanese_annotations ?? sourceItem?.japanese_annotations),
     itemId,
     kind,
     title: questionTitleForKind(kind),
     instruction: String(question.instruction ?? '').trim(),
     prompt,
-    promptTarget: question.promptTarget ? String(question.promptTarget) : undefined,
+    promptTarget: question.promptTarget || question.target ? String(question.promptTarget ?? question.target) : undefined,
     choices,
     answer,
     context: prompt,
     translationZh: String(question.translation_zh ?? '').trim() || undefined,
     correctReason,
     memoryPoint: explanation || `复习目标：${question.promptTarget ?? answer}`,
-    choiceAnalysis: choices.map((choice) => ({
+    choiceAnalysis: question.choiceAnalysis ?? choices.map((choice) => ({
       choice,
       correct: choice === answer,
       explanation: (choice !== answer && question.distractor_notes?.[choice]) || dailyPracticeChoiceExplanation({
@@ -3322,6 +3414,11 @@ export function buildDraftProcessingContext(userId, id, { unknownWords = [], con
     pending_captures: listLearningCaptures(userId, 'inbox'),
     wordbooks: listWordbooks(userId),
     study_record: studyRecord,
+    japanese_annotation_rules: {
+      item_field: 'japanese_annotations', question_field: 'japaneseAnnotations',
+      structure: [{ text: '温度を測定する。', tokens: [{ surface: '温度', reading: 'おんど', pos: 'noun' }, { surface: 'を', pos: 'particle' }, { surface: '測定', reading: 'そくてい', pos: 'noun' }, { surface: 'する', pos: 'verb' }, { surface: '。', pos: 'other' }] }],
+      rules: ['Generate annotations with the Japanese source content, not as a separate display-only rewrite.', 'Include original, examples, Japanese meanings, prompts, choices, transcripts and Japanese quoted evidence.', 'Concatenate all token surfaces exactly to text, including punctuation and whitespace.', 'Contextual kana readings only. Keep uncertain POS as other or omitted. Colors are user preferences, never content data.'],
+    },
     routing_rules: [
       'Use draft.content.kind, source questions, and any original capture category to decide the target library.',
       'When a pending capture has targetWordbookId or targetWordbookTitle, preserve that as the requested notebook metadata on the review item.',
@@ -3337,6 +3434,7 @@ export function buildDraftProcessingContext(userId, id, { unknownWords = [], con
       '请使用 jlpt_review MCP 登录我的本地 JLPT 账号，并处理这个已确认草稿。',
       `草稿 ID：${draft.id}`,
       words.length ? `用户标记的不认识单词：${words.join('、')}` : '用户没有额外标记不认识单词。',
+      '生成日语内容时同时提供分词、上下文假名和词性，遵守 japanese_annotation_rules。',
       '先调用 get_draft_processing_context 重新读取草稿、用户标记、待整理输入、学习记录和 routing_rules。',
       '根据原始输入的题型和草稿内容，把数据放到对应库：词汇、语法、汉字读音、文字题种子通过 upsert_review_item 写入 SQLite review_items；阅读题写入阅读题库；听力题写入听力题库或生成需要本地音频的待办说明。JSON 只作为导出/备份格式。',
       '如果草稿是一整套已确认试题，调用 publish_draft_as_daily_practice 原样保留题目与选项顺序，并把入口放在首页“今日工作台 → 今天的练习版本”；不要把这类复习拆进长期计划。',
@@ -3428,6 +3526,10 @@ function normalizeSettings(value) {
   const questionTypeTips = Object.fromEntries(Object.entries(rawQuestionTypeTips).filter(([key]) => key !== memoryCardFrontCompatKey && key !== memoryCardBackCompatKey));
   const ttsProvider = value?.ttsProvider === 'browser' || ttsProviderIds.includes(value?.ttsProvider) ? value.ttsProvider : defaultSettings.ttsProvider;
   return {
+    dailyPracticeSources: normalizeDailyPracticeSources(value?.dailyPracticeSources),
+    japaneseDisplay: normalizeJapaneseDisplay(value?.japaneseDisplay),
+    jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(value),
+    requireJlptVocabularyQuestions: normalizeVocabularyQuestionKinds(value).length > 0,
     memoryCardWordSpacing: typeof value?.memoryCardWordSpacing === 'boolean' ? value.memoryCardWordSpacing : defaultSettings.memoryCardWordSpacing,
     showReviewRuby: typeof value?.showReviewRuby === 'boolean' ? value.showReviewRuby : defaultSettings.showReviewRuby,
     showExplanationRuby: typeof value?.showExplanationRuby === 'boolean' ? value.showExplanationRuby : defaultSettings.showExplanationRuby,
@@ -3682,9 +3784,11 @@ function reconcileStudyPlan(plan) {
 
 function buildDailySummaries(userId, tasks) {
   const attempts = getPracticeState(userId).attemptHistory.filter((attempt) => attempt.completedAt);
+  const reviews = listCardReviews(getDb(), userId);
   const dates = new Set([
     ...tasks.map((task) => task.date),
     ...attempts.map((attempt) => dateInTokyo(attempt.completedAt)),
+    ...reviews.map(event => dateInTokyo(event.reviewedAt)),
   ]);
   return [...dates]
     .sort((left, right) => right.localeCompare(left))
@@ -3697,6 +3801,7 @@ function buildDailySummaries(userId, tasks) {
       const completedTasks = dayTasks.filter((task) => task.status === 'completed');
       return {
         date,
+        cardReviews: cardReviewStats(reviews.filter(event => dateInTokyo(event.reviewedAt) === date)),
         attempted,
         correct,
         accuracy: attempted ? correct / attempted : null,
@@ -3705,7 +3810,7 @@ function buildDailySummaries(userId, tasks) {
         completedTasks: completedTasks.length,
         plannedMinutes: dayTasks.reduce((sum, task) => sum + task.minutes, 0),
         completedMinutes: completedTasks.reduce((sum, task) => sum + task.minutes, 0),
-        note: summaryNote(dayTasks.length, completedTasks.length, attempted),
+        note: summaryNote(dayTasks.length, completedTasks.length, attempted + reviews.filter(event => dateInTokyo(event.reviewedAt) === date).length),
       };
     });
 }
@@ -3818,6 +3923,7 @@ function mapListeningQuestion(row) {
     question: row.question,
     choices: parseJson(row.choices_json, []),
     choiceDetails: normalizeListeningChoiceDetails(parseJson(row.choice_details_json, []), parseJson(row.choices_json, []).length),
+    japaneseAnnotations: parseJson(row.japanese_annotations_json, []),
     answerIndex: Number(row.answer_index),
     explanation: row.explanation,
     transcript: row.transcript ?? '',
@@ -3891,6 +3997,7 @@ function mapReadingQuestion(row) {
     explanationNodes: parseJson(row.explanation_nodes_json, []),
     translationLines: parseJson(row.translation_lines_json, []),
     rubyTerms: parseJson(row.ruby_terms_json, []),
+    japaneseAnnotations: parseJson(row.japanese_annotations_json, []),
     passageTranslation: row.passage_translation ?? '',
     choiceExplanations: parseJson(row.choice_explanations_json, []),
     readingAnalysis: { summary: '', structure: '', keySentences: [], ...parseJson(row.reading_analysis_json, {}) },

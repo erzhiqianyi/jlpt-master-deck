@@ -1,3 +1,4 @@
+import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
 import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { currentPlatform } from './platform.mjs';
 import { practiceExplanationPatchSchema } from './practice-explanation-schema.mjs';
@@ -79,7 +80,7 @@ import { getReviewCards, rateReviewCard } from './review-cards.mjs';
 import { getAiLearningHome } from './ai-learning-home.mjs';
 import { aiHomeResource, aiHomeToolMeta, reviewCardsResource, reviewCardsToolMeta, practiceResource, practiceToolMeta } from './mcp-ui.mjs';
 import { createQueryTools } from './mcp-query.mjs';
-import { getDb } from './storage.mjs';
+import { getDb, getDailyPracticeSourceContext } from './storage.mjs';
 
 /** Scope catalogue. Audio bytes and library writes each require an optional grant beyond study. */
 export const scopes = {
@@ -176,6 +177,7 @@ const practiceFilters = {
 };
 
 const listeningCreateFields = {
+  japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   title: z.string().optional(),
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string(),
@@ -190,6 +192,7 @@ const listeningCreateFields = {
   audioBase64: z.string(),
 };
 const listeningUpdateFields = {
+  japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: z.string().min(1),
   title: z.string().optional(),
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
@@ -235,8 +238,8 @@ export const tools = [
   tool('lookup_word', 'Exact-match lookup of a word or phrase against the personal item library (original, reading, base form and stored conjugations). Returns matching items with their meanings, or an empty list when nothing matches — queue a miss with create_learning_capture.',
     { query: z.string().describe('The exact word or phrase to look up, as typed or selected by the learner.') }, ro,
     async ({ query }, ctx) => text(findLookupItems(loadReviewData(uid(ctx)).items, query))),
-  tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds.', {
-    item: z.record(z.string(), z.unknown()).describe('Complete review item object. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. core_memory is an array of exam note strings, one point per entry. Vocabulary and grammar share one field set: patterns[] { pattern, connection_zh?, meaning_zh?, example?, example_zh? } for connection forms, usage patterns and collocations; points[] { label, detail_zh } for usage features and traps; comparisons[] { target, difference_zh, kind?: "everyday" } for near-synonyms and everyday alternatives; register { level: written|spoken|both|formal, note_zh, exam_tip_zh }; explanation_zh for the detailed explanation; source { sentence, chat_summary } for provenance; input_at as the capture timestamp. Legacy names (grammar_forms, grammar_features, collocations, comparison_notes, everyday_alternatives, usage_register*, exam_register_zh, analysis, date, source_*) are still accepted and converted. Attach images with attach_review_item_image. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form, reading? }. Supply reading as the full kana reading for each form containing kanji (for example { kind: "polite", form: "頷きます", reading: "うなずきます" }); irregular readings such as 来ない/こない must be explicit. Keep form free of inline reading annotations. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
+  tool('upsert_review_item', 'Create or update a non-media JLPT review item in your personal SQLite item library. Use for vocabulary, kanji, grammar, and other text-based practice seeds. Before saving vocabulary, read get_study_state.settings.jlptVocabularyQuestionKinds. Generate at least one complete practice_questions entry for EACH selected kind: kanji_to_kana, kana_to_kanji, word_formation, moji_goi, meaning or usage. Every question needs a non-empty prompt, four distinct choices including answer, explanation_zh and distractor_notes for every wrong choice. The server rejects missing selected kinds and incomplete questions. When the selected list is empty (default), vocabulary question validation is skipped. The saved owner setting is authoritative and cannot be overridden in item arguments.', {
+    item: z.record(z.string(), z.unknown()).describe('Complete review item object. Include japanese_annotations for every Japanese content string as [{text, tokens:[{surface, reading?, pos?}]}]. Surfaces including punctuation and whitespace concatenate exactly to text. reading is contextual kana; pos is noun|verb|particle|adjective|adverb|other; omit uncertain categories. Do not embed display colors or reading parentheses in source. Supply this when generating original, meaning_ja, examples, patterns and Japanese quotations. item.original must already be the canonical dictionary form or standard spelling; do not add a separate normalized field. core_memory is an array of exam note strings, one point per entry. Vocabulary and grammar share one field set: patterns[] { pattern, connection_zh?, meaning_zh?, example?, example_zh? } for connection forms, usage patterns and collocations; points[] { label, detail_zh } for usage features and traps; comparisons[] { target, difference_zh, kind?: "everyday" } for near-synonyms and everyday alternatives; register { level: written|spoken|both|formal, note_zh, exam_tip_zh }; explanation_zh for the detailed explanation; source { sentence, chat_summary } for provenance; input_at as the capture timestamp. Legacy names (grammar_forms, grammar_features, collocations, comparison_notes, everyday_alternatives, usage_register*, exam_register_zh, analysis, date, source_*) are still accepted and converted. Attach images with attach_review_item_image. Ordinary vocabulary requires at least two natural Japanese usage examples and a Chinese translation in examples[].zh for each sentence; meta sentences that only say an expression was studied are not valid question contexts. For meaning questions, meaning_ja is a dictionary-style definition and paraphrase_ja is a shorter distinct paraphrase; do not duplicate them. Verbs and adjectives also require part_of_speech, inflection_class (godan, ichidan, suru, kuru, i_adjective, or na_adjective), base_form, and at least three conjugations shaped as { kind, form, reading? }. Supply reading as the full kana reading for each form containing kanji (for example { kind: "polite", form: "頷きます", reading: "うなずきます" }); irregular readings such as 来ない/こない must be explicit. Keep form free of inline reading annotations. JLPT vocabulary questions go in practice_questions[] as { id, kind, instruction, prompt, target, choices, answer, explanation_zh, distractor_notes }, where kind is kanji_to_kana (漢字読み), kana_to_kanji (表記), word_formation (語形成), moji_goi (文脈規定), meaning (言い換え類義) or usage (用法); each needs at least four distinct choices including the answer, explanation_zh, and a specific distractor_notes[choice] for every wrong choice. An authored question replaces the synthetic one of that kind; word_formation and usage exist only as authored questions.'),
   }, replacing, async ({ item }, ctx) => text(upsertReviewItem(item, { source: 'mcp', userId: uid(ctx) })), { scope: 'library:write' }),
   tool('delete_review_item', 'Permanently delete one review item (vocabulary, grammar, kanji-reading, or other seed) from your personal SQLite item library, along with its progress, answer history and now-unused images. This cannot be undone.',
     { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteReviewItem(uid(ctx), id), 'Review item not found') }), { scope: 'library:write' }),
@@ -244,7 +247,7 @@ export const tools = [
     {}, replacing, async (_args, ctx) => text(exportReviewDataBackup(uid(ctx))), { scope: 'library:write' }),
 
   // Everything below is filtered by uid(ctx) inside storage.mjs.
-  tool('get_study_state', 'Read the same learning state as the web page: settings, answers, item progress, complete attempt history and active attempt.',
+  tool('get_study_state', 'Read the same learning state as the web page: settings, answers, item progress, complete attempt history and active attempt. settings.jlptVocabularyQuestionKinds lists the owner-selected required vocabulary question types; read it before upsert_review_item.',
     {}, ro, async (_args, ctx) => text(getStudyState(uid(ctx)))),
   tool('get_history_questions', 'Read the same generated-question details as the history page for completed attempts with wrong answers or related items. Read full attempt snapshots through get_study_state.',
     {}, ro, async (_args, ctx) => text(getHistoryQuestions(uid(ctx)))),
@@ -257,6 +260,9 @@ export const tools = [
   tool('preview_market_source', 'Preview a share package from your own wordbook or practice without publishing it.',
     { kind: z.enum(['wordbook', 'practice']), sourceId: z.string(), title: z.string().optional(), description: z.string().optional() }, ro,
     async (args, ctx) => text({ package: sourcePackage(uid(ctx), args) })),
+  tool('get_daily_practice_source_context', 'Read owner-configured daily practice sources, time window, separate card review events/statistics and existing reusable questions. Run scheduling belongs to the learner AI client. Optional ISO start/end override the time range; end is exclusive. Reuse card questions unchanged, skip cards without questions, never generate replacements for reviewed cards.',
+    { start: z.iso.datetime({ offset: true }).optional(), end: z.iso.datetime({ offset: true }).optional() }, ro,
+    async (args, ctx) => text(getDailyPracticeSourceContext(uid(ctx), args))),
   tool('get_study_record', 'Read the full personalized study record from SQLite plus JSON resources.',
     {}, ro, async (_args, ctx) => text(buildStudyRecord(uid(ctx)))),
   tool('list_learning_captures', 'Read the AI processing queue. Use status inbox for pending work and category to process by type. Preserve context and targetDeck/targetWordbookId. For word/grammar use upsert_review_item (canonical form, source sentence, requested wordbook); for reading use create_reading_question or update_reading_question; for listening use create_listening_question only with real audio, otherwise leave pending. For sentence/unsure first classify from context; do not invent missing source material. Check existing records before writing to avoid duplicates. Only after successful persistence call update_learning_capture_status with processed; on failure leave inbox.',
@@ -329,8 +335,8 @@ export const tools = [
   }, ro, async (args, ctx) => structured(getReviewCards(uid(ctx), args)),
   { title: '复习卡片', _meta: reviewCardsToolMeta }),
   tool('rate_review_card', 'Save the learner’s own memory rating for one owned review card. Call only after the learner has seen the answer and explicitly chosen forgot, hard, remembered, or easy. Updates mastery, review count, and next review time; never rate on the learner’s behalf.',
-    { item_id: z.string().min(1), rating: z.enum(['forgot', 'hard', 'remembered', 'easy']) }, rw,
-    async ({ item_id, rating }, ctx) => structured(rateReviewCard(uid(ctx), item_id, rating))),
+    { item_id: z.string().min(1), rating: z.enum(['forgot', 'hard', 'remembered', 'easy']), event_id: z.string().min(1).optional().describe('Stable UUID per review; reuse it when retrying the same review.') }, rw,
+    async ({ item_id, rating, event_id }, ctx) => structured(rateReviewCard(uid(ctx), item_id, rating, new Date(), event_id))),
   tool('list_due_reviews', 'List items whose nextReviewAt is due or overdue.',
     { at: z.string().optional() }, ro, async ({ at }, ctx) => text(listDueReviews(uid(ctx), at))),
   tool('list_listening_questions', "Read the authenticated user's uploaded listening-question metadata without audio bytes.",
@@ -426,9 +432,9 @@ export const tools = [
   tool('generate_daily_review_pack', 'Create a personalized daily review-pack draft that the user can preview and annotate.',
     { title: z.string().optional(), minutes: z.number().optional() }, rw,
     async ({ title, minutes }, ctx) => text(createDailyReviewPackDraft(uid(ctx), { title, minutes }))),
-  tool('generate_daily_practice', "Create a new version of today's personalized formal daily practice. Analyze the previous Asia/Tokyo day's answer history first, target weak question types with new same-type questions, and determine the appropriate amount of practice from the available evidence. If the previous day has no answers, fall back to broader answer history.",
-    { title: z.string().optional(), minutes: z.number().optional(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.') }, replacing,
-    async ({ title, minutes, date }, ctx) => text(createDailyPractice(uid(ctx), { title, minutes, date }))),
+  tool('generate_daily_practice', "Create a formal daily practice using settings.dailyPracticeSources. First read get_daily_practice_source_context. Reuse existing questions for qualifying card reviews, skip cards without questions, and generate new questions only for enabled answer sources. Schedule this call in the learner AI client at the configured runAt/timeZone. Supply generated_questions (an empty array for review-only practice) to publish AI-prepared questions; optional ISO start/end use the same source window. No historical fallback outside the configured window.",
+    { title: z.string().optional(), minutes: z.number().optional(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.'), start: z.iso.datetime({ offset: true }).optional(), end: z.iso.datetime({ offset: true }).optional(), generated_questions: z.array(z.record(z.string(), z.unknown())).optional().describe('AI-prepared questions for the enabled answer source; card review questions are appended unchanged by the server.') }, replacing,
+    async (args, ctx) => text(createDailyPractice(uid(ctx), args))),
   tool('publish_draft_as_daily_practice', 'Publish one approved draft as a complete formal practice set in the Today workspace, preserving its question order and answer choices.',
     { draft_id: z.string(), date: dateString.optional().describe('YYYY-MM-DD. Defaults to today in Asia/Tokyo.'), title: z.string().optional() }, rw,
     async ({ draft_id, date, title }, ctx) => text(createDailyPracticeFromDraft(uid(ctx), draft_id, { date, title }))),

@@ -62,3 +62,44 @@ extension DemoData {
     }
 }
 #endif
+
+#if DEBUG
+extension DemoData {
+    static var itemDetailFixture: StudyItem {
+        var item = StudyItem(id: "fixture-katsute", deck: "n1_vocab", original: "かつて", reading: "かつて",
+            meaning_zh: "① 曾经、从前：表示过去的某个时期，接近「以前」「昔」。\n② 与否定搭配时表示“此前从未、过去不曾”。重点表达「かつてない」＝从未有过的、前所未有的；「いまだかつて〜ない」＝迄今从未。",
+            explanation_zh: "表示过去某个时期；与否定表达搭配时，强调直到现在都没有过这种经历。",
+            core_memory: ["かつて：过去某个时期。", "いまだかつて〜ない：迄今从未。"],
+            examples: [
+                .init(ja: "この建物は、かつては工場だったが、今は図書館として使われている。", zh: "这栋建筑以前曾是工厂，现在被用作图书馆。"),
+                .init(ja: "かつての同僚と、久しぶりに会った。", zh: "我和以前的同事久别重逢了。"),
+                .init(ja: "今回のイベントには、かつてないほど多くの人が集まった。", zh: "这次活动聚集了前所未有的众多人群。"),
+                .init(ja: "こんなに美しい景色は、いまだかつて見たことがない。", zh: "我至今从未见过如此美丽的景色。")],
+            jlpt_level: "N1", part_of_speech: "副词", meaning_ja: "以前、過去のある時期。", reference: "IT-000016")
+        item.practice_questions = [
+            ["id": .string("katsute-context"), "kind": .string("moji_goi"), "prompt": .string("この建物は、（　）は工場だった。"), "choices": .array([.string("かつて"), .string("まもなく"), .string("すでに"), .string("まだ")]), "answer": .string("かつて"), "explanation_zh": .string("かつて表示过去的某个时期。")],
+            ["id": .string("katsute-usage"), "kind": .string("usage"), "prompt": .string("かつて"), "choices": .array([.string("かつての同僚に会った。"), .string("かつて明日会う予定だ。")]), "answer": .string("かつての同僚に会った。"), "explanation_zh": .string("かつての表示以前的。")]
+        ]
+        return item
+    }
+}
+#endif
+
+#if DEBUG
+extension DemoData {
+    static var japaneseDisplayFixture: StudyItem {
+        var item = StudyItem(id: "fixture-keisai", deck: "n1_vocab", original: "掲載", reading: "けいさい",
+            meaning_zh: "刊登、登载：把内容放到公开媒体或页面上。",
+            explanation_zh: "【核心】掲載＝把内容放到公开媒体或页面上。\n【IT语境】ホームページに掲載する、求人情報を掲載する。公开是让别人能看，掲載是登载到某个媒体或页面上。",
+            core_memory: ["【核心】掲載＝把内容放到公开媒体或页面上。", "【IT语境】ホームページに掲載する、求人情報を掲載する、掲載期間。"],
+            examples: [.init(ja: "美しい景色を見た。", zh: "看到了美丽的景色。"), .init(ja: "求人情報をホームページに掲載する。", zh: "把招聘信息刊登在网站上。")],
+            jlpt_level: "N1", part_of_speech: "名詞・サ変動詞", meaning_ja: "新聞やウェブサイトに文章を載せること。")
+        item.japanese_annotations = [
+            .init(text: "掲載", tokens: [.init(surface: "掲載", reading: "けいさい", pos: "noun")]),
+            .init(text: "美しい景色を見た。", tokens: [.init(surface: "美しい", reading: "うつくしい", pos: "adjective"), .init(surface: "景色", reading: "けしき", pos: "noun"), .init(surface: "を", pos: "particle"), .init(surface: "見た", reading: "みた", pos: "verb"), .init(surface: "。", pos: "other")]),
+            .init(text: "求人情報をホームページに掲載する。", tokens: [.init(surface: "求人情報", reading: "きゅうじんじょうほう", pos: "noun"), .init(surface: "を", pos: "particle"), .init(surface: "ホームページ", pos: "noun"), .init(surface: "に", pos: "particle"), .init(surface: "掲載", reading: "けいさい", pos: "noun"), .init(surface: "する", pos: "verb"), .init(surface: "。", pos: "other")])
+        ]
+        return item
+    }
+}
+#endif

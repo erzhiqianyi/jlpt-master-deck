@@ -14,10 +14,11 @@ type Summary = {
 
 const tokyoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-export function DailySummaryPanel({ token, locale, date: controlledDate, hideDatePicker = false }: { token: string; locale: Locale; date?: string; hideDatePicker?: boolean }) {
+export function DailySummaryPanel({ token, locale, date: controlledDate, hideDatePicker = false, hideCardReviews = false }: { token: string; locale: Locale; date?: string; hideDatePicker?: boolean; hideCardReviews?: boolean }) {
   const [selectedDate, setDate] = useState(tokyoToday);
   const date = controlledDate ?? selectedDate;
   const [savedDates, setSavedDates] = useState<string[]>([]);
+  const [cardReviews, setCardReviews] = useState<{ totalReviews: number; uniqueCards: number; ratings: Record<string, number> } | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,9 +40,10 @@ export function DailySummaryPanel({ token, locale, date: controlledDate, hideDat
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setCardReviews(null);
     setError('');
-    apiRequest<{ summary: Summary | null }>(`/api/daily-summaries/${date}`, { token })
-      .then(({ summary }) => { if (active) setSummary(summary); })
+    apiRequest<{ summary: Summary | null; cardReviews: { totalReviews: number; uniqueCards: number; ratings: Record<string, number> } }>(`/api/daily-summaries/${date}`, { token })
+      .then(({ summary, cardReviews }) => { if (active) { setSummary(summary); setCardReviews(cardReviews); } })
       .catch(() => { if (active) { setSummary(null); setError(copy.error); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -63,10 +65,12 @@ export function DailySummaryPanel({ token, locale, date: controlledDate, hideDat
         {dates.map((day) => <option key={day} value={day}>{day}</option>)}
       </select></label> : null}
     </header>
+    {!hideCardReviews && !loading && !error && cardReviews && <CardReviewStatistics stats={cardReviews} locale={locale} />}
     {loading ? <p role="status">{copy.loading}</p> : error ? <p role="alert">{error}</p> : !summary ? <p className="daily-summary-empty">{copy.empty}</p> : <>
+      <h3>{locale === 'ja' ? '解答成績' : locale === 'en' ? 'Question performance' : '做题成绩'}</h3>
       <dl className="daily-summary-stats">
         <div><dt>{copy.total}</dt><dd>{summary.totalQuestions}</dd></div><div><dt>{copy.correct}</dt><dd>{summary.correctCount}</dd></div>
-        <div><dt>{copy.incorrect}</dt><dd>{summary.incorrectCount}</dd></div><div><dt>{copy.accuracy}</dt><dd>{(summary.accuracy * 100).toFixed(1)}%</dd></div>
+        <div><dt>{copy.incorrect}</dt><dd>{summary.incorrectCount}</dd></div><div><dt>{copy.accuracy}</dt><dd>{summary.totalQuestions ? `${(summary.accuracy * 100).toFixed(1)}%` : '—'}</dd></div>
       </dl>
       <p className="daily-summary-lead">{summary.summaryZh}</p>
       <div className="daily-summary-sections">
@@ -81,4 +85,21 @@ export function DailySummaryPanel({ token, locale, date: controlledDate, hideDat
 
 function SummaryList({ title, items }: { title: string; items: Labeled[] }) {
   return items.length > 0 ? <section><h3>{title}</h3><ul>{items.map((item, index) => <li key={`${item.label}-${index}`}><strong>{item.label}</strong><p>{item.detail}</p></li>)}</ul></section> : null;
+}
+
+type CardReviewStats = { totalReviews: number; uniqueCards: number; ratings: Record<string, number> };
+export function CardReviewDailyPanel({ token, date, locale }: { token: string; date: string; locale: Locale }) {
+  const [stats, setStats] = useState<CardReviewStats | null>(null);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    let active = true; setStats(null); setError(false);
+    apiRequest<{ cardReviews: CardReviewStats }>(`/api/daily-summaries/${date}`, { token })
+      .then(result => { if (active) setStats(result.cardReviews); })
+      .catch(() => { if (active) setError(true); });
+    return () => { active = false; };
+  }, [token, date]);
+  return <div className="daily-summary-panel">{stats ? <CardReviewStatistics stats={stats} locale={locale} /> : <p role={error ? 'alert' : 'status'}>{error ? (locale === 'ja' ? 'カード復習を読み込めませんでした' : locale === 'en' ? 'Could not load card reviews' : '无法读取卡片复习记录') : (locale === 'ja' ? '読み込み中…' : locale === 'en' ? 'Loading…' : '读取中…')}</p>}</div>;
+}
+function CardReviewStatistics({ stats, locale }: { stats: CardReviewStats; locale: Locale }) {
+  return <section><h3>{locale === 'ja' ? 'カード復習' : locale === 'en' ? 'Card reviews' : '卡片复习情况'}</h3><p>{locale === 'ja' ? `${stats.totalReviews} 回・${stats.uniqueCards} 枚` : locale === 'en' ? `${stats.totalReviews} reviews · ${stats.uniqueCards} distinct cards` : `${stats.totalReviews} 次复习 · ${stats.uniqueCards} 张卡片`}</p><dl className="daily-summary-stats">{(['forgot','hard','remembered','easy'] as const).map((rating,i) => <div key={rating}><dt>{(locale === 'ja' ? ['忘れた','難しい','覚えている','簡単'] : locale === 'en' ? ['Forgot','Hard','Remembered','Easy'] : ['忘记','困难','记得','轻松'])[i]}</dt><dd>{stats.ratings[rating]}</dd></div>)}</dl></section>;
 }

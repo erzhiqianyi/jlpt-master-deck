@@ -5,6 +5,7 @@ struct ListeningEnvelope: Decodable { let questions: [ListeningItem] }
 struct ListeningItem: Codable, Identifiable {
     let id: String; let title: String; let question: String; let explanation: String
     let questionTypeId: String; let choices: [String]; let answerIndex: Int
+    var japaneseAnnotations: [JapaneseAnnotation]?
     var transcript: String?; var transcriptTranslation: String?
     var audioAssetId: String?; var audioReference: String?; var reference: String?
     var libraryNumber: Int?; let audioFileName: String; let audioSize: Int; let createdAt: String
@@ -112,22 +113,22 @@ struct ListeningDetailView: View {
                 ForEach(Array(group.questions.enumerated()), id: \.element.id) { number, item in
                     VStack(alignment: .leading, spacing: 16) {
                         Text("第 \(number + 1) 题").font(.headline)
-                        Text(item.question).font(.title3).lineSpacing(6)
+                        JapaneseText(text: item.question, japanese: true, annotations: item.japaneseAnnotations ?? []).lineSpacing(6)
                         if item.freeResponse {
                             TextField("写下你的回答", text: Binding(get: { written[item.id] ?? "" }, set: { written[item.id] = $0 }), axis: .vertical).lineLimit(3...8).textFieldStyle(.roundedBorder).disabled(revealed || saving)
                         } else {
                             ForEach(Array(item.choices.enumerated()), id: \.offset) { index, choice in
                                 Button { selected[item.id] = index } label: {
                                     StudyAnswerChoice(number: index + 1, text: choice.isEmpty ? "选项 \(index + 1)（请听音频）" : choice,
-                                        selected: selected[item.id] == index, correct: revealed ? index == item.answerIndex : nil, flat: true)
+                                        selected: selected[item.id] == index, correct: revealed ? index == item.answerIndex : nil, flat: true, annotations: item.japaneseAnnotations ?? [])
                                 }.disabled(revealed || saving)
                             }
                         }
                         if revealed {
                             Text(item.freeResponse ? "请对照解析复盘你的回答" : selected[item.id] == item.answerIndex ? "回答正确" : "正确答案：\(item.answerIndex + 1)").font(.headline).foregroundStyle(DeckTheme.green)
-                            Text(item.explanation).lineSpacing(6).textSelection(.enabled)
+                            JapaneseText(text: item.explanation, explanation: true, annotations: item.japaneseAnnotations ?? []).lineSpacing(6).textSelection(.enabled)
                             ForEach(Array((item.choiceDetails ?? []).enumerated()), id: \.offset) { index, detail in
-                                VStack(alignment: .leading) { Text("选项 \(index + 1)").font(.subheadline.bold()); if let translation = detail.translation { Text(translation) }; if let explanation = detail.explanation { Text(explanation) } }.font(.subheadline)
+                                VStack(alignment: .leading) { Text("选项 \(index + 1)").font(.subheadline.bold()); if let translation = detail.translation { Text(translation) }; if let explanation = detail.explanation { JapaneseText(text: explanation, explanation: true, annotations: item.japaneseAnnotations ?? []) } }.font(.subheadline)
                             }
                         }
                     }.padding(.vertical, 16).overlay(alignment: .bottom) { Rectangle().fill(DeckTheme.line).frame(height: 1) }
@@ -139,7 +140,7 @@ struct ListeningDetailView: View {
                 } else {
                     DisclosureGroup("原文与译文") {
                         ForEach(group.questions) { item in
-                            if let transcript = item.transcript, !transcript.isEmpty { Text(transcript).padding(.vertical, 8).textSelection(.enabled) }
+                            if let transcript = item.transcript, !transcript.isEmpty { JapaneseText(text: transcript, japanese: true, annotations: group.questions.flatMap { $0.japaneseAnnotations ?? [] }).padding(.vertical, 8).textSelection(.enabled) }
                             if let translation = item.transcriptTranslation, !translation.isEmpty { Text(translation).foregroundStyle(.secondary).textSelection(.enabled) }
                         }
                     }

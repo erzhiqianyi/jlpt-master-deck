@@ -29,55 +29,12 @@ enum StudyDataCategory: String, CaseIterable, Identifiable {
     }
 }
 
-extension APIClient {
-    /// Read-only: inspecting the cloud must never populate or overwrite the local snapshot.
-    func fetchStudySnapshot(progress: (@MainActor @Sendable (Int, Int) -> Void)? = nil) async throws -> LocalStudyData {
-        struct Index: Decodable { let practices: [Summary]; struct Summary: Decodable { let id: String } }
-        struct Drafts: Decodable { let drafts: [PracticeDraft] }
-        struct Detail: Decodable { let practice: NativePack }
-        struct Shares: Decodable { let shares: [DiscoveryShare] }
-        async let data: ReviewData = get("api/review-data")
-        async let study: StudyState = get("api/study-state")
-        async let schedule: PlanEnvelope = get("api/study-plan")
-        async let questions: QuestionEnvelope = get("api/reading-questions")
-        async let inbox: CaptureEnvelope = get("api/captures")
-        async let index: Index = get("api/daily-practices")
-        async let draftResult: Drafts = get("api/drafts")
-        async let audioResult: ListeningEnvelope = get("api/listening-questions")
-        async let discovery: Shares = get("api/market")
-        let (review, state, plan, reading, captures, listing, drafts, listening, shares) = try await
-            (data, study, schedule, questions, inbox, index, draftResult, audioResult, discovery)
-        var packs: [NativePack] = []
-        await progress?(0, listing.practices.count)
-        for start in stride(from: 0, to: listing.practices.count, by: 4) {
-            try Task.checkCancellation()
-            let batch = listing.practices[start..<min(start + 4, listing.practices.count)]
-            let loaded = try await withThrowingTaskGroup(of: NativePack.self) { group in
-                for summary in batch {
-                    group.addTask {
-                        let detail: Detail = try await get("api/daily-practices/\(summary.id)")
-                        return detail.practice
-                    }
-                }
-                var result: [NativePack] = []
-                for try await pack in group { result.append(pack) }
-                return result
-            }
-            packs.append(contentsOf: loaded)
-            await progress?(packs.count, listing.practices.count)
-        }
-        return LocalStudyData(items: review.items, state: state, plan: plan.plan,
-                              reading: reading.questions, captures: captures.captures,
-                              packs: packs.sorted { $0.date > $1.date }, drafts: drafts.drafts,
-                              listening: listening.questions, shares: shares.shares,
-                              hasPracticeCache: true, hasListeningCache: true)
-    }
-}
 
 struct DatabaseCheckView: View {
     @Environment(AppStore.self) private var store
     @State private var local: LocalStudyData?
     @State private var cloud: LocalStudyData?
+    @State private var cloudCounts: [String: Int]?
     @State private var localReadSucceeded = false
     @State private var downloadedAudio = 0
     @State private var checkedAt: Date?
@@ -91,7 +48,7 @@ struct DatabaseCheckView: View {
         List {
             Section {
                 if let date = checkedAt { LabeledContent("云端检查时间", value: date.formatted(date: .abbreviated, time: .shortened)) }
-                if let date = local?.lastSync { LabeledContent("本机同步时间", value: date.formatted(date: .abbreviated, time: .shortened)) }
+                if let date = local?.lastSync { LabeledContent("云端数据下载时间", value: date.formatted(date: .abbreviated, time: .shortened)) }
                 if busy { ProgressView(store.syncStage ?? "正在检查…") }
                 if localReadSucceeded && local == nil { Text("本机尚未下载学习数据").foregroundStyle(.secondary) }
                 if let localError { Text(localError).foregroundStyle(.red) }
@@ -106,7 +63,7 @@ struct DatabaseCheckView: View {
                     Text("本机").frame(width: 64, alignment: .trailing)
                 }.font(.subheadline).foregroundStyle(.secondary)
                 ForEach(StudyDataCategory.allCases) { category in
-                    let remote = cloud.map { category.count(in: $0) }
+                    let remote = cloudCounts?[category.id] ?? cloud.map { category.count(in: $0) }
                     let disk = localReadSucceeded ? category.count(in: local ?? LocalStudyData()) : nil
                     HStack(alignment: .firstTextBaseline) {
                         Text(category.rawValue).frame(maxWidth: .infinity, alignment: .leading)
@@ -117,10 +74,10 @@ struct DatabaseCheckView: View {
                         .accessibilityLabel("\(category.rawValue)，云端 \(remote.map(String.init) ?? "未检查")，本机 \(disk.map(String.init) ?? "读取失败")")
                 }
             } header: { Text("学习数据") } footer: {
-                Text("本机数量读取已保存的数据；词条数量相同不代表图片已更新。有图数量统计关联图片的词条，不代表图片文件已下载。")
+                Text("下载时间不代表本机记录已全部上传，请同时检查待同步数量。本机数量读取已保存的数据；词条数量相同不代表图片已更新。有图数量统计关联图片的词条，不代表图片文件已下载。")
             }
             Section("离线音频") {
-                LabeledContent("云端关联音频", value: cloud.map { String(ListeningGroup.make($0.listening).count) } ?? "—")
+                LabeledContent("云端关联音频", value: cloudCounts?["audio"].map(String.init) ?? cloud.map { String(ListeningGroup.make($0.listening).count) } ?? "—")
                 LabeledContent("本机已下载", value: localReadSucceeded ? String(downloadedAudio) : "—")
                 Button("下载听力音频") { Task { await perform(.audio) } }
                     .disabled(disabled || !store.isOnline || !store.hasListeningCache)
@@ -156,6 +113,7 @@ struct DatabaseCheckView: View {
             guard store.session?.token == session.token else { return }
             await readLocal(userID: session.user.id)
             // Reuse the cloud snapshot just fetched by refresh instead of downloading every pack twice.
+            cloudCounts = nil
             cloud = downloaded
             checkedAt = downloaded == nil ? nil : .now
             cloudError = downloaded == nil ? "本次同步未取得完整云端数据。" : nil
@@ -167,13 +125,19 @@ struct DatabaseCheckView: View {
         if action == .audio { await store.downloadListeningAudio() }
         guard store.session?.token == session.token else { return }
         await readLocal(userID: session.user.id)
-        cloud = nil; checkedAt = nil; cloudError = nil
+        cloud = nil; cloudCounts = nil; checkedAt = nil; cloudError = nil
         guard store.isOnline else { cloudError = "当前离线，云端数量暂不可用。"; return }
         do {
-            let snapshot = try await APIClient(token: session.token).fetchStudySnapshot()
+            struct Status: Decodable { let counts: [String: Int] }
+            let status: Status = try await APIClient(token: session.token).get("api/sync/status")
             try Task.checkCancellation()
             guard store.session?.token == session.token else { return }
-            cloud = snapshot; checkedAt = .now
+            let keys = ["vocabulary", "grammar", "reading", "listening", "packs", "questions", "drafts", "tasks", "days", "progress", "answers", "captures", "discovery", "vocabularyImages", "grammarImages"]
+            cloudCounts = Dictionary(uniqueKeysWithValues: zip(StudyDataCategory.allCases, keys).compactMap { category, key in
+                status.counts[key].map { (category.id, $0) }
+            })
+            cloudCounts?["audio"] = status.counts["audio"]
+            checkedAt = .now
             // A background sync may have finished while fetching cloud statistics.
             await readLocal(userID: session.user.id)
         } catch is CancellationError { }
@@ -197,5 +161,37 @@ struct DatabaseCheckView: View {
             local = nil; localReadSucceeded = false
             localError = "本机数据读取失败：\(error.localizedDescription)"
         }
+    }
+}
+
+
+extension APIClient {
+    func fetchIncrementalStudy(cached: LocalStudyData, progress: (@MainActor @Sendable (Int, Int) -> Void)? = nil) async throws -> LocalStudyData {
+        struct Request: Encodable { let cursor: String?; let page: String? }
+        var data = cached
+        var page: String?
+        var completed = 0
+        var restarted = false
+        while true {
+            try Task.checkCancellation()
+            let response: StudySyncPage = try await post("api/sync", body: Request(cursor: data.syncCursor, page: page))
+            if response.restart == true {
+                guard !restarted else { throw APIError.invalidResponse }
+                restarted = true; data = cached; page = nil; completed = 0
+                continue
+            }
+            if page == nil && response.reset == true { data = LocalStudyData() }
+            try data.applySync(response.changes ?? [])
+            completed += response.changes?.count ?? 0
+            await progress?(completed, response.total ?? completed)
+            page = response.nextPage
+            if page == nil {
+                guard let cursor = response.cursor else { throw APIError.invalidResponse }
+                data.syncCursor = cursor
+                break
+            }
+        }
+        data.hasPracticeCache = true; data.hasListeningCache = true
+        return data
     }
 }

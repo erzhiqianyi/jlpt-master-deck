@@ -1,3 +1,4 @@
+import { normalizeVocabularyQuestionKinds } from '../../domain/vocabularyQuestionRules.mjs';
 import { SpeechPreferences } from './SpeechPreferences';
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
@@ -304,12 +305,33 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   }
   if (section === 'practice') {
     return (
+      <>
+      <SettingsRow title={{ 'zh-CN': '单词添加规则', ja: '単語追加のルール', en: 'Vocabulary save rules' }[settings.locale]}>
+        <fieldset className="grid gap-3">
+          <legend className="mb-3 text-sm">{{ 'zh-CN': '希望生成的 JLPT 語彙题型', ja: '生成する JLPT 語彙の問題形式', en: 'JLPT vocabulary question types to generate' }[settings.locale]}</legend>
+          {([
+            ['kanji_to_kana', '漢字読み（汉字读音）'], ['kana_to_kanji', '表記（假名选汉字）'],
+            ['word_formation', '語形成（构词）'], ['moji_goi', '文脈規定（语境填空）'],
+            ['meaning', '言い換え類義（近义替换）'], ['usage', '用法（词语用法）'],
+          ] as const).map(([kind, title]) => <label key={kind} className="flex min-h-11 items-center gap-3">
+            <input type="checkbox" checked={normalizeVocabularyQuestionKinds(settings).includes(kind)} onChange={(event) => {
+              const current = normalizeVocabularyQuestionKinds(settings) as NonNullable<DisplaySettings['jlptVocabularyQuestionKinds']>;
+              const selected = event.target.checked ? [...current, kind] : current.filter((entry) => entry !== kind);
+              onUpdateSettings({ ...settings, jlptVocabularyQuestionKinds: selected, requireJlptVocabularyQuestions: selected.length > 0 });
+            }} />
+            <span>{settings.locale === 'zh-CN' ? title : title.split('（')[0]}</span>
+          </label>)}
+        </fieldset>
+        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': 'MCP 添加或更新单词时，每个勾选题型至少须提供一道完整题目；全部不选则不校验。', ja: 'MCP で単語を保存する際、選択した形式ごとに完全な問題が1問以上必要です。未選択なら検証しません。', en: 'MCP word saves require at least one complete question for each selected type. Select none to skip validation.' }[settings.locale]}</p>
+      </SettingsRow>
+      <DailyPracticeSourceSettings settings={settings} onChange={onUpdateSettings} />
       <SettingsRow title={copy.feedbackTiming}>
         <div className="settings-feedback-options" role="group" aria-label={copy.feedbackTiming}>
           <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'immediate' })}>{labels.feedbackModeImmediate}</SegmentButton>
           <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
         </div>
       </SettingsRow>
+      </>
     );
   }
   if (section === 'memory') {
@@ -548,4 +570,20 @@ function SegmentButton({ active, children, onClick }: { active: boolean; childre
       {children}
     </button>
   );
+}
+
+function DailyPracticeSourceSettings({ settings, onChange }: { settings: DisplaySettings; onChange: (value: DisplaySettings) => void }) {
+  const value = settings.dailyPracticeSources ?? { answers: true, cardReviews: true, ratings: ['forgot', 'hard'], window: 'previous_day', hours: 24, timeZone: 'Asia/Tokyo', runAt: '07:00' };
+  const update = (patch: Partial<NonNullable<DisplaySettings['dailyPracticeSources']>>) => onChange({ ...settings, dailyPracticeSources: { ...value, ...patch } as NonNullable<DisplaySettings['dailyPracticeSources']> });
+  const copy = settings.locale === 'ja' ? ['毎日の練習のデータ源', '解答履歴', 'カード復習', '前日', '直近の時間', '時間数', 'タイムゾーン', 'AI 実行時刻', '自分の AI クライアントで時刻とタイムゾーンを設定してください。MCP は設定とデータを提供します。カード復習は既存の問題のみ使い、問題のないカードは省きます。', '忘れた', '難しい', '覚えている', '簡単'] : settings.locale === 'en' ? ['Daily practice sources', 'Answer history', 'Card reviews', 'Previous day', 'Recent hours', 'Hours', 'Time zone', 'AI run time', 'Configure scheduling in your own AI client using this time and zone. MCP supplies preferences and data. Card reviews reuse existing questions and skip cards without questions.', 'Forgot', 'Hard', 'Remembered', 'Easy'] : ['每日练习的数据来源', '答题记录', '卡片复习记录', '前一天', '过去若干小时', '小时数', '时区', 'AI 执行时间', '请在自己的 AI 客户端按此时间和时区配置定时任务。MCP 提供设置与数据。卡片复习只复用自带题目，没有题库的卡片跳过。', '忘记', '困难', '记得', '轻松'];
+  return <SettingsRow title={copy[0]}><div className="grid gap-3">
+    <Toggle label={copy[1]} checked={value.answers} onChange={answers => update({ answers })} />
+    <Toggle label={copy[2]} checked={value.cardReviews} onChange={cardReviews => update({ cardReviews })} />
+    <div className="grid grid-cols-2 gap-3">{(['forgot','hard','remembered','easy'] as const).map((rating,i) => <label key={rating} className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!value.cardReviews} checked={value.ratings.includes(rating)} onChange={e => update({ ratings: e.target.checked ? [...value.ratings, rating] as NonNullable<DisplaySettings['dailyPracticeSources']>['ratings'] : value.ratings.filter(r => r !== rating) as NonNullable<DisplaySettings['dailyPracticeSources']>['ratings'] })} /> {copy[i+9]}</label>)}</div>
+    <select className="min-h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3" aria-label={copy[0]} value={value.window} onChange={e => update({ window: e.target.value as 'previous_day' | 'last_hours' })}><option value="previous_day">{copy[3]}</option><option value="last_hours">{copy[4]}</option></select>
+    {value.window === 'last_hours' && <label>{copy[5]} <input className="min-h-11 w-24 rounded-md border border-[#c8bcae] bg-white px-3" type="number" min={1} max={720} value={value.hours} onChange={e => update({ hours: Math.max(1, Math.min(720, Number(e.target.value) || 24)) })} /></label>}
+    <label>{copy[6]} <select className="min-h-11 w-full max-w-full rounded-md border border-[#c8bcae] bg-white px-3" value={value.timeZone} onChange={e => update({ timeZone: e.target.value })}>{[...new Set([value.timeZone, 'Asia/Tokyo', ...Intl.supportedValuesOf('timeZone')])].map(zone => <option key={zone}>{zone}</option>)}</select></label>
+    <label>{copy[7]} <input className="min-h-11 rounded-md border border-[#c8bcae] bg-white px-3" type="time" value={value.runAt} onChange={e => update({ runAt: e.target.value })} /></label>
+    <p className="text-xs leading-5 text-[#7d837e]">{copy[8]}</p>
+  </div></SettingsRow>;
 }

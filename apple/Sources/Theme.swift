@@ -30,8 +30,8 @@ struct DeckRow: View {
         HStack(spacing: 16) {
             Image(systemName: icon).font(.title3).foregroundStyle(DeckTheme.accent).frame(width: 38, height: 42)
             VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.headline).foregroundStyle(DeckTheme.ink)
-                if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(DeckTheme.muted).lineLimit(2) }
+                JapaneseText(text: title, weight: .semibold).foregroundStyle(DeckTheme.ink)
+                if !subtitle.isEmpty { JapaneseText(text: subtitle, fontSize: 15, color: UIColor(red: 0.44, green: 0.47, blue: 0.46, alpha: 1)).foregroundStyle(DeckTheme.muted).lineLimit(2) }
             }
             Spacer(minLength: 8)
             if showsChevron { Image(systemName: "chevron.right").font(.caption).foregroundStyle(DeckTheme.muted) }
@@ -79,13 +79,16 @@ struct StudyAnswerChoice: View {
     let selected: Bool
     var correct: Bool? = nil
     var flat = false
+    var allowsRuby = true
+    var terms: [StudyItem.ReadingTerm] = []
+    var annotations: [JapaneseAnnotation] = []
     var tint: Color { correct == true ? DeckTheme.green : correct == false && selected ? DeckTheme.accent : DeckTheme.ink }
     var fill: Color { correct == true ? DeckTheme.green.opacity(0.08) : selected ? DeckTheme.accent.opacity(0.08) : .clear }
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(number)").font(.body.monospacedDigit()).frame(width: 30, height: 30)
                 .background(tint.opacity(0.07), in: Circle())
-            Text(text).font(.system(size: 18 * store.textScale)).lineSpacing(5).multilineTextAlignment(.leading)
+            JapaneseText(text: text, japanese: true, allowsRuby: allowsRuby, terms: terms, annotations: annotations, fontSize: 18 * store.textScale).lineSpacing(5).multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
             if correct == true { Image(systemName: "checkmark.circle.fill") }
             else if selected { Image(systemName: correct == false ? "xmark.circle.fill" : "checkmark.circle.fill") }
@@ -127,23 +130,5 @@ extension AppStore {
         if case .bool(let value) = state.settings?[key] { return value }
         return true
     }
-    func readingText(_ text: String, item: StudyItem?, explanation: Bool = false) -> String {
-        guard displayFlag(explanation ? "showExplanationRuby" : "showReviewRuby"), let item else { return text }
-        var terms = item.ruby_terms ?? []
-        if let reading = item.reading, !reading.isEmpty, reading != item.original {
-            terms.append(StudyItem.ReadingTerm(text: item.original, reading: reading))
-        }
-        let sorted = terms.filter { !$0.text.isEmpty && !$0.reading.isEmpty && $0.text != $0.reading }.sorted { $0.text.count > $1.text.count }
-        var remaining = text[...], result = ""
-        while !remaining.isEmpty {
-            if let term = sorted.first(where: { remaining.hasPrefix($0.text) }) {
-                result += term.text
-                remaining = remaining.dropFirst(term.text.count)
-                if !remaining.hasPrefix("（" + term.reading + "）") { result += "（" + term.reading + "）" }
-            } else {
-                result.append(remaining.removeFirst())
-            }
-        }
-        return result
-    }
+
 }

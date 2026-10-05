@@ -1,3 +1,4 @@
+import { JapaneseText } from '../../components/JapaneseText';
 import './practice-layout.css';
 import { emptyLegacyMockState, legacyMockRevision, legacyMockStorageKey, readLegacyMockState, type SavedExamState } from './legacyMockState';
 import { conciseEvidence } from './practicePresentation';
@@ -308,7 +309,7 @@ function MockExamContent({ examId, userId, locale, onBack }: MockExamPanelProps)
           <button type="button" onClick={() => setWrongOnly((value) => !value)} className="h-9 rounded-md border border-[#c9d4cc] bg-white px-3 text-sm font-bold text-[#46514c]">{wrongOnly ? t.all : t.onlyWrong}</button>
         </div>
         <div className="mt-3 grid gap-4">
-          {wrongOnly && reviewQuestions.length === 0 ? <p role="status" className="practice-results-empty">{t.allCorrect}</p> : <LearningList locale={locale} columnLabels={locale === "ja" ? ["問題", "内容", "結果"] : locale === "en" ? ["Question", "Content", "Result"] : ["题目", "内容", "结果"]}>{reviewQuestions.map((item) => <LearningListRow key={item.id} title={item.group} description={item.prompt} locale={locale} expanded={reviewQuestionId === item.id} statusKind={saved.answers[item.id] === undefined ? 'unanswered' : saved.answers[item.id] === item.answerIndex ? 'correct' : 'incorrect'} status={saved.answers[item.id] === undefined ? t.noAnswer : saved.answers[item.id] === item.answerIndex ? (locale === 'ja' ? '正解' : locale === 'en' ? 'Correct' : '正确') : (locale === 'ja' ? '不正解' : locale === 'en' ? 'Incorrect' : '错误')} onOpen={() => setReviewQuestionId(reviewQuestionId === item.id ? null : item.id)} secondary={reviewQuestionId === item.id ? <div className="w-full"><ReviewQuestion item={item} selected={saved.answers[item.id]} t={t}/></div> : undefined}/>)}</LearningList>}
+          {wrongOnly && reviewQuestions.length === 0 ? <p role="status" className="practice-results-empty">{t.allCorrect}</p> : <LearningList locale={locale} columnLabels={locale === "ja" ? ["問題", "内容", "結果"] : locale === "en" ? ["Question", "Content", "Result"] : ["题目", "内容", "结果"]}>{reviewQuestions.map((item) => <LearningListRow key={item.id} title={item.group} description={<JapaneseText text={item.prompt} annotations={item.japaneseAnnotations} ruby />} locale={locale} expanded={reviewQuestionId === item.id} statusKind={saved.answers[item.id] === undefined ? 'unanswered' : saved.answers[item.id] === item.answerIndex ? 'correct' : 'incorrect'} status={saved.answers[item.id] === undefined ? t.noAnswer : saved.answers[item.id] === item.answerIndex ? (locale === 'ja' ? '正解' : locale === 'en' ? 'Correct' : '正确') : (locale === 'ja' ? '不正解' : locale === 'en' ? 'Incorrect' : '错误')} onOpen={() => setReviewQuestionId(reviewQuestionId === item.id ? null : item.id)} secondary={reviewQuestionId === item.id ? <div className="w-full"><ReviewQuestion item={item} selected={saved.answers[item.id]} t={t}/></div> : undefined}/>)}</LearningList>}
         </div>
       </section>
     );
@@ -347,15 +348,15 @@ function MockExamContent({ examId, userId, locale, onBack }: MockExamPanelProps)
             </div>
             <div className="p-4 md:p-7">
               {currentQuestion.audioUrl ? <audio ref={audioRef} key={currentQuestion.id} aria-keyshortcuts="Space" className="w-full" controls preload="metadata" src={currentQuestion.audioUrl} /> : null}
-              {currentQuestion.passage ? <div className="mb-6 whitespace-pre-wrap rounded-md border border-[#e1e7df] bg-[#fafbf8] p-4 text-base leading-8 text-[#34423b] md:p-6">{currentQuestion.passage}</div> : null}
-              <h1 className="whitespace-pre-wrap text-lg font-bold leading-8 text-[#27312c]">{currentQuestion.prompt}</h1>
+              {currentQuestion.passage ? <div className="mb-6 whitespace-pre-wrap rounded-md border border-[#e1e7df] bg-[#fafbf8] p-4 text-base leading-8 text-[#34423b] md:p-6">{<JapaneseText text={currentQuestion.passage} annotations={currentQuestion.japaneseAnnotations} />}</div> : null}
+              <h1 className="whitespace-pre-wrap text-lg font-bold leading-8 text-[#27312c]">{<JapaneseText text={currentQuestion.prompt} annotations={currentQuestion.japaneseAnnotations} />}</h1>
               <div className="mt-6 grid gap-3">
                 {currentQuestion.choices.map((choice, choiceIndex) => {
                   const selected = saved.answers[currentQuestion.id] === choiceIndex;
                   return (
                     <button key={choiceIndex} type="button" aria-keyshortcuts={String(choiceIndex + 1)} aria-pressed={selected} onClick={() => answer(currentQuestion.id, choiceIndex)} className={`study-answer-option flex min-h-14 w-full items-start gap-3 rounded-md border px-4 py-3 text-left text-base leading-7 transition ${selected ? 'border-[#31564c] bg-[#edf6f0] text-[#24473f] ring-1 ring-[#31564c]' : 'border-[#dce4dd] bg-white text-[#3f4944] hover:bg-[#f7faf7]'}`}>
                       <span className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${selected ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#bdc9c1] bg-white text-[#5d6962]'}`}>{choiceIndex + 1}</span>
-                      <span>{choice}</span>
+                      <span><JapaneseText text={choice} annotations={currentQuestion.japaneseAnnotations} /></span>
                     </button>
                   );
                 })}
@@ -401,15 +402,15 @@ function ReviewQuestion({ item, selected, t }: { item: MockExamQuestion; selecte
         <p className="text-xs font-bold text-[#7a837d]">{item.group} · {item.id}</p>
         {correct ? <CheckCircle2 size={20} className="text-[#3f7653]" /> : <AlertTriangle size={20} className="text-[#b54562]" />}
       </div>
-      {item.passage ? <details className="mt-3 rounded-md bg-[#f7f9f6] p-3 text-sm leading-7 text-[#46514c]"><summary className="cursor-pointer font-bold">本文</summary><p className="mt-3 whitespace-pre-wrap">{item.passage}</p></details> : null}
-      <p className="mt-4 whitespace-pre-wrap font-bold leading-7 text-[#27312c]">{item.prompt}</p>
+      {item.passage ? <details className="mt-3 rounded-md bg-[#f7f9f6] p-3 text-sm leading-7 text-[#46514c]"><summary className="cursor-pointer font-bold">本文</summary><p className="mt-3 whitespace-pre-wrap">{<JapaneseText text={item.passage} annotations={item.japaneseAnnotations} ruby />}</p></details> : null}
+      <p className="mt-4 whitespace-pre-wrap font-bold leading-7 text-[#27312c]">{<JapaneseText text={item.prompt} annotations={item.japaneseAnnotations} ruby />}</p>
       <div className="mt-4 grid gap-2 text-sm leading-6">
         <p><span className="font-bold text-[#6c7770]">{t.yourAnswer}: </span>{selected === undefined ? t.noAnswer : `${selected + 1}. ${item.choices[selected]}`}</p>
-        <p className="text-[#31564c]"><span className="font-bold">{t.correctAnswer}: </span>{item.answerIndex + 1}. {item.choices[item.answerIndex]}</p>
+        <p className="text-[#31564c]"><span className="font-bold">{t.correctAnswer}: </span>{item.answerIndex + 1}. {<JapaneseText text={item.choices[item.answerIndex]} annotations={item.japaneseAnnotations} ruby />}</p>
       </div>
-      <p className="mt-4 rounded-md bg-[#f4f7f3] p-3 text-sm leading-7 text-[#46514c]"><span className="font-bold">{t.explanation}: </span>{evidence.summary}</p>
-      {evidence.hasMore ? <details className="practice-mock-explanation mt-3"><summary>{t.explanation}</summary><p>{item.explanation}</p></details> : null}
-      {item.transcript ? <details className="mt-3 rounded-md border border-[#dce4dd] p-3 text-sm leading-7 text-[#46514c]"><summary className="cursor-pointer inline-flex items-center gap-2 font-bold"><Headphones size={16} />{t.transcript}</summary><p className="mt-3 whitespace-pre-wrap">{item.transcript}</p></details> : null}
+      <p className="mt-4 rounded-md bg-[#f4f7f3] p-3 text-sm leading-7 text-[#46514c]"><span className="font-bold">{t.explanation}: </span>{<JapaneseText text={evidence.summary} annotations={item.japaneseAnnotations} ruby />}</p>
+      {evidence.hasMore ? <details className="practice-mock-explanation mt-3"><summary>{t.explanation}</summary><p>{<JapaneseText text={item.explanation} annotations={item.japaneseAnnotations} ruby />}</p></details> : null}
+      {item.transcript ? <details className="mt-3 rounded-md border border-[#dce4dd] p-3 text-sm leading-7 text-[#46514c]"><summary className="cursor-pointer inline-flex items-center gap-2 font-bold"><Headphones size={16} />{t.transcript}</summary><p className="mt-3 whitespace-pre-wrap">{<JapaneseText text={item.transcript} annotations={item.japaneseAnnotations} ruby />}</p></details> : null}
     </article>
   );
 }

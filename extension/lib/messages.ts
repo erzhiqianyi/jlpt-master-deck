@@ -40,6 +40,7 @@ export interface AppUser {
 
 export type ExtensionMessage =
   | { type: 'GET_STATE' }
+  | { type: 'GET_STUDY_SETTINGS' }
   | { type: 'LOGIN' }
   | { type: 'LOGOUT' }
   | { type: 'SET_API_BASE_URL'; apiBaseUrl: string }

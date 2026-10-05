@@ -1,3 +1,8 @@
+let writeVersion = 0;
+const pendingWrites = new Set<Promise<void>>();
+export const studyWriteVersion = () => writeVersion;
+export async function waitForStudyWrites() { while (pendingWrites.size) await Promise.all([...pendingWrites]); }
+
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
     super(message);
@@ -9,6 +14,11 @@ export async function apiRequest<T = unknown>(
   path: string,
   options: { method?: string; token?: string; body?: unknown; timeoutMs?: number } = {},
 ): Promise<T> {
+  const mutation = (options.method ?? 'GET') !== 'GET' && path !== '/api/sync';
+  let completed: (() => void) | undefined;
+  const pending = mutation ? new Promise<void>(resolve => { completed = resolve; }) : undefined;
+  if (pending) { writeVersion++; pendingWrites.add(pending); }
+  try {
   const response = await fetch(path, {
     method: options.method ?? 'GET',
     ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
@@ -23,4 +33,7 @@ export async function apiRequest<T = unknown>(
     throw new ApiError(typeof json.error === 'string' ? json.error : `Request failed: ${response.status}`, response.status);
   }
   return json as T;
+  } finally {
+    if (pending) { writeVersion++; pendingWrites.delete(pending); completed?.(); }
+  }
 }

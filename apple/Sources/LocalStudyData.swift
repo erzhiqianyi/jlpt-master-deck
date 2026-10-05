@@ -10,6 +10,9 @@ struct PendingAnswer: Codable, Identifiable {
     var historyOnly: Bool? = nil
     enum Disposition { case send, alreadyApplied, conflict }
     func disposition(cloud: ProgressEntry) -> Disposition {
+        // Subjective ratings are immutable events. The server deduplicates and merges
+        // them even when another device has advanced this card's progress.
+        if input.questionId.hasPrefix("memory-card:"), MemoryRating(rawValue: input.selected) != nil { return .send }
         if historyOnly == true { return .alreadyApplied }
         if cloud == input.progressEntry { return .alreadyApplied }
         return cloud == before ? .send : .conflict
@@ -36,6 +39,7 @@ struct LocalStudyData: Codable {
     var shares: [DiscoveryShare] = []
     var pending: [PendingAnswer] = []
     var lastSync: Date?
+    var syncCursor: String?
     var hasPracticeCache = false
     var hasListeningCache = false
     var responses: [String: LocalStudyResponse]?
@@ -238,5 +242,65 @@ actor NativeImageCache {
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]) else { return false }
             return values.isRegularFile == true && (values.fileSize ?? 0) > 0
         }.count
+    }
+}
+
+
+struct StudySyncChange: Decodable {
+    let collection: String
+    let id: String
+    var value: SettingValue?
+    var deleted: Bool?
+}
+struct StudySyncPage: Decodable {
+    var changes: [StudySyncChange]?
+    var cursor: String?
+    var nextPage: String?
+    var reset: Bool?
+    var restart: Bool?
+    var total: Int?
+}
+extension LocalStudyData {
+    mutating func applySync(_ changes: [StudySyncChange]) throws {
+        func decode<T: Decodable>(_ change: StudySyncChange) throws -> T {
+            guard let value = change.value else { throw APIError.invalidResponse }
+            return try JSONDecoder().decode(T.self, from: JSONEncoder().encode(value))
+        }
+        func update<T: Decodable & Identifiable>(_ values: inout [T], _ change: StudySyncChange) throws where T.ID == String {
+            values.removeAll { $0.id == change.id }
+            if change.deleted != true { values.append(try decode(change)) }
+        }
+        for change in changes {
+            switch change.collection {
+            case "items": try update(&items,change)
+            case "reading": try update(&reading,change)
+            case "listening": try update(&listening,change)
+            case "captures": try update(&captures,change)
+            case "packs": try update(&packs,change)
+            case "drafts": try update(&drafts,change)
+            case "shares": try update(&shares,change)
+            case "cardReviews":
+                var values = state.cardReviews ?? []; try update(&values,change); state.cardReviews = values
+            case "attemptHistory":
+                var values = state.attemptHistory ?? []; try update(&values,change); state.attemptHistory = values
+            case "progress":
+                if change.deleted == true { state.progress.removeValue(forKey: change.id) }
+                else { state.progress[change.id] = try decode(change) }
+            case "answers":
+                if change.deleted == true { state.answers.removeValue(forKey: change.id) }
+                else { state.answers[change.id] = try decode(change) }
+            case "stateMeta":
+                struct Meta: Decodable { var settings: [String: SettingValue]? }
+                let meta: Meta = try decode(change); state.settings = meta.settings
+            case "plan":
+                let header: StudyPlan = try decode(change); plan.profile = header.profile
+            case "planTasks": try update(&plan.tasks,change)
+            case "planDays": try update(&plan.dailySummaries,change)
+            default: break // Collections used only by the web client.
+            }
+        }
+        packs.sort { $0.date > $1.date }
+        state.cardReviews?.sort { $0.reviewedAt < $1.reviewedAt }
+        state.attemptHistory?.sort { ($0.completedAt ?? $0.startedAt) > ($1.completedAt ?? $1.startedAt) }
     }
 }

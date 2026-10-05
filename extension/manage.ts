@@ -30,6 +30,16 @@ async function refreshAccount() {
     return null;
   }
   apiBaseUrlInput.value = state.data.apiBaseUrl;
+  const ruleLink = document.getElementById('vocabulary-rule-settings') as HTMLAnchorElement;
+  ruleLink.href = `${state.data.apiBaseUrl}/#/settings/practice`;
+  const ruleStatus = document.getElementById('vocabulary-rule-status') as HTMLElement;
+  ruleStatus.textContent = '单词添加规则：请登录后查看';
+  if (state.data.user) {
+    const rule = await sendMessage<{ jlptVocabularyQuestionKinds: string[] }>({ type: 'GET_STUDY_SETTINGS' });
+    ruleStatus.textContent = rule.ok
+      ? `单词添加规则：${rule.data.jlptVocabularyQuestionKinds.length ? `必须生成 ${rule.data.jlptVocabularyQuestionKinds.map(kind => ({ kanji_to_kana: '漢字読み', kana_to_kanji: '表記', word_formation: '語形成', moji_goi: '文脈規定', meaning: '言い換え類義', usage: '用法' }[kind] ?? kind)).join('、')}` : '不校验 JLPT 語彙题目'}`
+      : `单词添加规则读取失败：${rule.error}`;
+  }
   accountEl.innerHTML = state.data.user
     ? `<span>已登录：${formatIdentity(state.data.user)}</span> <button id="logout" type="button">退出登录</button>`
     : '<button id="login" type="button">登录</button>';
@@ -167,3 +177,5 @@ manualForm.addEventListener('submit', async (event) => {
 
 void refreshAccount().then(refreshList);
 void refreshManualWordbooks();
+
+window.addEventListener('focus', () => { void refreshAccount(); });

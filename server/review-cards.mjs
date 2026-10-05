@@ -1,4 +1,4 @@
-import { getStudyState, loadReviewData, saveProgressEntry } from './storage.mjs';
+import { getStudyState, loadReviewData, saveCardReview, getDb } from './storage.mjs';
 import { normalizeCoreMemory } from '../src/domain/coreMemory.mjs';
 
 // Only configured text fields enter the widget. Media needs separate authenticated delivery.
@@ -49,10 +49,17 @@ export function getReviewCards(userId, { deck, wordbook_id, only_due = true, lim
 export const MEMORY_RATINGS = ['forgot', 'hard', 'remembered', 'easy'];
 
 /** Apply the same intervals and ease adjustments as the website's focused review. */
-export function rateReviewCard(userId, itemId, rating, now = new Date()) {
+export function rateReviewCard(userId, itemId, rating, now = new Date(), eventId) {
   if (!MEMORY_RATINGS.includes(rating)) throw new Error('Invalid card rating');
   const item = loadReviewData(userId).items.find((candidate) => candidate.id === itemId);
   if (!item) throw new Error('Review card not found');
+  if (eventId) {
+    const previous = getDb().prepare('SELECT item_id,rating FROM card_reviews WHERE user_id=? AND event_id=?').get(userId,eventId);
+    if (previous) {
+      if (previous.item_id !== itemId || previous.rating !== rating) throw new Error('Card review event ID conflicts with saved event');
+      return { item_id: itemId, rating, progress: getStudyState(userId).progress[itemId] };
+    }
+  }
   const current = getStudyState(userId).progress[itemId] ?? { correct: 0, wrong: 0, status: 'new' };
   const intervals = { forgot: 0, hard: 1, remembered: 3, easy: 7 };
   const easeDelta = { forgot: -0.2, hard: -0.05, remembered: 0.05, easy: 0.15 };
@@ -71,6 +78,6 @@ export function rateReviewCard(userId, itemId, rating, now = new Date()) {
     intervalDays: intervals[rating],
     nextReviewAt: nextDate.toISOString(),
   };
-  saveProgressEntry(userId, itemId, progress);
-  return { item_id: itemId, rating, progress };
+  saveCardReview(userId, itemId, rating, progress, { eventId, reviewedAt: now.toISOString(), source: 'mcp' });
+  return { item_id: itemId, rating, progress: getStudyState(userId).progress[itemId] };
 }

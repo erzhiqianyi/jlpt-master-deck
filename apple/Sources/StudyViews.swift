@@ -7,7 +7,6 @@ struct LibraryView: View {
     let grammarOnly: Bool
     let vocabularyOnly: Bool
     let query: String
-    let review: (StudyItem) -> Void
     private var filtered: [StudyItem] {
         store.items.filter { (!grammarOnly || $0.isGrammar) && (!vocabularyOnly || !$0.isGrammar) && (query.isEmpty || [$0.original, $0.reading ?? "", $0.meaning_zh ?? ""].joined().localizedCaseInsensitiveContains(query)) }
     }
@@ -26,40 +25,81 @@ struct LibraryView: View {
 struct ItemDetailView: View {
     @Environment(AppStore.self) private var store
     let item: StudyItem
-    let review: () -> Void
+    @State private var round: NativeRound?
+    @State private var practiceError: String?
+    @State private var preparingPractice = false
+    private var locale: String { store.appLanguage }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Text(item.isGrammar ? "语法" : "词汇").font(.subheadline.weight(.semibold)).foregroundStyle(DeckTheme.green)
+                        if let level = item.jlpt_level { Text(level).font(.caption.weight(.semibold)).foregroundStyle(DeckTheme.muted) }
+                        if let part = item.part_of_speech { Text(part).font(.caption).foregroundStyle(DeckTheme.muted) }
+                        Spacer(minLength: 0)
+                        NativeCopyButton(value: item.original, label: "复制单词", identifier: "entry.copyWord")
+                        NativeSpeechControls(text: item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original, label: "朗读词条", iconOnly: true)
+                    }
+                    JapaneseText(text: item.original, item: item, japanese: true, fontSize: 34 * store.textScale, weight: .semibold)
+                        .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    if let reading = item.cardText("reading", locale: locale), !store.displayFlag("showReviewRuby") {
+                        Text(reading).font(.subheadline).foregroundStyle(DeckTheme.muted)
+                    }
+                }
+                detailSection("meaning", icon: "text.alignleft")
+                ForEach(["meaning_ja", "patterns", "points", "comparisons", "register", "conjugations"], id: \.self) { field in
+                    detailSection(field, icon: "list.bullet")
+                }
+                if !item.reviewExamples.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(store.readingText(item.original, item: item)).font(.system(size: 42 * store.textScale, weight: .medium, design: .serif)).textSelection(.enabled)
-                        Text(item.reading ?? "").font(.title3).foregroundStyle(DeckTheme.muted)
-                    }
-                    Spacer()
-                    NativeCopyButton(value: item.original, label: "复制单词", identifier: "entry.copyWord")
-                    NativeSpeechControls(text: item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original, label: "朗读词条", iconOnly: true)
-                }
-                Divider()
-                Text(item.cardText("meaning", locale: store.appLanguage) ?? "暂无释义").font(.title2)
-                ForEach(Array((item.examples ?? []).enumerated()), id: \.offset) { _, example in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top, spacing: 8) {
-                            Text(store.readingText(example.ja, item: item)).font(.title3).textSelection(.enabled)
-                            Spacer(minLength: 0)
-                            NativeSpeechControls(text: example.ja, label: "朗读例句", iconOnly: true, identifier: "entry.example.\(item.id).\(example.ja)", showsRepeat: true)
+                        sectionHeading("例句", icon: "quote.opening")
+                        ForEach(Array(item.reviewExamples.enumerated()), id: \.offset) { index, example in
+                            NativeExampleCard(
+                                japanese: example.ja,
+                                item: item,
+                                translation: example.zh,
+                                speechText: example.ja,
+                                number: item.reviewExamples.count > 1 ? index + 1 : nil,
+                                identifier: "entry.example.\(item.id).\(example.ja)"
+                            )
                         }
-                        Text(example.zh ?? "").foregroundStyle(DeckTheme.muted)
                     }
                 }
-                if let explanation = item.cardText("explanation", locale: store.appLanguage) { Text(store.readingText(explanation, item: item, explanation: true)).lineSpacing(7).textSelection(.enabled) }
-                if let notes = item.core_memory, !notes.isEmpty {
-                    DisclosureGroup("记忆提示") { Text(store.readingText(notes.joined(separator: "\n"), item: item, explanation: true)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12) }
+                detailSection("explanation", icon: "text.book.closed")
+                if let memory = item.cardText("core_memory", locale: locale) {
+                    DisclosureGroup("记忆提示") {
+                        detailText(memory).padding(.top, 10)
+                    }.font(.body).tint(DeckTheme.green)
                 }
-                Text(item.sourceLabel).font(.caption).foregroundStyle(DeckTheme.muted)
-                CardIdentityFooter(item: item)
-                Button("复习这个词条", action: review).buttonStyle(PrimaryButton())
-            }.frame(maxWidth: 760).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
-        }.background(DeckTheme.paper).navigationTitle("词条详情")
+                detailSection("notes", icon: "note.text")
+                VStack(spacing: 12) {
+                    Text(item.sourceLabel).font(.caption).foregroundStyle(DeckTheme.muted)
+                    CardIdentityFooter(item: item)
+                }.padding(.top, 4)
+            }.font(.body).frame(maxWidth: 760).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
+        }
+        .background(DeckTheme.paper)
+        .navigationTitle(item.isGrammar ? "语法详情" : "词条详情")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button(action: startPractice) {
+                HStack(spacing: 8) {
+                    if preparingPractice { ProgressView().tint(.white) }
+                    Text(preparingPractice ? "正在准备练习…" : "练习这个条目")
+                    Image(systemName: "arrow.right")
+                }
+            }.buttonStyle(PrimaryButton()).disabled(preparingPractice)
+                .accessibilityIdentifier("entry.practice")
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .frame(maxWidth: 792).frame(maxWidth: .infinity)
+                .background(DeckTheme.paper)
+        }
+        .fullScreenCover(item: $round) { NativeQuizView(round: $0) }
+        .alert("相关练习", isPresented: Binding(get: { practiceError != nil }, set: { if !$0 { practiceError = nil } })) {
+            Button("知道了", role: .cancel) { practiceError = nil }
+        } message: { Text(practiceError ?? "") }
         .task(id: item.id) {
             if item.isGrammar, store.speechConfiguration.grammarAuto {
                 store.speechPlayer.play(store.speechConfiguration.text(for: item), store: store, owner: "grammar-auto")
@@ -68,6 +108,36 @@ struct ItemDetailView: View {
         .onDisappear { store.speechPlayer.stop() }
     }
 
+    private func sectionHeading(_ title: String, icon: String) -> some View {
+        Label(title, systemImage: icon).font(.subheadline.weight(.semibold)).foregroundStyle(DeckTheme.green)
+    }
+    private func detailText(_ text: String, japanese: Bool = false) -> some View {
+        JapaneseText(text: text, item: item, japanese: japanese, explanation: true)
+            .font(.body).lineSpacing(5).textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
+    }
+    @ViewBuilder private func detailSection(_ field: String, icon: String) -> some View {
+        if let text = item.cardText(field, locale: locale) {
+            VStack(alignment: .leading, spacing: 10) {
+                Divider()
+                sectionHeading(CardFields.label(field), icon: icon)
+                detailText(text, japanese: field == "meaning_ja")
+            }
+        }
+    }
+    private func startPractice() {
+        preparingPractice = true
+        defer { preparingPractice = false }
+        do {
+            let questions = try NativeItemQuestions.build(item: item, items: store.items, packs: store.packs, locale: locale)
+            guard !questions.isEmpty else {
+                practiceError = "这个条目暂时没有可用的练习题。联网同步后可以再试。"
+                return
+            }
+            store.speechPlayer.stop()
+            round = NativeRound(title: item.original + " · 相关练习", questions: questions, view: item.isGrammar ? "grammar" : "vocabulary")
+        } catch { practiceError = "无法打开相关练习：" + error.localizedDescription }
+    }
 }
 
 struct MemoryReviewView: View {
@@ -194,6 +264,11 @@ struct ReadingPracticeView: View {
     init(question: ReadingQuestion) { _question = State(initialValue: question) }
     @State private var selected: Int?
     @State private var submitted = false
+    @State private var viewingAnswer = false
+    private var previouslyAnswered: Bool {
+        let progress = store.state.progress[question.id]
+        return (progress?.reviewCount ?? 0) > 0 || (progress?.correct ?? 0) + (progress?.wrong ?? 0) > 0
+    }
     @State private var celebration = 0
     @State private var error: String?
     @State private var sessionID = UUID().uuidString
@@ -208,36 +283,43 @@ struct ReadingPracticeView: View {
         .onDisappear { store.speechPlayer.stop() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !submitted {
-                confirmButton.accessibilityIdentifier("reading.confirm").frame(maxWidth: 1120).padding(.horizontal, 16).padding(.vertical, 8).frame(maxWidth: .infinity).background(DeckTheme.paper)
+                HStack(spacing: 12) {
+                    if previouslyAnswered {
+                        Button("查看答案") { selected = nil; viewingAnswer = true; submitted = true; error = nil }
+                            .buttonStyle(.bordered).disabled(store.isSaving).accessibilityIdentifier("reading.viewAnswer")
+                    }
+                    confirmButton.accessibilityIdentifier("reading.confirm")
+                }.frame(maxWidth: 1120).padding(.horizontal, 16).padding(.vertical, 8).frame(maxWidth: .infinity).background(DeckTheme.paper)
             }
         }
     }
     private var passage: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(question.title).font(.system(size: 18 * store.textScale, weight: .semibold, design: .serif))
+            JapaneseText(text: question.title, japanese: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? [], fontSize: 18 * store.textScale, weight: .semibold)
             if submitted {
                 NativeSpeechControls(text: question.passage, label: "朗读全文", identifier: "reading.speak")
             }
-            Text(question.passage).font(.system(size: 18 * store.textScale, design: .serif)).lineSpacing(7).textSelection(.enabled)
+            JapaneseText(text: question.passage, japanese: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? [], fontSize: 18 * store.textScale).lineSpacing(7).textSelection(.enabled)
             if store.isDemo { Text("原创示例 · AI 生成 · 待核验").font(.caption).foregroundStyle(DeckTheme.muted) }
         }
     }
     private var answers: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("\(submitted ? "答题回顾" : "选择答案")").font(.headline)
-            Text(question.question).font(.title3).lineSpacing(6)
+            JapaneseText(text: question.question, japanese: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? []).lineSpacing(6)
             ForEach(question.choices.indices, id: \.self) { index in
                 Button { selected = index } label: {
                     StudyAnswerChoice(number: index + 1, text: question.choices[index], selected: selected == index,
-                        correct: submitted ? index == question.answerIndex : nil, flat: true)
+                        correct: submitted ? index == question.answerIndex : nil, flat: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? [])
                 }.disabled(submitted || store.isSaving).accessibilityIdentifier("reading.choice.\(index)")
                     .accessibilityValue(selected == index ? "已选择" : "未选择")
             }
             if submitted {
-                Label(selected == question.answerIndex ? "回答正确" : "再看一下原文", systemImage: selected == question.answerIndex ? "checkmark.circle.fill" : "info.circle")
-                    .foregroundStyle(DeckTheme.green).font(.headline)
-                Text(question.explanation).lineSpacing(7).textSelection(.enabled)
-                Text(store.isDemo ? "演示结果仅保存在本次体验" : store.pendingCount > 0 ? "已保存到本机，等待同步" : "已同步学习进度").font(.caption).foregroundStyle(DeckTheme.muted)
+                if !viewingAnswer { Label(selected == question.answerIndex ? "回答正确" : "再看一下原文", systemImage: selected == question.answerIndex ? "checkmark.circle.fill" : "info.circle")
+                    .foregroundStyle(DeckTheme.green).font(.headline) }
+                JapaneseText(text: question.explanation, explanation: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? []).lineSpacing(7).textSelection(.enabled)
+                if !viewingAnswer { Text(store.isDemo ? "演示结果仅保存在本次体验" : store.pendingCount > 0 ? "已保存到本机，等待同步" : "已同步学习进度").font(.caption).foregroundStyle(DeckTheme.muted) }
+                if viewingAnswer { Button("再练一次") { submitted = false; viewingAnswer = false; selected = nil; sessionID = UUID().uuidString }.buttonStyle(.bordered) }
             }
             if let error { Text(error).foregroundStyle(.red) }
         }

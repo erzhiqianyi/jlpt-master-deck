@@ -8,6 +8,7 @@ struct StudyItem: Codable, Identifiable {
     let deck: String
     let original: String
     var reading: String?
+    var japanese_annotations: [JapaneseAnnotation]?
     var ruby_terms: [ReadingTerm]?
     struct ReadingTerm: Codable { var text: String; var reading: String }
     var meaning_zh: String?
@@ -32,6 +33,12 @@ struct StudyItem: Codable, Identifiable {
     struct Localization: Codable { var meaning: String?; var explanation: String?; var core_memory: [String]? }
     var content_origin: String?
     var verification_status: String?
+    // Preserve the web question inputs in downloaded and offline snapshots.
+    var type: String?
+    var paraphrase_ja: String?
+    var question_kinds: [String]?
+    var question_distractors: [String: [String]]?
+    var practice_questions: [[String: SettingValue]]?
     var copyIdentifier: String {
         let value = reference?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return value.isEmpty ? id : value
@@ -51,6 +58,7 @@ struct StudyState: Codable {
     var progress: [String: ProgressEntry] = [:]
     var answers: [String: Answer] = [:]
     var attemptHistory: [NativeAttempt]?
+    var cardReviews: [CardReview]?
     struct Answer: Codable { let selected: String; let correct: Bool; var answeredAt: String? }
 }
 struct ProgressEntry: Codable, Equatable {
@@ -110,6 +118,8 @@ struct QuestionEnvelope: Decodable { let questions: [ReadingQuestion] }
 struct ReadingQuestion: Codable, Identifiable {
     let id: String; let title: String; let passage: String
     let question: String; let choices: [String]; let answerIndex: Int; let explanation: String
+    var rubyTerms: [StudyItem.ReadingTerm]?
+    var japaneseAnnotations: [JapaneseAnnotation]?
 }
 struct CaptureEnvelope: Decodable { let captures: [Capture] }
 struct Capture: Codable, Identifiable {
@@ -117,10 +127,18 @@ struct Capture: Codable, Identifiable {
 }
 struct CaptureInput: Encodable { let body: String; let category: String; let context: String }
 struct CaptureResult: Decodable { let capture: Capture }
+struct CardReview: Codable, Identifiable {
+    let eventId: String; let itemId: String; let rating: String; let reviewedAt: String
+    var source: String?
+    var id: String { eventId }
+}
 struct AnswerInput: Codable {
     let questionId: String; let itemId: String; let selected: String
     let correct: Bool; let progressEntry: ProgressEntry
     var attemptHistory: [NativeAttempt]?
+    var reviewEventId: String?
+    var reviewedAt: String?
+    var source: String?
 }
 
 enum StudyDates {

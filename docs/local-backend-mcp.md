@@ -77,7 +77,7 @@ Implementation details:
 Planned tool boundary:
 
 - `get_review_data`: read review items from SQLite.
-- `upsert_review_item`: create or update vocabulary, grammar, kanji-reading, meaning, kana-to-kanji, or other text-based practice seeds in SQLite.
+- `upsert_review_item`: create or update vocabulary, grammar, kanji-reading, meaning, kana-to-kanji, or other text-based practice seeds in SQLite. Before saving vocabulary, read `get_study_state.settings.jlptVocabularyQuestionKinds` (configured with checkboxes in Settings → Practice, default `[]`). Each selected kind requires at least one complete authored question in `practice_questions`: non-empty prompt, four distinct choices including the answer, `explanation_zh`, and `distractor_notes` for each wrong choice. Supported kinds are `kanji_to_kana` (漢字読み), `kana_to_kanji` (表記), `word_formation` (語形成), `moji_goi` (文脈規定), `meaning` (言い換え類義), and `usage` (用法). Missing selected kinds or incomplete questions are rejected before writing. An empty selection skips vocabulary question validation. Legacy enabled boolean settings migrate to all six types; an explicit empty array overrides that boolean. The server uses the authenticated owner’s saved setting; item arguments cannot override it.
 - `delete_review_item`: permanently delete one owned review item, along with its progress, answer history and now-unused images.
 - `export_review_data_backup`: export SQLite review items into monthly JSON backup files.
 - `get_study_record`: read the combined personal study record.
@@ -249,3 +249,12 @@ content affect the real hosted account in this mode.
 
 If Google reports `auth/unauthorized-domain`, the Firebase project's authorized
 domains must include `localhost`; use that hostname instead of `127.0.0.1`.
+
+
+### 每日练习来源与卡片复习事件
+
+`settings.dailyPracticeSources` 保存 `answers`、`cardReviews`、`ratings`、`window`（`previous_day` / `last_hours`）、`hours`、`timeZone`、`runAt`。定时由用户自己的 AI 客户端执行；服务器不创建定时任务。
+
+先读 `get_daily_practice_source_context`：窗口是 `[start,end)`，默认按用户时区的前一天或最近指定小时。可传 ISO 时间边界。卡片来源按窗口内任意符合评分的事件选中卡片，按卡片去重，只取其 `practice_questions`，没有现有题目则返回 `skippedCards`。调用 `generate_daily_practice` 时传同一 `start/end` 与 AI 准备的 `generated_questions`（纯卡片复习传空数组）；服务端附加原有卡片题目，以独立实例 ID 保存，不覆盖历史答案。
+
+`card_reviews` 为独立事件表。Web/iOS 自评携带稳定 `reviewEventId` 与 `reviewedAt`；离线同步保留原时间。MCP `rate_review_card` 支持 `event_id`，重试请复用。事件与进度在同一事务保存。日报做题正确率只来自客观答案；卡片复习另报次数、去重卡片数与四种评分。旧累计进度不能回填独立事件。

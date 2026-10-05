@@ -12999,6 +12999,14 @@
     }
   });
 
+  // src/domain/vocabularyQuestionRules.mjs
+  var vocabularyQuestionKinds = ["kanji_to_kana", "kana_to_kanji", "word_formation", "moji_goi", "meaning", "usage"];
+  function normalizeVocabularyQuestionKinds(settings) {
+    const selected = settings?.jlptVocabularyQuestionKinds;
+    if (Array.isArray(selected)) return vocabularyQuestionKinds.filter((kind) => selected.includes(kind));
+    return settings?.requireJlptVocabularyQuestions === true ? [...vocabularyQuestionKinds] : [];
+  }
+
   // node_modules/zod/v4/core/util.js
   var util_exports = {};
   __export(util_exports, {
@@ -24627,6 +24635,10 @@ ${value}`, dataLines++;
       case "GET_STATE": {
         const { user, apiBaseUrl } = await getStoredAuth();
         return { user, apiBaseUrl };
+      }
+      case "GET_STUDY_SETTINGS": {
+        const state = await withMcp("get_study_state");
+        return { jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(state.settings) };
       }
       case "LOGIN":
         return login();

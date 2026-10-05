@@ -94,3 +94,17 @@ AI 入口以内容社区形式展示：复用发现封面与自适应网格，�
 助记图和远端发现封面使用按账户隔离的 Application Support 图片缓存。显示优先读取本机文件，网络请求、文件读写和缩略图解码在独立 actor 执行。学习数据保存后独立启动图片同步，最多并发四张；图片失败不撤销题库同步，账户页显示图片下载数量、进度与重试入口。内置发现封面与 AI 社区配图已随应用安装，本身可离线显示。
 
 复习卡片逐条显示有效例句，日文旁提供播放与循环开关，翻译单独显示。循环沿用系统／云端朗读配置，停止或离开卡片时结束。词条标题提供复制原词按钮；卡片内容底部居中显示正式编号（缺省时使用条目 ID），右侧可复制纯编号，复制后显示勾选反馈。
+
+### 条目详情与相关练习
+
+词汇／语法详情按释义、接续、用法、例句与解析分节显示，重复读音不再显示。底部“练习这个条目”打开当前条目的全部可用题目（含已同步练习中关联的题目），不再打开记忆卡片；无题时明确提示。
+
+原生相关练习通过 JavaScriptCore 复用 `src/domain/questions.ts`，保留网页版的题目 ID、出题条件、干扰项与解析。修改出题逻辑或翻译后运行 `node scripts/build-native-questions.mjs`，并提交生成的 `apple/Resources/ItemQuestions.js`；离线快照保留条目的出题字段。模拟器测试覆盖词汇、语法种子题、关联题去重与超过 20 题的完整练习。
+
+## Vocabulary save rule
+
+Settings → Practice settings shares `jlptVocabularyQuestionKinds` with desktop/mobile web and MCP. Six checkboxes select the required types; each selected kind requires at least one complete authored question. An empty selection (the default) skips vocabulary question validation. Opening the native settings screen reads the latest account preference; saving merges into current server settings and verifies the server retained the value. The browser extension queue manager shows the account rule and links to the web settings page for editing.
+
+### 日语显示
+
+卡片、条目详情、练习、阅读和听力使用统一 `JapaneseText`：Core Text 上方假名、可配置分词间距和词性样式。账户设置 → 显示与阅读 → 分词模式，可以分别配置名词、动词、助词、形容词的下划线/字体颜色。AI 标注的数据契约、数据库迁移和旧内容离线回退见 [日语标注设计](../docs/japanese-annotations.md)。

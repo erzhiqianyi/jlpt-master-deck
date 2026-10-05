@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A10D15A10000000000000005 /* JapaneseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000000006; };
+		A10D15A10000000000000003 /* ItemQuestions.js in Resources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000000004; };
 		04A6BADD37F82726EA5B6F38 /* JLPTMasterDeckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB95471ABAE4B69878AFC8E /* JLPTMasterDeckApp.swift */; };
 		0A5B9F19E701675C59B4D5F1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 055618518B832B414C7824D2 /* Foundation.framework */; };
 		16307299679F9E6580945C82 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 07D6F5860B98827841134A10 /* FirebaseAuth */; };
@@ -55,6 +57,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A10D15A10000000000000006 /* JapaneseText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseText.swift; sourceTree = "<group>"; };
+		A10D15A10000000000000004 /* ItemQuestions.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ItemQuestions.js; sourceTree = "<group>"; };
 		0081F089492841CD7A2AF1A6 /* SupportingViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupportingViews.swift; sourceTree = "<group>"; };
 		01C35E320050E130919BB380 /* Models.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		055618518B832B414C7824D2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -131,6 +135,7 @@
 			children = (
 				1DDAAB317BCA440FAD03F6E7 /* BrandAssets.xcassets */,
 				A10D15A10000000000000002 /* Localizable.xcstrings */,
+				A10D15A10000000000000004 /* ItemQuestions.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -158,6 +163,7 @@
 				C363CA3B219A0FFBD6D023CB /* StudyViews.swift */,
 				0081F089492841CD7A2AF1A6 /* SupportingViews.swift */,
 				EF9C6932FCBFA6E158266D95 /* Theme.swift */,
+				A10D15A10000000000000006 /* JapaneseText.swift */,
 				C0DC1D07451F2D1D0C4D52DE /* WorkspaceView.swift */,
 				F09C68181B70689CC18C24DA /* LocalStudyData.swift */,
 				13A1FCD6FA7D1765C825A00A /* DiscoveryView.swift */,
@@ -337,6 +343,7 @@
 				3E9FE9A185DA026DD24C91E2 /* GoogleService-Info.plist in Resources */,
 				D3C4A1B2031451F7D28570EB /* BrandAssets.xcassets in Resources */,
 				A10D15A10000000000000001 /* Localizable.xcstrings in Resources */,
+				A10D15A10000000000000003 /* ItemQuestions.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,6 +374,7 @@
 				E239F3B5159F1B61092D80C6 /* StudyViews.swift in Sources */,
 				D21B0BE04E849FD17ABFE242 /* SupportingViews.swift in Sources */,
 				C3B95992D273051CE1451F32 /* Theme.swift in Sources */,
+				A10D15A10000000000000005 /* JapaneseText.swift in Sources */,
 				AFD6EA67BD6149BDEF721AD3 /* WorkspaceView.swift in Sources */,
 				45725CA97634113BA043EC64 /* LocalStudyData.swift in Sources */,
 				3F4C70914F97CD56C826B194 /* DiscoveryView.swift in Sources */,

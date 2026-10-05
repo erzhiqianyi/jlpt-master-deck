@@ -12,6 +12,7 @@ Dir.glob('Sources/*.swift').sort.each { |path| target.source_build_phase.add_fil
 resources_group = project.main_group.new_group('Resources', 'Resources')
 target.resources_build_phase.add_file_reference(resources_group.new_file('BrandAssets.xcassets'))
 target.resources_build_phase.add_file_reference(resources_group.new_file('Localizable.xcstrings'))
+target.resources_build_phase.add_file_reference(resources_group.new_file('ItemQuestions.js'))
 config_group = project.main_group.new_group('Config', 'Config')
 config = config_group.new_file('App.xcconfig')
 config_group.new_file('Info.plist')

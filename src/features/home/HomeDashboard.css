@@ -109,7 +109,6 @@
 
 .primary-today .primary-plan-entry:hover { background: transparent; }
 
-.primary-today:has(.module-practice-mascot) { padding-bottom: 118px; }
 
 .home-exam-countdown { display: flex; align-items: center; gap: 16px; width: 100%; margin: 0 0 24px; padding: 18px 22px; text-align: left; border: 1px solid var(--ui-border, #e4e5de); border-radius: 8px; background: #edf4ef; color: var(--ui-ink, #273d39); }
 .home-exam-countdown > svg { flex-shrink: 0; color: #39756d; }

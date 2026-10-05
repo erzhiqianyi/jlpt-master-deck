@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 import CryptoKit
+import JavaScriptCore
 
 struct PracticeEntry: Identifiable {
     let id: String; let title: String; let subtitle: String; let icon: String
@@ -18,6 +19,7 @@ struct PracticeEntry: Identifiable {
 struct NativeQuestion: Codable, Identifiable {
     let id: String; let itemId: String; let kind: String; let title: String
     let prompt: String; let choices: [String]; let answer: String
+    var japaneseAnnotations: [JapaneseAnnotation]?
     var promptTarget: String?
     var instruction: String?; var translationZh: String?; var context: String?
     var correctReason: String?; var memoryPoint: String?; var choiceAnalysis: [Analysis]?
@@ -40,6 +42,27 @@ extension NativeQuestion {
         return value
     }
 }
+/// Uses the same authored seeds, eligibility rules, distractors and IDs as web practice.
+enum NativeItemQuestions {
+    static func build(item: StudyItem, items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
+        guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"),
+              let context = JSContext() else { throw APIError.invalidResponse }
+        context.evaluateScript(try String(contentsOf: url, encoding: .utf8))
+        let inputs = items.contains(where: { $0.id == item.id }) ? items : items + [item]
+        let json = String(decoding: try JSONEncoder().encode(inputs), as: UTF8.self)
+        let supportedLocale = ["zh-CN", "ja", "en"].contains(locale) ? locale : "zh-CN"
+        guard let function = context.objectForKeyedSubscript("JLPTItemQuestions")?.objectForKeyedSubscript("forItem"),
+              let output = function.call(withArguments: [json, item.id, supportedLocale])?.toString(),
+              context.exception == nil else { throw APIError.invalidResponse }
+        let generated = try JSONDecoder().decode([NativeQuestion].self, from: Data(output.utf8))
+        var seen = Set<String>()
+        // Pack versions take precedence when the same question has subsequently been edited.
+        return (packs.flatMap(\.questions) + generated).filter {
+            $0.itemId == item.id && $0.isUsable && seen.insert($0.id).inserted
+        }
+    }
+}
+
 struct NativePack: Codable, Identifiable {
     let id: String; let title: String; let date: String
     var sourceDraftId: String?; let questions: [NativeQuestion]
@@ -234,7 +257,7 @@ struct NativeQuizView: View {
                                     .frame(width: 32, height: 32)
                                     .background(number == index ? DeckTheme.green.opacity(0.15) : DeckTheme.line.opacity(0.4), in: Circle())
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text(question.prompt).font(.subheadline).lineLimit(2)
+                                    JapaneseText(text: question.prompt, japanese: true, allowsRuby: false, annotations: question.japaneseAnnotations ?? [], fontSize: 15).lineLimit(2)
                                     HStack(spacing: 8) {
                                         if number == index { Text("当前题").foregroundStyle(DeckTheme.green) }
                                         Text(selections[question.id] == nil ? "未选" : recorded(question) != nil ? "已确认" : "已选")
@@ -264,14 +287,15 @@ struct NativeQuizView: View {
     private func questionCard(_ question: NativeQuestion) -> some View {
         let answer = recorded(question)
         return VStack(alignment: .leading, spacing: 20) {
-            Text(question.kind == "kanji_to_kana" ? "请选择下划线词语的读音" : (question.instruction?.isEmpty == false ? question.instruction! : question.title)).font(.headline)
-            if let context = question.context, !context.isEmpty, context != question.prompt { Text(context).lineSpacing(7) }
-            Text(question.markedPrompt).font(.system(size: 22 * store.textScale, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
+            JapaneseText(text: question.kind == "kanji_to_kana" ? "请选择下划线词语的读音" : (question.instruction?.isEmpty == false ? question.instruction! : question.title), japanese: true, allowsRuby: false, weight: .semibold)
+            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            JapaneseText(text: question.prompt, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             VStack(spacing: 12) {
                 ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                     Button { select(choice, for: question) } label: {
                         StudyAnswerChoice(number: number + 1, text: choice, selected: selections[question.id] == choice,
-                                          correct: answer != nil && !batchFeedback ? choice == question.answer : nil)
+                                          correct: answer != nil && !batchFeedback ? choice == question.answer : nil,
+                                          allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || answer != nil, annotations: question.japaneseAnnotations ?? [])
                     }.buttonStyle(.plain).disabled(answer != nil || saving)
                         .accessibilityIdentifier("quiz.choice.\(number)").accessibilityValue(selections[question.id] == choice ? "已选择" : "未选择")
                 }
@@ -413,12 +437,12 @@ struct NativeQuizView: View {
     private func reviewCard(_ question: NativeQuestion, number: Int) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("原题第 \(number) 题").font(.subheadline.bold()).foregroundStyle(DeckTheme.muted)
-            Text(question.instruction?.isEmpty == false ? question.instruction! : question.title).font(.headline)
-            if let context = question.context, !context.isEmpty, context != question.prompt { Text(context).lineSpacing(7) }
-            Text(question.markedPrompt).font(.system(size: 22 * store.textScale, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
+            JapaneseText(text: question.instruction?.isEmpty == false ? question.instruction! : question.title, japanese: true, weight: .semibold)
+            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            JapaneseText(text: question.prompt, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                 StudyAnswerChoice(number: number + 1, text: choice, selected: recorded(question)?.selected == choice,
-                                  correct: choice == question.answer)
+                                  correct: choice == question.answer, annotations: question.japaneseAnnotations ?? [])
             }
             NativePracticeFeedback(question: question, selected: recorded(question)?.selected ?? "", sourceItem: store.items.first { $0.id == question.itemId }, pending: recorded(question) != nil && savesProgress && store.pendingCount > 0)
         }
@@ -561,7 +585,6 @@ struct NativePracticeFeedback: View {
     @State private var memoryExpanded = false
     @State private var translationExpanded = false
     @State private var entryExpanded = false
-    @State private var reviewItem: StudyItem?
     private var right: Bool { selected == question.answer }
     var body: some View {
         let details = question.explanationDetails
@@ -571,10 +594,10 @@ struct NativePracticeFeedback: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label(selected.isEmpty ? "未作答" : right ? "回答正确" : "回答错误", systemImage: selected.isEmpty ? "minus.circle" : right ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.title3.bold()).foregroundStyle(right ? DeckTheme.green : DeckTheme.accent)
-                if !selected.isEmpty { Text("你的答案：\(selected)").font(.subheadline).foregroundStyle(DeckTheme.muted) }
+                if !selected.isEmpty { JapaneseText(text: "你的答案：\(selected)", item: sourceItem, annotations: question.japaneseAnnotations ?? []).foregroundStyle(DeckTheme.muted) }
                 Divider()
                 Text("正确答案").font(.caption).foregroundStyle(DeckTheme.muted)
-                Text("\((question.choices.firstIndex(of: question.answer) ?? 0) + 1). \(question.answer)").font(.title3.weight(.semibold))
+                JapaneseText(text: "\((question.choices.firstIndex(of: question.answer) ?? 0) + 1). \(question.answer)", item: sourceItem, japanese: true, annotations: question.japaneseAnnotations ?? [], weight: .semibold)
             }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 .background((right ? DeckTheme.green : DeckTheme.accent).opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
                 .accessibilityIdentifier("quiz.outcome")
@@ -586,28 +609,28 @@ struct NativePracticeFeedback: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 if evidence.hasMore {
-                    disclosure("完整解题依据", expanded: $reasonExpanded) { Text(store.readingText(details.reason, item: sourceItem, explanation: true)).lineSpacing(6) }
+                    disclosure("完整解题依据", expanded: $reasonExpanded) { JapaneseText(text: details.reason, item: sourceItem, explanation: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(6) }
                 }
                 disclosure("选项辨析 · \(details.choices.count)", expanded: $choicesExpanded) {
                     ForEach(Array(details.choices.enumerated()), id: \.offset) { index, analysis in
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .firstTextBaseline) {
-                                Text("\(index + 1). \(analysis.choice)").font(.headline)
+                                JapaneseText(text: "\(index + 1). \(analysis.choice)", item: sourceItem, japanese: true, annotations: question.japaneseAnnotations ?? [], weight: .semibold)
                                 Spacer(minLength: 4)
                                 Text(analysis.correct ? "正确选项" : analysis.choice == selected ? "你的答案" : "不符合题意")
                                     .font(.caption).foregroundStyle(analysis.correct ? DeckTheme.green : analysis.choice == selected ? DeckTheme.accent : DeckTheme.muted)
                             }
-                            Text(store.readingText(analysis.explanation.isEmpty ? "暂无该选项的详细解析" : analysis.explanation, item: sourceItem, explanation: true)).lineSpacing(6)
+                            JapaneseText(text: analysis.explanation.isEmpty ? "暂无该选项的详细解析" : analysis.explanation, item: sourceItem, explanation: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(6)
                         }.padding(.vertical, 12).overlay(alignment: .bottom) { Rectangle().fill(DeckTheme.line).frame(height: 1) }
                     }
                 }.accessibilityIdentifier("quiz.analysis")
-                if memory.hasMore { disclosure("展开记忆点", expanded: $memoryExpanded) { Text(store.readingText(question.memoryPoint ?? "", item: sourceItem, explanation: true)).lineSpacing(6) } }
+                if memory.hasMore { disclosure("展开记忆点", expanded: $memoryExpanded) { JapaneseText(text: question.memoryPoint ?? "", item: sourceItem, explanation: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(6) } }
                 if let translation = question.translationZh, !translation.isEmpty {
                     disclosure("完整中文翻译", expanded: $translationExpanded) { Text(translation).lineSpacing(6) }.accessibilityIdentifier("quiz.translation")
                 }
                 if let item = sourceItem {
                     disclosure("查看词条：\(item.original)", expanded: $entryExpanded) {
-                        NavigationLink("查看词条：\(item.original)") { ItemDetailView(item: item, review: { reviewItem = item }) }
+                        NavigationLink("查看词条：\(item.original)") { ItemDetailView(item: item) }
                     }
                 }
             }
@@ -615,10 +638,9 @@ struct NativePracticeFeedback: View {
                 Text("AI 生成 · 待核验").font(.caption).foregroundStyle(DeckTheme.muted)
             }
         }.textSelection(.enabled).accessibilityIdentifier("quiz.feedback")
-            .fullScreenCover(item: $reviewItem) { MemoryReviewView(items: [$0]) }
     }
     private func section(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) { Text(title).font(.headline).foregroundStyle(DeckTheme.green); Text(store.readingText(text, item: sourceItem, explanation: true)).lineSpacing(6) }
+        VStack(alignment: .leading, spacing: 8) { Text(title).font(.headline).foregroundStyle(DeckTheme.green); JapaneseText(text: text, item: sourceItem, explanation: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(6) }
     }
     private func disclosure<Content: View>(_ title: String, expanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
         DisclosureGroup(isExpanded: expanded) { content().padding(.bottom, 12).frame(maxWidth: .infinity, alignment: .leading) }
@@ -729,20 +751,20 @@ private struct NativeDraftQuestion: View {
             if let instruction = DraftPresentation.text(fields, "instruction") {
                 Text(instruction).font(.subheadline).foregroundStyle(DeckTheme.muted)
             }
-            if let context = DraftPresentation.text(fields, "context", "passage") { Text(context) }
-            Text(DraftPresentation.text(fields, "prompt", "question", "title") ?? "题目内容待补充")
+            if let context = DraftPresentation.text(fields, "context", "passage") { JapaneseText(text: context, japanese: true) }
+            JapaneseText(text: DraftPresentation.text(fields, "prompt", "question", "title") ?? "题目内容待补充", japanese: true)
                 .font(.headline).fixedSize(horizontal: false, vertical: true)
             ForEach(choices.indices, id: \.self) { index in
                 HStack(alignment: .top, spacing: 12) {
                     Text("\(index + 1)").font(.subheadline.monospacedDigit()).foregroundStyle(DeckTheme.muted)
                         .frame(width: 24)
-                    Text(choice(choices[index])).frame(maxWidth: .infinity, alignment: .leading)
+                    JapaneseText(text: choice(choices[index]), japanese: true).frame(maxWidth: .infinity, alignment: .leading)
                 }.padding(12).background(DeckTheme.green.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
             }
             DisclosureGroup("答案与解析") {
                 VStack(alignment: .leading, spacing: 12) {
-                    if let answer { Text("正确答案：" + answer).font(.subheadline.bold()).foregroundStyle(DeckTheme.green) }
-                    if let explanation = DraftPresentation.text(fields, "explanation_zh", "explanation", "correctReason") { Text(explanation) }
+                    if let answer { JapaneseText(text: "正确答案：" + answer, weight: .semibold).foregroundStyle(DeckTheme.green) }
+                    if let explanation = DraftPresentation.text(fields, "explanation_zh", "explanation", "correctReason") { JapaneseText(text: explanation, explanation: true) }
                     if let translation = DraftPresentation.text(fields, "translationZh", "translation_zh") {
                         Text("译文").font(.caption.bold()).foregroundStyle(DeckTheme.muted)
                         Text(translation)
@@ -751,11 +773,11 @@ private struct NativeDraftQuestion: View {
                     ForEach(analysis.indices, id: \.self) { index in
                         let item = DraftPresentation.fields(analysis[index])
                         VStack(alignment: .leading, spacing: 4) {
-                            if let choice = DraftPresentation.text(item, "choice") { Text(choice).font(.subheadline.bold()) }
-                            if let reason = DraftPresentation.text(item, "explanation", "reason") { Text(reason).font(.subheadline) }
+                            if let choice = DraftPresentation.text(item, "choice") { JapaneseText(text: choice, japanese: true, weight: .semibold) }
+                            if let reason = DraftPresentation.text(item, "explanation", "reason") { JapaneseText(text: reason, explanation: true) }
                         }
                     }
-                    if let memory = DraftPresentation.text(fields, "memoryPoint") { Text(memory).font(.subheadline).foregroundStyle(DeckTheme.green) }
+                    if let memory = DraftPresentation.text(fields, "memoryPoint") { JapaneseText(text: memory, explanation: true).foregroundStyle(DeckTheme.green) }
                 }.padding(.top, 10).frame(maxWidth: .infinity, alignment: .leading)
             }.tint(DeckTheme.green)
         }.textSelection(.enabled).padding(18).frame(maxWidth: .infinity, alignment: .leading)

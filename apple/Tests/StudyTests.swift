@@ -1,9 +1,107 @@
 import XCTest
 import UIKit
 import SwiftUI
+import CoreText
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    func testIncrementalChangesMergeDeleteAndPreserveLocalQueue() throws {
+        var data = LocalStudyData()
+        data.syncCursor = "old"
+        let before = ProgressEntry()
+        data.pending = [PendingAnswer(id: UUID(), before: before, input: .init(questionId: "memory-card:a", itemId: "a", selected: "forgot", correct: false, progressEntry: before.rated(.forgot)))]
+        let bytes = Data(#"{"changes":[{"collection":"items","id":"a","value":{"id":"a","deck":"grammar_expression","original":"古い"}},{"collection":"items","id":"b","value":{"id":"b","deck":"grammar_expression","original":"残す"}}]}"#.utf8)
+        let page = try JSONDecoder().decode(StudySyncPage.self,from:bytes)
+        try data.applySync(page.changes!)
+        let delta = try JSONDecoder().decode(StudySyncPage.self,from:Data(#"{"changes":[{"collection":"items","id":"a","deleted":true},{"collection":"progress","id":"b","value":{"correct":2,"wrong":1,"status":"review"}}]}"#.utf8))
+        try data.applySync(delta.changes!)
+        XCTAssertEqual(data.items.map(\.id),["b"])
+        XCTAssertEqual(data.state.progress["b"]?.correct,2)
+        XCTAssertEqual(data.pending.count,1)
+        XCTAssertEqual(data.syncCursor,"old")
+        let restored = try JSONDecoder().decode(LocalStudyData.self,from:JSONEncoder().encode(data))
+        XCTAssertEqual(restored.syncCursor,"old")
+    }
+
+    func testJapaneseAnnotationsAreLosslessAndOverrideLocalAnalysis() throws {
+        let source = " 😊 温度を測定する。\n"
+        let annotation = JapaneseAnnotation(text: source, tokens: [
+            .init(surface: " 😊 "), .init(surface: "温度", reading: "おんど", pos: "noun"),
+            .init(surface: "を", pos: "particle"), .init(surface: "測定", reading: "そくてい", pos: "noun"),
+            .init(surface: "する", pos: "verb"), .init(surface: "。\n")])
+        let tokens = JapaneseAnalysis.tokens(source, japanese: true, annotations: [annotation], items: [], terms: [])
+        XCTAssertEqual(tokens.map(\.surface).joined(), source)
+        XCTAssertEqual(tokens.first { $0.surface == "温度" }?.reading, "おんど")
+        XCTAssertEqual(tokens.first { $0.surface == "する" }?.pos, "verb")
+        let invalid = JapaneseAnnotation(text: source, tokens: [.init(surface: "違う文")])
+        let fallback = JapaneseAnalysis.tokens(source, japanese: true, annotations: [invalid], items: [], terms: [])
+        XCTAssertEqual(fallback.map(\.surface).joined(), source)
+        XCTAssertGreaterThan(fallback.count, 3)
+        XCTAssertTrue(fallback.contains { $0.surface == "を" && $0.pos == "particle" })
+        let chinese = JapaneseAnalysis.tokens("中文内容保持原样。", japanese: false, annotations: [], items: [], terms: [])
+        XCTAssertTrue(chinese.allSatisfy { $0.pos == nil && $0.reading == nil })
+    }
+
+    func testJapaneseRubyAndStylesDoNotRewriteSourceOrRevealReadingAnswers() throws {
+        let tokens = [JapaneseAnnotation.Token(surface: "温度", reading: "おんど", pos: "noun", isJapanese: true),
+                      .init(surface: "を", pos: "particle", isJapanese: true),
+                      .init(surface: "測定", reading: "そくてい", pos: "noun", isJapanese: true)]
+        var display = JapaneseDisplay(); display.segmented = true
+        display.styles["noun"] = .init(mode: "text", color: "#123456")
+        let font = UIFont.systemFont(ofSize: 18)
+        let styled = JapaneseAttributed.make(tokens: tokens, display: display, ruby: true, font: font, color: .black)
+        let rubyKey = NSAttributedString.Key(kCTRubyAnnotationAttributeName as String)
+        XCTAssertNotNil(styled.attribute(rubyKey, at: 0, effectiveRange: nil))
+        XCTAssertFalse(styled.string.contains("おんど"))
+        XCTAssertTrue(styled.string.contains("\u{2009}"))
+        XCTAssertEqual((styled.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor)?.japaneseHex, "#123456")
+        let hidden = JapaneseAttributed.make(tokens: tokens, display: display, ruby: false, font: font, color: .black)
+        XCTAssertNil(hidden.attribute(rubyKey, at: 0, effectiveRange: nil))
+        display.segmented = false
+        let plain = JapaneseAttributed.make(tokens: tokens, display: display, ruby: false, font: font, color: .black)
+        XCTAssertEqual(plain.string, "温度を測定")
+        XCTAssertNil(plain.attribute(.underlineStyle, at: 0, effectiveRange: nil))
+        let restored = JapaneseDisplay(settings: ["japaneseDisplay": display.setting])
+        XCTAssertEqual(restored, display)
+    }
+
+    func testItemPracticePreservesSeedsAndAllLinkedQuestions() throws {
+        let json = """
+        {"id":"word","deck":"n1_vocab","original":"測定","reading":"そくてい","type":"word",
+         "meaning_zh":"测定","examples":[{"ja":"温度を測定する。","zh":"测量温度。"}],
+         "practice_questions":[
+           {"id":"seed-reading","kind":"kanji_to_kana","prompt":"温度を測定する。","choices":["そくてい","そってい"],"answer":"そくてい"},
+           {"id":"seed-usage","kind":"usage","prompt":"測定","choices":["温度を測定する。","友達を測定する。"],"answer":"温度を測定する。"}]}
+        """
+        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
+        let cached = try JSONDecoder().decode(StudyItem.self, from: JSONEncoder().encode(item))
+        let linked = (0..<25).map { index in
+            NativeQuestion(id: "linked-\(index)", itemId: item.id, kind: "meaning", title: "词义", prompt: "測定", choices: ["测定", "决定"], answer: "测定")
+        }
+        let unrelated = NativeQuestion(id: "other", itemId: "other-item", kind: "meaning", title: "词义", prompt: "別", choices: ["A", "B"], answer: "A")
+        let packs = [NativePack(id: "pack", title: "练习", date: "2026-10-05", questions: linked + [linked[0], unrelated])]
+        let questions = try NativeItemQuestions.build(item: cached, items: [cached], packs: packs, locale: "zh-CN")
+        XCTAssertTrue(Set(questions.map(\.id)).isSuperset(of: linked.map(\.id)))
+        XCTAssertEqual(questions.filter { $0.id == "linked-0" }.count, 1)
+        XCTAssertTrue(questions.contains { $0.id == "seed-reading" })
+        XCTAssertTrue(questions.contains { $0.id == "seed-usage" })
+        XCTAssertTrue(questions.allSatisfy { $0.itemId == item.id && $0.isUsable })
+    }
+
+    func testGrammarItemPracticeKeepsEveryAuthoredSeed() throws {
+        let json = """
+        {"id":"grammar","deck":"grammar_expression","original":"かつて","meaning_zh":"曾经",
+         "practice_questions":[
+          {"id":"g1","prompt":"ここは（　）工場だった。","choices":["かつて","まだ"],"answer":"かつて","explanation_zh":"表示过去的某个时期。"},
+          {"id":"g2","kind":"grammar","prompt":"いまだ（　）見たことがない。","choices":["かつて","まもなく"],"answer":"かつて"}]}
+        """
+        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
+        let questions = try NativeItemQuestions.build(item: item, items: [item], packs: [], locale: "zh-CN")
+        XCTAssertEqual(questions.map(\.id), ["g1", "g2"])
+        XCTAssertTrue(questions.allSatisfy { $0.kind == "grammar" })
+        XCTAssertTrue(questions[0].correctReason?.contains("表示过去") == true)
+    }
+
     actor ImageDownloads {
         var calls = 0
         func fetch(_ bytes: Data) async throws -> Data { calls += 1; try await Task.sleep(for: .milliseconds(50)); return bytes }
@@ -63,12 +161,20 @@ final class StudyTests: XCTestCase {
         XCTAssertEqual(store.appLanguage, "ja")
         XCTAssertEqual(store.interfaceText("设置"), "設定")
         XCTAssertGreaterThan(store.textScale, 1)
-        XCTAssertTrue(store.readingText(item.original, item: item).contains(item.reading!))
-        XCTAssertEqual(store.readingText(item.original, item: item, explanation: true), item.original)
+        let tokens = JapaneseAnalysis.tokens(item.original, japanese: true, annotations: [], items: [item], terms: [])
+        func rendered(explanation: Bool) -> NSAttributedString {
+            JapaneseAttributed.make(tokens: tokens, display: JapaneseDisplay(), ruby: store.displayFlag(explanation ? "showExplanationRuby" : "showReviewRuby"), font: .systemFont(ofSize: 17), color: .black)
+        }
+        let key = NSAttributedString.Key(kCTRubyAnnotationAttributeName as String)
+        XCTAssertNotNil(rendered(explanation: false).attribute(key, at: 0, effectiveRange: nil))
+        XCTAssertNil(rendered(explanation: true).attribute(key, at: 0, effectiveRange: nil))
         store.state.settings?["showReviewRuby"] = .bool(false)
         store.state.settings?["showExplanationRuby"] = .bool(true)
-        XCTAssertEqual(store.readingText(item.original, item: item), item.original)
-        XCTAssertTrue(store.readingText(item.original, item: item, explanation: true).contains(item.reading!))
+        XCTAssertNil(rendered(explanation: false).attribute(key, at: 0, effectiveRange: nil))
+        XCTAssertNotNil(rendered(explanation: true).attribute(key, at: 0, effectiveRange: nil))
+        let verbRuby = JapaneseAttributed.rubyBase(surface: "見落とす", reading: "みおとす")
+        XCTAssertEqual(verbRuby.range, NSRange(location: 0, length: 2))
+        XCTAssertEqual(verbRuby.reading, "みお")
         store.state.settings?["locale"] = .string("invalid")
         XCTAssertEqual(store.appLanguage, "zh-CN")
     }
@@ -436,10 +542,12 @@ final class StudyTests: XCTestCase {
         XCTAssertNil(item.cardText("source", locale: "zh-CN"))
         let copy = try JSONDecoder().decode(StudyItem.self, from: JSONEncoder().encode(item))
         XCTAssertEqual(copy.images?.first?["id"], "img1")
-        let stateJSON = #"{"progress":{},"answers":{},"settings":{"memoryCardFrontFields":["original"],"showReviewRuby":true,"fontSize":"large","future":{"value":2}}}"#
+        let stateJSON = #"{"progress":{},"answers":{},"settings":{"memoryCardFrontFields":["original"],"showReviewRuby":true,"fontSize":"large","requireJlptVocabularyQuestions":true,"jlptVocabularyQuestionKinds":["meaning","usage"],"future":{"value":2}}}"#
         let state = try JSONDecoder().decode(StudyState.self, from: Data(stateJSON.utf8))
         let restored = try JSONDecoder().decode(StudyState.self, from: JSONEncoder().encode(state))
         XCTAssertEqual(restored.settings, state.settings)
+        XCTAssertEqual(restored.settings?["requireJlptVocabularyQuestions"], .bool(true))
+        XCTAssertEqual(restored.settings?["jlptVocabularyQuestionKinds"], .array([.string("meaning"), .string("usage")]))
     }
 
     func testPracticeSchedulingMatchesWebSequence() {
@@ -577,13 +685,21 @@ final class OfflineStudyTests: XCTestCase {
         XCTAssertNil(restored.responses?["listening-free"]?.correct)
         XCTAssertNil(try files.load(userID: 2))
     }
-    func testRetryRecognizesAppliedWriteAndStopsOnNewerCloudProgress() {
+    func testCardReviewEventsUploadRegardlessOfCloudProgress() {
         let before = ProgressEntry()
         let next = before.rated(.remembered)
         let pending = PendingAnswer(id: UUID(), before: before, input: .init(questionId: "memory-card:i", itemId: "i", selected: "remembered", correct: true, progressEntry: next))
         XCTAssertEqual(pending.disposition(cloud: before), .send)
+        XCTAssertEqual(pending.disposition(cloud: next), .send)
+        XCTAssertEqual(pending.disposition(cloud: next.rated(.easy)), .send)
+        XCTAssertEqual(pending.disposition(cloud: before.rated(.forgot)), .send)
+    }
+    func testObjectiveAnswersStillDetectConflictingProgress() {
+        let before = ProgressEntry()
+        let next = before.rated(.remembered)
+        let pending = PendingAnswer(id: UUID(), before: before, input: .init(questionId: "q", itemId: "i", selected: "1", correct: true, progressEntry: next))
+        XCTAssertEqual(pending.disposition(cloud: before), .send)
         XCTAssertEqual(pending.disposition(cloud: next), .alreadyApplied)
-        XCTAssertEqual(pending.disposition(cloud: next.rated(.easy)), .conflict)
         XCTAssertEqual(pending.disposition(cloud: before.rated(.forgot)), .conflict)
     }
     @MainActor func testDailyOrderingChangesOnlyAfterEveryQuestionHasAnAnswer() {

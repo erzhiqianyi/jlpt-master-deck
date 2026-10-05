@@ -1,8 +1,9 @@
+import { studySync, studySyncStatus } from './study-sync.mjs';
 import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
-import { getDailySummary, listDailySummaries, validSummaryDate } from './daily-summary.mjs';
+import { getDailySummary, listDailySummaries, validSummaryDate, dailyCardReviewStats } from './daily-summary.mjs';
 import { shareCover, setShareCover, userReviewData, sharingSources, sourcePackage, publishShare, publishListeningShare, listeningShareAudio, importListeningShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
@@ -43,6 +44,7 @@ import {
   updatePracticeQuestionExplanation,
   getHistoryQuestions,
   getStudyState,
+  getStudySettings,
   getStudyPlan,
   saveGeneratedStudyPlan,
   listReviewPackDrafts,
@@ -261,6 +263,16 @@ return async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/sync/status') {
+      return json(res,200,studySyncStatus(user.id));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/study-state/settings') {
+      return json(res,200,{ settings:getStudySettings(user.id), progress:{}, answers:{} });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/sync') {
+      return json(res, 200, studySync(user.id, await readJson(req)));
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/review-data') {
       return json(res, 200, userReviewData(user.id));
     }
@@ -359,7 +371,7 @@ return async (req, res) => {
     const dailySummaryMatch = /^\/api\/daily-summaries\/([^/]+)$/.exec(url.pathname);
     if (req.method === 'GET' && dailySummaryMatch) {
       const date = validSummaryDate(decodeURIComponent(dailySummaryMatch[1]));
-      return json(res, 200, { summary: getDailySummary(getDb(), user.id, date) });
+      return json(res, 200, { summary: getDailySummary(getDb(), user.id, date), cardReviews: dailyCardReviewStats(getDb(), user.id, date) });
     }
 
     if (req.method === 'PUT' && (url.pathname === '/api/study-plan' || url.pathname === '/api/study-plan/profile')) {
@@ -383,13 +395,26 @@ return async (req, res) => {
     }
 
     const progressMatch = /^\/api\/study-state\/progress\/([^/]+)$/.exec(url.pathname);
+    if (req.method === 'GET' && progressMatch) {
+      const itemId = decodeURIComponent(progressMatch[1]);
+      const state = getStudyState(user.id);
+      return json(res,200,{ progress:state.progress[itemId] ? {[itemId]:state.progress[itemId]} : {}, answers:{}, attemptHistory:state.attemptHistory });
+    }
     if (req.method === 'PUT' && progressMatch) {
       return json(res, 200, saveProgressEntry(user.id, decodeURIComponent(progressMatch[1]), await readJson(req)));
     }
 
     if (req.method === 'POST' && url.pathname === '/api/answers') {
-      saveAnswer(user.id, await readJson(req));
-      return json(res, 200, getStudyState(user.id));
+      const input = await readJson(req);
+      saveAnswer(user.id, input);
+      const state = getStudyState(user.id);
+      if (url.searchParams.get('compact') === '1') {
+        return json(res,200,{ progress:{ [input.itemId]:state.progress[input.itemId] },
+          cardReviews:(state.cardReviews ?? []).filter(event => event.eventId === (input.reviewEventId ?? `card:${input.itemId}:${input.reviewedAt ?? input.progressEntry.lastReviewedAt}:${input.selected}`)),
+          answers:state.answers[input.questionId] ? {[input.questionId]:state.answers[input.questionId]} : {},
+          ...(input.attemptHistory ? {attemptHistory:state.attemptHistory} : {}) });
+      }
+      return json(res, 200, state);
     }
 
     if (req.method === 'GET' && url.pathname === '/api/study-record') {

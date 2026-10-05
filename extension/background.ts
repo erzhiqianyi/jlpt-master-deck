@@ -1,3 +1,4 @@
+import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { getValidAccessToken, login, logout } from './lib/auth';
 import { callMcpTool } from './lib/mcp';
 import { getStoredAuth, setStoredAuth, clearSession, normalizeApiBaseUrl } from './lib/storage';
@@ -17,6 +18,10 @@ async function handle(message: ExtensionMessage): Promise<unknown> {
     case 'GET_STATE': {
       const { user, apiBaseUrl } = await getStoredAuth();
       return { user, apiBaseUrl };
+    }
+    case 'GET_STUDY_SETTINGS': {
+      const state = await withMcp<{ settings: Record<string, unknown> }>('get_study_state');
+      return { jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(state.settings) };
     }
     case 'LOGIN':
       return login();

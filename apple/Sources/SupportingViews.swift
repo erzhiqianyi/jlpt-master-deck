@@ -212,7 +212,7 @@ struct HistoryView: View {
             Divider()
             Text("学习资料").font(.headline)
             NavigationLink {
-                List(store.captures) { capture in VStack(alignment: .leading, spacing: 8) { Text(capture.body); Text(capture.context).font(.caption).foregroundStyle(DeckTheme.muted) } }.navigationTitle("输入记录")
+                List(store.captures) { capture in VStack(alignment: .leading, spacing: 8) { JapaneseText(text: capture.body); JapaneseText(text: capture.context).font(.caption).foregroundStyle(DeckTheme.muted) } }.navigationTitle("输入记录")
             } label: { DeckRow(title: "输入记录", subtitle: "\(store.captures.count) 条记录", icon: "square.and.pencil") }.buttonStyle(.plain)
             NavigationLink { NativeDraftStatisticsView() } label: { DeckRow(title: "练习草稿", subtitle: "\(store.drafts.count) 条记录", icon: "list.bullet.rectangle") }.buttonStyle(.plain)
         }
@@ -250,10 +250,14 @@ struct NativeAttemptsList: View {
     }
 }
 struct NativeDailyStatisticsView: View {
+    @Environment(AppStore.self) private var store
     let attempts: [NativeAttempt]
     @State private var date = Date.now
     var body: some View {
-        VStack { DatePicker("统计日期", selection: $date, displayedComponents: .date).padding(); NativeAttemptsList(attempts: attempts.filter { $0.dateKey == StudyStatistics.day(date) }) }.navigationTitle("每日统计")
+        VStack {
+            DatePicker("统计日期", selection: $date, displayedComponents: .date).padding()
+            NativeCardReviewStatistics(events: (store.state.cardReviews ?? []).filter { StudyDates.parse($0.reviewedAt).map { StudyStatistics.day($0) == StudyStatistics.day(date) } ?? false }).padding(.horizontal)
+            NativeAttemptsList(attempts: attempts.filter { $0.dateKey == StudyStatistics.day(date) }) }.navigationTitle("每日统计")
     }
 }
 struct NativeAttemptDetail: View {
@@ -267,10 +271,10 @@ struct NativeAttemptDetail: View {
                 ForEach(Array(attempt.answers.enumerated()), id: \.offset) { index, answer in
                     VStack(alignment: .leading, spacing: 8) {
                         let question = store.packs.flatMap(\.questions).first { $0.id == answer.questionId }
-                        Text("\(index + 1). \(question?.prompt ?? store.items.first { $0.id == answer.itemId }?.original ?? answer.questionId)").font(.headline)
+                        JapaneseText(text: "\(index + 1). \(question?.prompt ?? store.items.first { $0.id == answer.itemId }?.original ?? answer.questionId)", japanese: true, annotations: question?.japaneseAnnotations ?? [], weight: .semibold)
                         Text(answer.correct ? "回答正确" : "回答错误").foregroundStyle(answer.correct ? DeckTheme.green : DeckTheme.accent)
-                        Text("你的答案：\(answer.selected)")
-                        if let question { Text("正确答案：\(question.answer)"); Text(question.explanationDetails.reason).textSelection(.enabled) }
+                        JapaneseText(text: "你的答案：\(answer.selected)")
+                        if let question { JapaneseText(text: "正确答案：\(question.answer)", annotations: question.japaneseAnnotations ?? []); JapaneseText(text: question.explanationDetails.reason, explanation: true, annotations: question.japaneseAnnotations ?? []).textSelection(.enabled) }
                         else { Text("完整解析需同步对应练习题目。").font(.caption).foregroundStyle(DeckTheme.muted) }
                     }; Divider()
                 }
@@ -457,14 +461,14 @@ struct ConfiguredCardView: View {
             if let original = item.cardText("original", locale: locale), fields.contains("original") {
                 HStack(spacing: 8) {
                     if speechSide == "left" { speechControls }
-                    Text(revealed && metadata.contains("reading") ? original : store.readingText(original, item: item)).font(.system(size: (revealed ? 36 : 48) * store.textScale, weight: .bold))
+                    JapaneseText(text: original, item: item, japanese: true, allowsRuby: true, fontSize: (revealed ? 36 : 48) * store.textScale, alignment: revealed ? .left : .center, weight: .bold)
                         .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: revealed ? .leading : .center)
                     NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
                     if speechSide != "left" { speechControls }
                 }
             } else { speechControls }
-            if revealed, metadata.contains("reading") {
+            if revealed, metadata.contains("reading"), !store.displayFlag("showReviewRuby") {
                 Text(item.cardText("reading", locale: locale) ?? "").font(.title3.weight(.semibold)).foregroundStyle(DeckTheme.muted)
             }
             if metadata.contains(where: { $0 != "reading" }) {
@@ -494,15 +498,14 @@ struct ConfiguredCardView: View {
                         Divider()
                         Label("例句", systemImage: "quote.opening").font(.headline).foregroundStyle(DeckTheme.green)
                         ForEach(Array(item.reviewExamples.enumerated()), id: \.offset) { index, example in
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text(store.readingText(example.ja, item: item)).lineSpacing(6).textSelection(.enabled)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    NativeSpeechControls(text: example.ja, label: "朗读例句", iconOnly: true,
-                                        identifier: "review.example.\(index)", showsRepeat: true)
-                                }
-                                if let translation = example.zh, !translation.isEmpty { Text(translation).foregroundStyle(DeckTheme.muted).textSelection(.enabled) }
-                            }
+                            NativeExampleCard(
+                                japanese: example.ja,
+                                item: item,
+                                translation: example.zh,
+                                speechText: example.ja,
+                                number: item.reviewExamples.count > 1 ? index + 1 : nil,
+                                identifier: "review.example.\(index)"
+                            )
                         }
                     }
                 } else if let text = item.cardText(field, locale: locale) {
@@ -511,7 +514,7 @@ struct ConfiguredCardView: View {
                             Divider()
                             HStack(alignment: .top, spacing: 10) {
                                 Text("1").font(.headline).foregroundStyle(.white).frame(width: 28, height: 28).background(DeckTheme.green, in: Circle())
-                                Text(text).font(.title2.bold()).foregroundStyle(DeckTheme.green).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                                JapaneseText(text: text, item: item, explanation: true, weight: .semibold).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                             }
                         } else {
                             if !["patterns", "meaning"].contains(field) {
@@ -519,13 +522,57 @@ struct ConfiguredCardView: View {
                                 Label(CardFields.label(field), systemImage: field == "core_memory" ? "sparkles" : field == "examples" ? "quote.opening" : "text.alignleft")
                                     .font(.headline).foregroundStyle(field == "core_memory" ? Color.orange : DeckTheme.green)
                             }
-                            Text(store.readingText(text, item: item)).font(field == "patterns" ? .title3.weight(.semibold) : field == "meaning" ? .body.weight(.semibold) : .body)
+                            JapaneseText(text: text, item: item, japanese: field == "meaning_ja", explanation: field != "patterns")
                                 .lineSpacing(6).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }.foregroundStyle(DeckTheme.ink)
+    }
+}
+
+/// Keep each sentence and its translation together without reserving text width for audio controls.
+struct NativeExampleCard: View {
+    let japanese: String
+    var item: StudyItem? = nil
+    let translation: String?
+    let speechText: String
+    let number: Int?
+    let identifier: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                if let number {
+                    Text(String(format: "%02d", number))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(DeckTheme.green)
+                }
+                Spacer(minLength: 0)
+                NativeSpeechControls(text: speechText, label: "朗读例句", iconOnly: true,
+                    identifier: identifier, showsRepeat: true)
+            }
+            JapaneseText(text: japanese, item: item, japanese: true)
+                .lineSpacing(4)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let translation, !translation.isEmpty {
+                Text(translation)
+                    .foregroundStyle(DeckTheme.muted)
+                    .lineSpacing(3)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 14)
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DeckTheme.green.opacity(0.045), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(DeckTheme.green.opacity(0.12), lineWidth: 1))
     }
 }
 
@@ -816,9 +863,29 @@ private extension ISO8601DateFormatter {
 struct PracticeFeedbackSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var mode = "immediate"
+    @State private var vocabularyKinds: Set<String> = []
+    private let vocabularyOptions = [("kanji_to_kana", "漢字読み（汉字读音）"), ("kana_to_kanji", "表記（假名选汉字）"), ("word_formation", "語形成（构词）"), ("moji_goi", "文脈規定（语境填空）"), ("meaning", "言い換え類義（近义替换）"), ("usage", "用法（词语用法）")]
     @State private var message: String?
+    @State private var loadingSettings = false
     var body: some View {
         Form {
+            Section { NavigationLink("每日练习的数据来源与时间") { NativeDailyPracticeSourceSettings() } }
+            Section {
+                ForEach(vocabularyOptions, id: \.0) { kind, title in
+                    Button {
+                        if vocabularyKinds.contains(kind) { vocabularyKinds.remove(kind) }
+                        else { vocabularyKinds.insert(kind) }
+                    } label: {
+                        Label(title, systemImage: vocabularyKinds.contains(kind) ? "checkmark.square.fill" : "square")
+                    }.buttonStyle(.plain).disabled(loadingSettings || store.isSaving)
+                        .accessibilityIdentifier("settings.vocabularyKinds.\(kind)")
+                        .accessibilityValue(vocabularyKinds.contains(kind) ? "已选择" : "未选择")
+                }
+            } header: {
+                Text("单词添加规则")
+            } footer: {
+                Text("MCP 添加或更新单词时，每个勾选题型须提供至少一道完整题目；全部不选则不校验。此设置与网页端共用。")
+            }
             Section {
                 Picker("显示答案", selection: $mode) {
                     Text("每答一题后查看").tag("immediate")
@@ -828,16 +895,37 @@ struct PracticeFeedbackSettingsView: View {
             Section {
                 Button(store.isSaving ? "保存中…" : "保存设置") {
                     Task {
-                        do { try await store.saveSettings(["feedbackMode": .string(mode)]); message = "已保存" }
+                        do { try await store.saveSettings(["feedbackMode": .string(mode), "jlptVocabularyQuestionKinds": .array(vocabularyOptions.map(\.0).filter { vocabularyKinds.contains($0) }.map(SettingValue.string)), "requireJlptVocabularyQuestions": .bool(!vocabularyKinds.isEmpty)]); message = "已保存" }
                         catch { message = error.localizedDescription }
                     }
-                }.disabled(store.isSaving || store.isLoading || (!store.isOnline && !store.isDemo))
+                }.disabled(loadingSettings || store.isSaving || store.isLoading || (!store.isOnline && !store.isDemo))
                 if let message { Text(message).font(.footnote) }
             }
-        }.navigationTitle("答题反馈").onAppear {
+        }.navigationTitle("练习设置").onAppear {
+            loadVocabularyKinds(store.state.settings)
             if case .string(let saved) = store.state.settings?["feedbackMode"], ["batch", "immediate"].contains(saved) { mode = saved }
+        }.task {
+            guard !store.isDemo, store.isOnline else { return }
+            loadingSettings = true
+            defer { loadingSettings = false }
+            do {
+                let latest: StudyState = try await store.api.get("api/study-state/settings")
+                loadVocabularyKinds(latest.settings)
+                if case .string(let saved) = latest.settings?["feedbackMode"], ["batch", "immediate"].contains(saved) { mode = saved }
+            } catch { message = error.localizedDescription }
         }
     }
+    private func loadVocabularyKinds(_ settings: [String: SettingValue]?) {
+        if case .array(let selected) = settings?["jlptVocabularyQuestionKinds"] {
+            vocabularyKinds = Set(selected.compactMap { value in
+                if case .string(let kind) = value, vocabularyOptions.contains(where: { $0.0 == kind }) { return kind }
+                return nil
+            })
+        } else {
+            vocabularyKinds = settings?["requireJlptVocabularyQuestions"] == .bool(true) ? Set(vocabularyOptions.map(\.0)) : []
+        }
+    }
+
 }
 
 extension StudyPlanProfile {
@@ -909,6 +997,7 @@ struct DisplayReadingSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var language = "zh-CN"
     @State private var fontSize = "standard"
+    @State private var japaneseDisplay = JapaneseDisplay()
     @State private var reviewKana = false
     @State private var explanationKana = false
     @State private var saving = false
@@ -934,16 +1023,45 @@ struct DisplayReadingSettingsView: View {
             Section {
                 Toggle("复习时显示假名", isOn: $reviewKana).accessibilityIdentifier("settings.reviewKana")
                 Toggle("解析中显示假名", isOn: $explanationKana).accessibilityIdentifier("settings.explanationKana")
-                Text(reviewKana ? "見落とす（みおとす）" : "見落とす").font(.title2)
+                JapaneseText(text: "見落とす", japanese: true, terms: [.init(text: "見落とす", reading: "みおとす")], fontSize: 24, displayOverride: japaneseDisplay, rubyOverride: reviewKana)
             } header: { Text("假名显示") } footer: {
                 Text("使用词条中保存的读音；读音题作答时不显示提示。")
+            }
+            Section {
+                Toggle("分词模式", isOn: $japaneseDisplay.segmented).accessibilityIdentifier("settings.japanese.segmented")
+                ForEach(JapaneseDisplay.categories, id: \.self) { category in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker(JapaneseDisplay.labels[category] ?? category, selection: Binding(
+                            get: { japaneseDisplay.styles[category]?.mode ?? "none" },
+                            set: { japaneseDisplay.styles[category]?.mode = $0 }
+                        )) {
+                            Text("不标记").tag("none")
+                            Text("彩色下划线").tag("underline")
+                            Text("文字颜色").tag("text")
+                        }.accessibilityIdentifier("settings.japanese.\(category).mode")
+                        ColorPicker("标记颜色", selection: Binding(
+                            get: { Color(UIColor(japaneseHex: japaneseDisplay.styles[category]?.color ?? "#326B9C") ?? .label) },
+                            set: { japaneseDisplay.styles[category]?.color = UIColor($0).japaneseHex }
+                        ), supportsOpacity: false).accessibilityIdentifier("settings.japanese.\(category).color")
+                    }.disabled(!japaneseDisplay.segmented)
+                }
+                JapaneseText(text: "美しい景色を見た。", japanese: true,
+                    annotations: [.init(text: "美しい景色を見た。", tokens: [
+                        .init(surface: "美しい", reading: "うつくしい", pos: "adjective"),
+                        .init(surface: "景色", reading: "けしき", pos: "noun"),
+                        .init(surface: "を", pos: "particle"),
+                        .init(surface: "見た", reading: "みた", pos: "verb"), .init(surface: "。")])],
+                    displayOverride: japaneseDisplay, rubyOverride: reviewKana)
+                    .accessibilityIdentifier("settings.japanese.preview")
+            } header: { Text("日语分词与词性") } footer: {
+                Text("应用于卡片、详情、练习、阅读与听力。优先使用内容中的分词标注；缺失时离线分词，无法确定词性的词不着色。")
             }
             Section {
                 Button {
                     saving = true; message = nil
                     Task {
                         do {
-                            try await store.saveSettings(["locale": .string(language), "fontSize": .string(fontSize), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana)])
+                            try await store.saveSettings(["locale": .string(language), "fontSize": .string(fontSize), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana), "japaneseDisplay": japaneseDisplay.setting])
                             message = "已保存"
                         } catch { message = error.localizedDescription }
                         saving = false
@@ -957,6 +1075,7 @@ struct DisplayReadingSettingsView: View {
                 guard !loaded else { return }
                 language = store.appLanguage
                 if case .string(let value) = store.state.settings?["fontSize"] { fontSize = value }
+                japaneseDisplay = JapaneseDisplay(settings: store.state.settings)
                 reviewKana = store.displayFlag("showReviewRuby")
                 explanationKana = store.displayFlag("showExplanationRuby")
                 loaded = true
@@ -969,11 +1088,11 @@ struct NativeSettingsView: View {
     var body: some View {
         Form {
             Section("显示与阅读") {
-                NavigationLink { DisplayReadingSettingsView() } label: { Label("语言、字体与假名", systemImage: "textformat.size") }.accessibilityIdentifier("settings.display")
+                NavigationLink { DisplayReadingSettingsView() } label: { Label("语言、字体与日语显示", systemImage: "textformat.size") }.accessibilityIdentifier("settings.display")
             }
             Section("学习与练习") {
                 NavigationLink { ExamGoalSettingsView() } label: { Label("考试目标", systemImage: "target") }.accessibilityIdentifier("settings.examGoal")
-                NavigationLink { PracticeFeedbackSettingsView() } label: { Label("答题反馈", systemImage: "checkmark.bubble") }.accessibilityIdentifier("settings.feedback")
+                NavigationLink { PracticeFeedbackSettingsView() } label: { Label("练习设置", systemImage: "checkmark.bubble") }.accessibilityIdentifier("settings.feedback")
                 NavigationLink { CardSettingsView() } label: { Label("记忆卡片", systemImage: "rectangle.on.rectangle") }.accessibilityIdentifier("settings.cards")
             }
             Section("发音与朗读") {
@@ -1018,6 +1137,7 @@ struct NativeAISettingsView: View {
         Form {
             Section("AI 学习助手") {
                 Text("通过 MCP 连接 ChatGPT、Claude 等 AI 助手，整理学习笔记、生成练习和分析学习记录。")
+                Text("每日练习的数据来源、复习评分、读取范围、时区与执行时间可在练习设置中配置。请在自己的 AI 客户端创建定时任务，先读取 get_daily_practice_source_context，再准备并保存练习。复习来源只复用已有题目，无题库则跳过；卡片评分不计入做题正确率。MCP 本身不执行定时任务。")
                 Text("AI 生成内容需要核验后再用于正式学习。").font(.footnote).foregroundStyle(.secondary)
             }
             Section("接入 AI") {
@@ -1106,5 +1226,79 @@ struct CardIdentityFooter: View {
             .overlay(alignment: .trailing) {
                 NativeCopyButton(value: item.copyIdentifier, label: "复制编号", identifier: "review.copyReference")
             }.foregroundStyle(DeckTheme.muted).padding(.top, 16)
+    }
+}
+
+struct NativeCardReviewStatistics: View {
+    let events: [CardReview]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("卡片复习情况").font(.headline)
+            Text("\(events.count) 次复习 · \(Set(events.map(\.itemId)).count) 张卡片")
+            Text([("forgot", "忘记"), ("hard", "困难"), ("remembered", "记得"), ("easy", "轻松")].map { rating, label in "\(label) \(events.filter { $0.rating == rating }.count)" }.joined(separator: " · "))
+                .font(.caption).foregroundStyle(.secondary)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+struct NativeDailyPracticeSourceSettings: View {
+    @Environment(AppStore.self) private var store
+    @State private var answers = true
+    @State private var cardReviews = true
+    @State private var ratings = ["forgot", "hard"]
+    @State private var window = "previous_day"
+    @State private var hours = 24
+    @State private var timeZone = "Asia/Tokyo"
+    @State private var runTime = Date.now
+    @State private var loaded = false
+    @State private var message: String?
+    private var runAt: String {
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
+        return formatter.string(from: runTime)
+    }
+    var body: some View {
+        Form {
+            Section {
+                Toggle("答题记录", isOn: $answers)
+                Toggle("卡片复习记录", isOn: $cardReviews)
+                ForEach(["forgot", "hard", "remembered", "easy"], id: \.self) { rating in
+                    Toggle(["forgot": "忘记", "hard": "困难", "remembered": "记得", "easy": "轻松"][rating]!, isOn: Binding(get: { ratings.contains(rating) }, set: { enabled in
+                        if enabled { if !ratings.contains(rating) { ratings.append(rating) } }
+                        else { ratings.removeAll { $0 == rating } }
+                    })).disabled(!cardReviews)
+                }
+            } header: { Text("每日练习的数据来源") } footer: { Text("复习记录只使用卡片自带的题目，没有题库的卡片跳过，不重新生成。自评分布与做题正确率分开统计。") }
+            Section {
+                Picker("数据范围", selection: $window) { Text("前一天").tag("previous_day"); Text("过去若干小时").tag("last_hours") }
+                if window == "last_hours" { Stepper("过去 \(hours) 小时", value: $hours, in: 1...720) }
+                Picker("时区", selection: $timeZone) { ForEach(Array(Set(TimeZone.knownTimeZoneIdentifiers + [timeZone])).sorted(), id: \.self) { Text($0).tag($0) } }
+                DatePicker("AI 执行时间", selection: $runTime, displayedComponents: .hourAndMinute)
+            } header: { Text("时间配置") } footer: { Text("请在自己的 AI 客户端按此时间和时区配置定时任务。MCP 供 AI 读取设置与数据；保存此设置不会启动定时任务。") }
+            Section {
+                Button("保存设置") {
+                    Task {
+                        do {
+                            try await store.saveSettings(["dailyPracticeSources": .object(["answers": .bool(answers), "cardReviews": .bool(cardReviews), "ratings": .array(ratings.map { .string($0) }), "window": .string(window), "hours": .number(Double(hours)), "timeZone": .string(timeZone), "runAt": .string(runAt)])])
+                            message = "已保存"
+                        } catch { message = error.localizedDescription }
+                    }
+                }.disabled(!loaded || store.isSaving || store.isLoading || (!store.isOnline && !store.isDemo))
+                if let message { Text(message).font(.footnote) }
+            }
+        }.navigationTitle("每日练习来源").task {
+            guard !loaded else { return }
+            do {
+                let state = store.isDemo ? store.state : try await store.api.get("api/study-state/settings") as StudyState
+                if case .object(let saved) = state.settings?["dailyPracticeSources"] {
+                    if case .bool(let v) = saved["answers"] { answers = v }
+                    if case .bool(let v) = saved["cardReviews"] { cardReviews = v }
+                    if case .array(let v) = saved["ratings"] { ratings = v.compactMap { if case .string(let s) = $0 { return s }; return nil } }
+                    if case .string(let v) = saved["window"] { window = v }
+                    if case .number(let v) = saved["hours"] { hours = Int(v) }
+                    if case .string(let v) = saved["timeZone"] { timeZone = v }
+                    if case .string(let v) = saved["runAt"] { let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "HH:mm"; runTime = f.date(from: v) ?? .now }
+                } else { let f = DateFormatter(); f.dateFormat = "HH:mm"; runTime = f.date(from: "07:00") ?? .now }
+                loaded = true
+            } catch { message = error.localizedDescription }
+        }
     }
 }

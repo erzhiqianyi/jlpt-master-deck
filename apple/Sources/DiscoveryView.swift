@@ -214,9 +214,9 @@ struct DiscoveryPreviewGallery: View {
                         ForEach(Array((content.items ?? []).enumerated()), id: \.offset) { index, item in
                             VStack(alignment: .leading, spacing: 20) {
                                 Text("\(index + 2) / \(total)").font(.caption).foregroundStyle(DeckTheme.muted)
-                                Text(item.original).font(.largeTitle.bold())
+                                JapaneseText(text: item.original, japanese: true, terms: item.reading.map { [.init(text: item.original, reading: $0)] } ?? [], annotations: item.japanese_annotations ?? [], fontSize: 28, weight: .bold)
                                 Text(item.reading ?? "").foregroundStyle(DeckTheme.muted)
-                                Text(item.meaning_zh ?? "")
+                                JapaneseText(text: item.meaning_zh ?? "", explanation: true, annotations: item.japanese_annotations ?? [])
                                 Spacer()
                                 Text("仅预览，不记录答案").font(.caption).foregroundStyle(DeckTheme.muted)
                             }.padding(24).frame(minHeight: 460).containerRelativeFrame(.horizontal).background(DeckTheme.surface, in: RoundedRectangle(cornerRadius: 16)).id(index + 1)
@@ -248,13 +248,13 @@ struct DiscoveryQuestionPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack { Text("第 \(index + 1) 题 · 预览"); Spacer(); Text("\(index + 2) / \(total)") }.font(.caption).foregroundStyle(DeckTheme.muted)
-            Text(question.prompt ?? question.question ?? question.title ?? "").font(.title3.bold()).lineSpacing(6).padding(.vertical, 8)
+            JapaneseText(text: question.prompt ?? question.question ?? question.title ?? "", japanese: true, annotations: question.japaneseAnnotations ?? [], weight: .semibold).lineSpacing(6).padding(.vertical, 8)
             ForEach(Array((question.choices ?? []).enumerated()), id: \.offset) { number, choice in
                 Button { selected = number } label: {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: selected == number ? "largecircle.fill.circle" : "circle").foregroundStyle(DeckTheme.green)
                         Text(String(UnicodeScalar(65 + number)!))
-                        Text(choice).frame(maxWidth: .infinity, alignment: .leading)
+                        JapaneseText(text: choice, japanese: true, annotations: question.japaneseAnnotations ?? []).frame(maxWidth: .infinity, alignment: .leading)
                     }.padding(14).frame(minHeight: 50).background(selected == number ? DeckTheme.green.opacity(0.06) : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 9)).overlay(RoundedRectangle(cornerRadius: 9).stroke(selected == number ? DeckTheme.green : DeckTheme.line))
                 }.buttonStyle(.plain).accessibilityAddTraits(selected == number ? .isSelected : [])
             }
@@ -275,8 +275,10 @@ struct DiscoveryPackage: Decodable {
         let original: String
         var reading: String?
         var meaning_zh: String?
+        var japanese_annotations: [JapaneseAnnotation]?
     }
     struct Question: Decodable {
+        var japaneseAnnotations: [JapaneseAnnotation]?
         var kind: String?
         var title: String?
         var instruction: String?
@@ -420,7 +422,7 @@ struct NativeAIArticleView: View {
                 ForEach(article.sections) { section in
                     VStack(alignment: .leading, spacing: 12) {
                         Text(section.title).font(.title2.bold())
-                        Text(section.text).font(.body).lineSpacing(6).textSelection(.enabled)
+                        JapaneseText(text: section.text, explanation: true).font(.body).lineSpacing(6).textSelection(.enabled)
                         if section.title == "可以怎样请求 AI" {
                             Button("复制示例请求") { UIPasteboard.general.string = section.text }
                                 .accessibilityIdentifier("ai.article.copyPrompt")

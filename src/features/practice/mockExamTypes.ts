@@ -1,4 +1,6 @@
+import type { JapaneseAnnotation } from '../../types';
 export type ExamQuestion = {
+  japaneseAnnotations?: JapaneseAnnotation[];
   id: string; prompt: string; passage?: string; choices: string[]; answerIndex: number; explanation: string;
   choiceExplanations?: string[]; translation?: string; sourceUrl?: string; sourceLabel?: string; type?: string;
   audioUrl?: string; transcript?: string; scoringReady?: boolean;

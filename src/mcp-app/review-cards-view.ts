@@ -9,7 +9,7 @@ export type ReviewCards = {
   cards: { id: string; reference?: string; deck: string; front: Face; back: Face }[];
 };
 
-export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>, rate: (itemId: string, rating: string) => Promise<void>) {
+export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>, rate: (itemId: string, rating: string, eventId: string) => Promise<void>) {
   let data: ReviewCards | null = null;
   let index = 0;
   let flipped = false;
@@ -17,6 +17,7 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
   let error = '';
   let saved = '';
   let reviewed = 0;
+  let pendingReview: { itemId: string; rating: string; eventId: string } | null = null;
   const node = (tag: string, text = '', className = '') => {
     const element = document.createElement(tag);
     element.textContent = text;
@@ -44,7 +45,9 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
     if (!card || !flipped || busy) return;
     busy = true; error = ''; render();
     try {
-      await rate(card.id, rating);
+      if (pendingReview?.itemId !== card.id || pendingReview.rating !== rating) pendingReview = { itemId: card.id, rating, eventId: crypto.randomUUID() };
+      await rate(card.id, rating, pendingReview.eventId);
+      pendingReview = null;
       reviewed++;
       saved = `已保存「${card.front[0]?.lines[0] ?? '卡片'}」的复习结果`;
       data!.cards.splice(index, 1);

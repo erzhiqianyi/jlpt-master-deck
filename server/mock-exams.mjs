@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
+import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
 
 const text = z.string().trim().min(1);
 const url = z.string().refine(value => /^https?:\/\//.test(value) || /^\/api\//.test(value), 'Use an HTTP(S) URL or an /api/ asset path');
 export const examQuestionSchema = z.object({
+  japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: text, prompt: text, passage: z.string().optional(), choices: z.array(text).min(2).max(10),
   answerIndex: z.number().int().min(0), explanation: text,
   choiceExplanations: z.array(z.string()).optional(), translation: z.string().optional(),

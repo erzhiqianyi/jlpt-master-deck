@@ -56,6 +56,14 @@
       return null;
     }
     apiBaseUrlInput.value = state.data.apiBaseUrl;
+    const ruleLink = document.getElementById("vocabulary-rule-settings");
+    ruleLink.href = `${state.data.apiBaseUrl}/#/settings/practice`;
+    const ruleStatus = document.getElementById("vocabulary-rule-status");
+    ruleStatus.textContent = "\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\uFF1A\u8BF7\u767B\u5F55\u540E\u67E5\u770B";
+    if (state.data.user) {
+      const rule = await sendMessage({ type: "GET_STUDY_SETTINGS" });
+      ruleStatus.textContent = rule.ok ? `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\uFF1A${rule.data.jlptVocabularyQuestionKinds.length ? `\u5FC5\u987B\u751F\u6210 ${rule.data.jlptVocabularyQuestionKinds.map((kind) => ({ kanji_to_kana: "\u6F22\u5B57\u8AAD\u307F", kana_to_kanji: "\u8868\u8A18", word_formation: "\u8A9E\u5F62\u6210", moji_goi: "\u6587\u8108\u898F\u5B9A", meaning: "\u8A00\u3044\u63DB\u3048\u985E\u7FA9", usage: "\u7528\u6CD5" })[kind] ?? kind).join("\u3001")}` : "\u4E0D\u6821\u9A8C JLPT \u8A9E\u5F59\u9898\u76EE"}` : `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\u8BFB\u53D6\u5931\u8D25\uFF1A${rule.error}`;
+    }
     accountEl.innerHTML = state.data.user ? `<span>\u5DF2\u767B\u5F55\uFF1A${formatIdentity(state.data.user)}</span> <button id="logout" type="button">\u9000\u51FA\u767B\u5F55</button>` : '<button id="login" type="button">\u767B\u5F55</button>';
     document.getElementById("login")?.addEventListener("click", async () => {
       const response = await sendMessage({ type: "LOGIN" });
@@ -189,4 +197,7 @@
   });
   void refreshAccount().then(refreshList);
   void refreshManualWordbooks();
+  window.addEventListener("focus", () => {
+    void refreshAccount();
+  });
 })();

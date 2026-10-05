@@ -14,6 +14,7 @@
     "mcp:setup": "node scripts/setup-project-mcp.mjs",
     "prebuild": "node scripts/build-community-locales.mjs",
     "build": "vite build && npm run build:mcp-app",
+    "build:native-questions": "node scripts/build-native-questions.mjs",
     "build:mcp-app": "vite build --config vite.mcp-app.config.ts && vite build --config vite.mcp-app.config.ts --mode review-cards && vite build --config vite.mcp-app.config.ts --mode ai-learning-home",
     "start": "vite preview",
     "tunnel": "cloudflared tunnel --config ~/.cloudflared/config.yml run satori-local",

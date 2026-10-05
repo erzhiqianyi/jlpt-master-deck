@@ -17,6 +17,7 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const actionPending = useRef(false);
+  const navigationDialog = useRef<HTMLDialogElement>(null);
   // An append-only annotation log keeps confirmations with the saved draft.
   const reviews = getQuestionReviews(draft.annotations);
   const keys = questions.map(questionReviewKey);
@@ -39,6 +40,23 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
     } catch (cause) { setError(cause instanceof Error ? cause.message : '保存失败，请再试一次'); }
     finally { actionPending.current = false; setBusy(false); }
   }
+  async function confirmAll() {
+    if (actionPending.current || archived || count === questions.length) return;
+    actionPending.current = true;
+    setBusy(true); setError(''); setNotice('');
+    let saved = 0;
+    try {
+      for (const [number, entry] of keys.entries()) {
+        if (isQuestionConfirmed(entry, reviews, notes)) continue;
+        await onSave(draft.id, JSON.stringify({ kind: 'question_review', key: entry, number: number + 1, note: notes[entry] ?? reviews.get(entry)?.note ?? '', confirmed: true } satisfies QuestionReview));
+        saved += 1;
+        setNotice(`正在确认：已保存 ${saved} 题…`);
+      }
+      setNotice('全部题目已确认，可以生成最终版。');
+    } catch (cause) {
+      setError(`已保存 ${saved} 题的确认。${cause instanceof Error ? cause.message : '保存失败'}，请重试。`);
+    } finally { actionPending.current = false; setBusy(false); }
+  }
   async function finalize() {
     if (!questions.length || count !== questions.length || actionPending.current || archived) return;
     actionPending.current = true;
@@ -50,12 +68,35 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
     catch (cause) { setError(cause instanceof Error ? cause.message : '生成失败，请再试一次'); }
     finally { actionPending.current = false; setBusy(false); }
   }
+  const questionNumbers = keys.map((entry, number) => {
+    const checked = isQuestionConfirmed(entry, reviews, notes);
+    return <button key={entry} type="button" disabled={busy} aria-current={number === current ? 'step' : undefined}
+      aria-label={`第 ${number + 1} 题，${checked ? '已确认' : '待确认'}`}
+      className={checked ? 'is-confirmed' : ''}
+      onClick={() => { setIndex(number); setNotice(''); setError(''); navigationDialog.current?.close(); }}>
+      {number + 1}{checked ? <span aria-hidden="true">✓</span> : null}
+    </button>;
+  });
   if (!questions.length) return <p role="status">暂无可审核的题目。</p>;
   return <div className="question-review-workspace">
+    <nav className="question-review-navigation" aria-label="题目导航">
+      <h2>题目导航</h2>
+      <p>已确认 {count} / {questions.length} 题</p>
+      <div className="question-review-number-grid">
+        {questionNumbers}
+      </div>
+      <small>✓ 已确认 · 点击题号跳转</small>
+    </nav>
+    <dialog ref={navigationDialog} className="question-review-navigation-dialog" aria-label="选择题目">
+      <header><h2>题目导航</h2><button type="button" onClick={() => navigationDialog.current?.close()}>关闭</button></header>
+      <p>已确认 {count} / {questions.length} 题</p>
+      <div className="question-review-number-grid">{questionNumbers}</div>
+    </dialog>
     <section className="question-review-main" aria-label="逐题审核">
       <nav className="gentle-question-pager" aria-label="预览题目翻页">
         <button type="button" disabled={current === 0 || busy} onClick={() => {setIndex(current - 1); setNotice(''); setError('');}}>上一题</button>
-        <span aria-live="polite">第 {current + 1} / {questions.length} 题</span>
+        <span className="question-review-desktop-position" aria-live="polite">第 {current + 1} / {questions.length} 题</span>
+        <button type="button" className="question-review-navigation-trigger" aria-haspopup="dialog" disabled={busy} onClick={() => navigationDialog.current?.showModal()}>第 {current + 1} / {questions.length} 题 ▾</button>
         <button type="button" disabled={current === questions.length - 1 || busy} onClick={() => {setIndex(current + 1); setNotice(''); setError('');}}>下一题</button>
       </nav>
       <div className="question-review-section-heading"><h2>看题目</h2>
@@ -82,6 +123,7 @@ export function QuestionReviewWorkspace({ draft, questions, renderQuestion, onSa
       <div className="question-review-final">
         <header><h3>整份练习</h3><span>{questions.length} 题</span></header><p>已确认 <strong>{count}</strong> / {questions.length} 题</p>
         <progress value={count} max={questions.length} aria-label="题目确认进度" />
+        <button type="button" className="question-review-confirm-all" disabled={busy || count === questions.length || archived} onClick={confirmAll}>{count === questions.length ? '全部已确认' : '一键确认全部'}</button>
         <button type="button" className="question-review-confirm" disabled={busy || count !== questions.length || archived} onClick={finalize}>{archived ? '已生成最终版' : busy ? '正在处理…' : '生成最终版'}</button>
         <small>全部确认后，加入今日练习。批注不会自动修改题目。</small>
       </div>

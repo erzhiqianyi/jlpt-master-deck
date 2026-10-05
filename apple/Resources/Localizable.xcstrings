@@ -1,248 +1,6 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
-    "等待上传" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待上传"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting to upload"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "送信待ち"
-          }
-        }
-      }
-    },
-    "旧记录待核对" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "旧记录待核对"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy records to review"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "要確認の旧記録"
-          }
-        }
-      }
-    },
-    "核对旧答题记录" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "核对旧答题记录"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review legacy answers"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "旧解答記録の確認"
-          }
-        }
-      }
-    },
-    "核对这条记录" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "核对这条记录"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review this record"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この記録を確認"
-          }
-        }
-      }
-    },
-    "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These records are saved on this device and will not be retried at login. Review them in answer order: if the same answer is already included in the cloud, do not count it again; merge counts only for a separate practice action."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "これらの記録は端末に保存され、ログイン時には再送されません。解答順に確認してください。同じ解答がクラウドに含まれる場合は再計数せず、別の練習と確認した場合だけ回数を加算します。"
-          }
-        }
-      }
-    },
-    "这条作答是否已经包含在云端？" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这条作答是否已经包含在云端？"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Is this answer already included in the cloud?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この解答はクラウドに含まれていますか？"
-          }
-        }
-      }
-    },
-    "云端已包含这次作答，只保留记录" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "云端已包含这次作答，只保留记录"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Already included; preserve the record"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "算入済みとして記録を保持"
-          }
-        }
-      }
-    },
-    "这是另一轮练习，合并计数" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这是另一轮练习，合并计数"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separate practice action; add one answer"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "別の練習として一回加算"
-          }
-        }
-      }
-    },
-    "暂不处理" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂不处理"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review later"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "後で確認"
-          }
-        }
-      }
-    },
-    "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only this record will be processed. The cloud progress snapshot will not be replaced. Merging adds one answer; an already included record is not counted again."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この記録だけを処理し、クラウドの進捗全体は置換しません。統合すると解答を一回加算し、算入済みの記録は再計数しません。"
-          }
-        }
-      }
-    },
-    "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study data updated; %1$ld records await upload and %2$ld legacy records need review. Local records are preserved."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習データを更新しました。送信待ち %1$ld 件、要確認の旧記録 %2$ld 件。端末の記録は保持されています。"
-          }
-        }
-      }
-    },
     "%@" : {
 
     },
@@ -405,6 +163,9 @@
     "MCP 添加或更新单词时，每个勾选题型须提供至少一道完整题目；全部不选则不校验。此设置与网页端共用。" : {
 
     },
+    "一次选择适用于全部待核对记录。云端已包含的作答只保留记录；另一轮练习会合并计数。本机记录会保留，上传失败可重试。" : {
+
+    },
     "下一题" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -439,6 +200,52 @@
     },
     "云端" : {
 
+    },
+    "云端已包含这次作答，只保留记录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already included; preserve the record"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "算入済みとして記録を保持"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云端已包含这次作答，只保留记录"
+          }
+        }
+      }
+    },
+    "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only this record will be processed. The cloud progress snapshot will not be replaced. Merging adds one answer; an already included record is not counted again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記録だけを処理し、クラウドの進捗全体は置換しません。統合すると解答を一回加算し、算入済みの記録は再計数しません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。"
+          }
+        }
+      }
     },
     "仅预览，不记录答案" : {
 
@@ -1219,6 +1026,28 @@
     "学习数据" : {
 
     },
+    "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Study data updated; %1$ld records await upload and %2$ld legacy records need review. Local records are preserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "学習データを更新しました。送信待ち %1$ld 件、要確認の旧記録 %2$ld 件。端末の記録は保持されています。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。"
+          }
+        }
+      }
+    },
     "学习计划" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1416,6 +1245,9 @@
     "当前使用系统日语朗读。云端语音下载需先在网页配置服务商，再同步学习数据。" : {
 
     },
+    "当前离线，请联网后同步。" : {
+
+    },
     "当前题" : {
 
     },
@@ -1529,6 +1361,28 @@
     "日语分词与词性" : {
 
     },
+    "旧记录待核对" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy records to review"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要確認の旧記録"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旧记录待核对"
+          }
+        }
+      }
+    },
     "时间配置" : {
 
     },
@@ -1557,6 +1411,28 @@
     },
     "暂不分类" : {
 
+    },
+    "暂不处理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review later"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後で確認"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂不处理"
+          }
+        }
+      }
     },
     "暂无专项练习" : {
 
@@ -1628,6 +1504,52 @@
         }
       }
     },
+    "核对旧答题记录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review legacy answers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旧解答記録の確認"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "核对旧答题记录"
+          }
+        }
+      }
+    },
+    "核对这条记录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review this record"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記録を確認"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "核对这条记录"
+          }
+        }
+      }
+    },
     "模块表现" : {
 
     },
@@ -1656,6 +1578,9 @@
 
     },
     "每答一题后查看" : {
+
+    },
+    "没有待核对的旧记录" : {
 
     },
     "演示内容仅用于体验，不会写入你的账户。" : {
@@ -1734,6 +1659,28 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "第 %1$@ 题 / 共 %2$@ 题"
+          }
+        }
+      }
+    },
+    "等待上传" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting to upload"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信待ち"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待上传"
           }
         }
       }
@@ -2255,8 +2202,77 @@
     "这一轮完成了" : {
 
     },
+    "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These records are saved on this device and will not be retried at login. Review them in answer order: if the same answer is already included in the cloud, do not count it again; merge counts only for a separate practice action."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの記録は端末に保存され、ログイン時には再送されません。解答順に確認してください。同じ解答がクラウドに含まれる場合は再計数せず、別の練習と確認した場合だけ回数を加算します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。"
+          }
+        }
+      }
+    },
     "这份草稿尚未整理为完整题组。" : {
 
+    },
+    "这是另一轮练习，合并计数" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separate practice action; add one answer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の練習として一回加算"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是另一轮练习，合并计数"
+          }
+        }
+      }
+    },
+    "这条作答是否已经包含在云端？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is this answer already included in the cloud?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この解答はクラウドに含まれていますか？"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这条作答是否已经包含在云端？"
+          }
+        }
+      }
     },
     "连接你的学习账户，开始一次 AI 协作" : {
 
@@ -2283,6 +2299,9 @@
           }
         }
       }
+    },
+    "选择将应用于全部 %@ 条待核对记录。合并计数会增加作答次数，请确认这些作答尚未计入云端。" : {
+
     },
     "选项 %@" : {
 

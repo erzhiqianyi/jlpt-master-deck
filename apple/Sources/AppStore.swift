@@ -433,6 +433,19 @@ final class AppStore {
         catch { pending = previous; notice = error.localizedDescription; return }
         await refresh()
     }
+    func resolveAllSyncRecords(decision: String) async {
+        guard ["merge", "already_counted"].contains(decision), isOnline,
+              !isRestoringLocal, !isLoading, !isSaving, pendingCount > 0 else { return }
+        let previous = pending
+        for index in pending.indices where pending[index].needsSyncReview == true {
+            pending[index].needsSyncReview = false
+            pending[index].syncDecision = decision
+        }
+        // Save the whole decision before uploading; retries retain the same event IDs.
+        do { try persist() }
+        catch { pending = previous; notice = error.localizedDescription; return }
+        await refresh()
+    }
     private func applyPending() {
         for operation in pending {
             let input = operation.input

@@ -43,7 +43,6 @@ struct DatabaseCheckView: View {
     @State private var busy = false
     @State private var syncMessage: String?
     @State private var showingSyncResult = false
-    @State private var resolvingRecord: PendingAnswer?
     private var disabled: Bool { busy || store.isLoading || store.isSaving || store.isDownloadingAudio }
     var body: some View {
         List {
@@ -87,10 +86,13 @@ struct DatabaseCheckView: View {
                 LabeledContent("已保存的回答", value: localReadSucceeded ? String(local?.responses?.count ?? 0) : "—")
                 LabeledContent("待同步答题", value: localReadSucceeded ? String(local?.pending.count ?? 0) : "—")
                 LabeledContent("等待上传", value: String(store.uploadableCount))
-                LabeledContent("旧记录待核对", value: String(store.syncReviewCount))
+                NavigationLink {
+                    SyncReviewView()
+                } label: {
+                    LabeledContent("旧记录待核对", value: String(store.syncReviewCount))
+                }.accessibilityIdentifier("database.syncReview")
                 if let syncMessage { Text(syncMessage).font(.footnote).textSelection(.enabled) }
             }
-            syncReviewSection
             Section {
                 Button("重新检查") { Task { await perform(.check) } }
                     .disabled(disabled).accessibilityIdentifier("database.check")
@@ -105,47 +107,6 @@ struct DatabaseCheckView: View {
             } message: {
                 Text(syncMessage ?? "")
             }
-            .confirmationDialog("这条作答是否已经包含在云端？", isPresented: Binding(
-                get: { resolvingRecord != nil }, set: { if !$0 { resolvingRecord = nil } }
-            ), titleVisibility: .visible) {
-                if let operation = resolvingRecord {
-                    Button("云端已包含这次作答，只保留记录") { resolve(operation, decision: "already_counted") }
-                    Button("这是另一轮练习，合并计数") { resolve(operation, decision: "merge") }
-                }
-                Button("暂不处理", role: .cancel) { resolvingRecord = nil }
-            } message: {
-                Text("仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。")
-            }
-    }
-    @ViewBuilder private var syncReviewSection: some View {
-            if store.syncReviewCount > 0 {
-                Section {
-                    ForEach(reviewRecords) { operation in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(store.items.first { $0.id == operation.input.itemId }?.original ?? operation.input.itemId)
-                            Text(operation.input.selected).font(.subheadline)
-                            if let time = operation.input.progressEntry.lastReviewedAt { Text(time).font(.caption).foregroundStyle(.secondary) }
-                            Button("核对这条记录") { resolvingRecord = operation }
-                                .disabled(!canReview(operation))
-                        }
-                    }
-                } header: { Text("核对旧答题记录") } footer: {
-                    Text("这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。")
-                }
-            }
-    }
-    private func resolve(_ operation: PendingAnswer, decision: String) {
-        resolvingRecord = nil
-        Task {
-            await store.resolveSyncRecord(operation.id, decision: decision)
-            if let session = store.session { await readLocal(userID: session.user.id) }
-            syncMessage = store.notice ?? store.error
-        }
-    }
-    private var reviewRecords: [PendingAnswer] { store.pending.filter { $0.needsSyncReview == true } }
-    private func canReview(_ operation: PendingAnswer) -> Bool {
-        guard !disabled, store.isOnline else { return false }
-        return reviewRecords.first(where: { $0.input.itemId == operation.input.itemId })?.id == operation.id
     }
     private enum Action { case check, sync, audio }
     @MainActor private func perform(_ action: Action) async {
@@ -205,6 +166,69 @@ struct DatabaseCheckView: View {
         } catch {
             local = nil; localReadSucceeded = false
             localError = "本机数据读取失败：\(error.localizedDescription)"
+        }
+    }
+}
+
+
+/// Legacy records require one explicit counting decision before replaying the batch.
+struct SyncReviewView: View {
+    @Environment(AppStore.self) private var store
+    @State private var busy = false
+    @State private var showingDecision = false
+    @State private var message: String?
+    private var records: [PendingAnswer] { store.pending.filter { $0.needsSyncReview == true } }
+    private var disabled: Bool { busy || store.isLoading || store.isSaving || !store.isOnline }
+
+    var body: some View {
+        List {
+            Section {
+                LabeledContent("旧记录待核对", value: String(records.count))
+                Button("一键同步全部旧记录") {
+                    if records.isEmpty { synchronize(decision: "already_counted") }
+                    else { showingDecision = true }
+                }
+                    .disabled(disabled || (records.isEmpty && store.uploadableCount == 0))
+                    .accessibilityIdentifier("database.syncReview.all")
+                if busy { ProgressView(store.syncStage ?? "正在同步…") }
+                if let message { Text(message).font(.footnote).textSelection(.enabled) }
+                if !store.isOnline { Text("当前离线，请联网后同步。").foregroundStyle(.secondary) }
+            } footer: {
+                Text("一次选择适用于全部待核对记录。云端已包含的作答只保留记录；另一轮练习会合并计数。本机记录会保留，上传失败可重试。")
+            }
+            if records.isEmpty {
+                Section { Text("没有待核对的旧记录").foregroundStyle(.secondary) }
+            } else {
+                Section("待核对记录") {
+                    ForEach(records) { operation in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(store.items.first { $0.id == operation.input.itemId }?.original ?? operation.input.itemId)
+                            Text(operation.input.selected).font(.subheadline)
+                            if let time = operation.input.progressEntry.lastReviewedAt {
+                                Text(time).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("旧记录待核对")
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("如何同步全部旧记录？", isPresented: $showingDecision, titleVisibility: .visible) {
+            Button("云端已包含这些作答，只保留记录") { synchronize(decision: "already_counted") }
+            Button("这些是另一轮练习，合并计数") { synchronize(decision: "merge") }
+            Button("暂不处理", role: .cancel) { }
+        } message: {
+            Text("选择将应用于全部 \(records.count) 条待核对记录。合并计数会增加作答次数，请确认这些作答尚未计入云端。")
+        }
+    }
+    private func synchronize(decision: String) {
+        busy = true
+        message = nil
+        Task {
+            await store.resolveAllSyncRecords(decision: decision)
+            message = store.error ?? store.notice
+            busy = false
         }
     }
 }

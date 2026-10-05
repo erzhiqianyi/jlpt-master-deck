@@ -5,6 +5,20 @@ import CoreText
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    func testDailyDraftQuestionFormatsCanBePreviewedAndPublished() throws {
+        for key in ["generated_practice", "quiz", "practice_questions", "review_questions"] {
+            let json = """
+            {"id":"daily","title":"每日练习","status":"draft","updated_at":"v1","content":{"sections":[{"questions":[{"prompt":"旧题"}]}],"\(key)":[{"prompt":"每日题目","choices":["A","B"],"answer":1}]}}
+            """
+            let draft = try JSONDecoder().decode(NativeTopicDraft.self, from: Data(json.utf8))
+            XCTAssertEqual(draft.sectionQuestions.count, 1)
+            XCTAssertTrue(draft.canPublish)
+            guard case .object(let fields) = draft.sectionQuestions[0] else { return XCTFail("Missing question") }
+            guard case .string(let prompt) = fields["prompt"] else { return XCTFail("Missing prompt") }
+            XCTAssertEqual(prompt, "每日题目")
+        }
+    }
+
     func testIncrementalChangesMergeDeleteAndPreserveLocalQueue() throws {
         var data = LocalStudyData()
         data.syncCursor = "old"

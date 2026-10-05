@@ -702,6 +702,9 @@ struct NativeTopicDraft: Decodable {
     var created_at: String?
     var approved: Bool { status == "approved" || status == "archived" }
     var sectionQuestions: [SettingValue] {
+        for key in ["generated_practice", "quiz", "practice_questions", "review_questions"] {
+            if case .array(let questions) = content[key], !questions.isEmpty { return questions }
+        }
         guard case .array(let sections) = content["sections"] else { return [] }
         return sections.flatMap { section -> [SettingValue] in
             guard case .object(let fields) = section, case .array(let questions) = fields["questions"] else { return [] }
@@ -736,6 +739,10 @@ private struct NativeDraftQuestion: View {
     private var choices: [SettingValue] { DraftPresentation.array(fields["choices"]) }
     private var answer: String? {
         if let answer = DraftPresentation.text(fields, "answer") { return answer }
+        if case .number(let number) = fields["answer"], number.rounded() == number,
+           number >= 1, number <= Double(choices.count) {
+            return choice(choices[Int(number) - 1])
+        }
         if case .number(let index) = fields["answerIndex"], index.rounded() == index,
            index >= 0, index < Double(choices.count) {
             return choice(choices[Int(index)])
@@ -789,7 +796,13 @@ private struct NativeDraftContent: View {
     let draft: NativeTopicDraft
     @State private var page = 0
     private var cards: [(section: String?, instruction: String?, fields: [String: SettingValue])] {
-        DraftPresentation.array(draft.content["sections"]).flatMap { value in
+        for key in ["generated_practice", "quiz", "practice_questions", "review_questions"] {
+            let questions = DraftPresentation.array(draft.content[key])
+            if !questions.isEmpty {
+                return questions.map { (section: nil, instruction: nil, fields: DraftPresentation.fields($0)) }
+            }
+        }
+        return DraftPresentation.array(draft.content["sections"]).flatMap { value in
             let section = DraftPresentation.fields(value)
             return DraftPresentation.array(section["questions"]).map {
                 (section: DraftPresentation.text(section, "title"),
@@ -873,7 +886,7 @@ struct NativeTopicConfirmationView: View {
                                     busy = true
                                     Task { await confirm() }
                                 }.buttonStyle(PrimaryButton())
-                                    .disabled(busy || !store.isOnline).accessibilityIdentifier("topic.confirm")
+                                    .disabled(busy || !store.isOnline || draft.sectionQuestions.isEmpty).accessibilityIdentifier("topic.confirm")
                             } else if draft.canPublish {
                                 Button(busy ? "正在准备…" : "开始练习") {
                                     guard !busy else { return }

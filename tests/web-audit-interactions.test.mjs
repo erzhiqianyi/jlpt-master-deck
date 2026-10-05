@@ -68,23 +68,17 @@ test('plan update failure shows recovery and preserves existing task state',asyn
  assert.match(document.body.textContent,/Keep my task/);
 });
 
-test('module actions execute, disabled gates remain, and sheet dismisses after selection',async()=>{
+test('inline module actions execute and respect disabled gates',async()=>{
  let calls=0;
- await render(ModuleActionBar,{label:'词汇',actions:[{key:'add',label:'添加单词',onClick:()=>calls++},{key:'blocked',label:'不可用',disabled:true,onClick:()=>calls+=100}],primary:{label:'开始练习',onClick:noop}});
- await click(button('选择练习模式'));
+ await render(ModuleActionBar,{label:'词汇',actions:[{key:'add',label:'添加单词',onClick:()=>calls++},{key:'blocked',label:'不可用',disabled:true,onClick:()=>calls+=100}]});
  await click(button('添加单词'));
  assert.equal(calls,1);
- await click(button('选择练习模式'));
+ assert.equal(button('不可用').disabled,true);
  await click(button('不可用'));
  assert.equal(calls,1);
- const mascot=document.querySelector('.module-practice-mascot');
- assert.ok(mascot);
- assert.equal(document.querySelector('.module-action-overflow'),null);
- assert.equal(mascot.querySelector('img').getAttribute('src'),'/study-companion.png');
- assert.equal(document.querySelector('dialog').open,true);
- await click([...document.querySelectorAll('dialog button')].find(b=>b.textContent==='添加单词'));
- assert.equal(calls,2);
- assert.equal(document.querySelector('dialog').open,false);
+ assert.equal(document.querySelector('.module-practice-mascot'),null);
+ assert.equal(document.querySelector('.module-action-bar dialog'),null);
+ assert.equal(document.querySelector('.app-confirmation').open,false);
 });
 
 

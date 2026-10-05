@@ -41,44 +41,39 @@ const button = (text, scope = document) => [...scope.querySelectorAll('button')]
 afterEach(async () => { await act(async () => root?.unmount()); root = undefined; document.body.style.overflow = ''; });
 after(async () => { dom.window.close(); await rm(dir, { recursive: true, force: true }); });
 
-test('Today follows the native plan-practice hierarchy and preserves confirmation routes', async () => {
+test('Learning shows daily confirmation, due review and independent practice routes', async () => {
   let opened;
-  const navigated = [];
-  await render(HomeDashboard, { ...home, latestDraft: { id: 'draft-9', title: 'Draft' }, dueItems: [{ id: 'a' }, { id: 'b' }], onOpenDraft: id => { opened = id; }, onNavigate: view => navigated.push(view) });
-  const main = document.querySelector('.primary-today');
-  assert.deepEqual([...main.querySelector('.home-main-column').children].slice(0, 2).map(node => node.className), ['primary-plan-section', 'primary-daily-task']);
-  assert.equal(main.querySelectorAll('.home-due-list li').length, 2);
-  assert.equal(main.querySelector('h1'), null, 'shell owns the page title');
-  assert.match(main.textContent, /确认今日题目/);
-  assert.match(main.textContent, /2 项待复习/);
-  assert.match(main.textContent, /最近 7 天/);
-  assert.doesNotMatch(main.textContent, /更多练习|备考目标/);
-  await click(button('查看待确认题目'));
+  const routes = [];
+  await render(HomeDashboard, { ...home, latestDraft: { id: 'draft-9', title: 'Draft', status: 'pending' }, dueItems: [{ id: 'a' }, { id: 'b' }], onOpenDraft: id => opened = id, onNavigate: (...args) => routes.push(args) });
+  assert.equal(document.querySelector('main').getAttribute('aria-label'), '学习');
+  assert.equal(document.querySelector('main h1'), null);
+  assert.match(document.querySelector('.learning-status').textContent, /待确认/);
+  assert.equal(document.querySelector('.learning-due-count strong').textContent, '2');
+  await click(button('确认题目'));
   assert.equal(opened, 'draft-9');
-  await click(document.querySelector('.primary-review-entry'));
-  await click(document.querySelector('.primary-plan-entry'));
-  assert.deepEqual(navigated, ['memory-review', 'plan']);
+  await click(document.querySelector('.learning-due'));
+  await click(document.querySelector('.home-exam-countdown'));
+  assert.deepEqual(routes, [['memory-review'], ['plan']]);
 });
 
 test('Today continues the real daily set and does not invent answered progress', async () => {
   let opened;
   await render(HomeDashboard, { ...home, todayPractices: [{ id: 'practice-2', title: '真实题组', minutes: 12, questionCount: 2, questions: [{ id: 'q1' }, { id: 'q2' }] }], dailyAnswers: { q1: { selected: 'A', correct: true }, unrelated: { selected: 'A' } }, onStartDailyPractice: id => { opened = id; } });
-  assert.match(document.querySelector('.primary-daily-meta').textContent, /2 题 · 12 分钟 · 1 \/ 2 已完成/);
+  assert.match(document.querySelector('.primary-daily-meta').textContent, /1\/2 题 · 12 分钟/);
   await click(button('继续练习'));
   assert.equal(opened, 'practice-2');
 });
 
-test('Today retains task toggle failure and retry, with explicit empty review destination', async () => {
-  const calls = [];
-  let fail = true;
-  await render(HomeDashboard, { ...home, plan: { profile: { level: 'N1', examDate: '2026-12-06' }, tasks: [{ id: 'task-1', date: today, status: 'pending', title: '阅读材料', minutes: 10 }] }, onTaskStatus: async (...args) => { calls.push(args); if (fail) throw Error('Save failed'); } });
-  await click(button('标为已完成: 阅读材料'));
-  assert.match(document.querySelector('[role="alert"]').textContent, /Save failed/);
-  fail = false;
-  await click(button('标为已完成: 阅读材料'));
-  assert.equal(document.querySelector('[role="alert"]'), null);
-  assert.deepEqual(calls, [['task-1', 'completed'], ['task-1', 'completed']]);
-  assert.match(document.querySelector('.primary-review-entry').getAttribute('aria-label'), /0 项待复习/);
+test('Learning disables empty due review and prepares daily practice', async () => {
+  let prepared = 0;
+  const routes = [];
+  await render(HomeDashboard, { ...home, onCreateDailyPractice: () => prepared++, onNavigate: view => routes.push(view) });
+  const review = document.querySelector('.learning-due');
+  assert.equal(review.disabled, true);
+  await click(review);
+  assert.deepEqual(routes, []);
+  await click(button('准备今日练习'));
+  assert.equal(prepared, 1);
 });
 
 test('library totals deduplicate passage/audio and studied excludes detail-open metadata', () => {
@@ -183,45 +178,37 @@ test('pending drafts do not block a known topic completion total', async () => {
 });
 
 
-test('Today shows real review previews and seven local dates without counting future or invalid activity', async () => {
-  const old = new Date(); old.setDate(old.getDate() - 7);
-  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const entries = [{ id: 'v1', original: '経験', reading: 'けいけん', deck: 'n1_vocab' }, { id: 'g1', original: 'に限り', deck: 'grammar_expression' }];
+test('Learning uses actual question answers to distinguish ongoing and completed practice', async () => {
+  const practice = { id: 'daily', title: 'Daily', questionCount: 99, minutes: 10, questions: [{ id: 'q1' }, { id: 'q2' }] };
   let opened;
-  await render(HomeDashboard, { ...home, items: entries, dueItems: entries, progress: {v1: {lastReviewedAt: new Date().toISOString()}, g1: {lastReviewedAt: yesterday.toISOString()}, deleted: {lastReviewedAt: new Date().toISOString()}},
-    plan: {profile: { level: 'N1', examDate: '2026-12-06' }, tasks: [], dailySummaries: [{date: today, practiceMinutes: 8, attempted: 3}, {date: localDateString(yesterday), practiceMinutes: 2, attempted: 1}, {date: localDateString(old), practiceMinutes: 900}, {date: localDateString(tomorrow), practiceMinutes: 800}]}, onOpenReviewItem: item => {opened = item.id;}});
-  assert.match(document.querySelector('.home-plan-summary').textContent, /今日已复习 1 项/);
-  assert.match(document.querySelector('.home-week-summary').textContent, /2 天有学习记录 · 10 分钟/);
-  const dates = [...document.querySelectorAll('.home-week-chart time')].map(el => el.getAttribute('datetime'));
-  assert.equal(dates.length, 7); assert.equal(dates.at(-1), today); assert.ok(!dates.includes(localDateString(old)));
-  await click(document.querySelector('.home-due-list button')); assert.equal(opened, 'v1');
+  await render(HomeDashboard, { ...home, todayPractices: [practice], dailyAnswers: { q1: { selected: 'A' }, q2: { selected: 'B' }, unrelated: { selected: 'C' } }, onStartDailyPractice: id => opened = id });
+  assert.equal(document.querySelector('progress').value, 2);
+  assert.equal(document.querySelector('progress').max, 2);
+  assert.equal(document.querySelector('.learning-status').textContent, '已完成');
+  await click(button('查看练习'));
+  assert.equal(opened, 'daily');
 });
 
-test('Today supporting actions preserve library, capture, history and empty review destinations', async () => {
-  const routes = []; let history = 0;
-  await render(HomeDashboard, { ...home, onNavigate: (...args) => routes.push(args), onOpenPracticeHistory: () => history++ });
-  assert.match(document.querySelector('.home-week-summary').textContent, /暂无学习记录/);
-  await click(document.querySelector('.primary-review-entry'));
-  const learning = document.querySelectorAll('.home-continue button');
-  await click(learning[0]); await click(learning[1]);
-  await click(document.querySelector('.home-capture-entry'));
-  await click(document.querySelector('.home-week-section button'));
-  assert.deepEqual(routes, [['memory'], ['reading', 'words'], ['grammar', 'words'], ['capture']]);
-  assert.equal(history, 1);
+test('Learning independent routes use supplied counts and callbacks', async () => {
+  const routes = []; let mocks = 0;
+  await render(HomeDashboard, { ...home, topicCount: 4, topicRounds: 2, mixedQuestionCount: 8, mixedRounds: 3, mockExamCount: 1, mockRounds: 0, onNavigate: (...args) => routes.push(args), onStartMock: () => mocks++ });
+  const entries = [...document.querySelectorAll('.learning-practice-grid button')];
+  assert.deepEqual(entries.map(entry => entry.querySelector('strong').textContent), ['专项练习', '综合练习', '模拟考试']);
+  assert.match(entries[0].textContent, /4 套.*2 次/);
+  assert.match(entries[1].textContent, /8 题.*3 次/);
+  assert.match(entries[2].textContent, /1 套.*0 次/);
+  for (const entry of entries) await click(entry);
+  assert.deepEqual(routes, [['mixed', 'tips', 'topics'], ['mixed', 'questions']]);
+  assert.equal(mocks, 1);
 });
 
-test('Practice companion opens accessible shortcuts and closes after navigation', async () => {
+test('Practice uses direct routes without duplicate companion shortcuts', async () => {
   let started = 0;
   await render(MixedPracticeHub, { ...mixed, onStart: () => started++ });
-  const trigger = document.querySelector('.module-practice-mascot');
-  assert.ok(trigger.querySelector('img').src.endsWith('/study-companion.png'));
-  await click(trigger);
-  assert.equal(document.querySelector('dialog').open, true);
-  await click(button('综合练习', document.querySelector('dialog')));
+  assert.equal(document.querySelector('.module-practice-mascot'), null);
+  assert.equal(document.querySelector('dialog'), null);
+  await click(document.querySelectorAll('.primary-practice-entries > button')[1]);
   assert.equal(started, 1);
-  assert.equal(document.querySelector('dialog').open, false);
-  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
 });
 
 test('Topic management selects original rows and batches confirmed actions without opening practice', async () => {

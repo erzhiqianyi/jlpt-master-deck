@@ -1,6 +1,5 @@
 import '../practice/practice-layout.css';
 import { LearningList, LearningListFrame, LearningListHeader, LearningListRow } from '../../components/LearningList';
-import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { listeningAudioRouteId, listeningPracticeKey } from '../../domain/listeningPractice';
 import type { ListeningQuestion, Locale, ProgressState, ReadingQuestion } from '../../types';
 
@@ -27,6 +26,6 @@ export function ModuleReviewPanel({ module, locale, readingQuestions, listeningQ
         description={`${copy.count}: ${record.reviewCount}${module === 'reading' ? ` · ${copy.correct}: ${record.correct} · ${copy.wrong}: ${record.wrong}` : ''}`}
         actionLabel={copy.open} onOpen={() => onOpen(entry.id)} />;
     })}</LearningList> : <p className="study-review-empty">{copy.empty}</p>}
-    <ModuleActionBar locale={locale} label={copy.title} primary={{ label: copy.start, onClick: onPractice }} />
+    <button type="button" className="practice-text-action" onClick={onPractice}>{copy.start}</button>
   </LearningListFrame>;
 }

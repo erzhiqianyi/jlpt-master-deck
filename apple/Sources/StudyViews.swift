@@ -32,29 +32,31 @@ struct ItemDetailView: View {
             VStack(alignment: .leading, spacing: 28) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(item.original).font(.system(size: 42, weight: .medium, design: .serif)).textSelection(.enabled)
+                        Text(store.readingText(item.original, item: item)).font(.system(size: 42 * store.textScale, weight: .medium, design: .serif)).textSelection(.enabled)
                         Text(item.reading ?? "").font(.title3).foregroundStyle(DeckTheme.muted)
                     }
                     Spacer()
+                    NativeCopyButton(value: item.original, label: "复制单词", identifier: "entry.copyWord")
                     NativeSpeechControls(text: item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original, label: "朗读词条", iconOnly: true)
                 }
                 Divider()
-                Text(item.meaning_zh ?? "暂无释义").font(.title2)
+                Text(item.cardText("meaning", locale: store.appLanguage) ?? "暂无释义").font(.title2)
                 ForEach(Array((item.examples ?? []).enumerated()), id: \.offset) { _, example in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .top, spacing: 8) {
-                            Text(example.ja).font(.title3).textSelection(.enabled)
+                            Text(store.readingText(example.ja, item: item)).font(.title3).textSelection(.enabled)
                             Spacer(minLength: 0)
-                            NativeSpeechControls(text: example.ja, label: "朗读例句", iconOnly: true)
+                            NativeSpeechControls(text: example.ja, label: "朗读例句", iconOnly: true, identifier: "entry.example.\(item.id).\(example.ja)", showsRepeat: true)
                         }
                         Text(example.zh ?? "").foregroundStyle(DeckTheme.muted)
                     }
                 }
-                if let explanation = item.explanation_zh { Text(explanation).lineSpacing(7).textSelection(.enabled) }
+                if let explanation = item.cardText("explanation", locale: store.appLanguage) { Text(store.readingText(explanation, item: item, explanation: true)).lineSpacing(7).textSelection(.enabled) }
                 if let notes = item.core_memory, !notes.isEmpty {
-                    DisclosureGroup("记忆提示") { Text(notes.joined(separator: "\n")).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12) }
+                    DisclosureGroup("记忆提示") { Text(store.readingText(notes.joined(separator: "\n"), item: item, explanation: true)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12) }
                 }
                 Text(item.sourceLabel).font(.caption).foregroundStyle(DeckTheme.muted)
+                CardIdentityFooter(item: item)
                 Button("复习这个词条", action: review).buttonStyle(PrimaryButton())
             }.frame(maxWidth: 760).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
         }.background(DeckTheme.paper).navigationTitle("词条详情")
@@ -91,6 +93,7 @@ struct MemoryReviewView: View {
                         let item = items[index]
                         ScrollView {
                             VStack(alignment: .leading, spacing: 16) {
+                                if !revealed { Spacer(minLength: 0) }
                                 ConfiguredCardView(item: item, fields: activeFields, revealed: revealed,
                                     speechControls: AnyView(HStack(spacing: 0) {
                                         NativeSpeechControls(text: item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original, iconOnly: true, identifier: "review.speech", showsDownload: false)
@@ -103,11 +106,15 @@ struct MemoryReviewView: View {
                                         }
                                     }), speechSide: sizeClass == .compact ? "right" : speechSide)
                                     .id("\(item.id)-\(revealed)")
-                                if revealed, let reference = item.reference { Text(reference).font(.caption).foregroundStyle(DeckTheme.muted) }
+                                if !revealed { Spacer(minLength: 20) }
+                                CardIdentityFooter(item: item)
                                 if let error { Text(error).foregroundStyle(.red).font(.callout) }
                             }.padding(revealed ? 4 : sizeClass == .compact ? 18 : 24)
                                 .frame(maxWidth: .infinity, minHeight: revealed ? 0 : max(240, geometry.size.height - 32), alignment: revealed ? .topLeading : .center)
-                        }.background(revealed ? .clear : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+                                .contentShape(Rectangle())
+                                .onTapGesture { if !revealed { revealed = true } }
+                        }.scrollIndicators(.hidden)
+                            .background(revealed ? .clear : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 12))
                             .overlay { RoundedRectangle(cornerRadius: 12).stroke(revealed ? .clear : DeckTheme.line, lineWidth: 1) }
                             .accessibilityIdentifier("review.card")
                             .frame(maxWidth: contentWidth).padding(.horizontal, 14).padding(.vertical, 14).id(index)
@@ -207,11 +214,11 @@ struct ReadingPracticeView: View {
     }
     private var passage: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(question.title).font(.system(size: 18, weight: .semibold, design: .serif))
+            Text(question.title).font(.system(size: 18 * store.textScale, weight: .semibold, design: .serif))
             if submitted {
                 NativeSpeechControls(text: question.passage, label: "朗读全文", identifier: "reading.speak")
             }
-            Text(question.passage).font(.system(size: 18, design: .serif)).lineSpacing(7).textSelection(.enabled)
+            Text(question.passage).font(.system(size: 18 * store.textScale, design: .serif)).lineSpacing(7).textSelection(.enabled)
             if store.isDemo { Text("原创示例 · AI 生成 · 待核验").font(.caption).foregroundStyle(DeckTheme.muted) }
         }
     }
@@ -257,6 +264,13 @@ final class NativeSpeechPlayer: NSObject, AVAudioPlayerDelegate, AVSpeechSynthes
     private var completion: CheckedContinuation<Void, Error>?
     private var task: Task<Void, Never>?
     private var operation = UUID()
+    private(set) var repeats = false
+    private var repeatedText = ""
+    private weak var repeatedStore: AppStore?
+    func setRepeating(_ value: Bool, owner: String) {
+        guard self.owner == owner, !owner.isEmpty else { return }
+        repeats = value
+    }
     override init() { super.init() }
     func stop() {
         operation = UUID(); task?.cancel(); task = nil
@@ -264,9 +278,11 @@ final class NativeSpeechPlayer: NSObject, AVAudioPlayerDelegate, AVSpeechSynthes
         completion?.resume(throwing: CancellationError()); completion = nil
         utterance = nil; synthesizer?.stopSpeaking(at: .immediate)
         owner = ""; status = "idle"; error = nil
+        repeats = false; repeatedText = ""; repeatedStore = nil
     }
-    func play(_ text: String, store: AppStore, owner: String) {
+    func play(_ text: String, store: AppStore, owner: String, repeating: Bool = false) {
         stop(); self.owner = owner
+        repeats = repeating; repeatedText = text; repeatedStore = store
         let configuration = store.speechConfiguration
         if configuration.usesSystemVoice || store.isDemo {
             let value = AVSpeechUtterance(string: text)
@@ -281,7 +297,7 @@ final class NativeSpeechPlayer: NSObject, AVAudioPlayerDelegate, AVSpeechSynthes
             guard let self else { return }
             defer { if expected == self.operation { self.status = "idle"; self.task = nil } }
             do {
-                for chunk in SpeechConfiguration.chunks(text) {
+                repeat { for chunk in SpeechConfiguration.chunks(text) {
                     try Task.checkCancellation()
                     self.status = "loading"
                     let data = try await store.speechAudio(configuration.request(text: chunk))
@@ -296,6 +312,7 @@ final class NativeSpeechPlayer: NSObject, AVAudioPlayerDelegate, AVSpeechSynthes
                         else { self.completion = nil; continuation.resume(throwing: IdentityError.message("语音播放失败，请重试。")) }
                     }
                 }
+                } while self.repeats && !Task.isCancelled && expected == self.operation
             } catch { if expected == self.operation && !(error is CancellationError) { self.error = error.localizedDescription } }
         }
     }
@@ -316,7 +333,12 @@ final class NativeSpeechPlayer: NSObject, AVAudioPlayerDelegate, AVSpeechSynthes
         }
     }
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish value: AVSpeechUtterance) {
-        Task { @MainActor in if self.utterance === value { self.utterance = nil; self.status = "idle" } }
+        Task { @MainActor in
+            guard self.utterance === value else { return }
+            if self.repeats, let store = self.repeatedStore {
+                self.play(self.repeatedText, store: store, owner: self.owner, repeating: true)
+            } else { self.utterance = nil; self.status = "idle" }
+        }
     }
 }
 
@@ -327,6 +349,8 @@ struct NativeSpeechControls: View {
     var iconOnly = false
     var identifier = "speech.play"
     var showsDownload = false
+    var showsRepeat = false
+    @State private var repeating = false
     @State private var owner = UUID().uuidString
     @State private var downloading = false
     @State private var saved = false
@@ -338,12 +362,24 @@ struct NativeSpeechControls: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Button {
-                    if active { store.speechPlayer.stop() } else { store.speechPlayer.play(text, store: store, owner: owner) }
+                    if active { store.speechPlayer.stop() } else { store.speechPlayer.play(text, store: store, owner: owner, repeating: repeating) }
                 } label: {
                     Label(active ? "停止" : label, systemImage: active ? "stop.fill" : "speaker.wave.2")
                         .labelStyle(SpeechLabelStyle(iconOnly: iconOnly)).frame(minWidth: 44, minHeight: 44)
                 }.accessibilityLabel(active ? "停止" : label)
                     .accessibilityIdentifier(identifier)
+                if showsRepeat {
+                    Button {
+                        repeating.toggle()
+                        store.speechPlayer.setRepeating(repeating, owner: owner)
+                    } label: {
+                        Image(systemName: "repeat").frame(minWidth: 44, minHeight: 44)
+                            .foregroundStyle(repeating ? DeckTheme.green : DeckTheme.muted)
+                            .background(repeating ? DeckTheme.green.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 8))
+                    }.accessibilityLabel(repeating ? "关闭循环播放" : "循环播放例句")
+                        .accessibilityValue(repeating ? "开启" : "关闭")
+                        .accessibilityIdentifier(identifier + ".repeat")
+                }
                 if showsDownload && !store.speechConfiguration.usesSystemVoice && !store.isDemo {
                     Button {
                         guard !downloading, !saved else { return }

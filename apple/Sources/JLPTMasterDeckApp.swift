@@ -28,6 +28,11 @@ struct JLPTMasterDeckApp: App {
                 else { LoginView() }
             }
             .environment(store)
+            .environment(\.locale, Locale(identifier: store.appLanguage))
+            .transformEnvironment(\.dynamicTypeSize) { size in
+                if store.textScale > 1 { size = max(size, .xxxLarge) }
+                else if store.textScale < 1 && size <= .xxxLarge { size = .small }
+            }
             .tint(DeckTheme.accent)
             .preferredColorScheme(.light)
             .onAppear {

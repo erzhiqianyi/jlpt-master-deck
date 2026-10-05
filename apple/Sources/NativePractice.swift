@@ -266,7 +266,7 @@ struct NativeQuizView: View {
         return VStack(alignment: .leading, spacing: 20) {
             Text(question.kind == "kanji_to_kana" ? "请选择下划线词语的读音" : (question.instruction?.isEmpty == false ? question.instruction! : question.title)).font(.headline)
             if let context = question.context, !context.isEmpty, context != question.prompt { Text(context).lineSpacing(7) }
-            Text(question.markedPrompt).font(.system(size: 22, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
+            Text(question.markedPrompt).font(.system(size: 22 * store.textScale, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
             VStack(spacing: 12) {
                 ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                     Button { select(choice, for: question) } label: {
@@ -415,7 +415,7 @@ struct NativeQuizView: View {
             Text("原题第 \(number) 题").font(.subheadline.bold()).foregroundStyle(DeckTheme.muted)
             Text(question.instruction?.isEmpty == false ? question.instruction! : question.title).font(.headline)
             if let context = question.context, !context.isEmpty, context != question.prompt { Text(context).lineSpacing(7) }
-            Text(question.markedPrompt).font(.system(size: 22, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
+            Text(question.markedPrompt).font(.system(size: 22 * store.textScale, weight: .semibold)).lineSpacing(8).textSelection(.enabled)
             ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                 StudyAnswerChoice(number: number + 1, text: choice, selected: recorded(question)?.selected == choice,
                                   correct: choice == question.answer)
@@ -551,6 +551,7 @@ extension NativeQuestion {
 }
 
 struct NativePracticeFeedback: View {
+    @Environment(AppStore.self) private var store
     let question: NativeQuestion
     let selected: String
     var sourceItem: StudyItem?
@@ -585,7 +586,7 @@ struct NativePracticeFeedback: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 if evidence.hasMore {
-                    disclosure("完整解题依据", expanded: $reasonExpanded) { Text(details.reason).lineSpacing(6) }
+                    disclosure("完整解题依据", expanded: $reasonExpanded) { Text(store.readingText(details.reason, item: sourceItem, explanation: true)).lineSpacing(6) }
                 }
                 disclosure("选项辨析 · \(details.choices.count)", expanded: $choicesExpanded) {
                     ForEach(Array(details.choices.enumerated()), id: \.offset) { index, analysis in
@@ -596,11 +597,11 @@ struct NativePracticeFeedback: View {
                                 Text(analysis.correct ? "正确选项" : analysis.choice == selected ? "你的答案" : "不符合题意")
                                     .font(.caption).foregroundStyle(analysis.correct ? DeckTheme.green : analysis.choice == selected ? DeckTheme.accent : DeckTheme.muted)
                             }
-                            Text(analysis.explanation.isEmpty ? "暂无该选项的详细解析" : analysis.explanation).lineSpacing(6)
+                            Text(store.readingText(analysis.explanation.isEmpty ? "暂无该选项的详细解析" : analysis.explanation, item: sourceItem, explanation: true)).lineSpacing(6)
                         }.padding(.vertical, 12).overlay(alignment: .bottom) { Rectangle().fill(DeckTheme.line).frame(height: 1) }
                     }
                 }.accessibilityIdentifier("quiz.analysis")
-                if memory.hasMore { disclosure("展开记忆点", expanded: $memoryExpanded) { Text(question.memoryPoint ?? "").lineSpacing(6) } }
+                if memory.hasMore { disclosure("展开记忆点", expanded: $memoryExpanded) { Text(store.readingText(question.memoryPoint ?? "", item: sourceItem, explanation: true)).lineSpacing(6) } }
                 if let translation = question.translationZh, !translation.isEmpty {
                     disclosure("完整中文翻译", expanded: $translationExpanded) { Text(translation).lineSpacing(6) }.accessibilityIdentifier("quiz.translation")
                 }
@@ -617,7 +618,7 @@ struct NativePracticeFeedback: View {
             .fullScreenCover(item: $reviewItem) { MemoryReviewView(items: [$0]) }
     }
     private func section(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) { Text(title).font(.headline).foregroundStyle(DeckTheme.green); Text(text).lineSpacing(6) }
+        VStack(alignment: .leading, spacing: 8) { Text(title).font(.headline).foregroundStyle(DeckTheme.green); Text(store.readingText(text, item: sourceItem, explanation: true)).lineSpacing(6) }
     }
     private func disclosure<Content: View>(_ title: String, expanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
         DisclosureGroup(isExpanded: expanded) { content().padding(.bottom, 12).frame(maxWidth: .infinity, alignment: .leading) }

@@ -7,6 +7,8 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { canonicalizeItemFields } from "./item-schema.mjs";
 import {
   getDb,
+  imageBytesMatch,
+  databasePath,
   getDailyPractice,
   getReviewPackDraft,
   listDailyPractices,
@@ -374,6 +376,7 @@ export function listShares(userId) {
       return {
         id: row.id,
         ...discoveryPresentation(pkg),
+        coverUrl: pkg.coverUrl,
         kind: pkg.kind,
         title: pkg.title,
         description: pkg.description,
@@ -397,7 +400,7 @@ export function shareDetail(userId, id) {
     mine: row.user_id === userId,
     createdAt: row.created_at,
     ...(row.user_id === userId ? { sourceId: row.source_id } : {}),
-    package: JSON.parse(row.package_json),
+    package: (() => { const { coverAsset, ...pkg } = JSON.parse(row.package_json); return pkg; })(),
   };
 }
 export function withdrawShare(userId, id) {
@@ -412,6 +415,8 @@ export function withdrawShare(userId, id) {
     error.statusCode = 404;
     throw error;
   }
+  const pkg = JSON.parse(database().prepare('SELECT package_json FROM market_shares WHERE id=?').get(id).package_json);
+  if (pkg.coverAsset && existsSync(pkg.coverAsset.path)) unlinkSync(pkg.coverAsset.path);
   const audio = database().prepare('SELECT audio_path FROM market_listening_audio WHERE share_id=?').get(id);
   if (audio) {
     if (existsSync(audio.audio_path)) unlinkSync(audio.audio_path);
@@ -576,4 +581,32 @@ export function importPackage(userId, input) {
     );
     return result;
   });
+}
+
+// Covers are public only while the corresponding share is published.
+export function shareCover(id) {
+  const row = database().prepare('SELECT package_json FROM market_shares WHERE id=? AND withdrawn=0').get(id);
+  const asset = row && JSON.parse(row.package_json).coverAsset;
+  if (!asset) { const error = new Error('Cover not found'); error.statusCode = 404; throw error; }
+  return asset;
+}
+export function setShareCover(userId, id, payload) {
+  const row = database().prepare('SELECT package_json FROM market_shares WHERE id=? AND user_id=? AND withdrawn=0').get(id, userId);
+  if (!row) { const error = new Error('Share not found'); error.statusCode = 404; throw error; }
+  const mime = String(payload.mime ?? '');
+  const bytes = Buffer.from(String(payload.imageBase64 ?? ''), 'base64');
+  if (!bytes.length || bytes.length > 5 * 1024 * 1024 || !imageBytesMatch(mime, bytes)) {
+    const error = new Error('请选择 PNG、JPEG、WebP 或 GIF 图片，大小不超过 5 MB'); error.statusCode = 400; throw error;
+  }
+  const pkg = JSON.parse(row.package_json);
+  const old = pkg.coverAsset;
+  const coverDir = join(dirname(databasePath()), 'item-images', 'share-covers');
+  const path = join(coverDir, `${randomUUID()}.cover`);
+  mkdirSync(coverDir, { recursive: true });
+  writeFileSync(path, bytes);
+  pkg.coverAsset = { path, mime, size: bytes.length };
+  pkg.coverUrl = `/api/market/${id}/cover?v=${randomUUID()}`;
+  database().prepare('UPDATE market_shares SET package_json=? WHERE id=? AND user_id=?').run(JSON.stringify(pkg), id, userId);
+  if (old && existsSync(old.path)) unlinkSync(old.path);
+  return { coverUrl: pkg.coverUrl };
 }

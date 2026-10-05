@@ -4,6 +4,75 @@ import SwiftUI
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    actor ImageDownloads {
+        var calls = 0
+        func fetch(_ bytes: Data) async throws -> Data { calls += 1; try await Task.sleep(for: .milliseconds(50)); return bytes }
+        func count() -> Int { calls }
+    }
+    @MainActor
+    func testImageCacheCoalescesDownloadsAndSurvivesOfflineRestart() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let bytes = try XCTUnwrap(UIGraphicsImageRenderer(size: CGSize(width: 80, height: 60), format: format).image { context in
+            UIColor.green.setFill(); context.fill(CGRect(x: 0, y: 0, width: 80, height: 60))
+        }.pngData())
+        let counter = ImageDownloads()
+        let cache = NativeImageCache(root: root, download: { _ in try await counter.fetch(bytes) })
+        let request = try APIClient.itemImageRequest(["id": "offline-image"], token: "secret-token")
+        async let first = cache.data(userID: 21, request: request)
+        async let second = cache.data(userID: 21, request: request)
+        let loaded = try await (first, second)
+        XCTAssertEqual(loaded.0, bytes); XCTAssertEqual(loaded.1, bytes)
+        let calls = await counter.count(); XCTAssertEqual(calls, 1)
+        let file = try await cache.fileURL(userID: 21, request: request)
+        XCTAssertFalse(file.path.contains("secret-token"))
+        XCTAssertEqual(try Data(contentsOf: file), bytes)
+        let offline = NativeImageCache(root: root, download: { _ in throw URLError(.notConnectedToInternet) })
+        let restored = try await offline.bitmap(userID: 21, request: request)
+        XCTAssertEqual(restored.image.size.width, 80)
+        do { _ = try await offline.data(userID: 22, request: request); XCTFail("Another account must not use the previous account cache") } catch { }
+        try Data("corrupt".utf8).write(to: file)
+        let repaired = try await cache.data(userID: 21, request: request)
+        XCTAssertEqual(repaired, bytes)
+        let repairCalls = await counter.count(); XCTAssertEqual(repairCalls, 2)
+    }
+    @MainActor
+    func testInvalidImageResponseIsNotSavedAndRetrySucceeds() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let request = try APIClient.itemImageRequest(["id": "broken-image"], token: nil)
+        let cache = NativeImageCache(root: root, download: { _ in Data("not an image".utf8) })
+        do { _ = try await cache.data(userID: 21, request: request); XCTFail("Invalid media must fail") } catch { }
+        let url = try await cache.fileURL(userID: 21, request: request)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        let valid = try XCTUnwrap(UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { context in
+            UIColor.blue.setFill(); context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        }.pngData())
+        let retry = NativeImageCache(root: root, download: { _ in valid })
+        let retried = try await retry.data(userID: 21, request: request)
+        XCTAssertEqual(retried, valid)
+    }
+
+    @MainActor
+    func testDisplayPreferencesDoNotMixReviewAndExplanationKana() throws {
+        let store = AppStore()
+        store.startDemo()
+        let item = try XCTUnwrap(store.items.first { $0.reading != nil && $0.reading != $0.original })
+        store.state.settings = ["locale": .string("ja"), "fontSize": .string("large"), "showReviewRuby": .bool(true), "showExplanationRuby": .bool(false)]
+        XCTAssertEqual(store.appLanguage, "ja")
+        XCTAssertEqual(store.interfaceText("设置"), "設定")
+        XCTAssertGreaterThan(store.textScale, 1)
+        XCTAssertTrue(store.readingText(item.original, item: item).contains(item.reading!))
+        XCTAssertEqual(store.readingText(item.original, item: item, explanation: true), item.original)
+        store.state.settings?["showReviewRuby"] = .bool(false)
+        store.state.settings?["showExplanationRuby"] = .bool(true)
+        XCTAssertEqual(store.readingText(item.original, item: item), item.original)
+        XCTAssertTrue(store.readingText(item.original, item: item, explanation: true).contains(item.reading!))
+        store.state.settings?["locale"] = .string("invalid")
+        XCTAssertEqual(store.appLanguage, "zh-CN")
+    }
+
     @MainActor
     func testWorkspaceBecomesReadyBeforeSlowLocalRestoreAndBlocksPrematureWrites() async throws {
         let reading = expectation(description: "Local read suspended")

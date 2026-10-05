@@ -312,15 +312,7 @@ struct AccountView: View {
     @State private var message: String?
     @State private var providers: [String] = []
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("设置") {
-                    NavigationLink { ExamGoalSettingsView() } label: { Label("考试目标", systemImage: "target") }.accessibilityIdentifier("settings.examGoal")
-                    NavigationLink { PracticeFeedbackSettingsView() } label: { Label("答题反馈", systemImage: "checkmark.bubble") }.accessibilityIdentifier("settings.feedback")
-                    NavigationLink { SpeechSettingsView() } label: { Label("发音设置", systemImage: "speaker.wave.2") }.accessibilityIdentifier("settings.speech")
-                    NavigationLink { CardSettingsView() } label: { Label("卡片设置", systemImage: "rectangle.on.rectangle") }
-                        .accessibilityIdentifier("settings.cards")
-                }
+        Form {
                 Section("当前账户") {
                     Text(store.username)
                     Text(store.isDemo ? "演示模式，不会同步或保存到真实账户。" : "与 jlpt.erzhiqian.cc 共用学习数据。").foregroundStyle(.secondary)
@@ -344,6 +336,10 @@ struct AccountView: View {
                         } else {
                             Text("当前使用系统日语朗读。云端语音下载需先在网页配置服务商，再同步学习数据。").font(.footnote).foregroundStyle(.secondary)
                         }
+                        LabeledContent("已下载图片", value: "\(store.downloadedImageCount)")
+                        if store.isDownloadingImages { ProgressView("图片同步中… \(store.imageDownloadProgress)") }
+                        if store.imageDownloadFailures > 0 { Text("\(store.imageDownloadFailures) 张图片未下载，可联网后重试。") }
+                        Button(store.isDownloadingImages ? "图片下载中…" : "同步图片到本机") { store.startImageDownload() }.disabled(store.isDownloadingImages)
                         Button(store.isDownloadingAudio ? "下载中…" : "下载听力音频") { Task { await store.downloadListeningAudio() } }
                             .disabled(store.isDownloadingAudio || store.isLoading)
                     }
@@ -383,9 +379,8 @@ struct AccountView: View {
                         Task { await store.logout(); dismiss() }
                     }.disabled(busy || store.isSaving).accessibilityIdentifier("account.logout")
                 }
-            }.navigationTitle("账户").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { DeckDismissButton(kind: .close, label: "关闭账户设置", disabled: busy || store.isSaving, identifier: "account.close") } }
-        }.onAppear { providers = store.identity.providerIDs }.interactiveDismissDisabled(busy)
+        }.navigationTitle("账户与数据").navigationBarTitleDisplayMode(.inline)
+            .onAppear { providers = store.identity.providerIDs }
     }
 }
 
@@ -462,9 +457,10 @@ struct ConfiguredCardView: View {
             if let original = item.cardText("original", locale: locale), fields.contains("original") {
                 HStack(spacing: 8) {
                     if speechSide == "left" { speechControls }
-                    Text(original).font(.system(size: revealed ? 36 : 48, weight: .bold))
+                    Text(revealed && metadata.contains("reading") ? original : store.readingText(original, item: item)).font(.system(size: (revealed ? 36 : 48) * store.textScale, weight: .bold))
                         .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: revealed ? .leading : .center)
+                    NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
                     if speechSide != "left" { speechControls }
                 }
             } else { speechControls }
@@ -493,6 +489,22 @@ struct ConfiguredCardView: View {
             ForEach(orderedFields.filter { $0 != "original" && !metadata.contains($0) && (includeImages || $0 != "images") }, id: \.self) { field in
                 if field == "images" {
                     ForEach(Array((item.images ?? []).enumerated()), id: \.offset) { _, image in CardImageView(image: image) }
+                } else if field == "examples", !item.reviewExamples.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Divider()
+                        Label("例句", systemImage: "quote.opening").font(.headline).foregroundStyle(DeckTheme.green)
+                        ForEach(Array(item.reviewExamples.enumerated()), id: \.offset) { index, example in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(store.readingText(example.ja, item: item)).lineSpacing(6).textSelection(.enabled)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    NativeSpeechControls(text: example.ja, label: "朗读例句", iconOnly: true,
+                                        identifier: "review.example.\(index)", showsRepeat: true)
+                                }
+                                if let translation = example.zh, !translation.isEmpty { Text(translation).foregroundStyle(DeckTheme.muted).textSelection(.enabled) }
+                            }
+                        }
+                    }
                 } else if let text = item.cardText(field, locale: locale) {
                     VStack(alignment: .leading, spacing: 10) {
                         if revealed && field == "meaning" {
@@ -507,13 +519,13 @@ struct ConfiguredCardView: View {
                                 Label(CardFields.label(field), systemImage: field == "core_memory" ? "sparkles" : field == "examples" ? "quote.opening" : "text.alignleft")
                                     .font(.headline).foregroundStyle(field == "core_memory" ? Color.orange : DeckTheme.green)
                             }
-                            Text(text).font(field == "patterns" ? .title3.weight(.semibold) : field == "meaning" ? .body.weight(.semibold) : .body)
+                            Text(store.readingText(text, item: item)).font(field == "patterns" ? .title3.weight(.semibold) : field == "meaning" ? .body.weight(.semibold) : .body)
                                 .lineSpacing(6).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-        }
+        }.foregroundStyle(DeckTheme.ink)
     }
 }
 
@@ -540,11 +552,7 @@ struct CardImageView: View {
         .task(id: "\(image["id"] ?? "")|\(image["url"] ?? "")|\(store.session?.token ?? "")|\(retry)") {
             bitmap = nil; failed = false
             do {
-                let request = try APIClient.itemImageRequest(image, token: store.session?.token)
-                let (data, response) = try await URLSession.shared.data(for: request)
-                try Task.checkCancellation()
-                guard (response as? HTTPURLResponse)?.statusCode == 200, let decoded = UIImage(data: data) else { failed = true; return }
-                bitmap = decoded
+                bitmap = try await store.loadImage(image)
             } catch is CancellationError { }
             catch let error as URLError where error.code == .cancelled { }
             catch { failed = true }
@@ -581,7 +589,7 @@ struct MemoryImagePreview: View {
                         .accessibilityLabel("还原图片大小")
                 }.padding(.horizontal, 20).padding(.vertical, 4)
             }
-        }.foregroundStyle(.white).preferredColorScheme(.dark)
+        }.foregroundStyle(.white).environment(\.colorScheme, .dark)
     }
 }
 
@@ -894,5 +902,209 @@ struct ExamGoalSettingsView: View {
             try await store.saveExamGoal(name: examName, level: kind == "jlpt" ? level : "", date: formatter.string(from: date))
             message = "考试目标已保存"
         } catch { message = error.localizedDescription }
+    }
+}
+
+struct DisplayReadingSettingsView: View {
+    @Environment(AppStore.self) private var store
+    @State private var language = "zh-CN"
+    @State private var fontSize = "standard"
+    @State private var reviewKana = false
+    @State private var explanationKana = false
+    @State private var saving = false
+    @State private var message: String?
+    @State private var loaded = false
+    var body: some View {
+        Form {
+            Section("应用语言") {
+                Picker("应用语言", selection: $language) {
+                    Text("简体中文").tag("zh-CN")
+                    Text("日本語").tag("ja")
+                    Text("English").tag("en")
+                }.accessibilityIdentifier("settings.language")
+            }
+            Section("字体大小") {
+                Picker("字体大小", selection: $fontSize) {
+                    Text("小").tag("small")
+                    Text("标准").tag("standard")
+                    Text("大").tag("large")
+                }.pickerStyle(.segmented).accessibilityIdentifier("settings.fontSize")
+                Text("显示与阅读").font(.system(size: 20 * (fontSize == "large" ? 1.2 : fontSize == "small" ? 0.9 : 1)))
+            }
+            Section {
+                Toggle("复习时显示假名", isOn: $reviewKana).accessibilityIdentifier("settings.reviewKana")
+                Toggle("解析中显示假名", isOn: $explanationKana).accessibilityIdentifier("settings.explanationKana")
+                Text(reviewKana ? "見落とす（みおとす）" : "見落とす").font(.title2)
+            } header: { Text("假名显示") } footer: {
+                Text("使用词条中保存的读音；读音题作答时不显示提示。")
+            }
+            Section {
+                Button {
+                    saving = true; message = nil
+                    Task {
+                        do {
+                            try await store.saveSettings(["locale": .string(language), "fontSize": .string(fontSize), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana)])
+                            message = "已保存"
+                        } catch { message = error.localizedDescription }
+                        saving = false
+                    }
+                } label: { if saving { ProgressView() } else { Text("保存设置") } }
+                .disabled(saving || store.isSaving || store.isLoading).accessibilityIdentifier("settings.display.save")
+                if let message { Text(LocalizedStringKey(message)).foregroundStyle(DeckTheme.muted).accessibilityIdentifier("settings.display.status") }
+            }
+        }.navigationTitle(store.interfaceText("显示与阅读")).navigationBarTitleDisplayMode(.inline)
+            .task {
+                guard !loaded else { return }
+                language = store.appLanguage
+                if case .string(let value) = store.state.settings?["fontSize"] { fontSize = value }
+                reviewKana = store.displayFlag("showReviewRuby")
+                explanationKana = store.displayFlag("showExplanationRuby")
+                loaded = true
+            }
+    }
+}
+
+struct NativeSettingsView: View {
+    @Environment(AppStore.self) private var store
+    var body: some View {
+        Form {
+            Section("显示与阅读") {
+                NavigationLink { DisplayReadingSettingsView() } label: { Label("语言、字体与假名", systemImage: "textformat.size") }.accessibilityIdentifier("settings.display")
+            }
+            Section("学习与练习") {
+                NavigationLink { ExamGoalSettingsView() } label: { Label("考试目标", systemImage: "target") }.accessibilityIdentifier("settings.examGoal")
+                NavigationLink { PracticeFeedbackSettingsView() } label: { Label("答题反馈", systemImage: "checkmark.bubble") }.accessibilityIdentifier("settings.feedback")
+                NavigationLink { CardSettingsView() } label: { Label("记忆卡片", systemImage: "rectangle.on.rectangle") }.accessibilityIdentifier("settings.cards")
+            }
+            Section("发音与朗读") {
+                NavigationLink { SpeechSettingsView() } label: { Label("发音设置", systemImage: "speaker.wave.2") }.accessibilityIdentifier("settings.speech")
+            }
+            Section("AI 与 Agent") {
+                NavigationLink { NativeAICommunityView() } label: {
+                    Label("AI 学习社区", systemImage: "sparkles")
+                }.accessibilityIdentifier("settings.ai")
+            }
+            Section("账户与数据") {
+                NavigationLink { AccountView() } label: {
+                    Label("账户、同步与离线数据", systemImage: "person.crop.circle")
+                }.accessibilityIdentifier("settings.account")
+            }
+        }.navigationTitle(store.interfaceText("设置")).navigationBarTitleDisplayMode(.large)
+            .accessibilityIdentifier("settings.page")
+    }
+}
+
+private struct NativeAgentGrant: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let scopes: [String]
+    let expiresAt: String
+    let lastUsedAt: String
+    let revoked: Bool
+    let expired: Bool
+}
+
+struct NativeAISettingsView: View {
+    @Environment(AppStore.self) private var store
+    @State private var grants: [NativeAgentGrant] = []
+    @State private var loading = false
+    @State private var loaded = false
+    @State private var error: String?
+    @State private var pending: NativeAgentGrant?
+    @State private var revoking = false
+    @State private var copied = false
+    private var endpoint: String { APIClient.origin.appendingPathComponent("api/jlpt/mcp").absoluteString }
+    var body: some View {
+        Form {
+            Section("AI 学习助手") {
+                Text("通过 MCP 连接 ChatGPT、Claude 等 AI 助手，整理学习笔记、生成练习和分析学习记录。")
+                Text("AI 生成内容需要核验后再用于正式学习。").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("接入 AI") {
+                Text(endpoint).font(.footnote.monospaced()).textSelection(.enabled)
+                Button(copied ? "已复制连接地址" : "复制连接地址") {
+                    UIPasteboard.general.string = endpoint
+                    copied = true
+                }.accessibilityIdentifier("settings.ai.copy")
+                Text("在 AI 客户端中添加此 MCP 地址，使用当前学习账户登录并确认授权范围。读写权限以授权页面为准。").font(.footnote).foregroundStyle(.secondary)
+                Link("查看接入步骤", destination: APIClient.origin.appendingPathComponent("articles/ai-integration/"))
+            }
+            Section("已连接的 Agent") {
+                if store.isDemo {
+                    Text("登录后查看和管理当前账户的 AI 授权。")
+                } else {
+                    if loading { ProgressView("正在读取连接…") }
+                    if loaded && grants.isEmpty { Text("还没有已连接的 Agent。") }
+                    ForEach(grants) { grant in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack { Text(grant.name).font(.headline); Spacer(); Text(grant.expired ? "已过期" : "已授权").font(.caption).foregroundStyle(.secondary) }
+                            Text("权限：" + grant.scopes.joined(separator: "、")).font(.footnote).foregroundStyle(.secondary)
+                            if !grant.lastUsedAt.isEmpty { Text("最近使用：" + grant.lastUsedAt).font(.caption).foregroundStyle(.secondary) }
+                            Button("断开连接", role: .destructive) { pending = grant }.disabled(revoking || loading)
+                        }.padding(.vertical, 4)
+                    }
+                    Button("刷新连接") { Task { await load() } }.disabled(loading || revoking)
+                }
+                if let error { Text(error).foregroundStyle(.red) }
+            }
+        }.navigationTitle("AI 与 Agent").navigationBarTitleDisplayMode(.inline)
+            .task { if !store.isDemo && !loaded { await load() } }
+            .alert("断开 \(pending?.name ?? "Agent")？", isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })) {
+                Button("取消", role: .cancel) { pending = nil }
+                Button("断开", role: .destructive) {
+                    if let grant = pending { Task { await revoke(grant) } }
+                }
+            } message: { Text("此 Agent 的访问令牌将立即失效，再次连接需要重新授权。") }
+    }
+    @MainActor private func load() async {
+        guard !loading, let token = store.session?.token else { return }
+        loading = true; error = nil
+        defer { loading = false }
+        do {
+            struct Result: Decodable { let grants: [NativeAgentGrant] }
+            let result: Result = try await APIClient(token: token).get("api/agents")
+            grants = result.grants.filter { !$0.revoked }; loaded = true
+        } catch { self.error = error.localizedDescription }
+    }
+    @MainActor private func revoke(_ grant: NativeAgentGrant) async {
+        guard !revoking, let token = store.session?.token else { return }
+        pending = nil; revoking = true; error = nil
+        defer { revoking = false }
+        do {
+            let id = grant.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? grant.id
+            let _: [String: SettingValue] = try await APIClient(token: token).post("api/agents/\(id)/revoke", body: [String: String]())
+            await load()
+        } catch { self.error = error.localizedDescription }
+    }
+}
+
+struct NativeCopyButton: View {
+    let value: String
+    let label: String
+    let identifier: String
+    @State private var copied = false
+    var body: some View {
+        Button {
+            UIPasteboard.general.string = value
+            copied = true
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc").frame(minWidth: 44, minHeight: 44)
+        }.buttonStyle(.plain).foregroundStyle(copied ? DeckTheme.green : DeckTheme.muted)
+            .accessibilityLabel(copied ? "已复制" : label).accessibilityIdentifier(identifier)
+            .task(id: copied) {
+                guard copied else { return }
+                do { try await Task.sleep(for: .seconds(2)); copied = false } catch { }
+            }
+    }
+}
+struct CardIdentityFooter: View {
+    let item: StudyItem
+    var body: some View {
+        Text(item.copyIdentifier).font(.caption.monospaced()).multilineTextAlignment(.center).textSelection(.enabled)
+            .accessibilityIdentifier("review.reference.value")
+            .padding(.horizontal, 48).frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+            .overlay(alignment: .trailing) {
+                NativeCopyButton(value: item.copyIdentifier, label: "复制编号", identifier: "review.copyReference")
+            }.foregroundStyle(DeckTheme.muted).padding(.top, 16)
     }
 }

@@ -8,6 +8,8 @@ struct StudyItem: Codable, Identifiable {
     let deck: String
     let original: String
     var reading: String?
+    var ruby_terms: [ReadingTerm]?
+    struct ReadingTerm: Codable { var text: String; var reading: String }
     var meaning_zh: String?
     var explanation_zh: String?
     var core_memory: [String]?
@@ -30,6 +32,13 @@ struct StudyItem: Codable, Identifiable {
     struct Localization: Codable { var meaning: String?; var explanation: String?; var core_memory: [String]? }
     var content_origin: String?
     var verification_status: String?
+    var copyIdentifier: String {
+        let value = reference?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return value.isEmpty ? id : value
+    }
+    var reviewExamples: [Example] {
+        (examples ?? []).filter { !$0.ja.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.ja.range(of: "教材(?:の第[0-9]+週)?では[「『].+[」』]という表現を学んだ", options: .regularExpression) == nil }
+    }
     var isGrammar: Bool { deck == "grammar_expression" }
     var sourceLabel: String {
         content_origin == "ai_generated" ? "AI 生成 · \(verification_status == "verified" ? "已核验" : "待核验")" : "学习资料"
@@ -190,7 +199,7 @@ extension StudyItem {
         case "register": value = join([register?["note_zh"], register?["exam_tip_zh"]], " · ")
         case "conjugations": value = rows(conjugations, ["kind", "form", "reading"])
         case "examples":
-            let example = examples?.first { $0.ja.range(of: "教材(?:の第[0-9]+週)?では[「『].+[」』]という表現を学んだ", options: .regularExpression) == nil }
+            let example = reviewExamples.first
             value = join([example?.ja, example?.zh], "\n")
         case "notes": value = notes?.joined(separator: "\n")
         case "tags": value = tags?.joined(separator: " · ")

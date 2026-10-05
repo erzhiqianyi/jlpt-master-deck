@@ -68,6 +68,48 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["你的答案：そくてい"].firstMatch.waitForExistence(timeout: 5))
         capture("statistics-reference-attempt-detail")
     }
+    func testDisplayPreferencesSaveAndSwitchLanguage() throws {
+        primary("学习")
+        app.buttons["workspace.account"].firstMatch.tap()
+        app.buttons["settings.display"].tap()
+        XCTAssertTrue(app.navigationBars["显示与阅读"].waitForExistence(timeout: 5))
+        app.segmentedControls["settings.fontSize"].buttons["大"].tap()
+        app.switches["settings.reviewKana"].tap()
+        app.buttons["settings.language"].tap()
+        app.buttons["English"].tap()
+        app.buttons["settings.display.save"].tap()
+        XCTAssertTrue(app.navigationBars["Display & reading"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 5))
+        capture("native-display-settings-english-large")
+    }
+    func testSettingsPageAndAIConnectionNavigation() throws {
+        primary("学习")
+        app.buttons["workspace.account"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["设置"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["account.close"].exists)
+        XCTAssertTrue(app.buttons["settings.cards"].exists)
+        capture("native-settings-page")
+        app.buttons["settings.ai"].tap()
+        XCTAssertTrue(app.buttons["ai.article.ai-vocabulary-notes"].waitForExistence(timeout: 5))
+        capture("native-ai-community")
+        app.buttons["ai.article.ai-vocabulary-notes"].tap()
+        XCTAssertTrue(app.navigationBars["文章详情"].waitForExistence(timeout: 5))
+        capture("native-ai-article")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["settings.ai.connections"].tap()
+        XCTAssertTrue(app.buttons["settings.ai.copy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["登录后查看和管理当前账户的 AI 授权。"].exists)
+        capture("native-settings-ai")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["settings.account"].exists)
+        app.buttons["settings.account"].tap()
+        XCTAssertTrue(app.buttons["account.logout"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["workspace.account"].firstMatch.waitForExistence(timeout: 5))
+    }
+
     func testStatisticsMockExamAndCardSettingsPersist() throws {
         primary("练习")
         XCTAssertTrue(app.buttons["practice.mock"].waitForExistence(timeout: 5))
@@ -155,6 +197,40 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertLessThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
         app.buttons["review.speech-position"].tap()
         app.buttons["放到右侧"].tap()
+    }
+    func testReviewExamplePlaybackAndCopyActions() throws {
+        primary("学习")
+        let start = app.buttons["today.review"]
+        reveal(start); start.tap()
+        let copyWord = app.buttons["review.copyWord"]
+        XCTAssertTrue(copyWord.waitForExistence(timeout: 5))
+        copyWord.tap()
+        XCTAssertEqual(copyWord.label, "已复制")
+        XCTAssertTrue(app.buttons["review.reveal"].exists, "Copying must not flip the card")
+        app.buttons["review.speech"].tap()
+        XCTAssertTrue(app.buttons["review.reveal"].exists, "Playing must not flip the card")
+        app.scrollViews["review.card"].coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.15)).tap()
+        XCTAssertTrue(app.buttons["review.forgot"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["review.reveal"].exists)
+        let play = app.buttons["review.example.0"]
+        reveal(play)
+        XCTAssertTrue(play.isHittable)
+        let loop = app.buttons["review.example.0.repeat"]
+        loop.tap()
+        XCTAssertEqual(loop.value as? String, "开启")
+        play.tap()
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        play.tap()
+        loop.tap()
+        XCTAssertEqual(loop.value as? String, "关闭")
+        let copyReference = app.buttons["review.copyReference"]
+        reveal(copyReference)
+        XCTAssertTrue(copyReference.isHittable)
+        XCTAssertEqual(app.staticTexts["review.reference.value"].label, "demo-measure")
+        XCTAssertEqual(app.staticTexts["review.reference.value"].frame.midX, app.frame.midX, accuracy: 3)
+        copyReference.tap()
+        XCTAssertEqual(copyReference.label, "已复制")
+        capture("review-example-playback-and-copy")
     }
     func testReviewViewportAndRatingDockStayStable() throws {
         primary("学习")

@@ -1876,7 +1876,7 @@ export default function App() {
               />
               <div className="ledger-kid-top-actions" aria-label="今天的快捷操作">
                 <span className="ledger-kid-sync"><i />{pageLoading ? '正在加载…' : '已准备好'}</span>
-                <button type="button" className="ledger-kid-primary-action" onClick={() => navigateTo('mixed')}>
+                <button type="button" className="ledger-kid-primary-action" onClick={() => navigateTo('home')}>
                   开始练习
                 </button>
               </div>
@@ -2771,7 +2771,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   if (['vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'question-types'].includes(route.view)) {
     crumbs[0] = ['vocabulary', 'grammar', 'listening', 'reading', 'question-types'].includes(route.view)
       ? { label: labels.homeStudyArea, route: { view: 'study', page: 'questions' } }
-      : { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
+      : { label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } };
     if (route.view === 'mixed') {
       if (route.page === 'words') crumbs[0] = { label: labels.homeStudyArea, route: { view: 'study', page: 'questions' } };
       if (route.page === 'tips' && route.itemId?.startsWith('opinion/')) crumbs.push({ label: labels.navOpinionPractice, route: { view: 'mixed', page: 'tips', itemId: 'opinion' } });
@@ -2792,7 +2792,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'mock-exams') {
-    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
+    crumbs[0] = { label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } };
     crumbs.push({ label: labels.navMockExams, route: route.itemId ? { view: 'mock-exams', page: 'questions' } : undefined });
     if (route.itemId && /^(week|custom):/.test(route.itemId)) {
       const [kind, week, date] = route.itemId.split(':');
@@ -2803,7 +2803,7 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   }
 
   if (route.view === 'news-cycle') {
-    crumbs[0] = { label: labels.navPracticeHome, route: { view: 'mixed', page: 'tips' } };
+    crumbs[0] = { label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } };
     crumbs.push({ label: labels.navNewsPractice, route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
     if (route.itemId) crumbs.push({ label: route.itemId });
     return crumbs;

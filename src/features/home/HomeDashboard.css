@@ -198,3 +198,20 @@
 .primary-today .learning-independent { margin-top: 18px; }
 .primary-today .learning-independent h2 { font-size: 1.125rem; margin-bottom: 10px; }
 .primary-today .learning-practice-grid { padding-block: 14px; }
+
+/* Match the native Learn overview at phone and regular widths. */
+.primary-today { max-width: 840px; padding: 20px; }
+.primary-today .home-exam-countdown { min-height: 72px; border: 0; border-radius: 14px; color: var(--ui-green, #49766e); }
+.primary-today .learning-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.primary-today .learning-due { min-height: 92px; padding: 18px 20px; border-radius: 16px; }
+.primary-today .learning-due .primary-entry-copy { display: grid; gap: 6px; }
+.primary-today .learning-due .primary-entry-copy small { margin: 0; color: var(--ui-green, #49766e); }
+.learning-due-count { display: flex; align-items: baseline; gap: 4px; flex-shrink: 0; color: var(--ui-green, #49766e); }
+.learning-due-count strong { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.learning-due-count small { font-size: 14px; }
+.primary-today .learning-due:disabled { cursor: default; }
+.primary-today .learning-independent { margin-top: 16px; }
+@media (max-width: 767px) {
+  .primary-today .learning-today-grid { grid-template-columns: minmax(0, 1fr); }
+  .primary-today .home-exam-countdown > svg:first-child { display: block; }
+}

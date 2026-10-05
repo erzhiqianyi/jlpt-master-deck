@@ -12,11 +12,10 @@ enum Destination: String, CaseIterable, Identifiable {
     }
 }
 enum WorkspaceSheet: Identifiable {
-    case capture(String), account, database
+    case capture(String), database
     var id: String {
         switch self {
         case .capture(let context): "capture-\(context)"
-        case .account: "account"
         case .database: "database"
         }
     }
@@ -27,7 +26,7 @@ struct ReviewSession: Identifiable { let id = UUID(); let items: [StudyItem] }
 // and detail scroll positions remain owned by the mounted destination views.
 // A cold launch restores the last module only, never an unfinished answer.
 enum WorkspaceRoute: Hashable {
-    case module(Destination), item(String), reading(String), listening(String), discovery(String)
+    case module(Destination), item(String), reading(String), listening(String), discovery(String), settings
 }
 
 struct WorkspaceNavigation {
@@ -82,7 +81,7 @@ struct WorkspaceView: View {
                         NavigationStack(path: path(for: destination)) {
                             detail(destination).navigationDestination(for: WorkspaceRoute.self, destination: routeView)
                         }
-                            .tabItem { Label(destination.rawValue, systemImage: destination.icon) }
+                            .tabItem { Label(LocalizedStringKey(destination.rawValue), systemImage: destination.icon) }
                             .tag(destination)
                     }
                     NavigationStack(path: bankPath) {
@@ -105,7 +104,7 @@ struct WorkspaceView: View {
                                 Label("题库", systemImage: "square.grid.2x2").padding(.vertical, 8)
                             }.tag(Destination.reading).accessibilityIdentifier("nav.题库")
                         }.listStyle(.sidebar).scrollContentBackground(.hidden)
-                        Button { sheet = .account } label: {
+                        Button { openSettings() } label: {
                             HStack { Image(systemName: "person.crop.circle.fill").font(.title); Text(store.username).lineLimit(1); Spacer(); Image(systemName: "gearshape") }
                                 .foregroundStyle(DeckTheme.muted).padding(20)
                         }.buttonStyle(.plain).accessibilityIdentifier("workspace.account")
@@ -125,7 +124,7 @@ struct WorkspaceView: View {
         }
         .foregroundStyle(DeckTheme.ink)
         .sheet(item: $sheet) { value in
-            switch value { case .capture(let context): CaptureView(initialContext: context); case .account: AccountView(); case .database: DatabaseCheckSheet() }
+            switch value { case .capture(let context): CaptureView(initialContext: context); case .database: DatabaseCheckSheet() }
         }
         .fullScreenCover(item: $companionPractice) { entry in Group { if entry.id == "mock" { NativeMockExamView() } else { NativePracticeScreen(entry: entry) } } }
         .fullScreenCover(item: $review) { session in MemoryReviewView(items: session.items) }
@@ -205,7 +204,7 @@ struct WorkspaceView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Image("Library-\(counts.asset)").resizable().scaledToFit().frame(height: artworkHeight).frame(maxWidth: .infinity).accessibilityHidden(true)
                                 HStack {
-                                    Text(destination.rawValue).font(.title2.bold())
+                                    Text(LocalizedStringKey(destination.rawValue)).font(.title2.bold())
                                     Spacer(minLength: 4)
                                     Image(systemName: "chevron.right").font(.body).foregroundStyle(DeckTheme.muted)
                                 }
@@ -234,6 +233,7 @@ struct WorkspaceView: View {
     }
     @ViewBuilder private func routeContent(_ route: WorkspaceRoute) -> some View {
         switch route {
+        case .settings: NativeSettingsView()
         case .module(let destination): detail(destination)
         case .item(let id):
             if let item = store.items.first(where: { $0.id == id }) {
@@ -274,18 +274,25 @@ struct WorkspaceView: View {
         .toolbar { workspaceToolbar(showAccount: [.today, .discovery, .history].contains(destination)) }
         .modifier(LibrarySearch(enabled: [.vocabulary, .grammar].contains(destination), query: $query))
     }
+    private func openSettings() {
+        if compactDestination == .reading {
+            if navigation.bank.last != .settings { navigation.bank.append(.settings) }
+        } else if navigation.paths[compactDestination, default: []].last != .settings {
+            navigation.paths[compactDestination, default: []].append(.settings)
+        }
+    }
     @ToolbarContentBuilder
     private func workspaceToolbar(showAccount: Bool) -> some ToolbarContent {
         if showAccount {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { sheet = .account } label: { Image(systemName: "gearshape") }
-                    .accessibilityLabel("账户").accessibilityIdentifier("workspace.account")
+                Button { openSettings() } label: { Image(systemName: "gearshape") }
+                    .accessibilityLabel("设置").accessibilityIdentifier("workspace.account")
             }
         }
     }
     private func nav(_ destination: Destination) -> some View {
         NavigationLink(value: destination) {
-            Label(destination.rawValue, systemImage: destination.icon).padding(.vertical, 8)
+            Label(LocalizedStringKey(destination.rawValue), systemImage: destination.icon).padding(.vertical, 8)
         }.tag(destination)
             .accessibilityIdentifier("nav.\(destination.id)")
     }
@@ -492,11 +499,12 @@ private struct LibrarySearch: ViewModifier {
 }
 
 private struct WorkspacePageStyle: ViewModifier {
+    @Environment(AppStore.self) private var store
     let title: String
     func body(content: Content) -> some View {
         content.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(DeckTheme.paper)
-            .navigationTitle(title)
+            .navigationTitle(store.interfaceText(title))
             .navigationBarTitleDisplayMode(.inline)
     }
 }

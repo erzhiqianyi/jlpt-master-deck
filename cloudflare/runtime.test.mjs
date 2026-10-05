@@ -43,6 +43,16 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     const source = await json('/api/market/import','POST',{format:'jlpt-share',version:1,kind:'wordbook',title:'Cloud public snapshot',items:[{deck:'n1_vocab',original:'共有',reading:'きょうゆう',meaning_zh:'共享'}]});
     const share = await json('/api/market','POST',{kind:'wordbook',sourceId:source.id});
     assert.ok((await json('/api/market','GET',undefined,'test-2')).shares.some(s=>s.id===share.id&&!s.mine));
+    const coverPayload = { mime: 'image/png', imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=' };
+    assert.equal((await request(`/api/market/${share.id}/cover`, 'PUT', coverPayload, 'test-2')).status, 404);
+    const coverResult = await json(`/api/market/${share.id}/cover`, 'PUT', coverPayload);
+    const coverResponse = await mf.dispatchFetch(origin + coverResult.coverUrl);
+    assert.equal(coverResponse.status, 200);
+    assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()), Buffer.from(coverPayload.imageBase64, 'base64'));
+    const failedCover = await mf.dispatchFetch(origin + `/api/market/${share.id}/cover`, { method: 'PUT', headers: { 'content-type': 'application/json', authorization: 'Bearer test-1', 'x-test-fail-upload': '1' }, body: JSON.stringify(coverPayload) });
+    assert.equal(failedCover.status, 503);
+    assert.equal((await json('/api/market')).shares.find(s => s.id === share.id).coverUrl, coverResult.coverUrl);
+
 
     assert.ok(!(await json('/api/wordbooks','GET',undefined,'test-2')).wordbooks.some(x=>x.id===book.id));
     assert.equal((await request('/api/wordbooks/'+book.id,'PATCH',{title:'stolen'},'test-2')).status,404);

@@ -3,7 +3,7 @@ import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest,
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
 import { getDailySummary, listDailySummaries, validSummaryDate } from './daily-summary.mjs';
-import { userReviewData, sharingSources, sourcePackage, publishShare, publishListeningShare, listeningShareAudio, importListeningShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
+import { shareCover, setShareCover, userReviewData, sharingSources, sourcePackage, publishShare, publishListeningShare, listeningShareAudio, importListeningShare, listShares, shareDetail, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
 import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
 import { createReadStream, existsSync, readFileSync, statSync } from './files.mjs';
@@ -85,6 +85,12 @@ return async (req, res) => {
   if (MCP_PATHS.test(req.url ?? '')) return mcpListener(req, res);
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+    const publicCover = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
+    if (publicCover && req.method === 'GET') {
+      const asset = shareCover(publicCover[1]);
+      res.writeHead(200, { 'content-type': asset.mime, 'content-length': asset.size, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      return createReadStream(asset.path).pipe(res);
+    }
     const token = bearerToken(req);
     let user = userForToken(token);
     if (!user && req.method === 'GET' && /^\/api\/(listening-questions|listening-recordings)\/[^/]+\/audio$/.test(url.pathname) && mcp) {
@@ -229,6 +235,8 @@ return async (req, res) => {
     if (url.pathname === '/api/market/listening' && req.method === 'POST') return json(res,201,await publishListeningShare(user.id,await readJson(req)));
     if (url.pathname === '/api/market' && req.method === 'GET') return json(res,200,{shares:listShares(user.id)});
     if (url.pathname === '/api/market' && req.method === 'POST') return json(res,201,publishShare(user.id,await readJson(req)));
+    const coverMatch = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
+    if (coverMatch && req.method === 'PUT') return json(res,200,setShareCover(user.id,coverMatch[1],await readJson(req, 7 * 1024 * 1024)));
     const shareMatch = /^\/api\/market\/([^/]+)$/.exec(url.pathname);
     const shareAudioMatch = /^\/api\/market\/([^/]+)\/audio$/.exec(url.pathname);
     if (shareAudioMatch && req.method === 'GET') {

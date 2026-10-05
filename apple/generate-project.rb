@@ -4,11 +4,14 @@ require 'xcodeproj'
 require 'fileutils'
 Dir.chdir(__dir__)
 project = Xcodeproj::Project.new('JLPTMasterDeck.xcodeproj')
+project.root_object.development_region = 'zh-Hans'
+project.root_object.known_regions = ['zh-Hans', 'ja', 'en', 'Base']
 target = project.new_target(:application, 'JLPTMasterDeck', :ios, '17.0')
 source_group = project.main_group.new_group('Sources', 'Sources')
 Dir.glob('Sources/*.swift').sort.each { |path| target.source_build_phase.add_file_reference(source_group.new_file(File.basename(path))) }
 resources_group = project.main_group.new_group('Resources', 'Resources')
 target.resources_build_phase.add_file_reference(resources_group.new_file('BrandAssets.xcassets'))
+target.resources_build_phase.add_file_reference(resources_group.new_file('Localizable.xcstrings'))
 config_group = project.main_group.new_group('Config', 'Config')
 config = config_group.new_file('App.xcconfig')
 config_group.new_file('Info.plist')

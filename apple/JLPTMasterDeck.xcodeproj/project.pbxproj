@@ -34,6 +34,7 @@
 		EA6EF197F9F0244F8751EED2 /* IdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451D9ABCB672756EDF8AD406 /* IdentityService.swift */; };
 		ECD40EC0ECAC396727135C15 /* DatabaseCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4CBF810C0880FA82A402E5 /* DatabaseCheckView.swift */; };
 		FD91C7B5D5262EE0B630D3BF /* NavigationLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9D1BF7905C50AEAE746939 /* NavigationLifecycleTests.swift */; };
+		A10D15A10000000000000001 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +84,7 @@
 		EAB95471ABAE4B69878AFC8E /* JLPTMasterDeckApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JLPTMasterDeckApp.swift; sourceTree = "<group>"; };
 		EF9C6932FCBFA6E158266D95 /* Theme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		F09C68181B70689CC18C24DA /* LocalStudyData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalStudyData.swift; sourceTree = "<group>"; };
+		A10D15A10000000000000002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				1DDAAB317BCA440FAD03F6E7 /* BrandAssets.xcassets */,
+				A10D15A10000000000000002 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -288,9 +291,11 @@
 			};
 			buildConfigurationList = E1F7AEE1652A30C2183C758B /* Build configuration list for PBXProject "JLPTMasterDeck" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"zh-Hans",
+				ja,
 				en,
 				Base,
 			);
@@ -331,6 +336,7 @@
 			files = (
 				3E9FE9A185DA026DD24C91E2 /* GoogleService-Info.plist in Resources */,
 				D3C4A1B2031451F7D28570EB /* BrandAssets.xcassets in Resources */,
+				A10D15A10000000000000001 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

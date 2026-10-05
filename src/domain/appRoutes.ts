@@ -57,6 +57,7 @@ export function routeFromHash(hash: string): AppRoute {
 }
 
 export function routeHash(view: AppView, page: StudyPage, itemId?: string) {
+  if (view === 'mixed' && page === 'tips' && !itemId) return '#/home';
   if (view === 'mixed' && page === 'tips' && itemId?.startsWith('opinion/')) return `#/mixed/tips/${itemId}`;
   if (view === 'plan') {
     return itemId ? `#/plan/${encodeURIComponent(itemId)}` : '#/plan';

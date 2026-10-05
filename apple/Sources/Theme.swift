@@ -73,6 +73,7 @@ struct DeckDismissButton: View {
 
 /// Shared answer states match the web practice and reading screens.
 struct StudyAnswerChoice: View {
+    @Environment(AppStore.self) private var store
     let number: Int
     let text: String
     let selected: Bool
@@ -84,7 +85,7 @@ struct StudyAnswerChoice: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(number)").font(.body.monospacedDigit()).frame(width: 30, height: 30)
                 .background(tint.opacity(0.07), in: Circle())
-            Text(text).font(.system(size: 18)).lineSpacing(5).multilineTextAlignment(.leading)
+            Text(text).font(.system(size: 18 * store.textScale)).lineSpacing(5).multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
             if correct == true { Image(systemName: "checkmark.circle.fill") }
             else if selected { Image(systemName: correct == false ? "xmark.circle.fill" : "checkmark.circle.fill") }
@@ -104,5 +105,45 @@ extension MemoryRating {
     }
     var tint: Color {
         switch self { case .forgot: DeckTheme.accent; case .hard: Color(red: 0.62, green: 0.46, blue: 0.25); case .remembered: DeckTheme.green; case .easy: Color(red: 0.28, green: 0.53, blue: 0.74) }
+    }
+}
+
+// Shared with web display preferences, persisted in the account study state.
+extension AppStore {
+    var appLanguage: String {
+        if case .string(let value) = state.settings?["locale"], ["zh-CN", "ja", "en"].contains(value) { return value }
+        return "zh-CN"
+    }
+    func interfaceText(_ key: String) -> String {
+        let language = appLanguage == "zh-CN" ? "zh-Hans" : appLanguage
+        guard let path = Bundle.main.path(forResource: language, ofType: "lproj"), let bundle = Bundle(path: path) else { return key }
+        return bundle.localizedString(forKey: key, value: key, table: "Localizable")
+    }
+    var textScale: CGFloat {
+        if case .string(let value) = state.settings?["fontSize"] { return value == "large" ? 1.2 : value == "small" ? 0.9 : 1 }
+        return 1
+    }
+    func displayFlag(_ key: String) -> Bool {
+        if case .bool(let value) = state.settings?[key] { return value }
+        return true
+    }
+    func readingText(_ text: String, item: StudyItem?, explanation: Bool = false) -> String {
+        guard displayFlag(explanation ? "showExplanationRuby" : "showReviewRuby"), let item else { return text }
+        var terms = item.ruby_terms ?? []
+        if let reading = item.reading, !reading.isEmpty, reading != item.original {
+            terms.append(StudyItem.ReadingTerm(text: item.original, reading: reading))
+        }
+        let sorted = terms.filter { !$0.text.isEmpty && !$0.reading.isEmpty && $0.text != $0.reading }.sorted { $0.text.count > $1.text.count }
+        var remaining = text[...], result = ""
+        while !remaining.isEmpty {
+            if let term = sorted.first(where: { remaining.hasPrefix($0.text) }) {
+                result += term.text
+                remaining = remaining.dropFirst(term.text.count)
+                if !remaining.hasPrefix("（" + term.reading + "）") { result += "（" + term.reading + "）" }
+            } else {
+                result.append(remaining.removeFirst())
+            }
+        }
+        return result
     }
 }

@@ -510,7 +510,7 @@ const itemImageTypes = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 
 const MAX_ITEM_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // Only raster formats whose bytes match the declared type; SVG could carry script.
-function imageBytesMatch(mime, bytes) {
+export function imageBytesMatch(mime, bytes) {
   const ascii = (start, end) => bytes.subarray(start, end).toString('latin1');
   if (mime === 'image/png') return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (mime === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;

@@ -22,7 +22,7 @@ await build({
   stdin: { resolveDir: process.cwd(), loader: 'tsx', contents: `
     export * from './src/domain/appNavigation';
     export { HomeDashboard } from './src/features/home/HomeDashboard';
-    export { routeFromHash } from './src/domain/appRoutes';
+    export { routeFromHash, routeHash } from './src/domain/appRoutes';
     export * from './src/components/AuthoringNavigation';
     export { PageChromeProvider, PageHeaderActions } from './src/components/PageChrome';
     export { DialoguePracticePanel } from './src/features/practice/DialoguePracticePanel';
@@ -34,7 +34,7 @@ await build({
   bundle: true, platform: 'node', format: 'esm', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, outfile: output,
 });
 const {
-  HomeDashboard, routeFromHash, isPrimaryNavigationRoot, contextualBackRoute, createNavigationRegistry, AuthoringNavigationProvider,
+  HomeDashboard, routeFromHash, routeHash, isPrimaryNavigationRoot, contextualBackRoute, createNavigationRegistry, AuthoringNavigationProvider,
   DialoguePracticePanel, QuestionTypeGuide, QuestionTypeDetail, translations, officialN1QuestionTypes,
   PageChromeProvider, PageHeaderActions,
 } = await import(pathToFileURL(output));
@@ -237,6 +237,8 @@ test('App uses the same Back handler for both headers and root-only bottom navig
 
 
 test('legacy practice home converges on Learn while topic routes stay deep-linkable', () => {
+  assert.equal(routeHash('mixed', 'tips'), '#/home');
+  assert.equal(routeHash('mixed', 'tips', 'topics'), '#/mixed/tips/topics');
   for (const hash of ['#/mixed', '#/mixed/tips']) assert.deepEqual(routeFromHash(hash), {view: 'home', page: 'questions'});
   assert.deepEqual(routeFromHash('#/mixed/tips/topics'), {view: 'mixed', page: 'tips', itemId: 'topics'});
 });
@@ -253,7 +255,7 @@ test('learning dashboard uses saved answers and preserves every practice destina
   await render(HomeDashboard, props);
   assert.ok(button('开始练习'));
   assert.equal(document.querySelector('progress').value, 0);
-  assert.match(document.body.textContent, /JLPT 考试倒计时/);
+  assert.match(document.querySelector('.home-exam-identity').textContent, /JLPT · N1/);
   await render(HomeDashboard, {...props, dailyAnswers: Object.fromEntries(questions.slice(0,8).map(q => [q.id, {selected: 'A'}]))});
   assert.equal(document.querySelector('progress').value, 8);
   assert.match(document.body.textContent, /进行中/);
@@ -265,5 +267,10 @@ test('learning dashboard uses saved answers and preserves every practice destina
   assert.deepEqual(opened, [['daily','today-pack'], ['mixed','tips','topics'], ['mixed','questions'], ['mock'], ['memory-review']]);
   await render(HomeDashboard, {...props, dailyAnswers: Object.fromEntries(questions.map(q => [q.id, {selected: 'A'}]))});
   assert.ok(button('查看练习'));
+  await render(HomeDashboard, {...props, dueItems: [], dailyAnswers: Object.fromEntries(questions.map(q => [q.id, {selected: 'A'}]))});
+  assert.equal(document.querySelector('.learning-due').disabled, true);
+  assert.match(document.querySelector('.learning-due').textContent, /今天已完成0项/);
+  await click(document.querySelector('.learning-due'));
+  assert.equal(opened.length, 5);
   assert.equal(document.querySelector('progress').value, 20);
 });

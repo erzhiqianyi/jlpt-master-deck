@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import Network
 import OSLog
+import UIKit
 
 @MainActor @Observable
 final class AppStore {
@@ -34,6 +35,11 @@ final class AppStore {
     private(set) var isDownloadingSpeech = false
     private(set) var speechDownloadProgress = ""
     @ObservationIgnored private var speechDownloadTask: Task<Void, Never>?
+    private(set) var isDownloadingImages = false
+    private(set) var imageDownloadProgress = ""
+    private(set) var downloadedImageCount = 0
+    private(set) var imageDownloadFailures = 0
+    @ObservationIgnored private var imageDownloadTask: Task<Void, Never>?
     let speechPlayer = NativeSpeechPlayer()
     private(set) var isOnline = true
     @ObservationIgnored private let files = LocalStudyFiles()
@@ -192,6 +198,7 @@ final class AppStore {
             notice = result.uploadError.map { "云端学习数据已更新，\(pending.count) 条本机答题记录仍待上传。\n\($0)" }
                 ?? (pending.isEmpty ? "学习数据已同步到本机。" : "学习数据已更新，\(pending.count) 条答题记录等待同步。")
             error = nil
+            startImageDownload()
             return result.data
         } catch {
             guard expected == generation else { return nil }
@@ -258,9 +265,9 @@ final class AppStore {
             guard expected == generation else { throw CancellationError() }
             settings = result.settings
         }
-        for key in ["memoryCardFrontFields", "memoryCardBackFields"] {
+        for key in ["memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "showReviewRuby", "showExplanationRuby"] {
             if let requested = changes[key], settings[key] != requested {
-                throw APIError.http(409, "服务器未保留卡片选择，请同步后重试。")
+                throw APIError.http(409, "服务器未保留设置，请同步后重试。")
             }
         }
         if let requested = changes["feedbackMode"], settings["feedbackMode"] != requested {
@@ -420,6 +427,7 @@ final class AppStore {
             pending = data.pending; lastSync = data.lastSync; responses = data.responses ?? [:]
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
             applyPending()
+            Task { await self.updateImageCount() }
         } catch {
             guard expected == generation else { return }
             notice = "本机数据读取失败：\(error.localizedDescription)"
@@ -546,6 +554,8 @@ final class AppStore {
     }
     private func clearData() {
         isRestoringLocal = false
+        imageDownloadTask?.cancel(); imageDownloadTask = nil
+        isDownloadingImages = false; imageDownloadProgress = ""; downloadedImageCount = 0; imageDownloadFailures = 0
         speechPlayer.stop()
         speechDownloadTask?.cancel(); speechDownloadTask = nil
         isDownloadingSpeech = false; speechDownloadProgress = ""
@@ -574,5 +584,68 @@ enum AutomaticRefreshPolicy {
         // Foreground/network events coalesce; explicit sync always bypasses this policy.
         if let lastAttempt, now.timeIntervalSince(lastAttempt) < 60 { return false }
         return hasPending || lastSync.map { now.timeIntervalSince($0) >= 300 } ?? true
+    }
+}
+
+extension AppStore {
+    var offlineImages: [[String: String]] {
+        items.flatMap { $0.images ?? [] } + shares.compactMap { $0.coverUrl.map { ["url": $0] } }
+    }
+    func loadImage(_ image: [String: String]) async throws -> UIImage {
+        let expected = generation
+        let userID = session?.user.id ?? 0
+        let request = try APIClient.itemImageRequest(image, token: session?.token)
+        let bitmap = try await NativeImageCache.shared.bitmap(userID: userID, request: request)
+        try Task.checkCancellation()
+        guard expected == generation, userID == (session?.user.id ?? 0) else { throw CancellationError() }
+        return bitmap.image
+    }
+    func updateImageCount() async {
+        guard let session else { return }
+        let expected = generation
+        let requests = offlineImages.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }
+        let count = await NativeImageCache.shared.count(userID: session.user.id, requests: requests)
+        guard expected == generation else { return }
+        downloadedImageCount = count
+    }
+    func startImageDownload() {
+        guard !isDemo, let session, imageDownloadTask == nil else { return }
+        let expected = generation
+        let userID = session.user.id
+        let images = offlineImages
+        var seen = Set<String>()
+        let requests = images.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }.filter { seen.insert($0.url!.absoluteString).inserted }
+        isDownloadingImages = true; imageDownloadFailures = images.count - images.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }.count
+        imageDownloadProgress = "0 / \(requests.count)"
+        imageDownloadTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if expected == self.generation {
+                    self.isDownloadingImages = false; self.imageDownloadTask = nil
+                    let latest = Set(self.offlineImages.compactMap { try? APIClient.itemImageRequest($0, token: self.session?.token).url?.absoluteString })
+                    if !Task.isCancelled && latest != Set(requests.compactMap { $0.url?.absoluteString }) { self.startImageDownload() }
+                }
+            }
+            var completed = 0
+            for offset in stride(from: 0, to: requests.count, by: 4) {
+                guard !Task.isCancelled, expected == self.generation else { return }
+                let batch = Array(requests[offset..<min(offset + 4, requests.count)])
+                await withTaskGroup(of: Bool.self) { group in
+                    for request in batch { group.addTask {
+                        do { _ = try await NativeImageCache.shared.data(userID: userID, request: request); return true }
+                        catch { return false }
+                    } }
+                    for await success in group {
+                        guard expected == self.generation, !Task.isCancelled else { continue }
+                        completed += 1
+                        if !success { self.imageDownloadFailures += 1 }
+                        self.imageDownloadProgress = "\(completed) / \(requests.count)"
+                    }
+                }
+            }
+            let count = await NativeImageCache.shared.count(userID: userID, requests: requests)
+            guard expected == self.generation, !Task.isCancelled else { return }
+            self.downloadedImageCount = count
+        }
     }
 }

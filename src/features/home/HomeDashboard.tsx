@@ -31,11 +31,11 @@ export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAns
   const total = practice?.questions?.length ?? practice?.questionCount ?? 0;
   const complete = total > 0 && answered === total;
   const text = locale === 'zh-CN' ? {
-    title: '今日', plan: '今日计划', all: '查看计划', empty: '今天还没有准备好的练习', setup: '安排', minutes: '分钟', done: '已完成', mark: '标为已完成', undo: '恢复待完成', practice: '今日练习', start: '开始练习', resume: '继续练习', open: '查看练习', prepare: '准备今日练习', confirm: '确认今日题目', reviewDraft: '确认题目', review: '记忆复习', reviewCount: (count: number) => `${count} 项待复习`, questions: '题', skipped: '已跳过'
+    title: '今日', plan: '今日计划', all: '查看计划', empty: '今天还没有准备好的练习', setup: '安排', minutes: '分钟', done: '已完成', mark: '标为已完成', undo: '恢复待完成', practice: '今日练习', start: '开始练习', resume: '继续练习', open: '查看练习', prepare: '准备今日练习', confirm: '确认今日题目', reviewDraft: '确认题目', review: '记忆复习', reviewCount: (count: number) => `${count} 项待复习`, reviewAction: '开始复习', reviewDone: '今天已完成', reviewUnit: '项', questions: '题', skipped: '已跳过'
   } : locale === 'ja' ? {
-    title: '今日', plan: '今日の計画', all: '計画を見る', empty: '今日の練習はまだありません', setup: '予定を追加', minutes: '分', done: '完了', mark: '完了にする', undo: '未完了に戻す', practice: '今日の練習', start: '練習を始める', resume: '練習を続ける', open: '練習を見る', prepare: '今日の練習を準備', confirm: '今日の問題を確認', reviewDraft: '確認待ちの問題を見る', review: '記憶の復習', reviewCount: (count: number) => `復習待ち ${count} 件`, questions: '問', skipped: 'スキップ'
+    title: '今日', plan: '今日の計画', all: '計画を見る', empty: '今日の練習はまだありません', setup: '予定を追加', minutes: '分', done: '完了', mark: '完了にする', undo: '未完了に戻す', practice: '今日の練習', start: '練習を始める', resume: '練習を続ける', open: '練習を見る', prepare: '今日の練習を準備', confirm: '今日の問題を確認', reviewDraft: '確認待ちの問題を見る', review: '記憶の復習', reviewCount: (count: number) => `復習待ち ${count} 件`, reviewAction: '復習を始める', reviewDone: '今日は完了', reviewUnit: '件', questions: '問', skipped: 'スキップ'
   } : {
-    title: 'Today', plan: "Today's plan", all: 'View plan', empty: 'No practice prepared for today', setup: 'Plan', minutes: 'min', done: 'completed', mark: 'Mark done', undo: 'Mark pending', practice: "Today's practice", start: 'Start practice', resume: 'Continue practice', open: 'View practice', prepare: 'Prepare today’s practice', confirm: 'Confirm today’s questions', reviewDraft: 'Review pending questions', review: 'Memory review', reviewCount: (count: number) => `${count} items due`, questions: 'questions', skipped: 'Skipped'
+    title: 'Today', plan: "Today's plan", all: 'View plan', empty: 'No practice prepared for today', setup: 'Plan', minutes: 'min', done: 'completed', mark: 'Mark done', undo: 'Mark pending', practice: "Today's practice", start: 'Start practice', resume: 'Continue practice', open: 'View practice', prepare: 'Prepare today’s practice', confirm: 'Confirm today’s questions', reviewDraft: 'Review pending questions', review: 'Memory review', reviewCount: (count: number) => `${count} items due`, reviewAction: 'Start review', reviewDone: 'Done for today', reviewUnit: 'items', questions: 'questions', skipped: 'Skipped'
   };
 
   const learning = locale === 'zh-CN' ? { title: '学习', independent: '自主练习', topics: '专项练习', mixed: '综合练习', mock: '模拟考试', due: '到期复习', ready: '待开始', ongoing: '进行中', finished: '已完成', sets: '套', rounds: '次' } : locale === 'ja' ? { title: '学習', independent: '自主練習', topics: '分野別練習', mixed: '総合練習', mock: '模擬試験', due: '期限の来た復習', ready: '未開始', ongoing: '練習中', finished: '完了', sets: 'セット', rounds: '回' } : { title: 'Learn', independent: 'Independent practice', topics: 'Topic practice', mixed: 'Mixed practice', mock: 'Mock exam', due: 'Due for review', ready: 'Not started', ongoing: 'In progress', finished: 'Completed', sets: 'sets', rounds: 'times' };
@@ -64,8 +64,8 @@ export function HomeDashboard({ locale, dueItems, plan, todayPractices, dailyAns
         {practice ? complete ? text.open : answered > 0 ? text.resume : text.start : latestDraft ? text.reviewDraft : text.prepare}<ArrowRight size={21} aria-hidden="true" />
       </button>
     </section>
-    <button type="button" className="primary-navigation-row learning-due" onClick={() => onNavigate(dueItems.length ? 'memory-review' : 'memory')}>
-      <History size={32} className="primary-entry-icon" aria-hidden="true" /><span className="primary-entry-copy"><strong>{learning.due}</strong><small>{text.reviewCount(dueItems.length)}</small></span><ChevronRight size={22} aria-hidden="true" />
+    <button type="button" className="primary-navigation-row learning-due" disabled={!dueItems.length} onClick={() => onNavigate('memory-review')}>
+      <History size={32} className="primary-entry-icon" aria-hidden="true" /><span className="primary-entry-copy"><strong>{learning.due}</strong><small>{dueItems.length ? text.reviewAction : text.reviewDone}</small></span><span className="learning-due-count"><strong>{dueItems.length}</strong><small>{text.reviewUnit}</small></span><ChevronRight size={22} aria-hidden="true" />
     </button>
     </div>
     <section className="learning-independent" aria-labelledby="learning-independent-title">

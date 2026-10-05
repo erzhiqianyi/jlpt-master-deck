@@ -6,7 +6,7 @@ import { discoveryCategories, discoveryPresentation } from '../../domain/discove
 import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Plus, Search, Undo2, UserRound } from 'lucide-react';
 import { PracticePanel, PracticeReviewPanel } from "../practice/StudyPanels";
 import type { Question, AnswerState, DisplaySettings, Locale } from "../../types";
-import { LearningListFrame, LearningListHeader, LearningListPagination, LearningListSearch, LearningListSelect } from "../../components/LearningList";
+import { LearningListFrame, LearningListHeader, LearningListPagination, LearningListSearch } from "../../components/LearningList";
 import { useMobileList } from "../../hooks/useMobileList";
 import { BatchActionBar, BatchManageButton, useListBatch, type BatchAction } from "../../components/ListBatch";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import { useConfirmation } from "../../components/confirmation";
 import { apiRequest } from "../../lib/api";
 
 type SharedContent = {
+  coverUrl?: string;
   format: "jlpt-share";
   version: 1;
   kind: "practice" | "wordbook" | "listening";
@@ -50,7 +51,7 @@ type Share = {
   description: string;
   count: number;
   mine: boolean;
-  categories?: string[]; cover?: string; level?: string; coverTitle?: string;
+  categories?: string[]; coverUrl?: string; cover?: string; level?: string; coverTitle?: string;
 };
 export function MarketPanel({
   token, initialShareId,
@@ -201,9 +202,11 @@ export function MarketPanel({
       {notice && <p role="status">{notice}</p>}
       {!preview && !initialShareId && <LearningListFrame className="discovery-catalog" label={copy.shareList} locale={locale}>
         <LearningListHeader showDensity={false} controlIcon={<Search size={22} />} expandedOnWide={false} appliedSummary={[query.trim() ? `${copy.search}: ${query.trim()}` : '', tab === 'mine' ? copy.myShares : ''].filter(Boolean).join(' · ')} onReset={() => { setQuery(''); setTab('market'); setKind('all'); setPage(0); }} title={copy.discover} count={`${filtered.length} ${copy.items}`} search={<LearningListSearch value={query} onChange={value => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale} />}>
-          <LearningListSelect label={copy.shareScope} hideLabel value={tab} onChange={value => { setTab(value as 'market' | 'mine'); setPage(0); }}><option value="market">{copy.allShares}</option><option value="mine">{copy.myShares}</option></LearningListSelect>
           <BatchManageButton batch={batch} locale={locale} />
         </LearningListHeader>
+        <div className="discovery-categories" role="group" aria-label={copy.shareScope}>
+          {([['market', copy.allShares], ['mine', copy.myShares]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={tab === value} onClick={() => { setTab(value); setPage(0); }}>{label}</button>)}
+        </div>
         <div className="discovery-categories" role="group" aria-label={copy.categories}>
           {([['all', copy.all], ['vocabulary', copy.words], ['grammar', copy.grammar], ['listening', copy.listening]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>)}
         </div>
@@ -228,7 +231,17 @@ export function MarketPanel({
             <SharePreviewCarousel key={previewId} content={preview} copy={copy} presentation={shares.find(share => share.id === previewId)} />
             <div className="market-detail-heading">
               <h2>{preview.title}</h2><span className="market-detail-count">{preview.kind === 'wordbook' ? `${preview.items?.length ?? 0} ${copy.wordUnit}` : `${preview.questions?.length ?? 0} ${copy.questionUnit}`}</span>
-              {mineIds.has(previewId) ? <ShareManagement copy={copy} busy={busy} onWithdraw={() => void withdrawShare(previewId)} /> : <ShareBookmark copy={copy} busy={busy || importingIds.has(previewId)} added={importedIds.has(previewId)} onAdd={() => void addShare(previewId, preview.kind)} />}
+              {mineIds.has(previewId) ? <ShareManagement copy={copy} busy={busy} onCover={async file => {
+                setBusy(true); setError('');
+                try {
+                  if (file.size > 5 * 1024 * 1024) throw new Error(locale === 'zh-CN' ? '图片不能超过 5 MB' : 'Image exceeds 5 MB');
+                  const imageBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); });
+                  const result = await apiRequest<{ coverUrl: string }>(`/api/market/${previewId}/cover`, { method: 'PUT', token, body: { imageBase64, mime: file.type } });
+                  setPreview(current => current ? { ...current, ...result } : current);
+                  setShares(current => current.map(share => share.id === previewId ? { ...share, ...result } : share));
+                } catch (cause) { setError(cause instanceof Error ? cause.message : copy.failed); }
+                finally { setBusy(false); }
+              }} coverLabel={locale === 'ja' ? '表紙をアップロード' : locale === 'en' ? 'Upload cover' : '上传封面'} onWithdraw={() => void withdrawShare(previewId)} /> : <ShareBookmark copy={copy} busy={busy || importingIds.has(previewId)} added={importedIds.has(previewId)} onAdd={() => void addShare(previewId, preview.kind)} />}
             </div>
             <p className="market-detail-author"><UserRound size={24} aria-hidden="true" />{mineIds.has(previewId) ? copy.ownShareShort : copy.communityAuthor}</p>
             {preview.description ? <div className="market-introduction">
@@ -250,7 +263,7 @@ export function MarketPanel({
   );
 }
 
-function ShareManagement({ copy, busy, onWithdraw }: { copy: ReturnType<typeof marketCopy>; busy: boolean; onWithdraw: () => void }) {
+function ShareManagement({ copy, busy, onWithdraw, onCover, coverLabel }: { onCover: (file: File) => Promise<void>; coverLabel: string; copy: ReturnType<typeof marketCopy>; busy: boolean; onWithdraw: () => void }) {
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const hasHeaderActions = usePageHeaderActions([{ key: 'share-manage', label: copy.manage, onClick: () => setOpen(true), disabled: busy }], 20);
@@ -259,6 +272,7 @@ function ShareManagement({ copy, busy, onWithdraw }: { copy: ReturnType<typeof m
     {!hasHeaderActions ? <button type="button" className="market-manage-trigger" disabled={busy} onClick={() => setOpen(true)}>{copy.manage}</button> : null}
     <dialog ref={dialog} className="market-management-dialog" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} aria-label={copy.manage}>
       <div><h3>{copy.manage}</h3><button type="button" aria-label={copy.close} onClick={() => setOpen(false)}>×</button></div>
+      <label>{coverLabel}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { setOpen(false); void onCover(file); } }} /></label>
       <button type="button" disabled={busy} onClick={() => { setOpen(false); onWithdraw(); }}><Undo2 size={16} aria-hidden="true" />{copy.withdraw}</button>
     </dialog>
   </>;
@@ -271,13 +285,13 @@ function ShareBookmark({ copy, busy, added, onAdd }: { copy: ReturnType<typeof m
   return registered ? null : <button type="button" className="market-bookmark" aria-label={label} title={label} disabled={busy || added} onClick={onAdd}>{icon}</button>;
 }
 
-export function DiscoveryCover({ content, page }: { content: { title: string; kind: string; categories?: string[]; cover?: string; coverTitle?: string; level?: string }; page?: string }) {
+export function DiscoveryCover({ content, page }: { content: { title: string; kind: string; categories?: string[]; coverUrl?: string; cover?: string; coverTitle?: string; level?: string }; page?: string }) {
   const fallback = discoveryPresentation(content);
   const cover = ['stairs', 'clock', 'coffee', 'gold'].includes(content.cover ?? '') ? content.cover : fallback.cover;
   return <div className={`discovery-artwork cover-${cover}`}>
-    <img src={`/images/discovery/${cover}.png`} alt="" loading="lazy" />
+    <img src={content.coverUrl || `/images/discovery/${cover}.png`} alt="" loading="lazy" />
     {page ? <span className="discovery-page-counter">{page}</span> : null}
-    <div className="discovery-cover-type"><span lang="ja">{content.coverTitle || fallback.coverTitle}</span>{content.level || fallback.level ? <small>{content.level || fallback.level}</small> : null}</div>
+    {!content.coverUrl && <div className="discovery-cover-type"><span lang="ja">{content.coverTitle || fallback.coverTitle}</span>{content.level || fallback.level ? <small>{content.level || fallback.level}</small> : null}</div>}
   </div>;
 }
 

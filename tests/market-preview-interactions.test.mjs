@@ -195,10 +195,12 @@ test('discovery list contains title and type/count, with optional tools in its s
   assert.equal(document.querySelector('.market-row-add'), null);
   assert.match(document.querySelector('.discovery-card-meta').textContent, /2 questions/);
   assert.doesNotMatch(document.querySelector('.discovery-cover-grid').textContent, /Two trial questions/);
+  const scope = document.querySelector('[role="group"][aria-label="Share scope"]');
+  assert.ok(scope, 'My shares is visible before opening the tools');
+  await click([...scope.querySelectorAll('button')].find(value => value.textContent === 'My shares'));
+  assert.equal(scope.querySelector('[aria-pressed="true"]').textContent, 'My shares');
   await click(document.querySelector('header .page-header-action'));
   assert.equal(document.querySelector('.list-controls-dialog').open, true);
-  const scope = document.querySelector('select[aria-label="Share scope"]');
-  await act(async () => { scope.value = 'mine'; scope.dispatchEvent(new Event('change', { bubbles: true })); });
   assert.match(document.querySelector('.list-applied-summary').textContent, /My shares/);
   await click(button('Reset'));
   assert.equal(document.querySelector('.list-applied-summary'), null);

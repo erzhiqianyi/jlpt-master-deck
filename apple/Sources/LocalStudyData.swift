@@ -1,5 +1,7 @@
 import Foundation
 import CryptoKit
+import UIKit
+import ImageIO
 
 struct PendingAnswer: Codable, Identifiable {
     let id: UUID
@@ -171,5 +173,70 @@ extension LocalStudyData {
         }
         next.state.attemptHistory = NativeAttempt.merging(next.state.attemptHistory ?? [], [attempt])
         return next
+    }
+}
+
+// Network, file I/O and image decoding run on this actor, away from the UI actor.
+// Account + URL identifies a file; bearer tokens are never written to disk.
+actor NativeImageCache {
+    static let shared = NativeImageCache()
+    typealias Download = @Sendable (URLRequest) async throws -> Data
+    private let files: LocalStudyFiles
+    private let download: Download
+    private var pending: [String: Task<Data, Error>] = [:]
+    struct Bitmap: @unchecked Sendable { let image: UIImage }
+    init(root: URL? = nil, download: @escaping Download = { request in
+        let (bytes, response) = try await URLSession.shared.data(for: request)
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { throw APIError.invalidResponse }
+        return bytes
+    }) {
+        files = LocalStudyFiles(root: root)
+        self.download = download
+    }
+    func fileURL(userID: Int, request: URLRequest) throws -> URL {
+        guard let url = request.url else { throw APIError.invalidResponse }
+        let key = SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
+        return files.directory(userID: userID).appendingPathComponent("images-v1", isDirectory: true).appendingPathComponent(key)
+    }
+    private func source(_ bytes: Data) throws -> CGImageSource {
+        guard !bytes.isEmpty, bytes.count <= 20 * 1024 * 1024,
+              let source = CGImageSourceCreateWithData(bytes as CFData, nil), CGImageSourceGetCount(source) > 0,
+              let bitmap = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 16] as CFDictionary), bitmap.width > 0 else { throw APIError.invalidResponse }
+        return source
+    }
+    func data(userID: Int, request: URLRequest) async throws -> Data {
+        let url = try fileURL(userID: userID, request: request)
+        let key = url.path
+        if let task = pending[key] { return try await task.value }
+        if let bytes = try? Data(contentsOf: url), (try? source(bytes)) != nil { return bytes }
+        // A damaged or partial file must never turn an offline miss into a permanent blank.
+        try? FileManager.default.removeItem(at: url)
+        let task = Task {
+            let bytes = try await download(request)
+            _ = try source(bytes)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try bytes.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            return bytes
+        }
+        pending[key] = task
+        defer { pending[key] = nil }
+        return try await task.value
+    }
+
+    func bitmap(userID: Int, request: URLRequest) async throws -> Bitmap {
+        let bytes = try await data(userID: userID, request: request)
+        try Task.checkCancellation()
+        let source = try source(bytes)
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: 4096,
+            kCGImageSourceShouldCacheImmediately: true]
+        guard let decoded = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { throw APIError.invalidResponse }
+        return Bitmap(image: UIImage(cgImage: decoded))
+    }
+    func count(userID: Int, requests: [URLRequest]) -> Int {
+        Set(requests.compactMap { try? fileURL(userID: userID, request: $0) }).filter { url in
+            guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]) else { return false }
+            return values.isRegularFile == true && (values.fileSize ?? 0) > 0
+        }.count
     }
 }

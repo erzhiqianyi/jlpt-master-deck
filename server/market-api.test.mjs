@@ -89,9 +89,20 @@ test("local deployment: registration, login, sharing, per-account import and own
     });
     assert.equal(published.status, 201);
     const id = published.body.id;
+    const coverBody = { mime: 'image/png', imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=' };
+    assert.equal((await call(`/api/market/${id}/cover`, { token: b.token, method: 'PUT', body: coverBody })).status, 404);
+    assert.equal((await call(`/api/market/${id}/cover`, { token: a.token, method: 'PUT', body: { ...coverBody, mime: 'image/jpeg' } })).status, 400);
+    const uploaded = await call(`/api/market/${id}/cover`, { token: a.token, method: 'PUT', body: coverBody });
+    assert.equal(uploaded.status, 200);
+    const coverResponse = await fetch(`http://127.0.0.1:18792${uploaded.body.coverUrl}`);
+    assert.equal(coverResponse.status, 200);
+    assert.equal(coverResponse.headers.get('content-type'), 'image/png');
+    assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()), Buffer.from(coverBody.imageBase64, 'base64'));
     const list = await call("/api/market", { token: b.token });
     assert.equal(list.body.shares[0].mine, false);
+    assert.equal(list.body.shares[0].coverUrl, uploaded.body.coverUrl);
     const detail = await call(`/api/market/${id}`, { token: b.token });
+    assert.equal(detail.body.package.coverAsset, undefined);
     const copy = await call("/api/market/import", {
       token: b.token,
       method: "POST",
@@ -109,6 +120,7 @@ test("local deployment: registration, login, sharing, per-account import and own
         .status,
       200,
     );
+    assert.equal((await fetch(`http://127.0.0.1:18792${uploaded.body.coverUrl}`)).status, 404);
     assert.equal(
       (await call(`/api/market/${id}`, { token: b.token })).status,
       404,

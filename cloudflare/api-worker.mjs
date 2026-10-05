@@ -4,7 +4,7 @@ import { withPlatform } from '../server/platform.mjs';
 import { sqliteAdapter } from './sqlite-adapter.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
-import { listeningShareAudio } from '../server/market.mjs';
+import { shareCover, listeningShareAudio } from '../server/market.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
 import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser, itemImageForUser } from '../server/storage.mjs';
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
@@ -138,6 +138,14 @@ export class JlptDatabase extends DurableObject {
       if (url.pathname === '/api/local-news-cycles') return Response.json({cycles:[]});
       if (url.pathname === '/api/local-mock-exams') return Response.json({exams:[]});
       return Response.json({error:'此内容尚未同步到云端。'},{status:404});
+    }
+    const cover = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
+    if (cover && request.method === 'GET') {
+      let asset;
+      try { asset = shareCover(cover[1]); } catch { return new Response('Not found', { status: 404 }); }
+      const object = await this.env.MEDIA.get(objectKey(asset.path));
+      if (!object) return new Response('Not found', { status: 404 });
+      return new Response(object.body, { headers: { 'content-type': asset.mime, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
     }
     const audio = /^\/api\/(listening-questions|listening-recordings)\/([^/]+)\/audio$/.exec(url.pathname);
     const sharedAudio = /^\/api\/market\/([^/]+)\/audio$/.exec(url.pathname);

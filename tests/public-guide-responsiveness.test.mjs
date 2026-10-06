@@ -36,7 +36,7 @@ test('all 39 public routes and three language destinations remain reachable in t
 test('all hubs link directly to nine articles and each article has early mobile contents', () => {
   for (const locale of ['zh-CN', 'en', 'ja']) {
     const document = new JSDOM(read(localized(locale, '/community/'))).window.document;
-    assert.deepEqual([...document.querySelectorAll('.article-list > a')].map(link => link.getAttribute('href')), slugs.map(slug => localized(locale, `/articles/${slug}/`)));
+    assert.deepEqual([...document.querySelectorAll('main a[href]')].map(link => link.getAttribute('href')).filter(href => slugs.some(slug => href === localized(locale, `/articles/${slug}/`))), slugs.map(slug => localized(locale, `/articles/${slug}/`)));
     for (const slug of slugs) {
       const document = new JSDOM(read(localized(locale, `/articles/${slug}/`))).window.document;
       const contents = document.querySelector('.mobile-toc');

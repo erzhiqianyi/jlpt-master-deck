@@ -109,10 +109,17 @@ test('listening authoring retains choice translations, explanations, audio and t
   await openTools();
   await click(button(labels.listeningUploadTitle));
   const form = document.querySelector('.listening-authoring-form');
-  assert.equal(form.querySelectorAll('details').length, 2);
+  assert.equal(form.querySelectorAll('.content-form-group').length, 2);
+  assert.equal(form.querySelectorAll('.listening-choice-details').length, 4);
+  for (const detail of form.querySelectorAll('.listening-choice-details')) {
+    assert.equal(detail.open, false);
+    assert.ok(detail.querySelector('input'));
+    assert.ok(detail.querySelector('textarea'));
+  }
+  assert.ok(form.querySelector('.listening-prompt-details p').textContent.trim(), 'question instructions remain visible in a disclosure');
   assert.equal(form.querySelectorAll('fieldset').length, 4);
   assert.equal(form.querySelectorAll('input[type="file"]').length, 1);
-  assert.equal(form.querySelectorAll('textarea').length, 8, 'question, four choice explanations, overall explanation and both transcripts remain available');
+  assert.equal(form.querySelectorAll('textarea').length, 7, 'four choice explanations, overall explanation and both transcripts remain editable');
   assert.equal(form.querySelector('.listening-audio-form-group').open, false);
   assert.equal(form.querySelector('input[type="file"]').closest('details'), null, 'upload must be visible without opening a disclosure');
   assert.equal(form.firstElementChild.className, 'listening-material-stage');

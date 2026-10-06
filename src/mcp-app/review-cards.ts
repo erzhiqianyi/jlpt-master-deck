@@ -10,9 +10,23 @@ const view = createReviewCardsView(document.getElementById('app')!, async (filte
 }, async (itemId, rating, eventId) => {
   const result = await app.callServerTool({ name: 'rate_review_card', arguments: { item_id: itemId, rating, event_id: eventId } });
   if (result.isError || result.structuredContent?.item_id !== itemId) throw new Error('复习结果未保存，请重试。');
+}, {
+  async query(word) {
+    const result = await app.callServerTool({ name: 'lookup_word', arguments: { query: word } });
+    if (result.isError) throw new Error('查词失败，请重试。');
+    const content = result.content.find(entry => entry.type === 'text');
+    const matches = content?.type === 'text' ? JSON.parse(content.text) : [];
+    if (!Array.isArray(matches)) throw new Error('查词结果格式错误。');
+    return matches;
+  },
+  async enqueue(word, context) {
+    const result = await app.callServerTool({ name: 'create_learning_capture', arguments: { body: word, category: 'word', targetDeck: 'n1_vocab', context: `点词查询\n原文：${context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` } });
+    if (result.isError) throw new Error('加入队列失败，请重试。');
+  },
 });
 app.ontoolresult = (result) => {
   if (result.structuredContent?.item_id) return;
+  if (view.hasData() && !Array.isArray(result.structuredContent?.cards)) return;
   if (result.isError || !Array.isArray(result.structuredContent?.cards)) {
     view.showError('无法读取复习卡片，请检查授权后重试。'); return;
   }

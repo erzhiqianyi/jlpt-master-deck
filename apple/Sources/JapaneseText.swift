@@ -164,8 +164,35 @@ enum JapaneseAnalysis {
 }
 
 /// Core Text lays out real ruby above the base glyphs, including multiline Japanese.
+private struct JapaneseStudyHintsEnabledKey: EnvironmentKey { static let defaultValue = true }
+private struct JapaneseExplanationModeKey: EnvironmentKey { static let defaultValue = false }
+private struct JapaneseLookupEnabledKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var japaneseStudyHintsEnabled: Bool {
+        get { self[JapaneseStudyHintsEnabledKey.self] }
+        set { self[JapaneseStudyHintsEnabledKey.self] = newValue }
+    }
+    var japaneseExplanationMode: Bool {
+        get { self[JapaneseExplanationModeKey.self] }
+        set { self[JapaneseExplanationModeKey.self] = newValue }
+    }
+    var japaneseLookupEnabled: Bool {
+        get { self[JapaneseLookupEnabledKey.self] }
+        set { self[JapaneseLookupEnabledKey.self] = newValue }
+    }
+}
+private struct JapaneseLookupSelection: Identifiable {
+    let id = UUID()
+    let word: String
+    let context: String
+}
+
 struct JapaneseText: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.japaneseStudyHintsEnabled) private var hintsEnabled
+    @Environment(\.japaneseExplanationMode) private var explanationMode
+    @Environment(\.japaneseLookupEnabled) private var lookupEnabled
+    @State private var lookupSelection: JapaneseLookupSelection?
     @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 17
     let text: String
     var item: StudyItem? = nil
@@ -182,14 +209,20 @@ struct JapaneseText: View {
     var displayOverride: JapaneseDisplay? = nil
     var rubyOverride: Bool? = nil
     var body: some View {
-        let display = displayOverride ?? JapaneseDisplay(settings: store.state.settings)
-        let ruby = allowsRuby && (rubyOverride ?? store.displayFlag(explanation ? "showExplanationRuby" : "showReviewRuby"))
+        let display = hintsEnabled ? (displayOverride ?? JapaneseDisplay(settings: store.state.settings)) : JapaneseDisplay()
+        let ruby = hintsEnabled && allowsRuby && (rubyOverride ?? store.displayFlag(explanation || explanationMode ? "showExplanationRuby" : "showReviewRuby"))
+        let needsAnalysis = display.segmented || ruby || lookupEnabled
         let sourceAnnotations = annotations + (item?.japanese_annotations ?? [])
-        let dictionary = item.map { current in [current] + store.items.filter { $0.id != current.id } } ?? store.items
-        let tokens = JapaneseAnalysis.tokens(text, japanese: japanese, annotations: sourceAnnotations, items: dictionary, terms: terms + (item?.ruby_terms ?? []))
+        let dictionary = needsAnalysis ? (item.map { current in [current] + store.items.filter { $0.id != current.id } } ?? store.items) : []
+        let tokens: [JapaneseAnnotation.Token] = needsAnalysis
+            ? JapaneseAnalysis.tokens(text, japanese: japanese, annotations: sourceAnnotations, items: dictionary, terms: terms + (item?.ruby_terms ?? []))
+            : [.init(surface: text)]
         CoreJapaneseText(attributed: JapaneseAttributed.make(tokens: tokens, display: display, ruby: ruby,
-            font: .systemFont(ofSize: fontSize ?? scaledSize, weight: weight), color: color, target: target, alignment: alignment), source: text)
+            font: .systemFont(ofSize: fontSize ?? scaledSize, weight: weight), color: color, target: target, alignment: alignment), source: text, onLookup: lookupEnabled ? { word in
+                lookupSelection = JapaneseLookupSelection(word: word, context: "复习卡片 · \(item?.original ?? "日语内容")\n\(text)")
+            } : nil)
             .accessibilityLabel(text)
+            .sheet(item: $lookupSelection) { selection in NativeWordLookupView(word: selection.word, context: selection.context) }
     }
 }
 
@@ -212,6 +245,9 @@ enum JapaneseAttributed {
         for (index, token) in tokens.enumerated() {
             let word = NSMutableAttributedString(string: token.surface, attributes: [.font: font, .foregroundColor: color])
             let range = NSRange(location: 0, length: word.length)
+            if token.isJapanese == true || token.reading != nil || JapaneseAnalysis.containsKana(token.surface) {
+                word.addAttribute(NSAttributedString.Key("JapaneseLookupWord"), value: token.surface, range: range)
+            }
             if display.segmented, let pos = token.pos, let style = display.styles[pos], let tint = UIColor(japaneseHex: style.color) {
                 if style.mode == "text" { word.addAttribute(.foregroundColor, value: tint, range: range) }
                 if style.mode == "underline" {
@@ -251,8 +287,9 @@ enum JapaneseAttributed {
 private struct CoreJapaneseText: UIViewRepresentable {
     let attributed: NSAttributedString
     let source: String
+    var onLookup: ((String) -> Void)?
     func makeUIView(context: Context) -> JapaneseTextCanvas { JapaneseTextCanvas() }
-    func updateUIView(_ view: JapaneseTextCanvas, context: Context) { view.attributed = attributed; view.source = source; view.accessibilityLabel = source }
+    func updateUIView(_ view: JapaneseTextCanvas, context: Context) { view.attributed = attributed; view.source = source; view.onLookup = onLookup; view.accessibilityLabel = source }
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: JapaneseTextCanvas, context: Context) -> CGSize? {
         uiView.fitting(width: max(1, proposal.width ?? 760))
     }
@@ -261,9 +298,15 @@ private struct CoreJapaneseText: UIViewRepresentable {
 final class JapaneseTextCanvas: UIView, UIContextMenuInteractionDelegate {
     var attributed = NSAttributedString(string: "") { didSet { invalidateIntrinsicContentSize(); setNeedsDisplay() } }
     var source = ""
+    var onLookup: ((String) -> Void)? {
+        didSet { lookupGesture.isEnabled = onLookup != nil }
+    }
+    private lazy var lookupGesture = UITapGestureRecognizer(target: self, action: #selector(lookupTapped(_:)))
     override init(frame: CGRect) {
         super.init(frame: frame); backgroundColor = .clear; isOpaque = false; isAccessibilityElement = true; accessibilityTraits = .staticText
         addInteraction(UIContextMenuInteraction(delegate: self))
+        lookupGesture.isEnabled = false
+        addGestureRecognizer(lookupGesture)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func fitting(width: CGFloat) -> CGSize {
@@ -277,9 +320,82 @@ final class JapaneseTextCanvas: UIView, UIContextMenuInteractionDelegate {
         let frame = CTFramesetterCreateFrame(CTFramesetterCreateWithAttributedString(attributed), CFRange(), CGPath(rect: bounds, transform: nil), nil)
         CTFrameDraw(frame, context)
     }
+    @objc private func lookupTapped(_ recognizer: UITapGestureRecognizer) {
+        guard let onLookup, attributed.length > 0 else { return }
+        let point = recognizer.location(in: self)
+        let frame = CTFramesetterCreateFrame(CTFramesetterCreateWithAttributedString(attributed), CFRange(), CGPath(rect: bounds, transform: nil), nil)
+        let lines = CTFrameGetLines(frame) as! [CTLine]
+        var origins = Array(repeating: CGPoint.zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(), &origins)
+        let flipped = CGPoint(x: point.x, y: bounds.height - point.y)
+        for (number, line) in lines.enumerated() {
+            var ascent: CGFloat = 0, descent: CGFloat = 0
+            let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+            let origin = origins[number]
+            guard CGRect(x: origin.x, y: origin.y - descent, width: CGFloat(width), height: ascent + descent).contains(flipped) else { continue }
+            let index = CTLineGetStringIndexForPosition(line, CGPoint(x: flipped.x - origin.x, y: flipped.y - origin.y))
+            guard index >= 0, index < attributed.length,
+                  let word = attributed.attribute(NSAttributedString.Key("JapaneseLookupWord"), at: index, effectiveRange: nil) as? String else { return }
+            onLookup(word); return
+        }
+    }
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
         UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             UIMenu(children: [UIAction(title: "复制原文", image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in UIPasteboard.general.string = self?.source }])
         }
+    }
+}
+
+struct NativeWordLookupView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State var word: String
+    let context: String
+    @State private var saving = false
+    @State private var savedWords: Set<String> = []
+    @State private var error: String?
+    private var query: String { word.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var matches: [StudyItem] {
+        store.items.filter { item in
+            ([item.original, item.reading ?? ""] + (item.conjugations ?? []).compactMap { $0["form"] })
+                .contains { $0.precomposedStringWithCompatibilityMapping == query }
+        }
+    }
+    private var queued: Bool {
+        savedWords.contains(query) || store.captures.contains { $0.category == "word" && ($0.status == nil || $0.status == "inbox") && $0.body.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines) == query }
+    }
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("查询词（可修改）") { TextField("日语单词", text: $word).disabled(saving).accessibilityIdentifier("review.lookup.query") }
+                Section("释义") {
+                    if matches.isEmpty { Text("暂无释义，可加入待解析队列。") }
+                    ForEach(matches) { item in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(item.original).font(.headline)
+                            if let reading = item.reading { Text(reading).foregroundStyle(DeckTheme.muted) }
+                            Text(item.meaning_zh ?? item.meaning_ja ?? "暂无释义")
+                            NativeSpeechControls(text: item.reading ?? item.original, label: "读音")
+                        }
+                    }
+                }
+                Section {
+                    Button(saving ? "正在加入…" : queued ? "已加入待解析队列" : "加入待解析队列") {
+                        let requested = query
+                        saving = true; error = nil
+                        Task {
+                            defer { saving = false }
+                            do {
+                                try await store.capture(.init(body: requested, category: "word", context: "点词查询\n原文：\(context)\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。"))
+                                savedWords.insert(requested)
+                            } catch { self.error = error.localizedDescription }
+                        }
+                    }.disabled(query.isEmpty || saving || queued).accessibilityIdentifier("review.lookup.enqueue")
+                    if let error { Text(error).foregroundStyle(.red) }
+                }
+                Section("原文上下文") { Text(context) }
+            }.navigationTitle("单词查询")
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("关闭") { dismiss() }.disabled(saving) } }
+        }.interactiveDismissDisabled(saving).environment(\.japaneseLookupEnabled, false)
     }
 }

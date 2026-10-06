@@ -113,7 +113,7 @@ struct NativePracticeScreen: View {
                         Image(systemName: "square.stack.3d.up").font(.system(size: 48)).foregroundStyle(DeckTheme.accent)
                         Text("综合练习").font(.largeTitle.bold())
                         Text("已有练习中共 \(mixed.count) 道词汇与语法题，每轮最多 20 题。").foregroundStyle(.secondary)
-                        Button("开始一轮练习") { round = NativeRound(title: "综合练习", questions: Array(mixed.shuffled().prefix(20))) }.buttonStyle(PrimaryButton()).disabled(mixed.isEmpty)
+                        Button("开始一轮练习") { round = NativePracticeCheckpoint.continuing(NativeRound(title: "综合练习", questions: Array(mixed.shuffled().prefix(20))), accountID: store.session?.user.id, availableIDs: Set(mixed.map(\.id))) }.buttonStyle(PrimaryButton()).disabled(mixed.isEmpty)
                     }.frame(maxWidth: 600).modifier(StudyPagePadding())
                 } else {
                     List {
@@ -152,12 +152,81 @@ struct NativePracticeScreen: View {
 
 }
 struct NativeRound: Identifiable { let id = UUID(); let title: String; let questions: [NativeQuestion]; var view = "mixed"; var practiceId: String?; var resumeSavedAnswers = false }
+// Local drafts are separate from submitted answers and isolated by account and practice.
+struct NativePracticeCheckpoint: Codable {
+    var questionIDs: [String]
+    var questions: [NativeQuestion]? = nil
+    var index: Int
+    var selections: [String: String]
+    var answers: [NativeAttempt.AttemptAnswer]
+    var attemptID: String
+    var started: Date
+    var elapsed: [String: Int]
+    var batchFeedback: Bool
+
+    static func key(accountID: Int, round: NativeRound) -> String {
+        let identity = round.practiceId ?? round.title
+        return "native-practice-draft-v1.\(accountID).\(round.view).\(identity)"
+    }
+
+    @MainActor static func continuing(_ round: NativeRound, accountID: Int?, availableIDs: Set<String>) -> NativeRound {
+        guard let accountID,
+              let draft = NativePracticeDraftWriter.read(key: key(accountID: accountID, round: round)),
+              let questions = draft.questions, !questions.isEmpty,
+              questions.allSatisfy({ availableIDs.contains($0.id) }) else { return round }
+        return NativeRound(title: round.title, questions: questions, view: round.view, practiceId: round.practiceId)
+    }
+
+    static func load(key: String, questionIDs: [String], defaults: UserDefaults = .standard) -> Self? {
+        guard let data = defaults.data(forKey: key),
+              let draft = try? JSONDecoder().decode(Self.self, from: data),
+              draft.questionIDs == questionIDs, questionIDs.indices.contains(draft.index) else { return nil }
+        return draft
+    }
+
+    func save(key: String, defaults: UserDefaults = .standard) {
+        guard let data = try? JSONEncoder().encode(self) else { return }
+        defaults.set(data, forKey: key)
+    }
+}
+
+// Snapshot on the UI actor; serialize and write in order on a utility queue.
+// The memory copy lets an immediate reopen resume before the disk write finishes.
+@MainActor enum NativePracticeDraftWriter {
+    private struct Cached { let draft: NativePracticeCheckpoint? }
+    private static var cache: [String: Cached] = [:]
+    private static let queue = DispatchQueue(label: "jlpt.practice-drafts", qos: .utility)
+    static func read(key: String) -> NativePracticeCheckpoint? {
+        if let cached = cache[key] { return cached.draft }
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let draft = try? JSONDecoder().decode(NativePracticeCheckpoint.self, from: data) else { return nil }
+        cache[key] = Cached(draft: draft)
+        return draft
+    }
+    static func write(_ draft: NativePracticeCheckpoint?, key: String) {
+        cache[key] = Cached(draft: draft)
+        queue.async {
+            if let draft { draft.save(key: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+    }
+}
+
+private struct NativePracticeAdvance: Equatable {
+    let id = UUID()
+    let questionID: String
+    let choice: String
+    let index: Int
+}
+
 struct NativeQuizView: View {
     let round: NativeRound
     var savesProgress = true
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var index = 0
+    @State private var pendingAdvance: NativePracticeAdvance?
     @State private var restored = false
     @State private var resumedAttemptID: String?
     @State private var selections: [String: String] = [:]
@@ -173,6 +242,7 @@ struct NativeQuizView: View {
     @State private var attemptStarted = Date.now
     @State private var questionStarted = Date.now
     @State private var elapsed: [String: Int] = [:]
+    @State private var timingActive = true
     @State private var batchFeedback = false
     private var question: NativeQuestion? { round.questions.indices.contains(index) ? round.questions[index] : nil }
     private var correct: Int { attemptAnswers.filter(\.correct).count }
@@ -210,12 +280,37 @@ struct NativeQuizView: View {
                      : "共 \(round.questions.count) 题，已全部作答。交卷后不能修改答案，将显示答案与解析。")
             }
             .interactiveDismissDisabled().onAppear { restoreRound() }
+            .task(id: pendingAdvance) {
+                guard let request = pendingAdvance else { return }
+                do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
+                guard !Task.isCancelled, pendingAdvance == request, index == request.index,
+                      selections[request.questionID] == request.choice, !saving, !finished,
+                      !showingQuestionList, !showingSubmitConfirmation, scenePhase == .active else { return }
+                pendingAdvance = nil
+                let remaining = round.questions.indices.filter { selections[round.questions[$0].id] == nil }
+                if let next = remaining.first(where: { $0 > index }) ?? remaining.first { withAnimation { index = next } }
+            }
+            .onChange(of: showingQuestionList) { _, open in if open { pendingAdvance = nil } }
+            .onChange(of: showingSubmitConfirmation) { _, open in if open { pendingAdvance = nil } }
             .onChange(of: index) { old, _ in
+                pendingAdvance = nil
                 if round.questions.indices.contains(old) {
                     elapsed[round.questions[old].id, default: 0] += max(0, Int(Date.now.timeIntervalSince(questionStarted) * 1000))
                 }
                 questionStarted = .now; failure = nil
+                saveCheckpoint()
             }
+            .onChange(of: selections) { _, _ in saveCheckpoint() }
+            .onChange(of: attemptAnswers) { _, _ in saveCheckpoint() }
+            .onChange(of: finished) { _, _ in
+                pendingAdvance = nil
+                saveCheckpoint()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { pauseCheckpoint() }
+                else { questionStarted = .now; timingActive = true }
+            }
+            .onDisappear { pauseCheckpoint() }
     }
     private var navigation: some View {
         HStack(spacing: 8) {
@@ -257,7 +352,7 @@ struct NativeQuizView: View {
                                     .frame(width: 32, height: 32)
                                     .background(number == index ? DeckTheme.green.opacity(0.15) : DeckTheme.line.opacity(0.4), in: Circle())
                                 VStack(alignment: .leading, spacing: 6) {
-                                    JapaneseText(text: question.prompt, japanese: true, allowsRuby: false, annotations: question.japaneseAnnotations ?? [], fontSize: 15).lineLimit(2)
+                                    JapaneseText(text: question.prompt, japanese: true, allowsRuby: false, annotations: question.japaneseAnnotations ?? [], fontSize: 15).lineLimit(2).environment(\.japaneseStudyHintsEnabled, false)
                                     HStack(spacing: 8) {
                                         if number == index { Text("当前题").foregroundStyle(DeckTheme.green) }
                                         Text(selections[question.id] == nil ? "未选" : recorded(question) != nil ? "已确认" : "已选")
@@ -278,24 +373,21 @@ struct NativeQuizView: View {
     private func select(_ choice: String, for question: NativeQuestion) {
         guard !saving, recorded(question) == nil, self.question?.id == question.id else { return }
         selections[question.id] = choice
-        guard batchFeedback else { return }
-        let remaining = round.questions.indices.filter { selections[round.questions[$0].id] == nil }
-        if let next = remaining.first(where: { $0 > index }) ?? remaining.first {
-            withAnimation { index = next }
-        }
+        pendingAdvance = batchFeedback && round.questions.contains(where: { selections[$0.id] == nil })
+            ? NativePracticeAdvance(questionID: question.id, choice: choice, index: index) : nil
     }
     private func questionCard(_ question: NativeQuestion) -> some View {
         let answer = recorded(question)
         return VStack(alignment: .leading, spacing: 20) {
             JapaneseText(text: question.kind == "kanji_to_kana" ? "请选择下划线词语的读音" : (question.instruction?.isEmpty == false ? question.instruction! : question.title), japanese: true, allowsRuby: false, weight: .semibold)
-            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
-            JapaneseText(text: question.prompt, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
+            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             VStack(spacing: 12) {
                 ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                     Button { select(choice, for: question) } label: {
                         StudyAnswerChoice(number: number + 1, text: choice, selected: selections[question.id] == choice,
                                           correct: answer != nil && !batchFeedback ? choice == question.answer : nil,
-                                          allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || answer != nil, annotations: question.japaneseAnnotations ?? [])
+                                          allowsRuby: true, annotations: question.japaneseAnnotations ?? [])
                     }.buttonStyle(.plain).disabled(answer != nil || saving)
                         .accessibilityIdentifier("quiz.choice.\(number)").accessibilityValue(selections[question.id] == choice ? "已选择" : "未选择")
                 }
@@ -303,13 +395,27 @@ struct NativeQuizView: View {
             if let answer, !batchFeedback {
                 NativePracticeFeedback(question: question, selected: answer.selected, sourceItem: store.items.first { $0.id == question.itemId }, pending: savesProgress && store.pendingCount > 0)
             }
-        }
+        }.environment(\.japaneseStudyHintsEnabled, answer != nil && !batchFeedback)
+            .environment(\.japaneseExplanationMode, answer != nil && !batchFeedback)
     }
     @ViewBuilder private var actions: some View {
         if !finished, let question {
             VStack(spacing: 0) {
                 Divider()
                 if batchFeedback {
+                    if let selected = selections[question.id] {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("已选择：\(selected)").font(.subheadline.weight(.semibold)).lineLimit(2)
+                                    .accessibilityIdentifier("quiz.selectedAnswer")
+                                if pendingAdvance != nil { Text("1 秒后进入下一道未答题，可继续改选").font(.caption).foregroundStyle(DeckTheme.muted) }
+                            }.frame(maxWidth: .infinity, alignment: .leading)
+                            if pendingAdvance != nil {
+                                Button("留在本题") { pendingAdvance = nil }.buttonStyle(.bordered)
+                                    .accessibilityIdentifier("quiz.stay")
+                            }
+                        }.padding(.horizontal, 16).padding(.top, 10)
+                    }
                     Button(saving ? "正在交卷…" : "交卷并查看答案（\(selections.count)/\(round.questions.count)）") { showingSubmitConfirmation = true }
                         .buttonStyle(PrimaryButton()).disabled(saving)
                         .accessibilityIdentifier("quiz.submit")
@@ -438,20 +544,33 @@ struct NativeQuizView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("原题第 \(number) 题").font(.subheadline.bold()).foregroundStyle(DeckTheme.muted)
             JapaneseText(text: question.instruction?.isEmpty == false ? question.instruction! : question.title, japanese: true, weight: .semibold)
-            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
-            JapaneseText(text: question.prompt, japanese: true, allowsRuby: !["kanji_to_kana", "kana_to_kanji"].contains(question.kind) || recorded(question) != nil, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
+            if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                 StudyAnswerChoice(number: number + 1, text: choice, selected: recorded(question)?.selected == choice,
                                   correct: choice == question.answer, annotations: question.japaneseAnnotations ?? [])
             }
             NativePracticeFeedback(question: question, selected: recorded(question)?.selected ?? "", sourceItem: store.items.first { $0.id == question.itemId }, pending: recorded(question) != nil && savesProgress && store.pendingCount > 0)
-        }
+        }.environment(\.japaneseStudyHintsEnabled, true)
+            .environment(\.japaneseExplanationMode, true)
     }
     private func restoreRound() {
         guard !restored else { return }; restored = true
         batchFeedback = store.state.settings?["feedbackMode"] == .string("batch")
-        guard round.resumeSavedAnswers, savesProgress else { return }
-        let existing = (store.state.attemptHistory ?? []).first { $0.practiceId == round.practiceId }
+        if let key = checkpointKey,
+           let draft = NativePracticeDraftWriter.read(key: key),
+           draft.questionIDs == round.questions.map(\.id), round.questions.indices.contains(draft.index) {
+            index = draft.index; selections = draft.selections; attemptAnswers = draft.answers
+            resumedAttemptID = draft.attemptID; attemptStarted = draft.started
+            elapsed = draft.elapsed; batchFeedback = draft.batchFeedback; questionStarted = .now
+            return
+        }
+        guard savesProgress, round.practiceId != nil else { return }
+        let existing = (store.state.attemptHistory ?? []).first {
+            $0.practiceId == round.practiceId && (round.resumeSavedAnswers || $0.completedAt == nil)
+                && $0.questionIds == round.questions.map(\.id)
+        }
+        guard existing != nil || round.resumeSavedAnswers else { saveCheckpoint(); return }
         resumedAttemptID = existing?.id
         if let started = existing.flatMap({ StudyDates.parse($0.startedAt) }) { attemptStarted = started }
         attemptAnswers = round.questions.compactMap { question in
@@ -462,6 +581,28 @@ struct NativeQuizView: View {
         selections = Dictionary(attemptAnswers.map { ($0.questionId, $0.selected) }, uniquingKeysWith: { _, last in last })
         index = round.questions.indices.first { selections[round.questions[$0].id] == nil } ?? 0
         finished = existing?.completedAt != nil
+    }
+    private var checkpointKey: String? {
+        guard savesProgress, let accountID = store.session?.user.id else { return nil }
+        return NativePracticeCheckpoint.key(accountID: accountID, round: round)
+    }
+    private func saveCheckpoint() {
+        guard restored, let key = checkpointKey else { return }
+        if finished { NativePracticeDraftWriter.write(nil, key: key); return }
+        guard !round.questions.isEmpty else { return }
+        let draft = NativePracticeCheckpoint(questionIDs: round.questions.map(\.id), questions: round.questions, index: index,
+                                 selections: selections, answers: attemptAnswers,
+                                 attemptID: resumedAttemptID ?? "native-\(round.id.uuidString)",
+                                 started: attemptStarted, elapsed: elapsed, batchFeedback: batchFeedback)
+        NativePracticeDraftWriter.write(draft, key: key)
+    }
+    private func pauseCheckpoint() {
+        pendingAdvance = nil
+        if let question, timingActive, !finished {
+            elapsed[question.id, default: 0] += max(0, Int(Date.now.timeIntervalSince(questionStarted) * 1000))
+        }
+        questionStarted = .now; timingActive = false
+        saveCheckpoint()
     }
     private func answer(_ question: NativeQuestion, selected: String, now: Date) -> NativeAttempt.AttemptAnswer {
         let activeMs = self.question?.id == question.id ? max(0, Int(now.timeIntervalSince(questionStarted) * 1000)) : 0
@@ -585,6 +726,13 @@ struct NativePracticeFeedback: View {
     @State private var memoryExpanded = false
     @State private var translationExpanded = false
     @State private var entryExpanded = false
+    private var pronunciation: String? {
+        guard ["moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji", "word_formation", "usage"].contains(question.kind) else { return nil }
+        let candidates: [String?] = question.kind == "kanji_to_kana"
+            ? [question.answer]
+            : [sourceItem?.reading, sourceItem?.original, question.promptTarget, question.answer]
+        return candidates.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.first { !$0.isEmpty }
+    }
     private var right: Bool { selected == question.answer }
     var body: some View {
         let details = question.explanationDetails
@@ -596,7 +744,14 @@ struct NativePracticeFeedback: View {
                     .font(.title3.bold()).foregroundStyle(right ? DeckTheme.green : DeckTheme.accent)
                 if !selected.isEmpty { JapaneseText(text: "你的答案：\(selected)", item: sourceItem, annotations: question.japaneseAnnotations ?? []).foregroundStyle(DeckTheme.muted) }
                 Divider()
-                Text("正确答案").font(.caption).foregroundStyle(DeckTheme.muted)
+                HStack(alignment: .center) {
+                    Text("正确答案").font(.caption).foregroundStyle(DeckTheme.muted)
+                    Spacer()
+                    if let pronunciation {
+                        NativeSpeechControls(text: pronunciation, label: "读音", identifier: "quiz.answer.pronunciation")
+                            .foregroundStyle(DeckTheme.green)
+                    }
+                }
                 JapaneseText(text: "\((question.choices.firstIndex(of: question.answer) ?? 0) + 1). \(question.answer)", item: sourceItem, japanese: true, annotations: question.japaneseAnnotations ?? [], weight: .semibold)
             }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 .background((right ? DeckTheme.green : DeckTheme.accent).opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
@@ -738,6 +893,10 @@ private struct NativeDraftQuestion: View {
     let fields: [String: SettingValue]
     let number: Int
     private var choices: [SettingValue] { DraftPresentation.array(fields["choices"]) }
+    private var isReadingQuestion: Bool {
+        let kind = DraftPresentation.text(fields, "kind", "type") ?? ""
+        return kind == "kanji_to_kana" || kind.contains("漢字読み")
+    }
     private var answer: String? {
         if let answer = DraftPresentation.text(fields, "answer") { return answer }
         if case .number(let number) = fields["answer"], number.rounded() == number,
@@ -759,8 +918,8 @@ private struct NativeDraftQuestion: View {
             if let instruction = DraftPresentation.text(fields, "instruction") {
                 Text(instruction).font(.subheadline).foregroundStyle(DeckTheme.muted)
             }
-            if let context = DraftPresentation.text(fields, "context", "passage") { JapaneseText(text: context, japanese: true) }
-            JapaneseText(text: DraftPresentation.text(fields, "prompt", "question", "title") ?? "题目内容待补充", japanese: true)
+            if let context = DraftPresentation.text(fields, "context", "passage") { JapaneseText(text: context, japanese: true, allowsRuby: !isReadingQuestion || answerRevealed) }
+            JapaneseText(text: DraftPresentation.text(fields, "prompt", "question", "title") ?? "题目内容待补充", japanese: true, allowsRuby: !isReadingQuestion || answerRevealed, target: DraftPresentation.text(fields, "promptTarget", "target", "tested"))
                 .font(.headline).fixedSize(horizontal: false, vertical: true)
             ForEach(choices.indices, id: \.self) { index in
                 let isCorrect = answerRevealed && answer == choice(choices[index])
@@ -794,6 +953,8 @@ private struct NativeDraftQuestion: View {
             }.tint(DeckTheme.green)
         }.textSelection(.enabled).padding(18).frame(maxWidth: .infinity, alignment: .leading)
             .background(.background, in: RoundedRectangle(cornerRadius: 16))
+            .environment(\.japaneseStudyHintsEnabled, answerRevealed)
+            .environment(\.japaneseExplanationMode, answerRevealed)
     }
 }
 
@@ -859,6 +1020,17 @@ struct NativeTopicConfirmationView: View {
     @State private var draft: NativeTopicDraft?
     @State private var busy = false
     @State private var failure: String?
+    @State private var showingFailureDetails = false
+    @State private var failureOperation = FailureOperation.load
+    private enum FailureOperation { case load, confirm, publish }
+    private var failureSummary: String {
+        if failure?.contains("解析质量校验未通过") == true { return "部分题目的解析需要调整，暂时无法生成练习。" }
+        switch failureOperation {
+        case .load: return "暂时无法加载练习，请重试。"
+        case .confirm: return "确认未完成，请重试。"
+        case .publish: return "练习准备未完成，请重试。"
+        }
+    }
     private struct Envelope: Decodable { let draft: NativeTopicDraft }
     private struct Acknowledgment: Decodable { }
     private var path: String { "api/drafts/\(draftID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? draftID)" }
@@ -875,8 +1047,8 @@ struct NativeTopicConfirmationView: View {
                 }
                 if !store.isOnline { Text("联网后可确认并保存").font(.caption).foregroundStyle(DeckTheme.muted).padding(.horizontal, 20) }
                 if busy { ProgressView("正在处理…").frame(maxWidth: .infinity) }
-                if let failure {
-                    Text(failure).font(.caption).foregroundStyle(.red).padding(.horizontal, 20)
+                if draft == nil, failure != nil {
+                    failureNotice.padding(.horizontal, 20)
                     Button("重新加载") { Task { await load() } }.disabled(busy).padding(.horizontal, 20)
                 }
                 if draft == nil { Spacer() }
@@ -884,16 +1056,17 @@ struct NativeTopicConfirmationView: View {
                 .background(DeckTheme.paper).navigationTitle(isDaily ? "确认今日练习" : "确认专项练习").navigationBarTitleDisplayMode(.inline)
                 .safeAreaInset(edge: .bottom) {
                     if let draft {
-                        VStack(spacing: 0) {
+                        VStack(spacing: 12) {
+                            if failure != nil { failureNotice }
                             if !draft.approved {
-                                Button(busy ? "正在确认…" : "确认题目") {
+                                Button(busy ? "正在确认…" : "确认全部题目") {
                                     guard !busy else { return }
                                     busy = true
                                     Task { await confirm() }
                                 }.buttonStyle(PrimaryButton())
                                     .disabled(busy || !store.isOnline || draft.sectionQuestions.isEmpty).accessibilityIdentifier("topic.confirm")
                             } else if draft.canPublish {
-                                Button(busy ? "正在准备…" : "开始练习") {
+                                Button(busy ? "正在准备…" : failureOperation == .publish && failure != nil ? "重试生成练习" : "开始练习") {
                                     guard !busy else { return }
                                     busy = true
                                     Task { await publish() }
@@ -906,14 +1079,37 @@ struct NativeTopicConfirmationView: View {
                 }
                 .toolbar { ToolbarItem(placement: .topBarLeading) { Button("返回") { dismiss() }.disabled(busy) } }
         }.task { await load() }.interactiveDismissDisabled(busy)
+            .sheet(isPresented: $showingFailureDetails) {
+                NavigationStack {
+                    ScrollView {
+                        Text(failure ?? "").font(.subheadline).textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(20)
+                    }
+                    .navigationTitle("错误详情").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { showingFailureDetails = false } } }
+                }.presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+            }
+    }
+    private var failureNotice: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityHidden(true)
+            Text(failureSummary).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("详情") { showingFailureDetails = true }
+                .font(.subheadline.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel("查看完整错误详情")
+        }.padding(12).background(.red.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("topic.failure.summary")
     }
     private func load() async {
+        failureOperation = .load
         busy = true; failure = nil
         defer { busy = false }
         do { let result: Envelope = try await store.api.get(path); draft = result.draft }
         catch { failure = error.localizedDescription }
     }
     private func confirm() async {
+        failureOperation = .confirm
         guard let reviewed = draft else { busy = false; return }
         let client = store.api
         let token = store.session?.token
@@ -940,6 +1136,7 @@ struct NativeTopicConfirmationView: View {
         } catch { failure = error.localizedDescription }
     }
     private func publish() async {
+        failureOperation = .publish
         let client = store.api
         let token = store.session?.token
         busy = true; failure = nil

@@ -543,24 +543,56 @@ final class AppStore {
         }
     }
     func startSpeechDownload() {
-        guard !isDownloadingSpeech, !isDemo, session != nil else { return }
+        guard !isDownloadingSpeech, !isDemo, let session else { return }
         let configuration = speechConfiguration
         guard !configuration.usesSystemVoice else { notice = "请先在网页发音设置中选择并配置云端朗读，再同步设置。"; return }
         let texts = Array(Set(items.flatMap { item in
-            [item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original] + (item.examples ?? []).map(\.ja)
+            // Automatic card playback may join the word and first example into
+            // one request. Cache that exact text as well as the individual controls.
+            [item.reading.flatMap { $0.isEmpty ? nil : $0 } ?? item.original,
+             configuration.text(for: item)] + (item.examples ?? []).map(\.ja)
         }.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })).sorted()
         guard !texts.isEmpty else { notice = "请先同步单词和语法题库。"; return }
+        let requests = Array(Set(texts.flatMap { SpeechConfiguration.chunks($0) }
+            .map { configuration.request(text: $0) })).sorted { $0.text < $1.text }
+        let files = self.files
+        let userID = session.user.id
         let expected = generation
         isDownloadingSpeech = true
+        speechDownloadProgress = "检查本机语音…"
         speechDownloadTask = Task { [weak self] in
             guard let self else { return }
             defer { if expected == self.generation { self.isDownloadingSpeech = false; self.speechDownloadTask = nil } }
             do {
-                for (index, text) in texts.enumerated() {
+                let missing = try await Task.detached(priority: .utility) {
+                    try requests.filter { request in
+                        try Task.checkCancellation()
+                        let url = try files.speechURL(userID: userID, request: request)
+                        let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                        let missing = (size ?? 0) <= 0
+                        #if DEBUG
+                        print("[Speech][Scan] \(missing ? "MISSING" : "SKIP") user=\(userID) key=\(url.lastPathComponent) bytes=\(size ?? 0) text=\(String(reflecting: request.text))")
+                        #endif
+                        return missing
+                    }
+                }.value
+                try Task.checkCancellation()
+                guard expected == self.generation else { return }
+                #if DEBUG
+                print("[Speech][Download] provider=\(configuration.provider) voice=\(configuration.voice) style=\(configuration.style) role=\(configuration.role) includeExample=\(configuration.includeExample) total=\(requests.count) cached=\(requests.count - missing.count) missing=\(missing.count)")
+                #endif
+                guard !missing.isEmpty else {
+                    self.speechDownloadProgress = "无需下载"
+                    self.notice = "当前发音配置的语音已全部下载，无需重复下载。"
+                    return
+                }
+                self.speechDownloadProgress = "0 / \(missing.count)"
+                for (index, request) in missing.enumerated() {
                     try Task.checkCancellation()
                     guard expected == self.generation else { return }
-                    self.speechDownloadProgress = "\(index + 1) / \(texts.count)"
-                    try await self.downloadSpeech(text, configuration: configuration)
+                    _ = try await self.speechAudio(request)
+                    guard expected == self.generation else { return }
+                    self.speechDownloadProgress = "\(index + 1) / \(missing.count)"
                 }
                 if expected == self.generation { self.notice = "单词、语法和例句语音已下载，可离线播放。" }
             } catch {
@@ -643,6 +675,7 @@ final class AppStore {
         }
         if ProcessInfo.processInfo.arguments.contains("--item-detail-fixture") { items.insert(DemoData.itemDetailFixture, at: 0) }
         if ProcessInfo.processInfo.arguments.contains("--practice-fixture") { packs = [DemoData.practiceFixture] }
+        if ProcessInfo.processInfo.arguments.contains("--batch-feedback-fixture") { state.settings = (state.settings ?? [:]).merging(["feedbackMode": .string("batch")]) { _, new in new } }
         if ProcessInfo.processInfo.arguments.contains("--statistics-fixture") { state.attemptHistory = DemoData.statisticsFixture(); packs = [DemoData.practiceFixture] }
         #endif
         plan = DemoData.plan

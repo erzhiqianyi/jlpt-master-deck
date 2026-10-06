@@ -249,7 +249,7 @@ function memoryFieldContent(item: VocabItem, locale: Locale, field: MemoryCardFi
   const scalar = (value: unknown, lang?: string) => typeof value === 'string' && value.trim() ? <span lang={lang}>{lang === 'ja' ? <LookupText text={value} /> : <MemoryLookupText text={value} />}</span> : null;
   const lines = (values: string[], lang?: string) => {
     const kept = values.filter(Boolean);
-    return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}><MemoryLookupText text={value} /></span>)}</span> : null;
+    return kept.length ? <span className="ledger-memory-lines" lang={lang}>{kept.map((value, index) => <span key={`${value}-${index}`}>{lang === 'ja' ? <LookupText text={value} /> : <MemoryLookupText text={value} />}</span>)}</span> : null;
   };
   switch (field) {
     case 'original': return scalar(item.original, 'ja');
@@ -313,7 +313,7 @@ function ConjugationPattern({ item, locale }: { item: VocabItem; locale: Locale 
             <li key={`${entry.kind}-${entry.form}`}>
               <small>{translate(conjugationKindLabel(entry.kind))}</small>
               <span lang="ja">
-                {reading && reading !== form ? <ruby>{surface}<rp>(</rp><rt>{reading}</rt><rp>)</rp></ruby> : surface}
+                <LookupText text={form} source={`${item.original} · ${entry.kind}: ${form}`} additionalForms={[form]} renderText={() => reading && reading !== form ? <ruby>{surface}<rp>(</rp><rt>{reading}</rt><rp>)</rp></ruby> : surface} />
               </span>
             </li>
           );

@@ -116,13 +116,20 @@ struct CaptureView: View {
 }
 struct HistoryView: View {
     @Environment(AppStore.self) private var store
-    private var statistics: StudyStatistics { StudyStatistics(attempts: store.state.attemptHistory ?? []) }
+    @State private var statistics = StudyStatistics(attempts: [])
+    @State private var statisticsLoaded = false
+    @State private var mistakeIDs: Set<String> = []
     private var green: Color { Color(red: 0.22, green: 0.46, blue: 0.43) }
-    private var mistakeIDs: Set<String> { Set(statistics.attempts.flatMap(\.answers).filter { !$0.correct }.map(\.itemId)) }
+
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    if !statisticsLoaded {
+                        ProgressView("正在加载统计数据…")
+                            .frame(maxWidth: .infinity, minHeight: 240)
+                            .accessibilityIdentifier("statistics.loading")
+                    } else {
                     if geometry.size.width >= 720 {
                         HStack(alignment: .top, spacing: 24) { todayPanel.frame(maxWidth: .infinity); weekPanel.frame(maxWidth: .infinity) }
                     } else { todayPanel; weekPanel }
@@ -131,8 +138,28 @@ struct HistoryView: View {
                         HStack(alignment: .top, spacing: 24) { modulePanel.frame(maxWidth: .infinity); recentPanel.frame(maxWidth: .infinity) }
                     } else { modulePanel; recentPanel }
                     linksPanel
+                    }
                 }.frame(maxWidth: 1120).padding(16).frame(maxWidth: .infinity)
             }.accessibilityIdentifier("statistics.dashboard")
+        }
+        .task(id: store.state.attemptHistory ?? []) {
+            let attempts = store.state.attemptHistory ?? []
+            // Yield the first frame, then aggregate off the UI thread.
+            await Task.yield()
+            let work = Task.detached(priority: .userInitiated) {
+                let statistics = StudyStatistics(attempts: attempts)
+                let mistakes = Set(statistics.attempts.flatMap(\.answers).filter { !$0.correct }.map(\.itemId))
+                return (statistics, mistakes)
+            }
+            let result = await withTaskCancellationHandler {
+                await work.value
+            } onCancel: {
+                work.cancel()
+            }
+            guard !Task.isCancelled else { return }
+            statistics = result.0
+            mistakeIDs = result.1
+            statisticsLoaded = true
         }
     }
     private var todayPanel: some View {
@@ -506,7 +533,7 @@ struct ConfiguredCardView: View {
                 }
             } else { speechControls }
             if revealed, metadata.contains("reading"), !store.displayFlag("showReviewRuby") {
-                Text(item.cardText("reading", locale: locale) ?? "").font(.title3.weight(.semibold)).foregroundStyle(DeckTheme.muted)
+                JapaneseText(text: item.cardText("reading", locale: locale) ?? "", item: item, japanese: true, weight: .semibold).foregroundStyle(DeckTheme.muted)
             }
             if metadata.contains(where: { $0 != "reading" }) {
                 ViewThatFits(in: .horizontal) {

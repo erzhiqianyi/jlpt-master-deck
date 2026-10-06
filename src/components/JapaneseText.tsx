@@ -4,7 +4,8 @@ import { useSpeech } from './SpeechControls';
 /** Shared renderer for Japanese in the native app's embedded exam page. */
 export function JapaneseText({ text, annotations = [], ruby = false }: { text: string; annotations?: JapaneseAnnotation[]; ruby?: boolean }) {
   const settings = useSpeech()?.settings;
-  const display = settings?.japaneseDisplay;
+  // Exam callers reveal study styling together with the answer, never while answering.
+  const display = ruby ? settings?.japaneseDisplay : undefined;
   const annotation = annotations.find(a => a.text === text && a.tokens.every(t => t.surface) && a.tokens.map(t => t.surface).join('') === text);
   const tokens: JapaneseAnnotation['tokens'] = annotation?.tokens ?? Array.from(new Intl.Segmenter('ja', { granularity: 'word' }).segment(text), s => ({ surface: s.segment }));
   if (!display?.segmented && !ruby) return <>{text}</>;

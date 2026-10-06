@@ -113,6 +113,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
         {!enabled && <p>登录后可以加入队列。</p>}
         {queued && <p role="status">解析后可在词库查看。</p>}
       </div>}
+      {matches.length > 0 && <div className="word-lookup-empty"><button type="button" disabled={!enabled || saving || queued} onClick={enqueue}>{saving ? '正在加入…' : queued ? '已加入待解析队列' : '加入待解析队列'}</button>{!enabled && <p>登录后可以加入队列。</p>}{queued && <p role="status">解析后可在词库查看。</p>}</div>}
       {error && <p role="alert">{error}</p>}
     </div>
   </dialog>;

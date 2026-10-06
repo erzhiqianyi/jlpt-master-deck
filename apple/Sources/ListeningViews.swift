@@ -148,6 +148,8 @@ struct ListeningDetailView: View {
                 }
             }.frame(maxWidth: 1120, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
         }
+        .environment(\.japaneseStudyHintsEnabled, revealed)
+        .environment(\.japaneseExplanationMode, revealed)
         .background(DeckTheme.paper).navigationTitle("听力练习").navigationBarTitleDisplayMode(.inline).onDisappear { player?.stop(); playing = false }
     }
     private func confirm() async {

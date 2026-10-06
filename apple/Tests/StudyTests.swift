@@ -5,6 +5,56 @@ import CoreText
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    @MainActor func testBackgroundPracticeDraftWritesKeepLatestSelectionAndCompletion() async throws {
+        let key = "practice-writer-test-\(UUID().uuidString)"
+        defer { UserDefaults.standard.removeObject(forKey: key) }
+        var draft = NativePracticeCheckpoint(questionIDs: ["q1", "q2"], index: 0,
+                                              selections: ["q1": "A"], answers: [],
+                                              attemptID: "attempt", started: .now, elapsed: [:], batchFeedback: true)
+        NativePracticeDraftWriter.write(draft, key: key)
+        draft.index = 1; draft.selections["q1"] = "B"
+        NativePracticeDraftWriter.write(draft, key: key)
+        XCTAssertEqual(NativePracticeDraftWriter.read(key: key)?.selections["q1"], "B")
+        for _ in 0..<100 {
+            if NativePracticeCheckpoint.load(key: key, questionIDs: draft.questionIDs)?.selections["q1"] == "B" { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(NativePracticeCheckpoint.load(key: key, questionIDs: draft.questionIDs)?.index, 1)
+        NativePracticeDraftWriter.write(nil, key: key)
+        XCTAssertNil(NativePracticeDraftWriter.read(key: key))
+        for _ in 0..<100 {
+            if UserDefaults.standard.data(forKey: key) == nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNil(UserDefaults.standard.data(forKey: key))
+    }
+
+    func testPracticeDraftRestoresUnsubmittedChoicesAndPositionForSameAccount() throws {
+        let suite = "practice-draft-test-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let round = NativeRound(title: "今日练习", questions: [], view: "daily-practice", practiceId: "pack-1")
+        let key = NativePracticeCheckpoint.key(accountID: 1, round: round)
+        let started = Date(timeIntervalSince1970: 100)
+        NativePracticeCheckpoint(questionIDs: ["q1", "q2"], index: 1,
+                                 selections: ["q1": "A", "q2": "B"],
+                                 answers: [.init(questionId: "q1", itemId: "item1", kind: "vocabulary", selected: "A", correct: true, answeredAt: "2026-10-06T00:00:00Z", elapsedMs: 1200)],
+                                 attemptID: "original-attempt", started: started,
+                                 elapsed: ["q1": 1200], batchFeedback: true).save(key: key, defaults: defaults)
+        let draft = try XCTUnwrap(NativePracticeCheckpoint.load(key: key, questionIDs: ["q1", "q2"], defaults: defaults))
+        XCTAssertEqual(draft.index, 1)
+        XCTAssertEqual(draft.selections["q2"], "B")
+        XCTAssertEqual(draft.answers.first?.questionId, "q1")
+        XCTAssertEqual(draft.attemptID, "original-attempt")
+        XCTAssertEqual(draft.started, started)
+        XCTAssertEqual(draft.elapsed["q1"], 1200)
+        XCTAssertTrue(draft.batchFeedback)
+        XCTAssertNil(NativePracticeCheckpoint.load(key: NativePracticeCheckpoint.key(accountID: 2, round: round), questionIDs: ["q1", "q2"], defaults: defaults))
+        XCTAssertNil(NativePracticeCheckpoint.load(key: key, questionIDs: ["q2", "q1"], defaults: defaults))
+        defaults.removeObject(forKey: key)
+        XCTAssertNil(NativePracticeCheckpoint.load(key: key, questionIDs: ["q1", "q2"], defaults: defaults))
+    }
+
     func testDailyDraftQuestionFormatsCanBePreviewedAndPublished() throws {
         for key in ["generated_practice", "quiz", "practice_questions", "review_questions"] {
             let json = """

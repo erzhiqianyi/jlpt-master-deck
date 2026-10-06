@@ -261,6 +261,26 @@ final class NavigationLifecycleTests: XCTestCase {
         app.buttons["review.speech-position"].tap()
         app.buttons["放到右侧"].tap()
     }
+    func testReviewWordLookupQueuesWithContextWithoutFlippingCard() throws {
+        primary("学习")
+        let start = app.buttons["today.review"]
+        reveal(start); start.tap()
+        let word = app.staticTexts["測定"].firstMatch
+        XCTAssertTrue(word.waitForExistence(timeout: 5))
+        word.tap()
+        let query = app.textFields["review.lookup.query"]
+        XCTAssertTrue(query.waitForExistence(timeout: 5))
+        XCTAssertEqual(query.value as? String, "測定")
+        let enqueue = app.buttons["review.lookup.enqueue"]
+        XCTAssertTrue(enqueue.isEnabled)
+        enqueue.tap()
+        let queued = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "已加入待解析队列"), object: enqueue)
+        XCTAssertEqual(XCTWaiter.wait(for: [queued], timeout: 5), .completed)
+        XCTAssertFalse(enqueue.isEnabled)
+        app.buttons["关闭"].tap()
+        XCTAssertTrue(app.buttons["review.reveal"].exists, "Looking up a word must not flip the card")
+    }
+
     func testReviewExamplePlaybackAndCopyActions() throws {
         primary("学习")
         let start = app.buttons["today.review"]
@@ -315,6 +335,51 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertEqual(ratings[0].frame.minY, dockY, accuracy: 2)
         capture("review-back-fixed-rating-dock")
     }
+    func testBatchSelectionCanStayThenChangeAndAutomaticallyAdvance() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--practice-fixture", "--batch-feedback-fixture"]; app.launch()
+        primary("学习")
+        let start = app.buttons["today.practice.ui-fixture"]
+        reveal(start); start.tap()
+        let first = app.buttons["quiz.choice.0"].firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 5)); reveal(first)
+        first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        app.buttons["quiz.stay"].tap()
+        XCTAssertEqual(first.value as? String, "已选择")
+        XCTAssertTrue(app.staticTexts["quiz.selectedAnswer"].exists)
+        let secondPage = app.scrollViews["quiz.question.1"]
+        let noAdvance = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: secondPage)
+        noAdvance.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [noAdvance], timeout: 1.2), .completed)
+        let second = app.buttons["quiz.choice.1"].firstMatch
+        second.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        XCTAssertEqual(second.value as? String, "已选择")
+        let advanced = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: secondPage)
+        XCTAssertEqual(XCTWaiter.wait(for: [advanced], timeout: 4), .completed)
+    }
+
+    func testPracticeChoiceTextImmediatelySelectsAndAllowsChangingWithoutAdvancing() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--practice-fixture"]; app.launch()
+        primary("学习")
+        let start = app.buttons["today.practice.ui-fixture"]
+        reveal(start); start.tap()
+        let first = app.buttons["quiz.choice.0"].firstMatch
+        let second = app.buttons["quiz.choice.1"].firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        reveal(first)
+        // Tap the Japanese text region, not the number or outer padding.
+        first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        XCTAssertEqual(first.value as? String, "已选择")
+        XCTAssertEqual(second.value as? String, "未选择")
+        reveal(second)
+        second.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        XCTAssertEqual(second.value as? String, "已选择")
+        XCTAssertEqual(first.value as? String, "未选择")
+        first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        XCTAssertEqual(first.value as? String, "已选择")
+        XCTAssertTrue(app.buttons["quiz.confirm"].isEnabled)
+        XCTAssertTrue(app.scrollViews["quiz.question.0"].isHittable)
+    }
+
     func testVocabularyAndGrammarAnswerAndExplanationMatchWeb() throws {
         app.terminate(); app.launchArguments = ["--demo", "--practice-fixture"]; app.launch()
         primary("学习")

@@ -22,3 +22,9 @@ footer { display: flex; justify-content: space-between; margin-top: 16px; }
 .empty { padding: 48px 0; text-align: center; }
 .error { color: light-dark(#a32f36,#ffadb1); }
 @media(max-width: 420px) { .review-cards { padding: 14px; } .card { padding: 20px; } nav { gap: 6px; } button { padding: 9px 6px; } }
+
+.review-lookup-word { all: unset; cursor: pointer; border-radius: 3px; }
+.review-lookup-word:hover, .review-lookup-word:focus-visible { background: #326b9c18; outline: 1px solid #326b9c; }
+.review-lookup-dialog { max-width: min(560px, 90vw); max-height: 85vh; overflow: auto; border-radius: 12px; padding: 24px; }
+.review-lookup-dialog::backdrop { background: #0006; }
+.review-lookup-dialog input { display: block; width: 100%; padding: 10px; margin: 12px 0; }

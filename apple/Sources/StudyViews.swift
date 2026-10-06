@@ -175,6 +175,7 @@ struct MemoryReviewView: View {
                                             .accessibilityLabel("朗读按钮位置").accessibilityIdentifier("review.speech-position")
                                         }
                                     }), speechSide: sizeClass == .compact ? "right" : speechSide)
+                                    .environment(\.japaneseLookupEnabled, true)
                                     .id("\(item.id)-\(revealed)")
                                 if !revealed { Spacer(minLength: 20) }
                                 CardIdentityFooter(item: item)
@@ -301,7 +302,8 @@ struct ReadingPracticeView: View {
             }
             JapaneseText(text: question.passage, japanese: true, terms: question.rubyTerms ?? [], annotations: question.japaneseAnnotations ?? [], fontSize: 18 * store.textScale).lineSpacing(7).textSelection(.enabled)
             if store.isDemo { Text("原创示例 · AI 生成 · 待核验").font(.caption).foregroundStyle(DeckTheme.muted) }
-        }
+        }.environment(\.japaneseStudyHintsEnabled, submitted)
+            .environment(\.japaneseExplanationMode, submitted)
     }
     private var answers: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -322,7 +324,8 @@ struct ReadingPracticeView: View {
                 if viewingAnswer { Button("再练一次") { submitted = false; viewingAnswer = false; selected = nil; sessionID = UUID().uuidString }.buttonStyle(.bordered) }
             }
             if let error { Text(error).foregroundStyle(.red) }
-        }
+        }.environment(\.japaneseStudyHintsEnabled, submitted)
+            .environment(\.japaneseExplanationMode, submitted)
     }
     private var confirmButton: some View {
         Button {

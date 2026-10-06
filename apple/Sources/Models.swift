@@ -124,6 +124,7 @@ struct ReadingQuestion: Codable, Identifiable {
 struct CaptureEnvelope: Decodable { let captures: [Capture] }
 struct Capture: Codable, Identifiable {
     let id: String; let body: String; let category: String; let context: String; let createdAt: String
+    var status: String? = nil
 }
 struct CaptureInput: Encodable { let body: String; let category: String; let context: String }
 struct CaptureResult: Decodable { let capture: Capture }
@@ -318,10 +319,12 @@ struct StudyStatistics {
     init(attempts: [NativeAttempt], now: Date = .now) {
         let completed = attempts.filter { $0.completedAt != nil }.sorted { ($0.completedAt ?? "") > ($1.completedAt ?? "") }
         self.attempts = completed
-        today = completed.filter { $0.dateKey == Self.day(now) }
+        let todayKey = Self.day(now)
+        let byDay = Dictionary(grouping: completed, by: \.dateKey)
+        today = byDay[todayKey] ?? []
         week = (0..<7).map { index in
             let key = Self.day(Self.calendar.date(byAdding: .day, value: index - 6, to: now)!)
-            return Day(id: key, total: completed.filter { $0.dateKey == key }.reduce(0) { $0 + $1.total })
+            return Day(id: key, total: (byDay[key] ?? []).reduce(0) { $0 + $1.total })
         }
     }
     static func metric(_ attempts: [NativeAttempt]) -> Metric { Metric(total: attempts.reduce(0) { $0 + $1.total }, correct: attempts.reduce(0) { $0 + $1.correctCount }) }

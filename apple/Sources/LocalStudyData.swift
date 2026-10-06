@@ -121,13 +121,24 @@ struct LocalStudyFiles {
         let url = try speechURL(userID: userID, request: request)
         if FileManager.default.fileExists(atPath: url.path) {
             let bytes = try Data(contentsOf: url)
-            if !bytes.isEmpty { return bytes }
+            if !bytes.isEmpty {
+                #if DEBUG
+                print("[Speech][Cache] HIT user=\(userID) key=\(url.lastPathComponent) bytes=\(bytes.count) provider=\(request.provider) voice=\(request.voice) text=\(String(reflecting: request.text))")
+                #endif
+                return bytes
+            }
         }
+        #if DEBUG
+        print("[Speech][Cache] MISS user=\(userID) key=\(url.lastPathComponent) provider=\(request.provider) voice=\(request.voice) style=\(request.style) role=\(request.role) text=\(String(reflecting: request.text))")
+        #endif
         let bytes = try await download()
         try Task.checkCancellation()
         guard !bytes.isEmpty else { throw APIError.invalidResponse }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try bytes.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        #if DEBUG
+        print("[Speech][Cache] SAVED user=\(userID) key=\(url.lastPathComponent) bytes=\(bytes.count)")
+        #endif
         return bytes
     }
     func speechURL(userID: Int, request: SpeechRequest) throws -> URL {

@@ -70,7 +70,23 @@ struct APIClient {
         request.timeoutInterval = 60; request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        let (bytes, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
+        let debugID = UUID().uuidString
+        let debugStart = Date()
+        print("[Speech][HTTP][\(debugID)] POST \(request.url!.absoluteString) body=\(String(data: request.httpBody!, encoding: .utf8) ?? "")")
+        #endif
+        let bytes: Data
+        let response: URLResponse
+        do { (bytes, response) = try await URLSession.shared.data(for: request) }
+        catch {
+            #if DEBUG
+            print("[Speech][HTTP][\(debugID)] transport-error=\(error.localizedDescription) elapsed=\(Date().timeIntervalSince(debugStart))s")
+            #endif
+            throw error
+        }
+        #if DEBUG
+        print("[Speech][HTTP][\(debugID)] status=\((response as? HTTPURLResponse)?.statusCode ?? 0) mime=\(response.mimeType ?? "unknown") bytes=\(bytes.count) elapsed=\(Date().timeIntervalSince(debugStart))s")
+        #endif
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
             let message = (try? JSONDecoder().decode(ErrorBody.self, from: bytes))?.error ?? "语音下载失败（\(http.statusCode)）"

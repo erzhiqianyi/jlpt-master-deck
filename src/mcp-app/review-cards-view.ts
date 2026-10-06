@@ -1,4 +1,5 @@
 import { memoryCardFieldLabels, type MemoryCardField } from '../domain/memoryCards';
+import { segmentJapanese } from '../domain/wordLookup';
 import type { Locale } from '../types';
 import './review-cards.css';
 
@@ -9,7 +10,7 @@ export type ReviewCards = {
   cards: { id: string; reference?: string; deck: string; front: Face; back: Face }[];
 };
 
-export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>, rate: (itemId: string, rating: string, eventId: string) => Promise<void>) {
+export function createReviewCardsView(root: HTMLElement, load: (filters: Record<string, unknown>) => Promise<ReviewCards>, rate: (itemId: string, rating: string, eventId: string) => Promise<void>, lookup?: { query: (word: string) => Promise<{ original: string; reading?: string; meaning_zh?: string; meaning_ja?: string }[]>; enqueue: (word: string, context: string) => Promise<void> }) {
   let data: ReviewCards | null = null;
   let index = 0;
   let flipped = false;
@@ -30,6 +31,45 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
     element.onclick = action;
     return element;
   };
+  function lookupText(element: HTMLElement, text: string, japanese: boolean, context: string) {
+    if (!lookup) { element.textContent = text; return; }
+    const runs = japanese ? [text] : text.split(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー々]+)/u);
+    for (const run of runs) {
+      if (!japanese && !/[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(run)) { element.append(document.createTextNode(run)); continue; }
+      for (const part of segmentJapanese(run)) {
+        if (!part.word) { element.append(document.createTextNode(part.text)); continue; }
+        const word = button(part.text, () => void openLookup(part.text, context));
+        word.className = 'review-lookup-word'; word.setAttribute('aria-label', `查询「${part.text}」`); element.append(word);
+      }
+    }
+  }
+  async function openLookup(word: string, context: string) {
+    if (!lookup) return;
+    const dialog = document.createElement('dialog'); dialog.className = 'review-lookup-dialog';
+    const heading = node('h2', '单词查询'); const input = document.createElement('input');
+    input.value = word; input.setAttribute('aria-label', '查询词（可修改）');
+    const results = node('div'); const status = node('p'); status.setAttribute('role', 'status');
+    const queued = new Set<string>(); let request = 0;
+    const enqueue = button('加入待解析队列', () => {
+      const query = input.value.trim(); if (!query || queued.has(query)) return;
+      enqueue.disabled = true; input.disabled = true; status.textContent = '正在加入…';
+      void lookup.enqueue(query, context).then(() => { queued.add(query); status.textContent = '已加入待解析队列'; })
+        .catch((cause) => { status.textContent = cause instanceof Error ? cause.message : String(cause); })
+        .finally(() => { input.disabled = false; enqueue.disabled = queued.has(input.value.trim()); });
+    });
+    const search = async () => {
+      const current = ++request; const query = input.value.trim(); enqueue.disabled = !query || queued.has(query);
+      results.textContent = query ? '正在查询…' : '请输入日语单词。';
+      if (!query) return;
+      try {
+        const matches = await lookup.query(query); if (current !== request) return;
+        results.replaceChildren(...(matches.length ? matches.map(item => node('p', [item.original, item.reading, item.meaning_zh || item.meaning_ja].filter(Boolean).join(' · '))) : [node('p', '暂无释义。')]));
+      } catch (cause) { if (current === request) results.textContent = cause instanceof Error ? cause.message : String(cause); }
+    };
+    input.oninput = () => { status.textContent = ''; void search(); };
+    dialog.append(heading, input, results, enqueue, status, node('p', context), button('关闭', () => dialog.close()));
+    dialog.onclose = () => dialog.remove(); root.append(dialog); dialog.showModal(); input.focus(); await search();
+  }
   function setData(next: ReviewCards) {
     data = next; index = 0; flipped = false; error = ''; render();
   }
@@ -82,11 +122,11 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
       const entries = flipped ? card.back : card.front;
       for (const entry of entries) {
         if (entry.field === 'original') {
-          const title = node('h1', entry.lines.join('\n')); title.lang = 'ja'; face.append(title);
+          const title = node('h1'); title.lang = 'ja'; lookupText(title, entry.lines.join('\n'), true, `复习卡片 · ${card.reference || card.id}\n${entry.lines.join('\n')}`); face.append(title);
         } else {
           const group = node('div', '', 'field');
           group.append(node('h2', memoryCardFieldLabels[data.locale]?.[entry.field] ?? entry.field));
-          for (const line of entry.lines) group.append(node('p', line));
+          for (const line of entry.lines) { const text = node('p'); lookupText(text, line, ['reading', 'meaning_ja', 'examples', 'conjugations'].includes(entry.field), `复习卡片 · ${card.reference || card.id}\n${line}`); group.append(text); }
           face.append(group);
         }
       }

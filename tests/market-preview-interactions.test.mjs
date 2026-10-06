@@ -159,13 +159,13 @@ test('own shares have no import button and withdrawing requires explicit confirm
   assert.equal(document.querySelector('.market-row-add'), null);
   await render({ initialShareId: 'share-a' });
   await click(button('Manage'));
-  await click(document.querySelector('.market-management-dialog > button'));
+  await click([...document.querySelectorAll('.market-management-dialog > button')].find(value => value.textContent === 'Withdraw share'));
   assert.equal(calls.some(call => call.method === 'DELETE'), false);
   assert.match(document.querySelector('.app-confirmation').textContent, /Others will no longer see/);
   await click([...document.querySelectorAll('.app-confirmation button')].find(element => !element.classList.contains('is-danger')));
   assert.equal(calls.some(call => call.method === 'DELETE'), false);
   await click(button('Manage'));
-  await click(document.querySelector('.market-management-dialog > button'));
+  await click([...document.querySelectorAll('.market-management-dialog > button')].find(value => value.textContent === 'Withdraw share'));
   await click(document.querySelector('.app-confirmation .is-danger'));
   assert.equal(calls.filter(call => call.method === 'DELETE').length, 1);
 });
@@ -195,14 +195,13 @@ test('discovery list contains title and type/count, with optional tools in its s
   assert.equal(document.querySelector('.market-row-add'), null);
   assert.match(document.querySelector('.discovery-card-meta').textContent, /2 questions/);
   assert.doesNotMatch(document.querySelector('.discovery-cover-grid').textContent, /Two trial questions/);
-  const scope = document.querySelector('[role="group"][aria-label="Share scope"]');
-  assert.ok(scope, 'My shares is visible before opening the tools');
-  await click([...scope.querySelectorAll('button')].find(value => value.textContent === 'My shares'));
-  assert.equal(scope.querySelector('[aria-pressed="true"]').textContent, 'My shares');
-  await click(document.querySelector('header .page-header-action'));
+  assert.equal(document.querySelector('.discovery-mine-filter'), null);
+  const myShares = button('My shares');
+  assert.ok(myShares, 'My shares lives in the header');
+  await click(myShares);
+  assert.equal(window.location.hash, '#/market/mine');
+  await click(document.querySelector('header [data-action-key^="list-controls"]'));
   assert.equal(document.querySelector('.list-controls-dialog').open, true);
-  assert.match(document.querySelector('.list-applied-summary').textContent, /My shares/);
-  await click(button('Reset'));
   assert.equal(document.querySelector('.list-applied-summary'), null);
 });
 
@@ -231,6 +230,8 @@ test('visible category tabs filter by public subject metadata, including grammar
   ] }) : baseFetch(call);
   await render({initialShareId:undefined},true);
   assert.equal(document.querySelectorAll('.discovery-cover-card').length, 3);
+  assert.equal(button('Grammar'), undefined);
+  await click(button('Practice'));
   await click(button('Grammar'));
   assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
   assert.match(document.querySelector('.discovery-card-title').textContent, /Grammar book/);
@@ -238,4 +239,55 @@ test('visible category tabs filter by public subject metadata, including grammar
   assert.match(document.querySelector('.discovery-card-title').textContent, /Vocabulary practice/);
   await click(button('Listening'));
   assert.match(document.querySelector('.discovery-card-title').textContent, /Listening/);
+});
+
+
+test('Discover separates articles from practice and resets hidden subject filters', async () => {
+  fetchHandler = call => call.path === '/community/catalog.json' ? response({ en: [{ id: 'guide', title: 'Learning guide', kind: 'article', cover: 'stairs', coverTitle: 'AI', href: '/en/articles/ai-integration/' }] }) : call.path === '/api/market' ? response({ shares: [{ ...share, categories: ['reading'] }] }) : baseFetch(call);
+  await render({ initialShareId: undefined }, true);
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 2);
+  await click(button('AI Assistant'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
+  assert.equal(document.querySelector('.discovery-open-card').getAttribute('href'), '/en/articles/ai-integration/');
+  assert.equal(button('Reading'), undefined);
+  await click(button('Practice'));
+  await click(button('Reading'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
+  await click(button('Grammar'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 0);
+  await click([...document.querySelectorAll('.discovery-content-tabs button')].find(value => value.textContent === 'All'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 2);
+});
+
+
+test('My shares opens ownership management and persists edits without publishing a duplicate', async () => {
+  calls = [];
+  let updated = { ...practice };
+  const own = { ...share, mine: true };
+  fetchHandler = call => {
+    if (call.path === '/api/market?mine=1') return response({ shares: [{ ...own, title: updated.title, description: updated.description }] });
+    if (call.path === '/api/market/share-a' && call.method === 'PATCH') { updated = { ...updated, ...JSON.parse(call.body) }; return response({ id: 'share-a', package: updated }); }
+    if (call.path === '/api/market/share-a') return response({ mine: true, package: updated });
+    return baseFetch(call);
+  };
+  await render({ initialShareId: 'mine' }, true);
+  assert.equal(document.querySelector('.discovery-content-tabs'), null);
+  assert.equal(document.querySelector('.discovery-mine-filter'), null);
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
+  await click(document.querySelector('.discovery-open-card'));
+  await click(button('Manage'));
+  await click(button('Edit share'));
+  const title = document.querySelector('.share-edit-form input');
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  await act(async () => { setter.call(title, 'Updated title'); title.dispatchEvent(new Event('input', { bubbles: true })); });
+  await click(document.querySelector('.share-edit-form input[type=checkbox]'));
+  await act(async () => document.querySelector('.share-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  const saved = calls.find(call => call.method === 'PATCH');
+  assert.deepEqual(JSON.parse(saved.body), { title: 'Updated title', description: practice.description, refreshSource: true });
+  assert.equal(document.querySelector('.share-edit-form'), null);
+  assert.match(document.querySelector('.market-detail-heading').textContent, /Updated title/);
+  await click(button('Header back'));
+  assert.equal(document.querySelectorAll('.discovery-cover-card').length, 1);
+  assert.equal(calls.some(call => call.path === '/api/market/mine'), false, 'mine is a page, not a share ID');
+  assert.equal(calls.some(call => call.method === 'POST'), false);
 });

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct DiscoveryShare: Codable, Identifiable {
     let id: String
@@ -18,6 +19,7 @@ struct DiscoveryShare: Codable, Identifiable {
         if let categories, !categories.isEmpty { return categories }
         if kind == "listening" { return ["listening"] }
         if title.range(of: "语法|文法|grammar", options: [.regularExpression, .caseInsensitive]) != nil { return ["grammar"] }
+        if title.range(of: "阅读|読解|reading", options: [.regularExpression, .caseInsensitive]) != nil { return ["reading"] }
         return kind == "wordbook" ? ["vocabulary"] : []
     }
     var coverAsset: String {
@@ -46,10 +48,14 @@ struct DiscoveryCover: View {
                 if share.coverUrl == nil { VStack(alignment: .leading, spacing: 12) {
                     Text(share.coverTitle ?? share.title).font(.system(size: detail ? 36 : min(28, geometry.size.width * 0.15), weight: .semibold, design: .serif)).lineLimit(detail ? 5 : 4)
                     if !share.displayLevel.isEmpty { Text(share.displayLevel).font(.system(size: detail ? 24 : 16, design: .serif)) }
-                }.foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.17)).padding(.horizontal, geometry.size.width * 0.08).padding(.top, geometry.size.height * 0.14) }
+                }.foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.17)).padding(.horizontal, geometry.size.width * 0.08).padding(.top, geometry.size.height * (detail ? 0.14 : 0.32)) }
+                if !detail && page == nil {
+                    Text(share.kind == "article" ? "AI助手" : "练习").font(.caption.weight(.semibold)).foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(share.kind == "article" ? DeckTheme.green : Color(red: 0.74, green: 0.31, blue: 0.2), in: RoundedRectangle(cornerRadius: 10)).padding(12)
+                }
                 if let page { Text(page).font(.caption).padding(.horizontal, 10).padding(.vertical, 5).foregroundStyle(.white).background(.black.opacity(0.4), in: Capsule()).frame(maxWidth: .infinity, alignment: .trailing).padding(12) }
             }.clipShape(RoundedRectangle(cornerRadius: 12))
-        }.aspectRatio(2 / 3, contentMode: .fit).accessibilityHidden(true)
+        }.aspectRatio(detail ? 2 / 3 : 5 / 6, contentMode: .fit).accessibilityHidden(true)
             .task(id: "\(share.coverUrl ?? "")|\(store.session?.user.id ?? 0)") {
                 bitmap = nil
                 guard let url = share.coverUrl else { return }
@@ -62,46 +68,64 @@ struct DiscoveryView: View {
     @Environment(AppStore.self) private var store
     @State private var query = ""
     @State private var category = "all"
-    @State private var mineOnly = false
+    @State private var contentTab = "all"
     @State private var showingSearch = false
     private var filtered: [DiscoveryShare] {
-        store.shares.filter { (!mineOnly || $0.mine == true) && (category == "all" || $0.subjects.contains(category)) && (query.isEmpty || ($0.title + " " + ($0.coverTitle ?? "") + " " + $0.description).localizedCaseInsensitiveContains(query)) }
+        store.shares.filter { (contentTab != "practice" || category == "all" || $0.subjects.contains(category)) && (query.isEmpty || ($0.title + " " + ($0.coverTitle ?? "") + " " + $0.description).localizedCaseInsensitiveContains(query)) }
     }
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Picker("分享范围", selection: $mineOnly) {
-                        Text("全部分享").tag(false)
-                        Text("我的分享").tag(true)
-                    }.pickerStyle(.segmented).accessibilityIdentifier("discovery.scope")
-                    HStack(spacing: 26) {
-                        ForEach([("all", "全部"), ("vocabulary", "词汇"), ("grammar", "语法"), ("listening", "听力")], id: \.0) { id, title in
-                            Button { category = id } label: {
-                                Text(title).font(.subheadline.weight(category == id ? .bold : .regular)).padding(.vertical, 12)
-                                    .foregroundStyle(category == id ? DeckTheme.ink : DeckTheme.muted)
-                                    .overlay(alignment: .bottom) { if category == id { Rectangle().fill(DeckTheme.green).frame(height: 3) } }
-                            }.buttonStyle(.plain).accessibilityAddTraits(category == id ? .isSelected : [])
+                    HStack(spacing: 28) {
+                        ForEach([("all", "全部"), ("practice", "练习"), ("article", "AI助手")], id: \.0) { id, title in
+                            Button { contentTab = id } label: {
+                                Text(title).font(.title3.weight(contentTab == id ? .bold : .medium)).padding(.vertical, 10)
+                                    .foregroundStyle(contentTab == id ? DeckTheme.ink : DeckTheme.muted)
+                                    .overlay(alignment: .bottom) { if contentTab == id { Rectangle().fill(DeckTheme.green).frame(height: 3) } }
+                            }.buttonStyle(.plain).accessibilityAddTraits(contentTab == id ? .isSelected : [])
                         }
                     }
-                    if filtered.isEmpty {
+                    if contentTab == "practice" {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach([("all", "全部"), ("vocabulary", "单词"), ("grammar", "语法"), ("reading", "阅读"), ("listening", "听力")], id: \.0) { id, title in
+                                    Button { category = id } label: {
+                                        Text(title).font(.subheadline.weight(category == id ? .bold : .medium)).padding(.horizontal, 14).padding(.vertical, 10)
+                                            .foregroundStyle(category == id ? Color(red: 0.5, green: 0.2, blue: 0.12) : DeckTheme.muted)
+                                            .background(category == id ? Color(red: 1, green: 0.87, blue: 0.79) : .clear, in: Capsule())
+                                    }.buttonStyle(.plain).accessibilityAddTraits(category == id ? .isSelected : [])
+                                }
+                            }
+                        }
+                    }
+                    if filtered.isEmpty && contentTab == "practice" {
                         ContentUnavailableView(store.shares.isEmpty ? "暂无发现内容" : "暂无符合条件的分享", systemImage: "safari", description: Text(store.shares.isEmpty ? "联网同步后查看共享内容" : "试试其他分类或搜索词"))
                     } else {
                         let columns = geometry.size.width >= 1000 ? 4 : geometry.size.width >= 700 ? 3 : 2
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: columns), alignment: .leading, spacing: 24) {
-                            ForEach(filtered) { share in
+                            ForEach(contentTab == "article" ? [] : filtered) { share in
                                 NavigationLink(value: WorkspaceRoute.discovery(share.id)) {
                                     VStack(alignment: .leading, spacing: 8) {
                                         DiscoveryCover(share: share)
                                         Text(share.title).font(.subheadline.bold()).lineLimit(2).foregroundStyle(DeckTheme.ink)
                                         HStack(spacing: 4) {
-                                            Image(systemName: "person.crop.circle.fill")
-                                            Text(share.mine == true ? "我分享的内容" : "学习者分享").lineLimit(1)
-                                            Spacer(minLength: 0)
-                                            Text("\(share.count) \(share.kind == "wordbook" ? "词" : "题")").fixedSize()
+                                            Image(systemName: "doc.text.fill")
+                                            Text("\(share.count) \(share.kind == "wordbook" ? "词" : "题")")
                                         }.font(.caption2).foregroundStyle(DeckTheme.muted)
                                     }
                                 }.buttonStyle(.plain).accessibilityIdentifier("discovery.\(share.id)")
+                            }
+                            if contentTab != "practice" {
+                                ForEach(NativeAIArticle.all.filter { query.isEmpty || ($0.title + $0.summary).localizedCaseInsensitiveContains(query) }) { article in
+                                    NavigationLink { NativeAIArticleView(article: article) } label: {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            DiscoveryCover(share: article.share)
+                                            Text(article.title).font(.subheadline.bold()).lineLimit(2).foregroundStyle(DeckTheme.ink)
+                                            Label("AI社区", systemImage: "doc.text.fill").font(.caption).foregroundStyle(DeckTheme.muted)
+                                        }
+                                    }.buttonStyle(.plain)
+                                }
                             }
                         }
                     }
@@ -109,7 +133,12 @@ struct DiscoveryView: View {
             }
         }.toolbar { ToolbarItem(placement: .topBarLeading) {
             Button("搜索发现", systemImage: "magnifyingglass") { showingSearch = true }
-        } }.sheet(isPresented: $showingSearch) {
+        }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: WorkspaceRoute.myShares) { Image(systemName: "person.crop.rectangle.stack") }
+                    .accessibilityLabel("我的分享").accessibilityIdentifier("discovery.myShares")
+            }
+        }.sheet(isPresented: $showingSearch) {
             NavigationStack {
                 Form { TextField("搜索发现", text: $query); Button("清除搜索") { query = "" } }
                     .navigationTitle("搜索发现").navigationBarTitleDisplayMode(.inline)
@@ -129,6 +158,11 @@ struct DiscoveryDetailView: View {
     @State private var busy = false
     @State private var added = false
     @State private var message: String?
+    @State private var editing = false
+    @State private var withdrawing = false
+    @State private var coverSelection: PhotosPickerItem?
+    @Environment(\.dismiss) private var dismiss
+    private var currentShare: DiscoveryShare { store.shares.first(where: { $0.id == share.id }) ?? share }
     @State private var descriptionExpanded = false
     @State private var page = 0
     var body: some View {
@@ -137,24 +171,25 @@ struct DiscoveryDetailView: View {
                 if loading { ProgressView("正在加载内容…") }
                 if let loadError { Text(loadError).foregroundStyle(.secondary); Button("重新加载") { Task { await loadContent() } } }
                 if let content {
-                    DiscoveryPreviewGallery(share: share, content: content, page: $page)
-                } else { DiscoveryCover(share: share, detail: true).frame(maxWidth: 400).frame(maxWidth: .infinity) }
+                    DiscoveryPreviewGallery(share: currentShare, content: content, page: $page)
+                } else { DiscoveryCover(share: currentShare, detail: true).frame(maxWidth: 400).frame(maxWidth: .infinity) }
                 Divider()
                 HStack(alignment: .firstTextBaseline) {
-                    Text(share.title).font(.title3.bold())
+                    Text(currentShare.title).font(.title3.bold())
                     Spacer()
                     Text("\(share.count) \(share.kind == "wordbook" ? "词" : "题")").font(.subheadline).foregroundStyle(DeckTheme.muted).fixedSize()
                 }
                 Label(share.mine == true ? "我分享的内容" : "学习者分享", systemImage: "person.crop.circle.fill").foregroundStyle(DeckTheme.muted)
-                if !share.description.isEmpty {
+                if !currentShare.description.isEmpty {
                     HStack(alignment: .top, spacing: 10) {
-                        Text(share.description).font(.subheadline).lineSpacing(5).lineLimit(descriptionExpanded ? nil : 2).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(currentShare.description).font(.subheadline).lineSpacing(5).lineLimit(descriptionExpanded ? nil : 2).frame(maxWidth: .infinity, alignment: .leading)
                         Button(descriptionExpanded ? "收起" : "展开") { descriptionExpanded.toggle() }.font(.subheadline).foregroundStyle(DeckTheme.green).frame(minHeight: 44)
                     }
                 }
                 if let message { Text(message).font(.footnote).foregroundStyle(.secondary) }
             }.padding(20).frame(maxWidth: 780).frame(maxWidth: .infinity)
         }.navigationTitle("").navigationBarTitleDisplayMode(.inline).background(DeckTheme.paper)
+            .toolbar(.hidden, for: .tabBar)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 8) {
                     if let content, content.kind == "practice" {
@@ -166,12 +201,57 @@ struct DiscoveryDetailView: View {
                     }
                 }.padding(.horizontal, 20).padding(.vertical, 10).frame(maxWidth: 780).frame(maxWidth: .infinity).background(DeckTheme.paper)
             }
-            .toolbar { if share.mine != true { ToolbarItem(placement: .topBarTrailing) {
-                Button { addContent() } label: { Image(systemName: added ? "bookmark.fill" : "bookmark") }
-                    .accessibilityLabel(added ? "已添加" : busy ? "添加中…" : "添加到我的学习").disabled(busy || added || content == nil)
-            } } }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if share.mine == true {
+                        Menu {
+                            Button("编辑分享", systemImage: "pencil") { editing = true }
+                            PhotosPicker(selection: $coverSelection, matching: .images) { Label("更换封面", systemImage: "photo") }
+                            Button("撤回分享", systemImage: "arrow.uturn.backward", role: .destructive) { withdrawing = true }
+                        } label: { Image(systemName: "ellipsis.circle") }.disabled(busy).accessibilityLabel("管理分享")
+                    } else {
+                        Button { addContent() } label: { Image(systemName: added ? "bookmark.fill" : "bookmark") }
+                            .accessibilityLabel(added ? "已添加" : busy ? "添加中…" : "添加到我的学习").disabled(busy || added || content == nil)
+                    }
+                }
+            }
+            .sheet(isPresented: $editing) {
+                EditDiscoveryShareView(share: currentShare) { updated in content = updated }
+            }
+            .confirmationDialog("撤回后，其他人将无法再看到这份分享。", isPresented: $withdrawing, titleVisibility: .visible) {
+                Button("撤回分享", role: .destructive) { withdraw() }
+                Button("取消", role: .cancel) { }
+            }
+            .onChange(of: coverSelection) { _, item in
+                guard let item else { return }
+                Task {
+                    busy = true
+                    defer { busy = false; coverSelection = nil }
+                    do {
+                        guard let bytes = try await item.loadTransferable(type: Data.self), let bitmap = UIImage(data: bytes), let data = bitmap.jpegData(compressionQuality: 0.85) else { throw APIError.invalidResponse }
+                        guard data.count <= 5 * 1024 * 1024 else { message = "图片不能超过 5 MB"; return }
+                        struct Input: Encodable { let imageBase64: String; let mime: String }
+                        struct Result: Decodable { let coverUrl: String }
+                        let _: Result = try await store.api.put("api/market/\(share.id)/cover", body: Input(imageBase64: data.base64EncodedString(), mime: "image/jpeg"))
+                        await store.refresh(); content = nil; await loadContent(); message = "封面已更新"
+                    } catch { message = error.localizedDescription }
+                }
+            }
             .task(id: share.id) { await loadContent() }
             .fullScreenCover(item: $round) { NativeQuizView(round: $0, savesProgress: false) }
+    }
+    private func withdraw() {
+        guard !busy else { return }
+        busy = true
+        Task {
+            defer { busy = false }
+            do {
+                struct Result: Decodable {}
+                let _: Result = try await store.api.delete("api/market/\(share.id)")
+                store.shares.removeAll { $0.id == share.id }
+                dismiss()
+            } catch { message = error.localizedDescription }
+        }
     }
     private func addContent() {
         guard !busy, !added else { return }
@@ -432,6 +512,100 @@ struct NativeAIArticleView: View {
                 }
                 NavigationLink { NativeAISettingsView() } label: { Label("接入 AI，试试这个方法", systemImage: "sparkles") }
             }.padding(24).frame(maxWidth: 760).frame(maxWidth: .infinity)
-        }.background(DeckTheme.paper).navigationTitle("文章详情").navigationBarTitleDisplayMode(.inline)
+        }.background(DeckTheme.paper).navigationTitle("AI助手").navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
+    }
+}
+
+
+struct MyDiscoverySharesView: View {
+    @Environment(AppStore.self) private var store
+    @State private var loading = false
+    @State private var error: String?
+    @State private var query = ""
+    private var shares: [DiscoveryShare] { store.shares.filter { $0.mine == true && (query.isEmpty || ($0.title + $0.description).localizedCaseInsensitiveContains(query)) } }
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                if loading { ProgressView("正在加载…") }
+                if let error { Text(error).foregroundStyle(.secondary); Button("重新加载") { Task { await load() } } }
+                if shares.isEmpty && !loading && error == nil {
+                    ContentUnavailableView("暂无自己的分享", systemImage: "person.crop.rectangle.stack", description: Text("在单词本或练习中分享后，可在这里编辑和管理。"))
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 24) {
+                    ForEach(shares) { share in
+                        NavigationLink { DiscoveryDetailView(share: share) } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                DiscoveryCover(share: share)
+                                Text(share.title).font(.subheadline.bold()).lineLimit(2).foregroundStyle(DeckTheme.ink)
+                                Label("\(share.count) \(share.kind == "wordbook" ? "词" : "题")", systemImage: "doc.text.fill").font(.caption).foregroundStyle(DeckTheme.muted)
+                            }
+                        }.buttonStyle(.plain).accessibilityIdentifier("myShare." + share.id)
+                    }
+                }
+            }.padding(20).frame(maxWidth: 1180).frame(maxWidth: .infinity)
+        }.navigationTitle("我的分享").navigationBarTitleDisplayMode(.inline).background(DeckTheme.paper)
+            .toolbar(.hidden, for: .tabBar)
+            .searchable(text: $query, prompt: "搜索我的分享").task { await load() }
+    }
+    private func load() async {
+        loading = true; error = nil
+        defer { loading = false }
+        do {
+            struct Result: Decodable { let shares: [DiscoveryShare] }
+            let result: Result = try await store.api.get("api/market?mine=1")
+            store.shares = store.shares.filter { $0.mine != true } + result.shares
+        } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
+    }
+}
+
+struct EditDiscoveryShareView: View {
+    let share: DiscoveryShare
+    let onSaved: (DiscoveryPackage) -> Void
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var title: String
+    @State private var description: String
+    @State private var refreshSource = false
+    @State private var busy = false
+    @State private var error: String?
+    init(share: DiscoveryShare, onSaved: @escaping (DiscoveryPackage) -> Void) {
+        self.share = share; self.onSaved = onSaved
+        _title = State(initialValue: share.title); _description = State(initialValue: share.description)
+    }
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("标题") { TextField("分享标题", text: $title) }
+                Section("简介") { TextEditor(text: $description).frame(minHeight: 120) }
+                if share.kind != "listening" {
+                    Section {
+                        Toggle("更新为原内容最新版", isOn: $refreshSource)
+                    } footer: { Text("修改原单词本或练习后，可在这里更新分享内容。别人已导入的副本不会改变。") }
+                }
+                if let error { Text(error).foregroundStyle(.red) }
+            }.disabled(busy).navigationTitle("编辑分享").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() }.disabled(busy) }
+                    ToolbarItem(placement: .confirmationAction) { Button(busy ? "保存中…" : "保存") { save() }.disabled(busy || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || title.count > 120 || description.count > 3000) }
+                }
+        }.interactiveDismissDisabled(busy)
+    }
+    private func save() {
+        guard !busy else { return }
+        busy = true; error = nil
+        Task {
+            defer { busy = false }
+            do {
+                struct Input: Encodable { let title: String; let description: String; let refreshSource: Bool }
+                let result: DiscoveryDetail = try await store.api.patch("api/market/\(share.id)", body: Input(title: title, description: description, refreshSource: refreshSource))
+                onSaved(result.package)
+                // Update this row immediately; a later refresh must not leave stale title/intro visible.
+                if let index = store.shares.firstIndex(where: { $0.id == share.id }) {
+                    store.shares[index] = DiscoveryShare(id: share.id, title: title.trimmingCharacters(in: .whitespacesAndNewlines), kind: share.kind, description: description.trimmingCharacters(in: .whitespacesAndNewlines), count: share.kind == "wordbook" ? (result.package.items?.count ?? share.count) : (result.package.questions?.count ?? share.count), categories: share.categories, cover: share.cover, coverUrl: share.coverUrl, level: share.level, coverTitle: nil, mine: true)
+                }
+                dismiss()
+            } catch { self.error = error.localizedDescription }
+        }
     }
 }

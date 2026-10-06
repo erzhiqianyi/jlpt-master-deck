@@ -210,7 +210,7 @@ for (const mode of ['batch', 'immediate']) {
   function Session() {
    const [answers,setAnswers]=useState({q2:{selected:'乙',correct:true}});
    const [index,setIndex]=useState(0);
-   return h(PracticePanel,{...base,feedbackMode:mode,activeIndex:index,activeQuestion:questions[index],answers,
+   return h(PracticePanel,{...base,settings:{...base.settings,practiceNavigation:'auto',practiceAutoAdvanceSeconds:0.1},feedbackMode:mode,activeIndex:index,activeQuestion:questions[index],answers,
     answeredCount:Object.keys(answers).length,complete:Object.keys(answers).length===3,
     onAnswer:(question,selected)=>setAnswers(previous=>({...previous,[question.id]:{selected,correct:selected===question.answer}})),
     onJump:setIndex,onNext:()=>setIndex(index+1)});
@@ -266,3 +266,31 @@ test('question review stays in its filter, swipes horizontally and stops at boun
  await click(button('下一题'));assert.equal(prompt(),'問題 2');
  await click(button('返回结果'));assert.equal(document.querySelector('.practice-review-detail'),null);
 });
+
+for (const navigation of ['manual', 'auto']) {
+ test(`${navigation} navigation respects the configured delay without a stay prompt`, async () => {
+  let jumped = null;
+  const answers = {q1:{selected:'乙',correct:true}};
+  await render(PracticePanel,{...base,feedbackMode:'batch',answers,
+   settings:{...base.settings,practiceNavigation:navigation,practiceAutoAdvanceSeconds:2},
+   onJump:index=>{jumped=index;}});
+  const originalTimer = window.setTimeout;
+  const originalClear = window.clearTimeout;
+  let advance;
+  window.setTimeout = (callback, delay) => {
+   if (delay === 2000) { advance=callback; return 99999; }
+   return originalTimer.call(window,callback,delay);
+  };
+  window.clearTimeout = id => { if(id!==99999) originalClear.call(window,id); };
+  try {
+   await click(document.querySelectorAll('.cute-choice')[1]);
+   assert.equal(document.querySelector('.practice-selection-feedback'),null);
+   assert.equal(jumped,null);
+   if(navigation==='manual') assert.equal(advance,undefined);
+   else { assert.equal(typeof advance,'function'); await act(async()=>advance()); assert.equal(jumped,1); }
+  } finally {
+   await act(async()=>root.render(null));
+   window.setTimeout=originalTimer;window.clearTimeout=originalClear;
+  }
+ });
+}

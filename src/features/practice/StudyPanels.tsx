@@ -286,10 +286,10 @@ export function PracticePanel({
   const [timerSession, setTimerSession] = useState(0);
   const [pendingAdvance, setPendingAdvance] = useState<{ questionId: string; choice: string; index: number } | null>(null);
   const copy = settings.locale === 'ja'
-    ? { more: 'その他', restart: '解答と経過時間をリセットして、もう一度練習しますか？', batch: 'まとめて答え合わせ · 選択を確認してから次の未回答へ', immediate: '1問ずつ答え合わせ' }
+    ? { more: 'その他', restart: '解答と経過時間をリセットして、もう一度練習しますか？', batch: 'まとめて答え合わせ', immediate: '1問ずつ答え合わせ' }
     : settings.locale === 'en'
-      ? { more: 'More', restart: 'Clear your answers and timer to restart this practice?', batch: 'Review at the end · Pause after selecting before moving on', immediate: 'Feedback after each answer' }
-      : { more: '更多', restart: '重新练习将清空本组作答并重置计时，确定继续吗？', batch: '整组反馈 · 选中后稍作停留，再进入下一道未答题', immediate: '逐题反馈 · 作答后查看解析' };
+      ? { more: 'More', restart: 'Clear your answers and timer to restart this practice?', batch: 'Review at the end', immediate: 'Feedback after each answer' }
+      : { more: '更多', restart: '重新练习将清空本组作答并重置计时，确定继续吗？', batch: '整组反馈 · 交卷后查看答案与解析', immediate: '逐题反馈 · 作答后查看解析' };
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const [answerSheetPage, setAnswerSheetPage] = useState(0);
   const [answerSheetFilter, setAnswerSheetFilter] = useState<'all' | 'current' | 'correct' | 'wrong' | 'unanswered'>('all');
@@ -393,15 +393,15 @@ export function PracticePanel({
   const chooseAnswer = useCallback((question: Question, choice: string) => {
     if (feedbackMode === 'immediate' && answers[question.id]) return;
     onAnswer(question, choice);
-    setPendingAdvance(feedbackMode === 'batch' ? { questionId: question.id, choice, index: activeIndex } : null);
+    setPendingAdvance(feedbackMode === 'batch' && settings.practiceNavigation !== 'manual' ? { questionId: question.id, choice, index: activeIndex } : null);
     if (feedbackMode === 'immediate' && choice === question.answer) {
       setCelebratedQuestion(question.id);
     }
-  }, [feedbackMode, answers, onAnswer, activeIndex]);
+  }, [feedbackMode, answers, onAnswer, activeIndex, settings.practiceNavigation]);
 
   useEffect(() => {
     if (!pendingAdvance) return;
-    if (activeQuestion?.id !== pendingAdvance.questionId || activeIndex !== pendingAdvance.index || answerSheetOpen || complete || feedbackMode !== 'batch') {
+    if (activeQuestion?.id !== pendingAdvance.questionId || activeIndex !== pendingAdvance.index || answerSheetOpen || complete || feedbackMode !== 'batch' || settings.practiceNavigation === 'manual') {
       setPendingAdvance(null); return;
     }
     if (answers[pendingAdvance.questionId]?.selected !== pendingAdvance.choice) return;
@@ -413,11 +413,11 @@ export function PracticePanel({
         onJump(target);
         practiceCardRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
-    }, 1000);
+    }, Math.max(0, Math.min(10, settings.practiceAutoAdvanceSeconds ?? 0.5)) * 1000);
     const cancel = () => { if (document.hidden) setPendingAdvance(null); };
     document.addEventListener('visibilitychange', cancel);
     return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', cancel); };
-  }, [pendingAdvance, activeQuestion?.id, activeIndex, answers, answerSheetOpen, complete, feedbackMode, questions, onJump]);
+  }, [pendingAdvance, activeQuestion?.id, activeIndex, answers, answerSheetOpen, complete, feedbackMode, questions, onJump, settings.practiceNavigation, settings.practiceAutoAdvanceSeconds]);
 
   const displayPracticeTitle = questionTypeLabel;
   const answerSheetShowsResults = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
@@ -519,10 +519,6 @@ export function PracticePanel({
           <strong aria-live="polite">{questionsLength ? activeIndex + 1 : 0} / {questionsLength}</strong>
           <button type="button" disabled={!activeQuestion || activeIndex >= questionsLength - 1} onClick={onNext}>{labels.next}<ChevronRight size={18} aria-hidden="true" /></button>
         </nav>
-        {feedbackMode === 'batch' && activeQuestion && answers[activeQuestion.id] && <div className="practice-feedback-hint practice-selection-feedback" role="status">
-          <strong>{settings.locale === 'ja' ? '選択済み：' : settings.locale === 'en' ? 'Selected: ' : '已选择：'}{answers[activeQuestion.id].selected}</strong>
-          {pendingAdvance && !complete && <><span> · {settings.locale === 'ja' ? '1秒後に次の未回答へ' : settings.locale === 'en' ? 'Next unanswered question in 1 second' : '1 秒后进入下一道未答题，可继续改选'}</span> <button type="button" onClick={() => setPendingAdvance(null)}>{settings.locale === 'ja' ? 'この問題に留まる' : settings.locale === 'en' ? 'Stay here' : '留在本题'}</button></>}
-        </div>}
         <p className="practice-feedback-hint" role="status">{feedbackMode === 'batch' ? copy.batch : copy.immediate}</p>
         <nav className="practice-nearby-questions" aria-label={labels.practiceAnswerSheet}>
           {questions.slice(Math.max(0, Math.min(activeIndex - 4, questions.length - 10)), Math.max(0, Math.min(activeIndex - 4, questions.length - 10)) + 10).map((question, offset) => {

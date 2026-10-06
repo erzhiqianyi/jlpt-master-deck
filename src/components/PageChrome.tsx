@@ -34,5 +34,5 @@ export function PageHeaderActions() {
   if (!context?.entries.length) return null;
   const highest = Math.max(...context.entries.map(entry => entry.priority));
   const actions = context.entries.filter(entry => entry.priority === highest).flatMap(entry => entry.actions());
-  return <div className="page-header-actions">{actions.map(action => action.content ? <div key={action.key} className="page-header-control">{action.content}</div> : <button key={action.key} type="button" className="page-header-action" aria-label={action.label} title={action.label} disabled={action.disabled} onClick={action.onClick}>{action.icon ? <span aria-hidden="true">{action.icon}</span> : action.label}</button>)}</div>;
+  return <div className="page-header-actions">{actions.map(action => action.content ? <div key={action.key} className="page-header-control">{action.content}</div> : <button key={action.key} type="button" className="page-header-action" data-action-key={action.key} aria-label={action.label} title={action.label} disabled={action.disabled} onClick={action.onClick}>{action.icon ? <span aria-hidden="true">{action.icon}</span> : action.label}</button>)}</div>;
 }

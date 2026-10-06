@@ -367,12 +367,12 @@ export async function importListeningShare(userId, shareId) {
     throw error;
   }
 }
-export function listShares(userId) {
+export function listShares(userId, mineOnly = false) {
   return database()
     .prepare(
-      "SELECT id,user_id,package_json,created_at FROM market_shares WHERE withdrawn = 0 ORDER BY created_at DESC LIMIT 200",
+      mineOnly ? "SELECT id,user_id,package_json,created_at FROM market_shares WHERE withdrawn = 0 AND user_id = ? ORDER BY created_at DESC" : "SELECT id,user_id,package_json,created_at FROM market_shares WHERE withdrawn = 0 ORDER BY created_at DESC LIMIT 200",
     )
-    .all()
+    .all(...(mineOnly ? [userId] : []))
     .map((row) => {
       const pkg = JSON.parse(row.package_json);
       return {
@@ -404,6 +404,31 @@ export function shareDetail(userId, id) {
     ...(row.user_id === userId ? { sourceId: row.source_id } : {}),
     package: (() => { const { coverAsset, ...pkg } = JSON.parse(row.package_json); return pkg; })(),
   };
+}
+/** Editing a published snapshot keeps its ID and preserves existing imported copies. */
+export function updateShare(userId, id, input) {
+  const db = database();
+  return transaction(db, () => {
+    const row = db.prepare('SELECT * FROM market_shares WHERE id=? AND user_id=? AND withdrawn=0').get(id, userId);
+    if (!row) { const error = new Error('找不到自己的分享'); error.statusCode = 404; throw error; }
+    const invalid = message => { const error = new Error(message); error.statusCode = 400; throw error; };
+    if (!input || typeof input !== 'object' || Array.isArray(input)) invalid('修改内容格式无效');
+    const old = JSON.parse(row.package_json);
+    const title = input.title === undefined ? old.title : input.title;
+    const description = input.description === undefined ? old.description ?? '' : input.description;
+    if (typeof title !== 'string' || !title.trim() || title.trim().length > 120) invalid('标题需为 1–120 个字符');
+    if (typeof description !== 'string' || description.length > 3000) invalid('简介不能超过 3000 个字符');
+    if (input.refreshSource !== undefined && typeof input.refreshSource !== 'boolean') invalid('更新原内容选项无效');
+    let pkg = old;
+    if (input.refreshSource) {
+      if (row.kind === 'listening') invalid('听力分享暂不支持更新原音频，请重新分享');
+      pkg = { ...sourcePackage(userId, { kind: row.kind, sourceId: row.source_id, title: title.trim(), description }),
+        ...(old.coverUrl ? { coverUrl: old.coverUrl, coverAsset: old.coverAsset } : {}) };
+    }
+    pkg = { ...pkg, title: title.trim(), description: description.trim() };
+    db.prepare('UPDATE market_shares SET package_json=? WHERE id=? AND user_id=? AND withdrawn=0').run(JSON.stringify(pkg), id, userId);
+    return shareDetail(userId, id);
+  });
 }
 export function withdrawShare(userId, id) {
   if (

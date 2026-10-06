@@ -1,3 +1,6 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { FileText, FolderHeart, Search } from 'lucide-react';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { articles as chineseArticles } from './build-community-articles.mjs';
@@ -128,3 +131,20 @@ for (const language of ['zh-CN', 'en', 'ja']) {
 const urls = ['/', ...paths, ...['ja', 'en'].flatMap((language) => paths.map((path) => localizedPath(language, path)))];
 writeFileSync(resolve('public/sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((path) => `  <url><loc>${origin}${path}</loc></url>`).join('\n')}\n</urlset>\n`);
 console.log(`Generated ${paths.length * 2} translated community pages and updated ${paths.length} Chinese pages.`);
+
+// One editorial catalog for Discover and the public community, generated from source articles.
+const discoveryIcon = icon => renderToStaticMarkup(createElement(icon, { size: 22, 'aria-hidden': true }));
+const editorialCatalog = Object.fromEntries(['zh-CN', 'ja', 'en'].map(language => [language, slugs.map((slug, index) => {
+  const article = language === 'zh-CN' ? sourceBySlug[slug] : articleTranslations[language][slug];
+  const cover = ['coffee', 'coffee', 'gold', 'stairs', 'clock'][index % 5];
+  return { id: slug, kind: 'article', title: article?.title ?? '如何把 AI 接入 JLPT Master', description: article?.description ?? '', cover, coverTitle: article?.module ?? 'AI × 日语', href: localizedPath(language, `/articles/${slug}/`) };
+})]));
+writeFileSync(resolve('public/community/catalog.json'), JSON.stringify(editorialCatalog));
+for (const language of ['zh-CN', 'ja', 'en']) {
+  const file = resolve('public', localizedPath(language, '/community/').slice(1), 'index.html');
+  let html = readFileSync(file, 'utf8').replaceAll('<script src="/community/discover.js" defer></script>', '').replaceAll('<link rel="stylesheet" href="/community/discover.css">', '');
+  const copy = language === 'ja' ? ['発見', 'すべて', '練習', 'AIアシスタント', '検索', '単語', '文法', '読解', '聴解', '練習を見る'] : language === 'en' ? ['Discover', 'All', 'Practice', 'AI Assistant', 'Search', 'Words', 'Grammar', 'Reading', 'Listening', 'Explore practice'] : ['发现', '全部', '练习', 'AI助手', '搜索', '单词', '语法', '阅读', '听力', '查看共享练习'];
+  const cards = editorialCatalog[language].map(article => `<a class="discover-card" data-title="${escape(article.title)}" href="${article.href}"><div class="discover-art"><img src="/images/discovery/${article.cover}.png" alt=""><span class="discover-badge">${copy[3]}</span><strong>${escape(article.coverTitle)}</strong></div><h2>${escape(article.title)}</h2><p>${discoveryIcon(FileText)} ${language === 'en' ? 'AI community' : language === 'ja' ? 'AI コミュニティ' : 'AI社区'}</p></a>`).join('');
+  html = html.replace(/<main\b[^>]*>[\s\S]*?<\/main>/, `<main id="main-content" tabindex="-1" class="discover-community"><header class="discover-heading"><button class="discover-search-toggle" type="button" aria-label="${copy[4]}" aria-expanded="false">${discoveryIcon(Search)}</button><label>${discoveryIcon(Search)}<span class="sr-only">${copy[4]}</span><input id="discover-search" type="search" placeholder="${copy[4]}"></label><h1>${copy[0]}</h1><a href="/#/market/mine" aria-label="${language === 'en' ? 'My shares' : language === 'ja' ? '自分の共有' : '我的分享'}">${discoveryIcon(FolderHeart)}</a></header><nav class="discover-tabs" aria-label="${copy[0]}">${copy.slice(1,4).map((label,i)=>`<button type="button" data-tab="${['all','practice','article'][i]}" aria-pressed="${i===0}">${label}</button>`).join('')}</nav><div class="discover-subjects" hidden>${[copy[1],...copy.slice(5,9)].map(label=>`<button type="button" aria-pressed="false">${label}</button>`).join('')}</div><div class="discover-grid">${cards}</div><p class="discover-empty" hidden></p><a class="discover-practice-link" href="/#/market" hidden>${copy[9]} →</a></main><script src="/community/discover.js" defer></script>`).replace('</head>', '<link rel="stylesheet" href="/community/discover.css"></head>');
+  writeFileSync(file, html);
+}

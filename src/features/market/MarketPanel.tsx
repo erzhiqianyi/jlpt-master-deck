@@ -3,7 +3,7 @@ import './market.css';
 import { useAuthoringNavigation } from '../../components/AuthoringNavigation';
 import { loadDiscoveryShares } from '../../lib/discovery';
 import { discoveryCategories, discoveryPresentation } from '../../domain/discoveryPresentation.mjs';
-import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Plus, Search, Undo2, UserRound } from 'lucide-react';
+import { Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, FileText, FolderHeart, Pencil, Plus, Search, Undo2, UserRound } from 'lucide-react';
 import { PracticePanel, PracticeReviewPanel } from "../practice/StudyPanels";
 import type { Question, AnswerState, DisplaySettings, Locale } from "../../types";
 import { LearningListFrame, LearningListHeader, LearningListPagination, LearningListSearch } from "../../components/LearningList";
@@ -64,8 +64,14 @@ export function MarketPanel({
   settings: DisplaySettings;
   locale: Locale;
 }) {
-  const [tab, setTab] = useState<"market" | "mine">("market");
-  const [kind, setKind] = useState<"all" | "vocabulary" | "grammar" | "listening">("all");
+  const mineView = initialShareId === 'mine';
+  const requestedShareId = mineView ? undefined : initialShareId;
+  const [kind, setKind] = useState<"all" | "vocabulary" | "grammar" | "reading" | "listening">("all");
+  const [contentTab, setContentTab] = useState('all');
+  const [articles, setArticles] = useState<{id: string; title: string; kind: string; cover: string; coverTitle: string; href: string}[]>([]);
+  useEffect(() => { let active = true; fetch('/community/catalog.json').then(r => { if (!r.ok) throw new Error('catalog'); return r.json(); }).then(data => { if (active) setArticles(data[locale] ?? []); }).catch(() => {}); return () => { active = false; }; }, [locale]);
+  const editorial = locale === 'ja' ? 'AIアシスタント' : locale === 'en' ? 'AI Assistant' : 'AI助手';
+  const practiceLabel = locale === 'ja' ? '練習' : locale === 'en' ? 'Practice' : '练习';
   const [shares, setShares] = useState<Share[]>([]);
   const [preview, setPreview] = useState<SharedContent | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -76,7 +82,7 @@ export function MarketPanel({
   const [notice, setNotice] = useState("");
   const [practiceActive, setPracticeActive] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  useAuthoringNavigation(practiceActive ? (locale === 'ja' ? '試用' : locale === 'en' ? 'Trial practice' : '分享试做') : null, () => setPracticeActive(false), { kind: 'practice' });
+  useAuthoringNavigation(practiceActive ? (locale === 'ja' ? '試用' : locale === 'en' ? 'Trial practice' : '分享试做') : mineView ? (preview ? preview.title : locale === 'ja' ? '自分の共有' : locale === 'en' ? 'My shares' : '我的分享') : null, () => { if (editing) setEditing(false); else if (practiceActive) setPracticeActive(false); else if (preview) clearPreview(); else window.location.hash = '#/market'; }, { kind: 'practice' });
   const [loadRevision, setLoadRevision] = useState(0);
   const [importedIds, setImportedIds] = useState<Set<string>>(() => new Set());
   const [importingIds, setImportingIds] = useState<Set<string>>(() => new Set());
@@ -84,11 +90,14 @@ export function MarketPanel({
   const importsRef = useRef({ token, pending: new Map<string, Promise<ImportResult>>(), added: new Set<string>() });
   const confirm = useConfirmation();
   const copy = marketCopy(locale);
+  const editLabel = locale === 'ja' ? '共有を編集' : locale === 'en' ? 'Edit share' : '编辑分享';
+  const [editing, setEditing] = useState(false);
+  const hasMineHeader = usePageHeaderActions(!preview && !mineView ? [{ key: 'my-shares', label: copy.myShares, icon: <FolderHeart size={22} />, onClick: () => { window.location.hash = '#/market/mine'; } }] : [], 0);
 
   const request = <T,>(path: string, method = "GET", body?: unknown) =>
     apiRequest<T>(path, { token, method, body });
   async function refresh() {
-    setShares(await loadDiscoveryShares(token));
+    setShares(await loadDiscoveryShares(token, mineView));
   }
   async function getContent(id: string): Promise<SharedContent> {
     return (await request<{ package: SharedContent }>(`/api/market/${encodeURIComponent(id)}`)).package;
@@ -118,24 +127,31 @@ export function MarketPanel({
     setPreview(null);
     setPreviewId(null);
     setPracticeActive(false);
+    setEditing(false);
+    setContentTab('all');
     setDescriptionExpanded(false);
     // A new route owns its own result. A slow previous share must not replace it.
-    void Promise.all([loadDiscoveryShares(token), initialShareId ? getContent(initialShareId) : Promise.resolve(null)])
+    void Promise.all([loadDiscoveryShares(token, mineView), requestedShareId ? getContent(requestedShareId) : Promise.resolve(null)])
       .then(([nextShares, content]) => {
         if (!active) return;
         setShares(nextShares);
         setPreview(content);
-        setPreviewId(initialShareId ?? null);
+        setPreviewId(requestedShareId ?? null);
       })
       .catch(() => { if (active) setError(copy.failed); })
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
-  }, [token, initialShareId, loadRevision]);
+  }, [token, requestedShareId, mineView, loadRevision]);
+  async function openShare(id: string) {
+    if (!mineView) { window.location.hash = `#/market/${encodeURIComponent(id)}`; return; }
+    await run(async () => { const content = await getContent(id); setPreview(content); setPreviewId(id); });
+  }
   function clearPreview() {
+    setEditing(false);
     setPreview(null);
     setPreviewId(null);
     setPracticeActive(false);
-    if (window.location.hash.startsWith('#/market/')) window.location.hash = '#/market';
+    if (!mineView && window.location.hash.startsWith('#/market/')) window.location.hash = '#/market';
   }
   function importShare(id: string): Promise<ImportResult> {
     const ledger = importsRef.current;
@@ -171,17 +187,18 @@ export function MarketPanel({
     } catch { if (importsRef.current === ledger) setError(copy.failed); }
   }
   async function withdrawShare(id: string) {
-    if (!(await confirm({ title: copy.withdraw, description: copy.withdrawConfirm(1), confirmLabel: copy.withdraw, cancelLabel: labels.cancel, danger: true }))) return;
+    if (!(await confirm({ title: copy.withdraw, description: copy.withdrawConfirm(1), confirmLabel: copy.withdraw, cancelLabel: labels.cancel || (locale === 'ja' ? 'キャンセル' : locale === 'en' ? 'Cancel' : '取消'), danger: true }))) return;
     await run(async () => {
       await request(`/api/market/${encodeURIComponent(id)}`, "DELETE");
       await refresh();
-      if (window.location.hash === `#/market/${encodeURIComponent(id)}`) clearPreview();
+      if (previewId === id) clearPreview();
       setNotice(copy.withdrawn);
     });
   }
-  const filtered = shares.filter((s) => (kind === "all" || discoveryCategories(s).includes(kind)) && (tab !== "mine" || s.mine) &&
+  const filteredArticles = articles.filter(article => article.title.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = shares.filter((s) => (contentTab !== "practice" || kind === "all" || discoveryCategories(s).includes(kind)) && (!mineView || s.mine) &&
     `${s.title} ${s.coverTitle ?? ""} ${s.description}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const mobileList = useMobileList(filtered.length, `${tab}:${kind}:${query}`, 8);
+  const mobileList = useMobileList(filtered.length, `${contentTab}:${mineView}:${kind}:${query}`, 8);
   const pageCount = Math.max(1, Math.ceil(filtered.length / 8));
   const currentPage = Math.min(page, pageCount - 1);
   const batch = useListBatch(filtered.map((s) => s.id));
@@ -196,36 +213,46 @@ export function MarketPanel({
   const visibleShares = mobileList.mobile ? filtered.slice(0, mobileList.visible) : filtered.slice(currentPage * 8, currentPage * 8 + 8);
   return (
     <section className="discovery-panel">
+      {!hasMineHeader && !preview && !mineView && <button className="discovery-my-shares" aria-label={copy.myShares} onClick={() => { window.location.hash = '#/market/mine'; }}><FolderHeart size={22} /></button>}
       {error && <p role="alert" className="market-error">{error}</p>}
       {!preview && error && <button type="button" className="cute-button min-h-11 px-4 py-2" onClick={() => setLoadRevision((value) => value + 1)}>{copy.retry}</button>}
-      {initialShareId && !preview && <section className="market-preview" aria-label={copy.preview}>{busy && <p role="status">{copy.loading}</p>}</section>}
+      {requestedShareId && !preview && <section className="market-preview" aria-label={copy.preview}>{busy && <p role="status">{copy.loading}</p>}</section>}
       {notice && <p role="status">{notice}</p>}
-      {!preview && !initialShareId && <LearningListFrame className="discovery-catalog" label={copy.shareList} locale={locale}>
-        <LearningListHeader showDensity={false} controlIcon={<Search size={22} />} expandedOnWide={false} appliedSummary={[query.trim() ? `${copy.search}: ${query.trim()}` : '', tab === 'mine' ? copy.myShares : ''].filter(Boolean).join(' · ')} onReset={() => { setQuery(''); setTab('market'); setKind('all'); setPage(0); }} title={copy.discover} count={`${filtered.length} ${copy.items}`} search={<LearningListSearch value={query} onChange={value => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale} />}>
-          <BatchManageButton batch={batch} locale={locale} />
+      {!preview && !requestedShareId && <LearningListFrame className="discovery-catalog" label={copy.shareList} locale={locale}>
+        <LearningListHeader showDensity={false} controlIcon={<Search size={22} />} expandedOnWide={false} appliedSummary={query.trim() ? `${copy.search}: ${query.trim()}` : ''} onReset={() => { setQuery(''); setKind('all'); setContentTab('all'); setPage(0); }} title={mineView ? copy.myShares : copy.discover} count={`${(contentTab === "article" ? 0 : filtered.length) + (contentTab === "practice" || mineView ? 0 : filteredArticles.length)} ${copy.items}`} search={<LearningListSearch value={query} onChange={value => { setQuery(value); setPage(0); }} label={copy.search} placeholder={copy.search} locale={locale} />}>
+          {mineView && <BatchManageButton batch={batch} locale={locale} />}
         </LearningListHeader>
-        <div className="discovery-categories" role="group" aria-label={copy.shareScope}>
-          {([['market', copy.allShares], ['mine', copy.myShares]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={tab === value} onClick={() => { setTab(value); setPage(0); }}>{label}</button>)}
-        </div>
-        <div className="discovery-categories" role="group" aria-label={copy.categories}>
-          {([['all', copy.all], ['vocabulary', copy.words], ['grammar', copy.grammar], ['listening', copy.listening]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>)}
-        </div>
+        {!mineView && <div className="discovery-categories discovery-content-tabs" role="group" aria-label={copy.categories}>
+          {([['all', copy.all], ['practice', practiceLabel], ['article', editorial]]).map(([value, label]) => <button key={value} type="button" aria-pressed={contentTab === value} onClick={() => { batch.exit(); setContentTab(value); setPage(0); }}>{label}</button>)}
+        </div>}
+        {!mineView && contentTab === 'practice' && <div className="discovery-categories discovery-subjects" role="group" aria-label={copy.categories}>
+          {([['all', copy.all], ['vocabulary', copy.words], ['grammar', copy.grammar], ['reading', locale === 'ja' ? '読解' : locale === 'en' ? 'Reading' : '阅读'], ['listening', copy.listening]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(0); }}>{label}</button>)}
+        </div>}
+
         <BatchActionBar batch={batch} actions={batchActions} locale={locale} />
         {busy ? <p role="status" className="list-empty">{copy.loading}</p> : <div className="discovery-cover-grid">
-          {visibleShares.map(share => <article key={share.id} className="discovery-cover-card">
+          {contentTab !== 'article' && visibleShares.map((share, index) => <article key={share.id} className="discovery-cover-card" style={{ order: index * 2 }}>
             {batch.active ? <label className="discovery-select"><input type="checkbox" checked={batch.selected.has(share.id)} onChange={() => batch.toggle(share.id)} aria-label={`${copy.select}: ${share.title}`} /></label> : null}
-            <button type="button" className="discovery-open-card" onClick={() => batch.active ? batch.toggle(share.id) : window.location.hash = `#/market/${encodeURIComponent(share.id)}`}>
-              <DiscoveryCover content={share} />
+            <button type="button" className="discovery-open-card" onClick={() => batch.active ? batch.toggle(share.id) : void openShare(share.id)}>
+              <DiscoveryCover content={share} /><span className="discovery-kind-badge">{practiceLabel}</span>
               <strong className="discovery-card-title">{share.title}</strong>
-              <span className="discovery-card-meta"><span><UserRound size={18} aria-hidden="true" />{share.mine ? copy.ownShareShort : copy.communityAuthor}</span><span>{share.count} {share.kind === 'wordbook' ? copy.wordUnit : copy.questionUnit}</span></span>
+              <span className="discovery-card-meta"><span><FileText size={18} aria-hidden="true" />{share.count} {share.kind === 'wordbook' ? copy.wordUnit : copy.questionUnit}</span></span>
             </button>
           </article>)}
-          {!filtered.length ? <p className="list-empty" role="status">{copy.noResults}</p> : null}
+          {contentTab !== 'practice' && !mineView && filteredArticles.map((article, index) => <article key={article.id} className="discovery-cover-card" style={{ order: index * 2 + 1 }}><a className="discovery-open-card" href={article.href}><DiscoveryCover content={article} /><span className="discovery-kind-badge is-article">{editorial}</span><strong className="discovery-card-title">{article.title}</strong><span className="discovery-card-meta"><span><FileText size={18} />{locale === 'en' ? 'AI community' : locale === 'ja' ? 'AI コミュニティ' : 'AI社区'}</span></span></a></article>)}
+          {!(contentTab === 'article' ? 0 : filtered.length) && !(contentTab === 'practice' || mineView ? 0 : filteredArticles.length) ? <p className="list-empty" role="status">{copy.noResults}</p> : null}
         </div>}
-        {mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? copy.endOfList : null}</div> : null}
-        {!mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`} previous={copy.previous} next={copy.next} /> : null}
+        {contentTab !== 'article' && mobileList.mobile && filtered.length ? <div ref={mobileList.setSentinel} className="catalog-notice" role="status">{mobileList.visible >= filtered.length ? copy.endOfList : null}</div> : null}
+        {contentTab !== 'article' && !mobileList.mobile && pageCount > 1 ? <LearningListPagination page={currentPage} pages={pageCount} onChange={setPage} summary={`${currentPage * 8 + 1}-${Math.min(currentPage * 8 + 8, filtered.length)} / ${filtered.length}`} previous={copy.previous} next={copy.next} /> : null}
       </LearningListFrame>}
-      {preview && previewId && (
+      {editing && preview && previewId && mineIds.has(previewId) && <ShareEditForm key={previewId} content={preview} locale={locale} busy={busy} onCancel={() => setEditing(false)} onSave={async input => {
+        await run(async () => {
+          const result = await request<{package: SharedContent}>(`/api/market/${encodeURIComponent(previewId)}`, 'PATCH', input);
+          setPreview(result.package); setEditing(false); setNotice(locale === 'ja' ? '保存しました' : locale === 'en' ? 'Share saved' : '分享已保存');
+          try { await refresh(); } catch { setError(locale === 'ja' ? '保存済みですが、一覧を更新できませんでした。' : locale === 'en' ? 'Share saved, but the list could not refresh.' : '分享已保存，但列表刷新失败，请重新加载。'); }
+        });
+      }} />}
+      {preview && previewId && !editing && (
         <section className="market-preview" aria-label={copy.preview}>
           {!practiceActive && <>
             <SharePreviewCarousel key={previewId} content={preview} copy={copy} presentation={shares.find(share => share.id === previewId)} />
@@ -241,7 +268,7 @@ export function MarketPanel({
                   setShares(current => current.map(share => share.id === previewId ? { ...share, ...result } : share));
                 } catch (cause) { setError(cause instanceof Error ? cause.message : copy.failed); }
                 finally { setBusy(false); }
-              }} coverLabel={locale === 'ja' ? '表紙をアップロード' : locale === 'en' ? 'Upload cover' : '上传封面'} onWithdraw={() => void withdrawShare(previewId)} /> : <ShareBookmark copy={copy} busy={busy || importingIds.has(previewId)} added={importedIds.has(previewId)} onAdd={() => void addShare(previewId, preview.kind)} />}
+              }} coverLabel={locale === 'ja' ? '表紙をアップロード' : locale === 'en' ? 'Upload cover' : '上传封面'} onEdit={() => setEditing(true)} editLabel={editLabel} onWithdraw={() => void withdrawShare(previewId)} /> : <ShareBookmark copy={copy} busy={busy || importingIds.has(previewId)} added={importedIds.has(previewId)} onAdd={() => void addShare(previewId, preview.kind)} />}
             </div>
             <p className="market-detail-author"><UserRound size={24} aria-hidden="true" />{mineIds.has(previewId) ? copy.ownShareShort : copy.communityAuthor}</p>
             {preview.description ? <div className="market-introduction">
@@ -252,7 +279,7 @@ export function MarketPanel({
             {preview.kind === 'listening' ? <SharedListening content={preview} shareId={previewId} token={token} locale={locale} /> : null}
             <div className="market-preview-actions">
               {preview.kind === 'practice' ? <button type="button" className="cute-button-primary" disabled={!preview.questions?.length} onClick={() => setPracticeActive(true)}>{copy.startPreview}</button> : !mineIds.has(previewId) ? <button type="button" className="cute-button-primary" disabled={busy || importingIds.has(previewId) || importedIds.has(previewId)} onClick={() => void addShare(previewId, preview.kind)}>{importingIds.has(previewId) ? copy.adding : importedIds.has(previewId) ? copy.added : copy.addToMine}</button> : null}
-              <p>{preview.kind === 'practice' ? copy.previewNotice : copy.importNotice}</p>
+              {(preview.kind === 'practice' || !mineIds.has(previewId)) && <p>{preview.kind === 'practice' ? copy.previewNotice : copy.importNotice}</p>}
             </div>
             <p className="market-source-notice">{copy.sourceNotice}</p>
           </>}
@@ -263,7 +290,7 @@ export function MarketPanel({
   );
 }
 
-function ShareManagement({ copy, busy, onWithdraw, onCover, coverLabel }: { onCover: (file: File) => Promise<void>; coverLabel: string; copy: ReturnType<typeof marketCopy>; busy: boolean; onWithdraw: () => void }) {
+function ShareManagement({ copy, busy, onWithdraw, onCover, coverLabel, onEdit, editLabel }: { onEdit: () => void; editLabel: string; onCover: (file: File) => Promise<void>; coverLabel: string; copy: ReturnType<typeof marketCopy>; busy: boolean; onWithdraw: () => void }) {
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const hasHeaderActions = usePageHeaderActions([{ key: 'share-manage', label: copy.manage, onClick: () => setOpen(true), disabled: busy }], 20);
@@ -272,6 +299,7 @@ function ShareManagement({ copy, busy, onWithdraw, onCover, coverLabel }: { onCo
     {!hasHeaderActions ? <button type="button" className="market-manage-trigger" disabled={busy} onClick={() => setOpen(true)}>{copy.manage}</button> : null}
     <dialog ref={dialog} className="market-management-dialog" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} aria-label={copy.manage}>
       <div><h3>{copy.manage}</h3><button type="button" aria-label={copy.close} onClick={() => setOpen(false)}>×</button></div>
+      <button type="button" disabled={busy} onClick={() => { setOpen(false); onEdit(); }}><Pencil size={16} />{editLabel}</button>
       <label>{coverLabel}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { setOpen(false); void onCover(file); } }} /></label>
       <button type="button" disabled={busy} onClick={() => { setOpen(false); onWithdraw(); }}><Undo2 size={16} aria-hidden="true" />{copy.withdraw}</button>
     </dialog>
@@ -425,4 +453,18 @@ function marketCopy(locale: Locale) {
     content: '分享内容', description: '内容简介', type: '类型', practice: '练习', wordUnit: '词', questionUnit: '题', add: '加入', loading: '加载中…', endOfList: '已经到底了', previous: '上一页', next: '下一页', preview: '分享内容预览', adding: '添加中…',
     audioUnavailable: '分享音频暂时无法播放', audioFailed: '音频加载失败', sharedAudio: '分享听力音频', audioLoading: '正在加载音频…', transcript: '听力原文', transcriptTranslation: '原文翻译',
   };
+}
+
+function ShareEditForm({ content, locale, busy, onCancel, onSave }: { content: SharedContent; locale: Locale; busy: boolean; onCancel: () => void; onSave: (input: {title: string; description: string; refreshSource: boolean}) => Promise<void> }) {
+  const [title, setTitle] = useState(content.title);
+  const [description, setDescription] = useState(content.description ?? '');
+  const [refreshSource, setRefreshSource] = useState(false);
+  const text = locale === 'ja' ? ['共有を編集', 'タイトル', '概要', '元の内容の最新版に更新', '保存', 'キャンセル', '元の単語帳や練習の編集後、共有内容を更新できます。取り込み済みのコピーは変更されません。'] : locale === 'en' ? ['Edit share', 'Title', 'Description', 'Update from the latest source', 'Save', 'Cancel', 'After editing the original wordbook or practice, update this share. Existing imported copies stay independent.'] : ['编辑分享', '标题', '简介', '更新为原内容最新版', '保存', '取消', '修改原单词本或练习后，可在这里更新分享内容。别人已导入的副本不会改变。'];
+  useAuthoringNavigation(text[0], () => { if (!busy) onCancel(); }, { kind: 'form', priority: 10 });
+  return <form className="share-edit-form" onSubmit={event => { event.preventDefault(); if (!busy && title.trim()) void onSave({ title, description, refreshSource }); }}>
+    <h2>{text[0]}</h2><label>{text[1]}<input value={title} maxLength={120} required disabled={busy} onChange={event => setTitle(event.target.value)} /></label>
+    <label>{text[2]}<textarea value={description} maxLength={3000} rows={5} disabled={busy} onChange={event => setDescription(event.target.value)} /></label>
+    {content.kind !== 'listening' && <><label className="share-refresh-source"><input type="checkbox" checked={refreshSource} disabled={busy} onChange={event => setRefreshSource(event.target.checked)} />{text[3]}</label><p>{text[6]}</p></>}
+    <div><button type="button" disabled={busy} onClick={onCancel}>{text[5]}</button><button type="submit" disabled={busy || !title.trim()}>{busy ? '…' : text[4]}</button></div>
+  </form>;
 }

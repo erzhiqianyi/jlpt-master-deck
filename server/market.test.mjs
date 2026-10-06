@@ -17,6 +17,7 @@ const {
   publishShare,
   listShares,
   withdrawShare,
+  updateShare,
   shareDetail,
   validatePackage,
 } = await import("./market.mjs");
@@ -65,6 +66,12 @@ test("wordbook import belongs only to receiving account, strips private metadata
   const copy = importPackage(b.id, share.package);
   assert.notEqual(copy.id, result.id);
   assert.equal(userReviewData(c.id).items.length, 0);
+  assert.throws(() => updateShare(b.id, share.id, {title:'not yours'}), {statusCode:404});
+  const edited = updateShare(a.id, share.id, {title:'新的公开标题', description:'新简介', refreshSource:true});
+  assert.equal(edited.id, share.id);
+  assert.equal(edited.package.title, '新的公开标题');
+  assert.equal(listWordbooks(b.id).find(book => book.id === copy.id).title, words.title);
+  assert.equal(listShares(a.id, true).every(row => row.mine), true);
   withdrawShare(a.id, share.id);
   assert.throws(() => shareDetail(b.id, share.id));
   assert.equal(userReviewData(b.id).items.length, 1);
@@ -207,4 +214,14 @@ test("public practice snapshot survives deleting the source practice and draft",
   db.prepare('DELETE FROM review_pack_drafts WHERE id=? AND user_id=?').run(practice.sourceDraftId,a.id);
   const imported=importShare(b.id,published.id);
   assert.equal(getDailyPractice(b.id,imported.id).questions[0].answer,'ねこ');
+});
+
+test('My shares is not clipped by the public latest-200 feed', () => {
+  const db = getDb();
+  const insert = db.prepare('INSERT INTO market_shares (id,user_id,source_id,kind,package_json,created_at) VALUES (?,?,?,?,?,?)');
+  insert.run('old-own-share', a.id, 'source', 'wordbook', JSON.stringify(words), '2020-01-01T00:00:00Z');
+  for (let index = 0; index < 201; index++) insert.run(`new-other-${index}`, b.id, 'source', 'wordbook', JSON.stringify(words), '2026-10-06T00:00:00Z');
+  assert.equal(listShares(a.id).some(share => share.id === 'old-own-share'), false);
+  assert.equal(listShares(a.id, true).some(share => share.id === 'old-own-share'), true);
+  assert.equal(listShares(a.id, true).every(share => share.mine), true);
 });

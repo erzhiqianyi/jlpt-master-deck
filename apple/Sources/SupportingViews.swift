@@ -934,6 +934,8 @@ private extension ISO8601DateFormatter {
 struct PracticeFeedbackSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var mode = "immediate"
+    @State private var practiceNavigation = "auto"
+    @State private var practiceAutoAdvanceSeconds = 0.5
     @State private var vocabularyKinds: Set<String> = []
     private let vocabularyOptions = [("kanji_to_kana", "漢字読み（汉字读音）"), ("kana_to_kanji", "表記（假名选汉字）"), ("word_formation", "語形成（构词）"), ("moji_goi", "文脈規定（语境填空）"), ("meaning", "言い換え類義（近义替换）"), ("usage", "用法（词语用法）")]
     @State private var message: String?
@@ -964,9 +966,22 @@ struct PracticeFeedbackSettingsView: View {
                 }.pickerStyle(.inline)
             } footer: { Text("应用于新开始的练习；与网页端同步。") }
             Section {
+                Picker("答题后切换", selection: $practiceNavigation) {
+                    Text("自动跳转").tag("auto")
+                    Text("手动切换").tag("manual")
+                }.pickerStyle(.segmented).accessibilityIdentifier("settings.practiceNavigation")
+                if practiceNavigation == "auto" {
+                    Stepper(value: $practiceAutoAdvanceSeconds, in: 0...10, step: 0.1) {
+                        Text("自动跳转等待：\(practiceAutoAdvanceSeconds, specifier: "%.1f") 秒")
+                    }.accessibilityIdentifier("settings.practiceAutoAdvanceSeconds")
+                }
+            } header: { Text("答题后切换") }
+              footer: { Text("用于全部答完后查看答案的模式。0 秒表示立即跳转；逐题查看解析时，阅读后手动切换。") }
+              .disabled(loadingSettings || store.isSaving)
+            Section {
                 Button(store.isSaving ? "保存中…" : "保存设置") {
                     Task {
-                        do { try await store.saveSettings(["feedbackMode": .string(mode), "jlptVocabularyQuestionKinds": .array(vocabularyOptions.map(\.0).filter { vocabularyKinds.contains($0) }.map(SettingValue.string)), "requireJlptVocabularyQuestions": .bool(!vocabularyKinds.isEmpty)]); message = "已保存" }
+                        do { try await store.saveSettings(["feedbackMode": .string(mode), "practiceNavigation": .string(practiceNavigation), "practiceAutoAdvanceSeconds": .number((practiceAutoAdvanceSeconds * 10).rounded() / 10), "jlptVocabularyQuestionKinds": .array(vocabularyOptions.map(\.0).filter { vocabularyKinds.contains($0) }.map(SettingValue.string)), "requireJlptVocabularyQuestions": .bool(!vocabularyKinds.isEmpty)]); message = "已保存" }
                         catch { message = error.localizedDescription }
                     }
                 }.disabled(loadingSettings || store.isSaving || store.isLoading || (!store.isOnline && !store.isDemo))
@@ -987,6 +1002,10 @@ struct PracticeFeedbackSettingsView: View {
         }
     }
     private func loadVocabularyKinds(_ settings: [String: SettingValue]?) {
+        practiceNavigation = settings?["practiceNavigation"] == .string("manual") ? "manual" : "auto"
+        if case .number(let seconds) = settings?["practiceAutoAdvanceSeconds"], seconds.isFinite {
+            practiceAutoAdvanceSeconds = (min(10, max(0, seconds)) * 10).rounded() / 10
+        } else { practiceAutoAdvanceSeconds = 0.5 }
         if case .array(let selected) = settings?["jlptVocabularyQuestionKinds"] {
             vocabularyKinds = Set(selected.compactMap { value in
                 if case .string(let kind) = value, vocabularyOptions.contains(where: { $0.0 == kind }) { return kind }
@@ -1067,7 +1086,7 @@ struct ExamGoalSettingsView: View {
 struct DisplayReadingSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var language = "zh-CN"
-    @State private var fontSize = "standard"
+    @State private var fontScale = 1.0
     @State private var japaneseDisplay = JapaneseDisplay()
     @State private var reviewKana = false
     @State private var explanationKana = false
@@ -1084,12 +1103,23 @@ struct DisplayReadingSettingsView: View {
                 }.accessibilityIdentifier("settings.language")
             }
             Section("字体大小") {
-                Picker("字体大小", selection: $fontSize) {
-                    Text("小").tag("small")
-                    Text("标准").tag("standard")
-                    Text("大").tag("large")
-                }.pickerStyle(.segmented).accessibilityIdentifier("settings.fontSize")
-                Text("显示与阅读").font(.system(size: 20 * (fontSize == "large" ? 1.2 : fontSize == "small" ? 0.9 : 1)))
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("字体大小")
+                        Spacer()
+                        Text(String(format: "%.1f×", fontScale)).monospacedDigit()
+                    }
+                    Slider(value: $fontScale, in: 0.8...2.0, step: 0.1)
+                        .accessibilityLabel("字体大小")
+                        .accessibilityValue(String(format: "%.1f×", fontScale))
+                        .accessibilityIdentifier("settings.fontSize")
+                    HStack {
+                        Text("0.8×")
+                        Spacer()
+                        Text("2.0×")
+                    }.font(.caption).foregroundStyle(DeckTheme.muted)
+                }
+                Text("显示与阅读").font(.system(size: 20 * fontScale))
             }
             Section {
                 Toggle("复习时显示假名", isOn: $reviewKana).accessibilityIdentifier("settings.reviewKana")
@@ -1132,7 +1162,7 @@ struct DisplayReadingSettingsView: View {
                     saving = true; message = nil
                     Task {
                         do {
-                            try await store.saveSettings(["locale": .string(language), "fontSize": .string(fontSize), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana), "japaneseDisplay": japaneseDisplay.setting])
+                            try await store.saveSettings(["locale": .string(language), "fontScale": .number(fontScale), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana), "japaneseDisplay": japaneseDisplay.setting])
                             message = "已保存"
                         } catch { message = error.localizedDescription }
                         saving = false
@@ -1145,7 +1175,7 @@ struct DisplayReadingSettingsView: View {
             .task {
                 guard !loaded else { return }
                 language = store.appLanguage
-                if case .string(let value) = store.state.settings?["fontSize"] { fontSize = value }
+                fontScale = Double(store.textScale)
                 japaneseDisplay = JapaneseDisplay(settings: store.state.settings)
                 reviewKana = store.displayFlag("showReviewRuby")
                 explanationKana = store.displayFlag("showExplanationRuby")

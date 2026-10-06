@@ -26,7 +26,7 @@ struct ReviewSession: Identifiable { let id = UUID(); let items: [StudyItem] }
 // and detail scroll positions remain owned by the mounted destination views.
 // A cold launch restores the last module only, never an unfinished answer.
 enum WorkspaceRoute: Hashable {
-    case module(Destination), item(String), reading(String), listening(String), discovery(String), settings
+    case module(Destination), item(String), reading(String), listening(String), discovery(String), myShares, settings
 }
 
 struct WorkspaceNavigation {
@@ -233,6 +233,7 @@ struct WorkspaceView: View {
     }
     @ViewBuilder private func routeContent(_ route: WorkspaceRoute) -> some View {
         switch route {
+        case .myShares: MyDiscoverySharesView()
         case .settings: NativeSettingsView()
         case .module(let destination): detail(destination)
         case .item(let id):
@@ -271,7 +272,7 @@ struct WorkspaceView: View {
             }
         }
         .modifier(WorkspacePageStyle(title: destination == .today ? "学习" : destination.rawValue))
-        .toolbar { workspaceToolbar(showAccount: [.today, .discovery, .history].contains(destination)) }
+        .toolbar { workspaceToolbar(showAccount: [.today, .history].contains(destination)) }
         .modifier(LibrarySearch(enabled: [.vocabulary, .grammar].contains(destination), query: $query))
     }
     private func openSettings() {

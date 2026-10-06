@@ -123,6 +123,7 @@ extension AppStore {
         return bundle.localizedString(forKey: key, value: key, table: "Localizable")
     }
     var textScale: CGFloat {
+        if case .number(let value) = state.settings?["fontScale"], value.isFinite { return CGFloat(min(2, max(0.8, value))) }
         if case .string(let value) = state.settings?["fontSize"] { return value == "large" ? 1.2 : value == "small" ? 0.9 : 1 }
         return 1
     }

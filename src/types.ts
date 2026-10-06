@@ -101,6 +101,8 @@ export type DisplaySettings = {
   memoryCardFrontFields: import('./domain/memoryCards').MemoryCardField[];
   memoryCardBackFields: import('./domain/memoryCards').MemoryCardField[];
   feedbackMode: FeedbackMode;
+  practiceNavigation?: 'auto' | 'manual';
+  practiceAutoAdvanceSeconds?: number;
   questionTypeTips: Record<string, string>;
   customQuestionTypeTips: CustomQuestionTypeTip[];
   ttsProvider: TtsProviderId;

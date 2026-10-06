@@ -272,6 +272,10 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(query.waitForExistence(timeout: 5))
         XCTAssertEqual(query.value as? String, "測定")
         let enqueue = app.buttons["review.lookup.enqueue"]
+        XCTAssertFalse(enqueue.exists, "Known words only show reading and meaning")
+        query.tap()
+        query.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 2) + "未登録テスト語")
+        XCTAssertTrue(enqueue.waitForExistence(timeout: 5))
         XCTAssertTrue(enqueue.isEnabled)
         enqueue.tap()
         let queued = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "已加入待解析队列"), object: enqueue)
@@ -335,7 +339,7 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertEqual(ratings[0].frame.minY, dockY, accuracy: 2)
         capture("review-back-fixed-rating-dock")
     }
-    func testBatchSelectionCanStayThenChangeAndAutomaticallyAdvance() throws {
+    func testBatchSelectionAutomaticallyAdvancesWithoutStayPrompt() throws {
         app.terminate(); app.launchArguments = ["--demo", "--practice-fixture", "--batch-feedback-fixture"]; app.launch()
         primary("学习")
         let start = app.buttons["today.practice.ui-fixture"]
@@ -343,18 +347,38 @@ final class NavigationLifecycleTests: XCTestCase {
         let first = app.buttons["quiz.choice.0"].firstMatch
         XCTAssertTrue(first.waitForExistence(timeout: 5)); reveal(first)
         first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
-        app.buttons["quiz.stay"].tap()
-        XCTAssertEqual(first.value as? String, "已选择")
-        XCTAssertTrue(app.staticTexts["quiz.selectedAnswer"].exists)
+        XCTAssertFalse(app.buttons["quiz.stay"].exists)
+        XCTAssertFalse(app.staticTexts["quiz.selectedAnswer"].exists)
         let secondPage = app.scrollViews["quiz.question.1"]
-        let noAdvance = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: secondPage)
-        noAdvance.isInverted = true
-        XCTAssertEqual(XCTWaiter.wait(for: [noAdvance], timeout: 1.2), .completed)
-        let second = app.buttons["quiz.choice.1"].firstMatch
-        second.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
-        XCTAssertEqual(second.value as? String, "已选择")
         let advanced = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: secondPage)
         XCTAssertEqual(XCTWaiter.wait(for: [advanced], timeout: 4), .completed)
+    }
+
+    func testManualPracticeNavigationSettingKeepsTheCurrentQuestion() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--practice-fixture", "--batch-feedback-fixture"]; app.launch()
+        primary("学习")
+        app.buttons["workspace.account"].firstMatch.tap()
+        app.buttons["settings.feedback"].tap()
+        let manual = app.segmentedControls["settings.practiceNavigation"].buttons["手动切换"]
+        reveal(manual); manual.tap()
+        let save = app.buttons["保存设置"]
+        reveal(save); save.tap()
+        XCTAssertTrue(app.staticTexts["已保存"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["settings.feedback"].tap()
+        XCTAssertTrue(app.segmentedControls["settings.practiceNavigation"].buttons["手动切换"].isSelected)
+        XCTAssertFalse(app.steppers["settings.practiceAutoAdvanceSeconds"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let start = app.buttons["today.practice.ui-fixture"]
+        reveal(start); start.tap()
+        let first = app.buttons["quiz.choice.0"].firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 5)); reveal(first)
+        first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
+        let advanced = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: app.scrollViews["quiz.question.1"])
+        advanced.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [advanced], timeout: 1.2), .completed)
+        XCTAssertEqual(first.value as? String, "已选择")
     }
 
     func testPracticeChoiceTextImmediatelySelectsAndAllowsChangingWithoutAdvancing() throws {

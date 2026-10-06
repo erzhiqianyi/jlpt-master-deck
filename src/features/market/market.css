@@ -106,3 +106,34 @@
   .mobile-app-header.is-discovery-header > div:first-child > div:first-child { display: none; }
   .mobile-app-header.is-discovery-header h1 { padding: 0; max-width: none; font-size: 1.75rem; font-weight: 750; color: var(--ui-ink); }
 }
+.discovery-content-tabs button { font-size: 1.25rem; font-weight: 650; }
+.discovery-subjects { gap: 12px; padding-bottom: 14px; }
+.discovery-subjects button { padding: 5px 14px; border: 0; border-radius: 24px; }
+.discovery-subjects button[aria-pressed='true'] { background: #ffdfca; color: #85351f; }
+.discovery-mine-filter { margin: 0 0 16px; color: var(--ui-muted); font-size: .8rem; min-height: 36px; }
+.discovery-mine-filter[aria-pressed='true'] { color: var(--ui-green); font-weight: 700; }
+.discovery-artwork { aspect-ratio: 5 / 6; border-radius: 12px; }
+.discovery-cover-type { padding-top: 36%; }
+.discovery-kind-badge { position: absolute; top: 12px; left: 12px; padding: 4px 12px; border-radius: 10px; background: #bd5032; color: white; font-size: .8rem; }
+.discovery-kind-badge.is-article { background: #738368; }
+.discovery-card-title { font-size: 1.05rem; line-height: 1.35; }
+.discovery-card-meta { font-size: .9rem; }
+.discovery-card-meta svg { padding: 0; background: none; border-radius: 0; color: var(--ui-muted); width: 18px; height: 18px; }
+.discovery-preview-slide .discovery-artwork { aspect-ratio: 2 / 3; }
+.discovery-my-shares { display:flex; margin-left:auto; padding:10px; color:var(--ui-ink); }
+.share-edit-form { max-width:680px; margin:0 auto; display:grid; gap:20px; padding:24px 0; }
+.share-edit-form h2 { font-size:1.4rem; font-weight:700; }
+.share-edit-form label { display:grid; gap:8px; font-weight:600; }
+.share-edit-form input:not([type=checkbox]), .share-edit-form textarea { width:100%; padding:12px; border:1px solid var(--ui-border); border-radius:10px; background:var(--ui-surface); color:var(--ui-ink); font:inherit; }
+.share-edit-form .share-refresh-source { display:flex; gap:10px; align-items:center; }
+.share-edit-form p { color:var(--ui-muted); font-size:.9rem; line-height:1.7; }
+.share-edit-form > div { display:flex; justify-content:flex-end; gap:16px; }
+.share-edit-form button { min-height:44px; padding:10px 22px; border-radius:10px; border:1px solid var(--ui-border); }
+.share-edit-form button[type=submit] { background:var(--ui-accent); color:white; }
+.share-edit-form button:disabled { opacity:.5; }
+@media(max-width:767px) {
+  .mobile-app-header.is-discovery-header > div:first-child { position:relative; justify-content:center; }
+  .is-discovery-header .page-header-action { position:absolute; left:20px; top:12px; }
+  .is-discovery-header .page-header-action[data-action-key='my-shares'] { left:auto; right:20px; }
+}
+@media(max-width:767px) { .share-edit-form h2 { display:none; } }

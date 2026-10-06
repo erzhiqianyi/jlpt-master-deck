@@ -33,6 +33,10 @@ struct APIClient {
     func put<T: Decodable, Body: Encodable>(_ path: String, body: Body) async throws -> T {
         try await send(path, method: "PUT", data: JSONEncoder().encode(body))
     }
+    func patch<T: Decodable, Body: Encodable>(_ path: String, body: Body) async throws -> T {
+        try await send(path, method: "PATCH", data: JSONEncoder().encode(body))
+    }
+    func delete<T: Decodable>(_ path: String) async throws -> T { try await send(path, method: "DELETE") }
     private func send<T: Decodable>(_ path: String, method: String = "GET", data: Data? = nil) async throws -> T {
         #if DEBUG
         Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Network").debug("request \(method, privacy: .public) \(path, privacy: .public)")

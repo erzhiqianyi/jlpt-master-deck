@@ -78,7 +78,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
   const word = normalizeLookup(query);
   const matches = useMemo(() => findLookupItems(items, word).map((item) => ({
     item, meaning: itemMeaning(item, locale)?.trim() || item.meaning_zh?.trim() || item.meaning_ja?.trim(),
-  })).filter((match) => match.meaning), [items, word, locale]);
+  })), [items, word, locale]);
   const queued = saved.includes(word) || captures.some((capture) => capture.status === 'inbox' && capture.category === 'word' && normalizeLookup(capture.body) === word);
   useEffect(() => {
     const element = dialog.current;
@@ -89,7 +89,7 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
     return () => { element?.close(); document.body.style.overflow = previous; active?.focus(); };
   }, []);
   async function enqueue() {
-    if (!word || queued || busy.current || !enabled) return;
+    if (!word || findLookupItems(items, word).length || queued || busy.current || !enabled) return;
     busy.current = true; setSaving(true); setError('');
     try {
       await onCapture({ body: word, category: 'word', targetDeck: 'n1_vocab', context: `点词查询\n原文：${selection.context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` });
@@ -104,16 +104,15 @@ function LookupDialog({ selection, items, captures, locale, enabled, onCapture, 
       <input id="lookup-query" lang="ja" value={query} disabled={saving} onChange={(event) => { setQuery(event.target.value); setError(''); }} />
       {!word ? <p>请输入要查询的单词。</p> : matches.length ? matches.map(({ item, meaning }) => <article key={item.id}>
         <p className="word-lookup-reading-row">
-          {item.reading && item.reading !== word && <span className="word-lookup-reading" lang="ja">{item.reading}</span>}
+          {item.reading && <span className="word-lookup-reading" lang="ja">{item.reading}</span>}
           <SpeechControls text={item.reading || item.original} label={`朗读「${item.original}」`} />
         </p>
-        <p>{meaning}</p>
+        <p>{meaning || '暂无释义'}</p>
       </article>) : <div className="word-lookup-empty"><p>暂无释义。</p>
         <button type="button" disabled={!enabled || saving || queued} onClick={enqueue}>{saving ? '正在加入…' : queued ? '已加入待解析队列' : '加入待解析队列'}</button>
         {!enabled && <p>登录后可以加入队列。</p>}
         {queued && <p role="status">解析后可在词库查看。</p>}
       </div>}
-      {matches.length > 0 && <div className="word-lookup-empty"><button type="button" disabled={!enabled || saving || queued} onClick={enqueue}>{saving ? '正在加入…' : queued ? '已加入待解析队列' : '加入待解析队列'}</button>{!enabled && <p>登录后可以加入队列。</p>}{queued && <p role="status">解析后可在词库查看。</p>}</div>}
       {error && <p role="alert">{error}</p>}
     </div>
   </dialog>;

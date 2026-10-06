@@ -49,25 +49,26 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
     const heading = node('h2', '单词查询'); const input = document.createElement('input');
     input.value = word; input.setAttribute('aria-label', '查询词（可修改）');
     const results = node('div'); const status = node('p'); status.setAttribute('role', 'status');
-    const queued = new Set<string>(); let request = 0;
+    const queued = new Set<string>(); let request = 0; let hasMatches = false;
     const enqueue = button('加入待解析队列', () => {
-      const query = input.value.trim(); if (!query || queued.has(query)) return;
+      const query = input.value.trim(); if (!query || queued.has(query) || hasMatches || enqueue.disabled) return;
       enqueue.disabled = true; input.disabled = true; status.textContent = '正在加入…';
       void lookup.enqueue(query, context).then(() => { queued.add(query); status.textContent = '已加入待解析队列'; })
         .catch((cause) => { status.textContent = cause instanceof Error ? cause.message : String(cause); })
         .finally(() => { input.disabled = false; enqueue.disabled = queued.has(input.value.trim()); });
     });
     const search = async () => {
-      const current = ++request; const query = input.value.trim(); enqueue.disabled = !query || queued.has(query);
+      const current = ++request; const query = input.value.trim(); hasMatches = false; enqueue.hidden = true; enqueue.disabled = true;
       results.textContent = query ? '正在查询…' : '请输入日语单词。';
       if (!query) return;
       try {
         const matches = await lookup.query(query); if (current !== request) return;
+        hasMatches = matches.length > 0; enqueue.hidden = hasMatches; enqueue.disabled = hasMatches || queued.has(query);
         results.replaceChildren(...(matches.length ? matches.map(item => node('p', [item.original, item.reading, item.meaning_zh || item.meaning_ja].filter(Boolean).join(' · '))) : [node('p', '暂无释义。')]));
       } catch (cause) { if (current === request) results.textContent = cause instanceof Error ? cause.message : String(cause); }
     };
     input.oninput = () => { status.textContent = ''; void search(); };
-    dialog.append(heading, input, results, enqueue, status, node('p', context), button('关闭', () => dialog.close()));
+    dialog.append(heading, input, results, enqueue, status, button('关闭', () => dialog.close()));
     dialog.onclose = () => dialog.remove(); root.append(dialog); dialog.showModal(); input.focus(); await search();
   }
   function setData(next: ReviewCards) {

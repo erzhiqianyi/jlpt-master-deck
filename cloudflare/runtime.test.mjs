@@ -54,6 +54,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.ok(!(reviewInput.questionId in (await json('/api/study-state')).answers));
 
     assert.ok((await json('/api/market','GET',undefined,'test-2')).shares.some(s=>s.id===share.id&&!s.mine));
+    assert.equal((await request(`/api/market/${share.id}`, 'PATCH', {title:'stolen'}, 'test-2')).status, 404);
+    const editedShare = await json(`/api/market/${share.id}`, 'PATCH', {title:'Updated shared book', description:'Edited intro', refreshSource:true});
+    assert.equal(editedShare.id, share.id);
+    assert.equal(editedShare.package.title, 'Updated shared book');
+    assert.equal((await json('/api/market?mine=1')).shares.every(row => row.mine), true);
     const coverPayload = { mime: 'image/png', imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=' };
     assert.equal((await request(`/api/market/${share.id}/cover`, 'PUT', coverPayload, 'test-2')).status, 404);
     const coverResult = await json(`/api/market/${share.id}/cover`, 'PUT', coverPayload);

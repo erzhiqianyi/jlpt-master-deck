@@ -267,7 +267,7 @@ final class AppStore {
             guard expected == generation else { throw CancellationError() }
             settings = result.settings
         }
-        for key in ["memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "showReviewRuby", "showExplanationRuby", "japaneseDisplay", "requireJlptVocabularyQuestions", "jlptVocabularyQuestionKinds"] {
+        for key in ["practiceNavigation", "practiceAutoAdvanceSeconds", "memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "fontScale", "showReviewRuby", "showExplanationRuby", "japaneseDisplay", "requireJlptVocabularyQuestions", "jlptVocabularyQuestionKinds"] {
             if let requested = changes[key], settings[key] != requested {
                 throw APIError.http(409, "服务器未保留设置，请同步后重试。")
             }

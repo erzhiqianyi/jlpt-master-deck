@@ -331,6 +331,20 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
           <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
         </div>
       </SettingsRow>
+      <SettingsRow title={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.locale]}>
+        <div className="settings-feedback-options" role="group" aria-label={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.locale]}>
+          <SegmentButton active={settings.practiceNavigation !== 'manual'} onClick={() => onUpdateSettings({ ...settings, practiceNavigation: 'auto' })}>{{ 'zh-CN': '自动跳转', ja: '自動で移動', en: 'Automatic' }[settings.locale]}</SegmentButton>
+          <SegmentButton active={settings.practiceNavigation === 'manual'} onClick={() => onUpdateSettings({ ...settings, practiceNavigation: 'manual' })}>{{ 'zh-CN': '手动切换', ja: '手動で移動', en: 'Manual' }[settings.locale]}</SegmentButton>
+        </div>
+        {settings.practiceNavigation !== 'manual' && <label className="flex min-h-11 items-center gap-3 mt-3">
+          <span>{{ 'zh-CN': '自动跳转等待（秒）', ja: '移動までの待ち時間（秒）', en: 'Delay before advancing (seconds)' }[settings.locale]}</span>
+          <input type="number" min={0} max={10} step={0.1} key={settings.practiceAutoAdvanceSeconds ?? 0.5} defaultValue={settings.practiceAutoAdvanceSeconds ?? 0.5} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} onBlur={(event) => {
+            if (event.target.value === '' || !Number.isFinite(event.target.valueAsNumber)) return;
+            onUpdateSettings({ ...settings, practiceAutoAdvanceSeconds: Math.round(Math.max(0, Math.min(10, event.target.valueAsNumber)) * 10) / 10 });
+          }} />
+        </label>}
+        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '用于整组反馈模式。0 秒表示立即跳转；逐题反馈模式下，阅读解析后手动切换。', ja: 'まとめて答え合わせする場合に適用。0秒ならすぐ移動します。1問ずつ答え合わせする場合は、解説を読んで手動で移動します。', en: 'Applies when reviewing at the end. Set 0 for immediate navigation. With per-question feedback, advance manually after reading the explanation.' }[settings.locale]}</p>
+      </SettingsRow>
       </>
     );
   }

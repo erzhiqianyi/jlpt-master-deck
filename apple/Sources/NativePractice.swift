@@ -245,6 +245,11 @@ struct NativeQuizView: View {
     @State private var timingActive = true
     @State private var batchFeedback = false
     private var question: NativeQuestion? { round.questions.indices.contains(index) ? round.questions[index] : nil }
+    private var autoAdvance: Bool { store.state.settings?["practiceNavigation"] != .string("manual") }
+    private var autoAdvanceSeconds: Double {
+        if case .number(let seconds) = store.state.settings?["practiceAutoAdvanceSeconds"], seconds.isFinite { return min(10, max(0, seconds)) }
+        return 0.5
+    }
     private var correct: Int { attemptAnswers.filter(\.correct).count }
     private func recorded(_ question: NativeQuestion) -> NativeAttempt.AttemptAnswer? { attemptAnswers.first { $0.questionId == question.id } }
     var body: some View {
@@ -281,15 +286,16 @@ struct NativeQuizView: View {
             }
             .interactiveDismissDisabled().onAppear { restoreRound() }
             .task(id: pendingAdvance) {
-                guard let request = pendingAdvance else { return }
-                do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
-                guard !Task.isCancelled, pendingAdvance == request, index == request.index,
+                guard let request = pendingAdvance, autoAdvance else { return }
+                do { try await Task.sleep(nanoseconds: UInt64(autoAdvanceSeconds * 1_000_000_000)) } catch { return }
+                guard !Task.isCancelled, autoAdvance, pendingAdvance == request, index == request.index,
                       selections[request.questionID] == request.choice, !saving, !finished,
                       !showingQuestionList, !showingSubmitConfirmation, scenePhase == .active else { return }
                 pendingAdvance = nil
                 let remaining = round.questions.indices.filter { selections[round.questions[$0].id] == nil }
                 if let next = remaining.first(where: { $0 > index }) ?? remaining.first { withAnimation { index = next } }
             }
+            .onChange(of: autoAdvance) { _, automatic in if !automatic { pendingAdvance = nil } }
             .onChange(of: showingQuestionList) { _, open in if open { pendingAdvance = nil } }
             .onChange(of: showingSubmitConfirmation) { _, open in if open { pendingAdvance = nil } }
             .onChange(of: index) { old, _ in
@@ -373,13 +379,12 @@ struct NativeQuizView: View {
     private func select(_ choice: String, for question: NativeQuestion) {
         guard !saving, recorded(question) == nil, self.question?.id == question.id else { return }
         selections[question.id] = choice
-        pendingAdvance = batchFeedback && round.questions.contains(where: { selections[$0.id] == nil })
+        pendingAdvance = batchFeedback && autoAdvance && round.questions.contains(where: { selections[$0.id] == nil })
             ? NativePracticeAdvance(questionID: question.id, choice: choice, index: index) : nil
     }
     private func questionCard(_ question: NativeQuestion) -> some View {
         let answer = recorded(question)
         return VStack(alignment: .leading, spacing: 20) {
-            JapaneseText(text: question.kind == "kanji_to_kana" ? "请选择下划线词语的读音" : (question.instruction?.isEmpty == false ? question.instruction! : question.title), japanese: true, allowsRuby: false, weight: .semibold)
             if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
             JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             VStack(spacing: 12) {
@@ -403,19 +408,6 @@ struct NativeQuizView: View {
             VStack(spacing: 0) {
                 Divider()
                 if batchFeedback {
-                    if let selected = selections[question.id] {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("已选择：\(selected)").font(.subheadline.weight(.semibold)).lineLimit(2)
-                                    .accessibilityIdentifier("quiz.selectedAnswer")
-                                if pendingAdvance != nil { Text("1 秒后进入下一道未答题，可继续改选").font(.caption).foregroundStyle(DeckTheme.muted) }
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                            if pendingAdvance != nil {
-                                Button("留在本题") { pendingAdvance = nil }.buttonStyle(.bordered)
-                                    .accessibilityIdentifier("quiz.stay")
-                            }
-                        }.padding(.horizontal, 16).padding(.top, 10)
-                    }
                     Button(saving ? "正在交卷…" : "交卷并查看答案（\(selections.count)/\(round.questions.count)）") { showingSubmitConfirmation = true }
                         .buttonStyle(PrimaryButton()).disabled(saving)
                         .accessibilityIdentifier("quiz.submit")
@@ -479,6 +471,9 @@ struct NativeQuizView: View {
                             .buttonStyle(PrimaryButton()).accessibilityIdentifier("quiz.review.mistakes")
                     }
                     if !round.questions.isEmpty {
+                        Button { restartPractice() } label: { Label("重新练习", systemImage: "arrow.clockwise") }
+                            .buttonStyle(PrimaryButton()).disabled(saving)
+                            .accessibilityIdentifier("quiz.restart")
                         Button { beginReview(onlyMistakes: false) } label: { Label("查看全部解析（\(round.questions.count)）", systemImage: "text.book.closed") }
                             .buttonStyle(PrimaryButton()).accessibilityIdentifier("quiz.review.all")
                     }
@@ -487,6 +482,26 @@ struct NativeQuizView: View {
                 }.frame(maxWidth: 850).padding(20).frame(maxWidth: .infinity)
             }.accessibilityIdentifier("quiz.results.summary")
         }
+    }
+    private func restartPractice() {
+        guard !saving, !round.questions.isEmpty else { return }
+        pendingAdvance = nil
+        showingQuestionList = false
+        showingSubmitConfirmation = false
+        reviewingResults = false
+        reviewOnlyMistakes = true
+        reviewIndex = 0
+        selections = [:]
+        attemptAnswers = []
+        elapsed = [:]
+        failure = nil
+        resumedAttemptID = "native-\(UUID().uuidString)"
+        attemptStarted = .now
+        questionStarted = attemptStarted
+        index = 0
+        timingActive = true
+        finished = false
+        saveCheckpoint()
     }
     private func resultMetric(_ title: String, count: Int, icon: String, color: Color) -> some View {
         VStack(spacing: 8) {

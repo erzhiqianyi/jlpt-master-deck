@@ -98,6 +98,16 @@ test("local deployment: registration, login, sharing, per-account import and own
     assert.equal(coverResponse.status, 200);
     assert.equal(coverResponse.headers.get('content-type'), 'image/png');
     assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()), Buffer.from(coverBody.imageBase64, 'base64'));
+    assert.equal((await call(`/api/market/${id}`, { token: b.token, method: 'PATCH', body: { title: 'not yours' } })).status, 404);
+    assert.equal((await call(`/api/market/${id}`, { token: a.token, method: 'PATCH', body: { title: ' ' } })).status, 400);
+    assert.equal((await call(`/api/market/${id}`, { token: a.token, method: 'PATCH', body: { description: 'x'.repeat(3001) } })).status, 400);
+    const edited = await call(`/api/market/${id}`, { token: a.token, method: 'PATCH', body: { title: '编辑后的分享', description: '新简介', refreshSource: true } });
+    assert.equal(edited.status, 200);
+    assert.equal(edited.body.id, id);
+    assert.equal(edited.body.package.title, '编辑后的分享');
+    assert.equal(edited.body.package.description, '新简介');
+    assert.equal(edited.body.package.coverUrl, uploaded.body.coverUrl);
+    assert.equal(edited.body.package.items[0].original, '本');
     const list = await call("/api/market", { token: b.token });
     assert.equal(list.body.shares[0].mine, false);
     assert.equal(list.body.shares[0].coverUrl, uploaded.body.coverUrl);
@@ -109,7 +119,7 @@ test("local deployment: registration, login, sharing, per-account import and own
       body: { shareId: id, package: { ...detail.body.package, title: "tampered" } },
     });
     assert.notEqual(copy.body.id, imported.body.id);
-    assert.equal(copy.body.title, pkg.title);
+    assert.equal(copy.body.title, '编辑后的分享');
     assert.equal(
       (await call(`/api/market/${id}`, { token: b.token, method: "DELETE" }))
         .status,

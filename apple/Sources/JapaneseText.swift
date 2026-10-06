@@ -372,29 +372,32 @@ struct NativeWordLookupView: View {
                     if matches.isEmpty { Text("暂无释义，可加入待解析队列。") }
                     ForEach(matches) { item in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(item.original).font(.headline)
                             if let reading = item.reading { Text(reading).foregroundStyle(DeckTheme.muted) }
                             Text(item.meaning_zh ?? item.meaning_ja ?? "暂无释义")
                             NativeSpeechControls(text: item.reading ?? item.original, label: "读音")
                         }
                     }
                 }
-                Section {
-                    Button(saving ? "正在加入…" : queued ? "已加入待解析队列" : "加入待解析队列") {
-                        let requested = query
-                        saving = true; error = nil
-                        Task {
-                            defer { saving = false }
-                            do {
-                                try await store.capture(.init(body: requested, category: "word", context: "点词查询\n原文：\(context)\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。"))
-                                savedWords.insert(requested)
-                            } catch { self.error = error.localizedDescription }
-                        }
-                    }.disabled(query.isEmpty || saving || queued).accessibilityIdentifier("review.lookup.enqueue")
-                    if let error { Text(error).foregroundStyle(.red) }
+                if matches.isEmpty {
+                    Section {
+                        Button(saving ? "正在加入…" : queued ? "已加入待解析队列" : "加入待解析队列") {
+                            guard matches.isEmpty, !query.isEmpty, !queued, !saving else { return }
+                            let requested = query
+                            saving = true; error = nil
+                            Task {
+                                defer { saving = false }
+                                do {
+                                    try await store.capture(.init(body: requested, category: "word", context: "点词查询\n原文：\(context)\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。"))
+                                    savedWords.insert(requested)
+                                } catch { self.error = error.localizedDescription }
+                            }
+                        }.disabled(query.isEmpty || saving || queued).accessibilityIdentifier("review.lookup.enqueue")
+                        if let error { Text(error).foregroundStyle(.red) }
+                    }
+                    Section("原文上下文") { Text(context) }
                 }
-                Section("原文上下文") { Text(context) }
             }.navigationTitle("单词查询")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("关闭") { dismiss() }.disabled(saving) } }
         }.interactiveDismissDisabled(saving).environment(\.japaneseLookupEnabled, false)
     }

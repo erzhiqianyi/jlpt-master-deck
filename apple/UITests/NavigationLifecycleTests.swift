@@ -48,6 +48,39 @@ final class NavigationLifecycleTests: XCTestCase {
         }
         XCTAssertTrue(element.isHittable)
     }
+    func testListeningCardResumeAndResults() throws {
+        app.terminate(); app.launchArguments = ["--demo", "--listening-fixture"]; app.launch()
+        primary("题库")
+        app.buttons["nav.听力"].tap()
+        app.buttons.containing(.staticText, identifier: "shinkanzen_chokai_n1_CD-A_013.mp3").firstMatch.tap()
+        if app.buttons["重新开始"].exists { app.buttons["重新开始"].tap() }
+        XCTAssertTrue(app.buttons["listening.choice.0.0"].waitForExistence(timeout: 5))
+        app.buttons["listening.choice.0.0"].tap()
+        capture("listening-single-question")
+        app.buttons["答题卡"].tap(); capture("listening-answer-card")
+        app.buttons["关闭答题卡"].tap()
+        app.buttons["暂停练习"].tap(); capture("listening-paused")
+        app.buttons["保存并退出"].tap()
+        app.buttons.containing(.staticText, identifier: "shinkanzen_chokai_n1_CD-A_013.mp3").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["继续上次练习"].waitForExistence(timeout: 5))
+        capture("listening-resume")
+        app.buttons["继续练习"].tap()
+        for number in 1..<11 {
+            app.buttons["下一题"].tap()
+            let choice = app.buttons["listening.choice.\(number).\(number == 3 || number == 6 || number == 9 ? 1 : 0)"]
+            XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+        }
+        app.buttons["完成练习"].tap()
+        XCTAssertTrue(app.staticTexts["练习完成"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["73%"].exists)
+        capture("listening-results")
+        app.buttons["查看错题"].tap()
+        XCTAssertTrue(app.staticTexts["答错"].waitForExistence(timeout: 5))
+        capture("listening-mistake-review")
+        app.buttons["下一错题"].tap()
+        XCTAssertTrue(app.staticTexts["7 / 11"].waitForExistence(timeout: 5))
+    }
+
     func testJapaneseRubySegmentationAndSettingsPersist() throws {
         app.terminate(); app.launchArguments = ["--demo", "--japanese-display-fixture"]; app.launch()
         primary("题库")

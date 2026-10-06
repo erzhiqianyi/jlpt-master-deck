@@ -103,3 +103,16 @@ extension DemoData {
     }
 }
 #endif
+
+#if DEBUG
+extension DemoData {
+    static let listeningFixture: [ListeningItem] = (0..<11).map { number in
+        ListeningItem(id: "fixture-listening-\(number)", title: "基础训练", question: number == 0 ? "例" : "第 \(number + 1) 题",
+                      explanation: "音频中说明已经去了，所以选择「行った」。", questionTypeId: "listening-basic-training",
+                      choices: ["行った", "行っていない"], answerIndex: 0,
+                      transcript: "昨日、図書館に行きました。", transcriptTranslation: "昨天去了图书馆。",
+                      audioAssetId: "fixture-listening-audio", libraryNumber: number + 1,
+                      audioFileName: "shinkanzen_chokai_n1_CD-A_013.mp3", audioSize: 0, createdAt: "2026-10-06T00:00:00Z")
+    }
+}
+#endif

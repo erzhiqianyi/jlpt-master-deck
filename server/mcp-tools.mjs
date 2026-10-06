@@ -188,9 +188,10 @@ const listeningCreateFields = {
   explanation: z.string().optional(),
   transcript: z.string().max(30000).optional().describe('Japanese transcript shared by every question linked to this audio.'),
   transcriptTranslation: z.string().max(30000).optional().describe('Optional full Chinese translation of the shared audio transcript.'),
-  audioFileName: z.string(),
-  audioMime: z.string(),
-  audioBase64: z.string(),
+  audioReference: z.string().regex(/^AU-\d{6,}$/).optional().describe('Reuse an owned uploaded audio by public reference, e.g. AU-001823. Omit all audio upload fields.'),
+  audioFileName: z.string().optional(),
+  audioMime: z.string().optional(),
+  audioBase64: z.string().optional(),
 };
 const listeningUpdateFields = {
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
@@ -266,7 +267,7 @@ export const tools = [
     async (args, ctx) => text(getDailyPracticeSourceContext(uid(ctx), args))),
   tool('get_study_record', 'Read the full personalized study record from SQLite plus JSON resources.',
     {}, ro, async (_args, ctx) => text(buildStudyRecord(uid(ctx)))),
-  tool('list_learning_captures', 'Read the AI processing queue. Use status inbox for pending work and category to process by type. Preserve context and targetDeck/targetWordbookId. For word/grammar use upsert_review_item (canonical form, source sentence, requested wordbook); for reading use create_reading_question or update_reading_question; for listening use create_listening_question only with real audio, otherwise leave pending. For sentence/unsure first classify from context; do not invent missing source material. Check existing records before writing to avoid duplicates. Only after successful persistence call update_learning_capture_status with processed; on failure leave inbox.',
+  tool('list_learning_captures', 'Read the AI processing queue. Use status inbox for pending work and category to process by type. Preserve context and targetDeck/targetWordbookId. For word/grammar use upsert_review_item (canonical form, source sentence, requested wordbook); for reading use create_reading_question or update_reading_question; for listening use create_listening_question with an owned audioReference or real audio bytes, otherwise leave pending. For sentence/unsure first classify from context; do not invent missing source material. Check existing records before writing to avoid duplicates. Only after successful persistence call update_learning_capture_status with processed; on failure leave inbox.',
     { status: z.enum(['inbox', 'processed', 'archived']).optional(), category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional().describe('Filter queue by input type.') }, ro,
     async ({ status, category }, ctx) => text(listLearningCaptures(uid(ctx), status).filter((capture) => !category || capture.category === category))),
   tool('update_learning_capture_status', 'Synchronize an owned queue entry after processing. Mark processed only after the parsed result has been successfully saved using the appropriate library tool. Leave failed or ambiguous inputs in inbox. Use inbox to retry or archived to dismiss.', {
@@ -378,19 +379,19 @@ export const tools = [
   tool('list_listening_recordings', 'Read all your recordings for a listening question, including completed analyses; this does not claim or change a recording.',
     { question_id: z.string() }, ro,
     async ({ question_id }, ctx) => text(listListeningRecordings(uid(ctx), question_id))),
-  tool('create_listening_question', 'Create a listening question from metadata and real audio bytes. Provide the shared Japanese transcript and its Chinese translation when available. Per-choice translations and explanations are optional and can be added later. Empty choices with answerIndex -1 are supported for listening-basic-training.',
+  tool('create_listening_question', 'Create a listening question using an owned audioReference without reuploading, or real audio bytes (audioFileName, audioMime, audioBase64). Choose exactly one audio source. Provide the shared Japanese transcript and its Chinese translation when available. Per-choice translations and explanations are optional and can be added later. Empty choices with answerIndex -1 are supported for listening-basic-training.',
     listeningCreateFields, rw, async (args, ctx) => text(createListeningQuestion(uid(ctx), args)), { scope: 'library:write' }),
   ...['update_listening_question', 'edit_listening_question', 'patch_listening_question'].map((name) =>
     tool(name, listeningUpdateDescription, listeningUpdateFields, replacing,
       async ({ id, ...patch }, ctx) => text(found(updateListeningQuestion(uid(ctx), id, patch), 'Listening question not found')),
       { scope: 'library:write' })),
-  tool('upsert_listening_question', 'With id: partially update an owned question, preserving audio; unknown or unowned ids fail and never create a record. Without id: create a question, requiring question, choices, answerIndex, audioFileName, audioMime and real audioBase64. Audio fields are forbidden when updating; libraryNumber is only supported when updating.', {
+  tool('upsert_listening_question', 'With id: partially update an owned question, preserving audio; unknown or unowned ids fail and never create a record. Without id: create a question with question, choices, answerIndex and either an owned audioReference or audioFileName, audioMime and real audioBase64. Audio fields are forbidden when updating; libraryNumber is only supported when updating.', {
     ...Object.fromEntries(Object.entries(listeningCreateFields).map(([key, schema]) => [key, schema.optional()])),
     ...listeningUpdateFields,
     id: z.string().min(1).optional(),
   }, replacing, async (args, ctx) => {
     if (args.id !== undefined) {
-      for (const key of ['audioFileName', 'audioMime', 'audioBase64']) {
+      for (const key of ['audioReference', 'audioFileName', 'audioMime', 'audioBase64']) {
         if (args[key] !== undefined) throw new Error(`${key} cannot be supplied when updating; audio is unchanged`);
       }
       const { id, ...patch } = z.object(listeningUpdateFields).parse(args);

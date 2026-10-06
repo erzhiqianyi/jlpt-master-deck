@@ -674,6 +674,7 @@ final class AppStore {
             state.settings = ["showReviewRuby": .bool(true), "showExplanationRuby": .bool(true), "japaneseDisplay": display.setting]
         }
         if ProcessInfo.processInfo.arguments.contains("--item-detail-fixture") { items.insert(DemoData.itemDetailFixture, at: 0) }
+        if ProcessInfo.processInfo.arguments.contains("--listening-fixture") { listening = DemoData.listeningFixture; hasListeningCache = true }
         if ProcessInfo.processInfo.arguments.contains("--practice-fixture") { packs = [DemoData.practiceFixture] }
         if ProcessInfo.processInfo.arguments.contains("--batch-feedback-fixture") { state.settings = (state.settings ?? [:]).merging(["feedbackMode": .string("batch")]) { _, new in new } }
         if ProcessInfo.processInfo.arguments.contains("--statistics-fixture") { state.attemptHistory = DemoData.statisticsFixture(); packs = [DemoData.practiceFixture] }

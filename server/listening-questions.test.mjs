@@ -269,3 +269,29 @@ test('MCP supports basic-training questions without choices', async () => {
   assert.deepEqual(updated.choices, []);
   assert.equal(updated.answerIndex, -1);
 });
+
+for (const name of ['create_listening_question', 'upsert_listening_question']) {
+  test(`${name} creates questions from an owned audio reference without uploading`, async () => {
+    const source = await call('create_listening_question', { ...makeInput(name + '-reference'), transcript: '共有原文' });
+    const { audioFileName, audioMime, audioBase64, ...metadata } = makeInput('reuse');
+    const input = { ...metadata, questionTypeId: 'listening-basic-training', choices: [], choiceDetails: [], answerIndex: -1, audioReference: source.audioReference };
+    const assetsBefore = storage.getDb().prepare('SELECT COUNT(*) AS n FROM listening_audio_assets').get().n;
+    const saved = await call(name, input);
+    assert.notEqual(saved.id, source.id);
+    assert.equal(saved.audioAssetId, source.audioAssetId);
+    assert.equal(saved.audioReference, source.audioReference);
+    assert.equal(saved.audioFileName, source.audioFileName);
+    assert.equal(saved.transcript, '共有原文');
+    assert.equal(saved.libraryNumber, source.libraryNumber + 1);
+    assert.equal(storage.getDb().prepare('SELECT COUNT(*) AS n FROM listening_audio_assets').get().n, assetsBefore);
+    const before = storage.listListeningQuestions(alice.id).length;
+    await assert.rejects(call(name, input, bob), /Audio reference not found/);
+    await assert.rejects(call(name, { ...input, audioReference: 'AU-999999' }), /Audio reference not found/);
+    await assert.rejects(call(name, { ...input, audioBase64 }), /cannot be combined/);
+    await assert.rejects(call(name, { ...input, choices: ['one'], answerIndex: 0 }), /choices/);
+    assert.equal(storage.listListeningQuestions(alice.id).length, before);
+    await call('delete_listening_question', { id: saved.id });
+    const audioResult = await tools.find(tool => tool.name === 'get_listening_audio').handler({ question_id: source.id }, { ownerId: String(alice.id), scopes: ['audio:read'] });
+    assert.equal(audioResult.content[0].type, 'audio');
+  });
+}

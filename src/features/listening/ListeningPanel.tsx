@@ -149,11 +149,11 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           {!readAlongOpen ? <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} locale={locale} questionCount={activeLibraryQuestion.audioAssetId ? activeGroup.length : 1} /> : null}
         </div>
         <div className="listening-answer-layout">
-        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} active={!readAlongOpen} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
+        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} active={!readAlongOpen} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
         <aside className="listening-audio-sidebar" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
           <div className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto">
             {!readAlongOpen ? <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} onOpenReadAlong={() => setReadAlongOpen(true)} /> : null}
-            {activeGroup.length > 1 ? <ListeningQuestionNavigation questions={activeGroup} locale={locale} mobile={mobileList.mobile} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} /> : null}
+            {activeGroup.length > 1 ? <ListeningQuestionNavigation questions={activeGroup} locale={locale} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} /> : null}
           </div>
         </aside>
         </div>
@@ -343,7 +343,8 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             </label>
             </div></details>
           </section>
-          <h2 className="listening-question-stage-title">{locale === 'ja' ? '2 · 問題を追加' : locale === 'en' ? '2 · Add questions' : '2 · 为素材添加题目'}</h2>
+          <section className="listening-question-stage" aria-labelledby="listening-question-heading">
+          <h2 id="listening-question-heading" className="listening-question-stage-title">{locale === 'ja' ? '2 · 問題を追加' : locale === 'en' ? '2 · Add questions' : '2 · 为素材添加题目'}</h2>
             <div className="listening-draft-navigation"><span className="mr-1 text-sm font-bold text-[#31564c]">题目导航</span>{(activeDraftIndex === null || tailDraft.current ? [...queuedDrafts, { title, questionTypeId, question, choices, answerIndex, explanation }] : queuedDrafts).map((draft, index) => <button key={index} type="button" onClick={() => openDraft(index)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-3 text-sm font-bold ${index === (activeDraftIndex ?? queuedDrafts.length) ? 'border-[#31564c] bg-[#31564c] text-white' : 'border-[#cbd6cf] bg-white text-[#31564c]'}`}>{index + 1} · {listeningQuestionTypeName(draft.questionTypeId)}</button>)}</div>
           <div className="listening-form-fields">
 
@@ -373,25 +374,24 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
               <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={labels.listeningTitlePlaceholder} maxLength={120} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" />
             </label>
 
-          <label className="block text-sm font-semibold text-[#46514c]">
-            {labels.listeningQuestion}
-            <textarea value={question} readOnly maxLength={1000} className="mt-2 min-h-24 w-full cursor-not-allowed rounded-md border border-[#c8d1c8] bg-[#f4f7f3] p-3 text-base leading-6 text-[#46514c]" required />
-          </label>
+          <details className="listening-prompt-details"><summary>{locale === 'ja' ? '問題の指示文' : locale === 'en' ? 'Question instructions' : '题型说明'}<ChevronDown size={16} aria-hidden="true" /></summary><p>{question}</p></details>
 
-          <details className="content-form-group" onInvalid={(event) => { event.currentTarget.open = true; }}><summary><strong>{locale === 'ja' ? '選択肢と解説' : locale === 'en' ? 'Choices and explanation' : '选项与解析'}</strong><span>{locale === 'en' ? 'Choices, translations and explanations' : locale === 'ja' ? '選択肢・翻訳・解説' : '选项 · 每项含翻译与解析 · 总解析（可选）'}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
-          <div className="grid gap-3">
+          <details open className="content-form-group listening-choices-form-group" onInvalid={(event) => { event.currentTarget.open = true; }}><summary><strong>{locale === 'ja' ? '選択肢と解説' : locale === 'en' ? 'Choices and explanation' : '选项与解析'}</strong><span>{locale === 'en' ? 'Choices, translations and explanations' : locale === 'ja' ? '選択肢・翻訳・解説' : '选项 · 每项含翻译与解析 · 总解析（可选）'}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="content-form-group-body">
+          <div className="listening-choice-grid grid gap-3">
             {choices.slice(0, typeGuidance.freeResponse ? 4 : typeGuidance.choiceCount).map((choice, index) => (
               <fieldset key={index} className="grid gap-2 rounded-lg border border-[#dce9df] bg-[#fbfdfb] p-3 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-[#46514c] sm:col-span-2">
-                  {labels.listeningChoice.replace('{number}', String(index + 1))}{index === answerIndex ? ' · 正确答案' : ''}
+                  {labels.listeningChoice.replace('{number}', String(index + 1))}{!isBlankBasicTraining && !typeGuidance.freeResponse && index === answerIndex ? ' · 正确答案' : ''}
                   <input value={choice} onChange={(event) => setChoices((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} maxLength={300} className="mt-2 h-11 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-base" required={!typeGuidance.freeResponse && !typeGuidance.choicesOptional} />
                 </label>
+                <details className="listening-choice-details sm:col-span-2"><summary>{locale === 'ja' ? '翻訳・解説' : locale === 'en' ? 'Translation and explanation' : '翻译与解析'}{choiceDetails[index]?.translation || choiceDetails[index]?.explanation ? (locale === 'ja' ? ' · 入力済み' : locale === 'en' ? ' · Added' : ' · 已填写') : ''}<ChevronDown size={14} aria-hidden="true" /></summary><div className="listening-choice-detail-fields">
                 <label className="block text-sm font-medium text-[#68716b]">{labels.listeningChoiceTranslation}
                   <input value={choiceDetails[index]?.translation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'translation', event.target.value))} maxLength={2000} className="mt-1 h-10 w-full rounded-md border border-[#c8d1c8] bg-white px-3 text-sm" />
                 </label>
                 <label className="block text-sm font-medium text-[#68716b]">{labels.listeningChoiceExplanation}
                   <textarea value={choiceDetails[index]?.explanation ?? ''} onChange={(event) => setChoiceDetails((current) => updateListeningChoiceDetail(current, index, 'explanation', event.target.value))} maxLength={4000} className="mt-1 min-h-16 w-full rounded-md border border-[#c8d1c8] bg-white p-2 text-sm leading-5" />
                 </label>
+                </div></details>
               </fieldset>
             ))}
           </div>
@@ -407,6 +407,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
             <button type="button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) addDraft(); }} disabled={submitting || matchingAudio || !audioFile}>{locale === 'ja' ? '次の問題を追加' : locale === 'en' ? 'Add next question' : '添加下一题'}</button>
             <button type="submit" disabled={submitting || matchingAudio || !audioFile} className="content-form-submit">{submitting ? labels.listeningSubmitting : locale === 'ja' ? '保存して完了' : locale === 'en' ? 'Save and finish' : '保存并完成添加'}</button>
           </div>
+          </section>
         </form>
       ) : null}
 
@@ -671,39 +672,18 @@ function ListeningAudioTools({ item, labels, locale, token, onOpenReadAlong }: {
   </div>;
 }
 
-function ListeningQuestionNavigation({ questions, locale, mobile, mobileIndex, onMobileIndexChange }: { questions: ListeningQuestion[]; locale: Locale; mobile: boolean; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
-  const [activeId, setActiveId] = useState(questions[0]?.id);
-
-  useEffect(() => {
-    if (mobile) return;
-    setActiveId(questions[0]?.id);
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (visible) setActiveId(visible.target.id.replace('listening-question-', ''));
-    }, { rootMargin: '-15% 0px -65% 0px' });
-    for (const question of questions) {
-      const element = document.getElementById(`listening-question-${question.id}`);
-      if (element) observer.observe(element);
-    }
-    return () => observer.disconnect();
-  }, [questions, mobile]);
-
+function ListeningQuestionNavigation({ questions, locale, mobileIndex, onMobileIndexChange }: { questions: ListeningQuestion[]; locale: Locale; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
   return <nav className="border-b border-[#ead1dc] pb-3 md:pb-4" aria-label={locale === 'ja' ? '問題ナビゲーション' : locale === 'en' ? 'Question navigation' : '题目导航'}>
     <h3 className="hidden text-sm font-bold text-[#31564c] md:block">{locale === 'ja' ? '問題ナビゲーション' : locale === 'en' ? 'Questions' : '题目导航'} <span className="font-normal text-[#778079]">({questions.length})</span></h3>
     <div className="flex gap-2 overflow-x-auto pb-1 md:mt-3 md:flex-wrap md:overflow-visible md:pb-0">
       {questions.map((question, index) => <button key={question.id} type="button"
         onClick={() => {
-          if (mobile) {
-            onMobileIndexChange(index);
-            window.requestAnimationFrame(() => document.getElementById('listening-question-group')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-          } else {
-            setActiveId(question.id);
-            document.getElementById(`listening-question-${question.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          onMobileIndexChange(index);
+          window.requestAnimationFrame(() => document.getElementById('listening-question-group')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
         }}
         aria-label={locale === 'ja' ? `問題 ${index + 1}` : locale === 'en' ? `Question ${index + 1}` : `第 ${index + 1} 题`}
-        aria-current={(mobile ? mobileIndex === index : activeId === question.id) ? 'location' : undefined}
-        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition-colors md:h-11 md:w-11 ${(mobile ? mobileIndex === index : activeId === question.id) ? 'border-[#7aa88b] bg-[#edf5ee] text-[#31564c]' : 'border-[#d8e0d7] bg-white text-[#46514c] hover:bg-[#f4faf5]'}`}>
+        aria-current={(mobileIndex === index) ? 'location' : undefined}
+        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition-colors md:h-11 md:w-11 ${(mobileIndex === index) ? 'border-[#7aa88b] bg-[#edf5ee] text-[#31564c]' : 'border-[#d8e0d7] bg-white text-[#46514c] hover:bg-[#f4faf5]'}`}>
         {index + 1}
       </button>)}
     </div>
@@ -712,7 +692,7 @@ function ListeningQuestionNavigation({ questions, locale, mobile, mobileIndex, o
 
 type GroupAnswer = { selected: number | null; freeResponse: string };
 
-function ListeningQuestionGroup({ active, questions, recordPractice, labels, locale, onUpdate, onDelete, mobile, mobileIndex, onMobileIndexChange }: { active: boolean; questions: ListeningQuestion[]; recordPractice: RecordPractice; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobile: boolean; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
+function ListeningQuestionGroup({ active, questions, recordPractice, labels, locale, onUpdate, onDelete, mobileIndex, onMobileIndexChange }: { active: boolean; questions: ListeningQuestion[]; recordPractice: RecordPractice; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
   const [answers, setAnswers] = useState<Record<string, GroupAnswer>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   // Keep editor data mounted behind shadowing, but only the visible page owns Back.
@@ -738,7 +718,7 @@ function ListeningQuestionGroup({ active, questions, recordPractice, labels, loc
     const missing = questions.findIndex((item) => isFreeResponse(item) ? !answers[item.id]?.freeResponse.trim() : answers[item.id]?.selected == null);
     if (missing >= 0) {
       setNotice(locale === 'ja' ? `問題 ${missing + 1} に答えてください` : locale === 'en' ? `Answer question ${missing + 1} first` : `请先回答第 ${missing + 1} 题`);
-      if (mobile) onMobileIndexChange(missing);
+      onMobileIndexChange(missing);
       window.requestAnimationFrame(() => document.getElementById(`listening-question-${questions[missing].id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       return;
     }
@@ -764,17 +744,17 @@ function ListeningQuestionGroup({ active, questions, recordPractice, labels, loc
 
   return <div id="listening-question-group" className="min-w-0 scroll-mt-16">
     <div className="divide-y divide-[#f0d4dd]">{questions.map((item, index) => {
-      if (mobile && index !== mobileIndex) return null;
+      if (index !== mobileIndex) return null;
       const sameAsPrevious = sameListeningHeading(questions[index - 1], item);
       const sharedTitle = sameAsPrevious || sameListeningHeading(item, questions[index + 1]);
       return <Fragment key={item.id}>
-        {sharedTitle && !sameAsPrevious ? <h3 className="break-words bg-[#f4faf5] px-4 py-4 text-lg font-semibold leading-7 text-[#27312c] md:px-6">{item.title}</h3> : null}
+        {sharedTitle ? <h3 className="break-words bg-[#f4faf5] px-4 py-4 text-lg font-semibold leading-7 text-[#27312c] md:px-6">{item.title}</h3> : null}
         <div id={`listening-question-${item.id}`} className="scroll-mt-6">
           <ListeningQuestionItem item={item} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} detail hideTitle={sharedTitle} questionNumber={index + 1} answer={answers[item.id] ?? { selected: null, freeResponse: '' }} onAnswerChange={(answer) => updateAnswer(item.id, answer)} revealed={revealed} editing={editingId === item.id} onEditingChange={(open) => setEditingId(open ? item.id : null)} />
         </div>
       </Fragment>;
     })}</div>
-    {mobile && questions.length > 1 ? <div className="flex items-center justify-between gap-3 border-t border-[#f0d4dd] px-4 py-3 text-sm font-semibold text-[#31564c]">
+    {questions.length > 1 ? <div className="flex items-center justify-between gap-3 border-t border-[#f0d4dd] px-4 py-3 text-sm font-semibold text-[#31564c]">
       <button type="button" disabled={mobileIndex === 0} onClick={() => { onMobileIndexChange(mobileIndex - 1); document.getElementById('listening-question-group')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="min-h-10 rounded-lg border border-[#d8e0d7] px-3 disabled:opacity-40">{locale === 'ja' ? '前へ' : locale === 'en' ? 'Previous' : '上一题'}</button>
       <span>{mobileIndex + 1} / {questions.length}</span>
       <button type="button" disabled={mobileIndex >= questions.length - 1} onClick={() => { onMobileIndexChange(mobileIndex + 1); document.getElementById('listening-question-group')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="min-h-10 rounded-lg border border-[#d8e0d7] px-3 disabled:opacity-40">{locale === 'ja' ? '次へ' : locale === 'en' ? 'Next' : '下一题'}</button>

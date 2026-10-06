@@ -686,35 +686,42 @@ struct MemoryImagePreview: View {
     }
     @Environment(\.dismiss) private var dismiss
     let selection: Selection
-    @State private var reset = 0
+    @State private var download: Selection?
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             Color.black.ignoresSafeArea()
-            VStack(spacing: 0) {
-                HStack(spacing: 16) {
-                    Text(selection.caption).font(.subheadline).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark").font(.headline).frame(width: 44, height: 44)
-                            .background(.white.opacity(0.15), in: Circle())
-                    }.accessibilityLabel("关闭大图").accessibilityIdentifier("imagePreview.close")
-                }.padding(.horizontal, 16).padding(.vertical, 8)
-                ZoomableMemoryImage(bitmap: selection.bitmap, caption: selection.caption, reset: reset)
-                    .accessibilityIdentifier("imagePreview.image")
-                HStack {
-                    Text("双指缩放 · 双击放大").font(.footnote).foregroundStyle(.white.opacity(0.7))
-                    Spacer()
-                    Button("还原") { reset += 1 }.frame(minWidth: 44, minHeight: 44)
-                        .accessibilityLabel("还原图片大小")
-                }.padding(.horizontal, 20).padding(.vertical, 4)
-            }
-        }.foregroundStyle(.white).environment(\.colorScheme, .dark)
+            ZoomableMemoryImage(bitmap: selection.bitmap, caption: selection.caption)
+                .ignoresSafeArea()
+                .accessibilityIdentifier("imagePreview.image")
+            HStack(spacing: 12) {
+                Button { download = selection } label: {
+                    Image(systemName: "arrow.down.to.line").font(.headline).frame(width: 44, height: 44)
+                        .background(.black.opacity(0.6), in: Circle())
+                }.accessibilityLabel("下载图片").accessibilityIdentifier("imagePreview.download")
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark").font(.headline).frame(width: 44, height: 44)
+                        .background(.black.opacity(0.6), in: Circle())
+                }.accessibilityLabel("关闭大图").accessibilityIdentifier("imagePreview.close")
+            }.padding(16)
+        }
+        .foregroundStyle(.white).environment(\.colorScheme, .dark)
+        .sheet(item: $download) { image in
+            MemoryImageDownloadSheet(bitmap: image.bitmap)
+        }
     }
+}
+
+private struct MemoryImageDownloadSheet: UIViewControllerRepresentable {
+    let bitmap: UIImage
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [bitmap], applicationActivities: nil)
+    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) { }
 }
 
 struct ZoomableMemoryImage: UIViewRepresentable {
     let bitmap: UIImage
     let caption: String
-    let reset: Int
     func makeUIView(context: Context) -> MemoryImageScrollView {
         let view = MemoryImageScrollView()
         view.imageView.image = bitmap
@@ -727,16 +734,11 @@ struct ZoomableMemoryImage: UIViewRepresentable {
             view.invalidateFit()
         }
         view.imageView.accessibilityLabel = caption
-        if view.resetVersion != reset {
-            view.resetVersion = reset
-            view.setZoomScale(view.minimumZoomScale, animated: true)
-        }
     }
 }
 
 final class MemoryImageScrollView: UIScrollView, UIScrollViewDelegate {
     let imageView = UIImageView()
-    var resetVersion = 0
     private var fittedSize = CGSize.zero
     override init(frame: CGRect) {
         super.init(frame: frame)

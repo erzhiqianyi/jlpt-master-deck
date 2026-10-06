@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { migrateReviewItemOwnership } from './review-item-ownership.mjs';
-import { ensureReferenceSchema, decorateReferences } from './references.mjs';
+import { ensureReferenceSchema, decorateReferences, resolveReference } from './references.mjs';
 import { ensureQuerySchema } from './mcp-query-schema.mjs';
 import { withSqlVariableLimit } from './sql-limits.mjs';
 import { ensureTtsSchema } from './tts/schema.mjs';
@@ -1003,19 +1003,30 @@ export function createListeningQuestion(userId, payload) {
   if (!Number.isInteger(answerIndex) || ((freeResponse || isFreeResponseSubmission) ? answerIndex !== -1 : answerIndex < 0 || answerIndex >= choices.length)) {
     throw new Error('Choose a valid correct answer');
   }
-  if (!audioMime.startsWith('audio/') || !audioBase64) {
+  let referencedAsset = null;
+  if (payload.audioReference !== undefined) {
+    if (['audioBase64', 'audioFileName', 'audioMime', 'existingQuestionId'].some(key => payload[key] !== undefined)) {
+      throw new Error('audioReference cannot be combined with audio upload fields or existingQuestionId');
+    }
+    const reference = resolveReference(getDb(), userId, payload.audioReference);
+    referencedAsset = reference?.entity === 'audio'
+      ? getDb().prepare('SELECT id, audio_path, file_name, mime, size, sha256 FROM listening_audio_assets WHERE user_id = ? AND id = ?').get(userId, reference.id)
+      : null;
+    if (!referencedAsset) throw new Error('Audio reference not found');
+  }
+  if (!referencedAsset && (!audioMime.startsWith('audio/') || !audioBase64)) {
     throw new Error('A valid audio file is required');
   }
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(audioBase64)) {
     throw new Error('Invalid audio data');
   }
   const audio = Buffer.from(audioBase64, 'base64');
-  if (!audio.length || audio.length > 25 * 1024 * 1024) {
+  if (!referencedAsset && (!audio.length || audio.length > 25 * 1024 * 1024)) {
     throw new Error('Audio file must be 25 MB or smaller');
   }
 
   const id = randomBytes(12).toString('base64url');
-  const audioHash = createHash('sha256').update(audio).digest('hex');
+  const audioHash = referencedAsset?.sha256 ?? createHash('sha256').update(audio).digest('hex');
   if (payload.existingQuestionId) {
     const existing = findListeningAudioQuestions(userId, audioHash).find((item) => item.id === payload.existingQuestionId);
     if (!existing) throw new Error('Question does not belong to this audio');
@@ -1029,7 +1040,7 @@ export function createListeningQuestion(userId, payload) {
     }
     return listeningQuestionForUser(userId, existing.id);
   }
-  const existingAsset = getDb().prepare('SELECT id, audio_path, file_name, mime, size FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(userId, audioHash);
+  const existingAsset = referencedAsset ?? getDb().prepare('SELECT id, audio_path, file_name, mime, size FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(userId, audioHash);
   const assetId = existingAsset?.id ?? randomBytes(12).toString('base64url');
   const userAudioDir = join(localDir, 'listening-audio', String(userId));
   const extension = audioExtension(audioMime);

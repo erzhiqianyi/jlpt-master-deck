@@ -78,7 +78,7 @@ enum JapaneseAnalysis {
         for item in items {
             dictionary.append(Token(surface: item.original, reading: item.reading, pos: category(item.part_of_speech), isJapanese: true))
             for form in item.conjugations ?? [] {
-                if let surface = form["form"] { dictionary.append(Token(surface: surface, reading: form["reading"], pos: category(item.part_of_speech))) }
+                if let surface = form.form { dictionary.append(Token(surface: surface, reading: form.reading, pos: category(item.part_of_speech))) }
             }
             dictionary.append(contentsOf: (item.ruby_terms ?? []).map { Token(surface: $0.text, reading: $0.reading) })
         }
@@ -357,7 +357,7 @@ struct NativeWordLookupView: View {
     private var query: String { word.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var matches: [StudyItem] {
         store.items.filter { item in
-            ([item.original, item.reading ?? ""] + (item.conjugations ?? []).compactMap { $0["form"] })
+            ([item.original, item.reading ?? ""] + (item.conjugations ?? []).compactMap(\.form))
                 .contains { $0.precomposedStringWithCompatibilityMapping == query }
         }
     }

@@ -256,7 +256,7 @@ struct NativeQuizView: View {
     @State private var questionStarted = Date.now
     @State private var elapsed: [String: Int] = [:]
     @State private var timingActive = true
-    @State private var batchFeedback = false
+    private var batchFeedback: Bool { store.state.settings?["feedbackMode"] == .string("batch") }
     private var question: NativeQuestion? { round.questions.indices.contains(index) ? round.questions[index] : nil }
     private var autoAdvance: Bool { store.state.settings?["practiceNavigation"] != .string("manual") }
     private var autoAdvanceSeconds: Double {
@@ -299,9 +299,9 @@ struct NativeQuizView: View {
             }
             .interactiveDismissDisabled().onAppear { restoreRound() }
             .task(id: pendingAdvance) {
-                guard let request = pendingAdvance, autoAdvance else { return }
+                guard let request = pendingAdvance, batchFeedback, autoAdvance else { return }
                 do { try await Task.sleep(nanoseconds: UInt64(autoAdvanceSeconds * 1_000_000_000)) } catch { return }
-                guard !Task.isCancelled, autoAdvance, pendingAdvance == request, index == request.index,
+                guard !Task.isCancelled, batchFeedback, autoAdvance, pendingAdvance == request, index == request.index,
                       selections[request.questionID] == request.choice, !saving, !finished,
                       !showingQuestionList, !showingSubmitConfirmation, scenePhase == .active else { return }
                 pendingAdvance = nil
@@ -309,6 +309,7 @@ struct NativeQuizView: View {
                 if let next = remaining.first(where: { $0 > index }) ?? remaining.first { withAnimation { index = next } }
             }
             .onChange(of: autoAdvance) { _, automatic in if !automatic { pendingAdvance = nil } }
+            .onChange(of: batchFeedback) { _, _ in pendingAdvance = nil; saveCheckpoint() }
             .onChange(of: showingQuestionList) { _, open in if open { pendingAdvance = nil } }
             .onChange(of: showingSubmitConfirmation) { _, open in if open { pendingAdvance = nil } }
             .onChange(of: index) { old, _ in
@@ -392,6 +393,10 @@ struct NativeQuizView: View {
     private func select(_ choice: String, for question: NativeQuestion) {
         guard !saving, recorded(question) == nil, self.question?.id == question.id else { return }
         selections[question.id] = choice
+        if !batchFeedback {
+            confirm(question)
+            return
+        }
         pendingAdvance = batchFeedback && autoAdvance && round.questions.contains(where: { selections[$0.id] == nil })
             ? NativePracticeAdvance(questionID: question.id, choice: choice, index: index) : nil
     }
@@ -417,7 +422,8 @@ struct NativeQuizView: View {
             .environment(\.japaneseExplanationMode, answer != nil && !batchFeedback)
     }
     @ViewBuilder private var actions: some View {
-        if !finished, let question {
+        if !finished, let question,
+           batchFeedback ? index == round.questions.count - 1 : recorded(question) != nil {
             VStack(spacing: 0) {
                 Divider()
                 if batchFeedback {
@@ -427,17 +433,13 @@ struct NativeQuizView: View {
                         .padding(.horizontal, 16).padding(.vertical, 10)
                 } else {
                     HStack(spacing: 12) {
-                        if recorded(question) == nil {
-                            Button(saving ? "正在保存…" : "确认答案") { confirm(question) }
-                                .buttonStyle(PrimaryButton()).disabled(selections[question.id] == nil || saving).accessibilityIdentifier("quiz.confirm")
-                        }
                         if attemptAnswers.count == round.questions.count {
                             Button("查看结果") { finished = true }.buttonStyle(PrimaryButton()).accessibilityIdentifier("quiz.next")
                         } else if recorded(question) != nil {
                             Button("下一题") { withAnimation { index = round.questions.indices.first { selections[round.questions[$0].id] == nil || recorded(round.questions[$0]) == nil } ?? index } }
                                 .buttonStyle(PrimaryButton()).accessibilityIdentifier("quiz.next")
                         }
-                    }.padding(.horizontal, 16).padding(.vertical, 10)
+                    }.disabled(saving).padding(.horizontal, 16).padding(.vertical, 10)
                 }
             }.frame(maxWidth: 850).frame(maxWidth: .infinity).background(DeckTheme.paper)
         }
@@ -584,13 +586,12 @@ struct NativeQuizView: View {
     }
     private func restoreRound() {
         guard !restored else { return }; restored = true
-        batchFeedback = store.state.settings?["feedbackMode"] == .string("batch")
         if let key = checkpointKey,
            let draft = NativePracticeDraftWriter.read(key: key),
            draft.questionIDs == round.questions.map(\.id), round.questions.indices.contains(draft.index) {
             index = draft.index; selections = draft.selections; attemptAnswers = draft.answers
             resumedAttemptID = draft.attemptID; attemptStarted = draft.started
-            elapsed = draft.elapsed; batchFeedback = draft.batchFeedback; questionStarted = .now
+            elapsed = draft.elapsed; questionStarted = .now
             return
         }
         guard savesProgress, round.practiceId != nil else { return }
@@ -649,14 +650,18 @@ struct NativeQuizView: View {
     private func confirm(_ question: NativeQuestion) {
         guard let selected = selections[question.id], !saving, recorded(question) == nil else { return }
         saving = true; failure = nil
+        let now = Date.now
+        let previousAnswers = attemptAnswers
+        let answers = previousAnswers + [answer(question, selected: selected, now: now)]
+        attemptAnswers = answers
         Task {
             defer { saving = false }
             do {
-                let now = Date.now
-                let answers = attemptAnswers + [answer(question, selected: selected, now: now)]
                 if savesProgress { try await store.submitNativeQuestion(question, selected: selected, attempt: attempt(answers, now: now)) }
-                attemptAnswers = answers
-            } catch { failure = error.localizedDescription }
+            } catch {
+                attemptAnswers = previousAnswers
+                failure = error.localizedDescription
+            }
         }
     }
     private func submitBatch() {

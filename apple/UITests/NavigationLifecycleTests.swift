@@ -414,26 +414,21 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertEqual(first.value as? String, "已选择")
     }
 
-    func testPracticeChoiceTextImmediatelySelectsAndAllowsChangingWithoutAdvancing() throws {
+    func testPracticeChoiceImmediatelyShowsFeedbackWithoutConfirmation() throws {
         app.terminate(); app.launchArguments = ["--demo", "--practice-fixture"]; app.launch()
         primary("学习")
         let start = app.buttons["today.practice.ui-fixture"]
         reveal(start); start.tap()
         let first = app.buttons["quiz.choice.0"].firstMatch
-        let second = app.buttons["quiz.choice.1"].firstMatch
         XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["quiz.confirm"].exists)
+        XCTAssertFalse(app.buttons["quiz.submit"].exists)
         reveal(first)
-        // Tap the Japanese text region, not the number or outer padding.
         first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
         XCTAssertEqual(first.value as? String, "已选择")
-        XCTAssertEqual(second.value as? String, "未选择")
-        reveal(second)
-        second.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
-        XCTAssertEqual(second.value as? String, "已选择")
-        XCTAssertEqual(first.value as? String, "未选择")
-        first.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)).tap()
-        XCTAssertEqual(first.value as? String, "已选择")
-        XCTAssertTrue(app.buttons["quiz.confirm"].isEnabled)
+        XCTAssertTrue(app.staticTexts["回答正确"].waitForExistence(timeout: 5))
+        XCTAssertFalse(first.isEnabled)
+        XCTAssertTrue(app.buttons["quiz.next"].exists)
         XCTAssertTrue(app.scrollViews["quiz.question.0"].isHittable)
     }
 
@@ -442,12 +437,11 @@ final class NavigationLifecycleTests: XCTestCase {
         primary("学习")
         let start = app.buttons["today.practice.ui-fixture"]
         reveal(start); start.tap()
-        let confirm = app.buttons["quiz.confirm"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        XCTAssertFalse(confirm.isEnabled)
+        XCTAssertTrue(app.buttons["quiz.choice.1"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["quiz.confirm"].exists)
         XCTAssertFalse(app.staticTexts["解题依据"].exists)
         let wrong = app.buttons["quiz.choice.1"]
-        reveal(wrong); wrong.tap(); confirm.tap()
+        reveal(wrong); wrong.tap()
         let outcome = app.staticTexts["回答错误"]
         XCTAssertTrue(outcome.waitForExistence(timeout: 5)); reveal(outcome)
         capture("vocabulary-wrong-answer-feedback")
@@ -461,7 +455,7 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertFalse(app.staticTexts["回答错误"].isHittable)
         XCTAssertFalse(app.staticTexts["解题依据"].isHittable)
         let right = app.buttons["quiz.choice.1"]
-        reveal(right); right.tap(); app.buttons["quiz.confirm"].tap()
+        reveal(right); right.tap()
         let correct = app.staticTexts["回答正确"]
         XCTAssertTrue(correct.waitForExistence(timeout: 5)); reveal(correct)
         capture("grammar-correct-answer-feedback")

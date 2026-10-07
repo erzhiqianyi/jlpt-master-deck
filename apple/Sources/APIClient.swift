@@ -58,15 +58,18 @@ struct APIClient {
         }
         do { return try JSONDecoder().decode(T.self, from: bytes) }
         catch let error as DecodingError {
-            let context: DecodingError.Context
-            switch error {
-            case .keyNotFound(_, let value), .valueNotFound(_, let value), .typeMismatch(_, let value), .dataCorrupted(let value): context = value
-            @unknown default: throw error
-            }
-            var fields = context.codingPath.map(\.stringValue)
-            if case .keyNotFound(let key, _) = error { fields.append(key.stringValue) }
-            throw APIError.decoding(path, fields.joined(separator: "."))
+            throw Self.decodingFailure(error, path: path)
         }
+    }
+    static func decodingFailure(_ error: DecodingError, path: String) -> APIError {
+        let context: DecodingError.Context
+        switch error {
+        case .keyNotFound(_, let value), .valueNotFound(_, let value), .typeMismatch(_, let value), .dataCorrupted(let value): context = value
+        @unknown default: return .decoding(path, "")
+        }
+        var fields = context.codingPath.map(\.stringValue)
+        if case .keyNotFound(let key, _) = error { fields.append(key.stringValue) }
+        return .decoding(path, fields.joined(separator: "."))
     }
     func speechAudio(_ input: SpeechRequest) async throws -> Data {
         var request = URLRequest(url: Self.origin.appendingPathComponent("api/tts/speak"))

@@ -285,7 +285,10 @@ extension LocalStudyData {
     mutating func applySync(_ changes: [StudySyncChange]) throws {
         func decode<T: Decodable>(_ change: StudySyncChange) throws -> T {
             guard let value = change.value else { throw APIError.invalidResponse }
-            return try JSONDecoder().decode(T.self, from: JSONEncoder().encode(value))
+            do { return try JSONDecoder().decode(T.self, from: JSONEncoder().encode(value)) }
+            catch let error as DecodingError {
+                throw APIClient.decodingFailure(error, path: "api/sync · \(change.collection)[\(change.id)]")
+            }
         }
         func update<T: Decodable & Identifiable>(_ values: inout [T], _ change: StudySyncChange) throws where T.ID == String {
             values.removeAll { $0.id == change.id }

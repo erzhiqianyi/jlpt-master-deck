@@ -5,6 +5,32 @@ import CoreText
 @testable import JLPTMasterDeck
 
 final class StudyTests: XCTestCase {
+    func testSyncPreservesConjugationStepsInOfflineSnapshots() throws {
+        let bytes = Data(#"{"changes":[{"collection":"items","id":"verb","value":{"id":"verb","deck":"n1_vocab","original":"考え込む","conjugations":[{"kind":"polite","form":"考え込みます","reading":"かんがえこみます","steps":["词尾む变为み。","接上ます。"]},{"kind":"te","form":"考え込んで"}]}}]}"#.utf8)
+        let page = try JSONDecoder().decode(StudySyncPage.self, from: bytes)
+        var data = LocalStudyData()
+        try data.applySync(try XCTUnwrap(page.changes))
+        let restored = try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(data))
+        let item = try XCTUnwrap(restored.items.first)
+        XCTAssertEqual(item.conjugations?.first?.steps, ["词尾む变为み。", "接上ます。"])
+        XCTAssertEqual(item.conjugations?.first?.reading, "かんがえこみます")
+        XCTAssertNil(item.conjugations?.last?.steps)
+        XCTAssertTrue(item.cardText("conjugations", locale: "zh-CN")?.contains("考え込みます") == true)
+    }
+
+    func testSyncDecodingFailureIdentifiesRecordAndField() throws {
+        let bytes = Data(#"{"changes":[{"collection":"items","id":"broken-card","value":{"id":"broken-card","deck":"n1_vocab","original":[]}}]}"#.utf8)
+        let page = try JSONDecoder().decode(StudySyncPage.self, from: bytes)
+        var data = LocalStudyData()
+        XCTAssertThrowsError(try data.applySync(try XCTUnwrap(page.changes))) { error in
+            guard case APIError.decoding(let path, let field) = error else {
+                return XCTFail("Expected a contextual sync decoding error, got \(error)")
+            }
+            XCTAssertEqual(path, "api/sync · items[broken-card]")
+            XCTAssertEqual(field, "original")
+        }
+    }
+
     @MainActor func testBackgroundPracticeDraftWritesKeepLatestSelectionAndCompletion() async throws {
         let key = "practice-writer-test-\(UUID().uuidString)"
         defer { UserDefaults.standard.removeObject(forKey: key) }

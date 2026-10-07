@@ -502,6 +502,8 @@ export type ConjugationForm = {
   form: string;
   /** Full kana reading of this conjugated form. */
   reading?: string;
+  /** Authored steps explaining how this form is derived. */
+  steps?: string[];
 };
 
 export type InflectionClass = 'godan' | 'ichidan' | 'suru' | 'kuru' | 'i_adjective' | 'na_adjective';

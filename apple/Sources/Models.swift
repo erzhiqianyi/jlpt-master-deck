@@ -23,7 +23,13 @@ struct StudyItem: Codable, Identifiable {
     var points: [[String: String]]?
     var comparisons: [[String: String]]?
     var register: [String: String]?
-    var conjugations: [[String: String]]?
+    var conjugations: [Conjugation]?
+    struct Conjugation: Codable {
+        var kind: String?
+        var form: String?
+        var reading: String?
+        var steps: [String]?
+    }
     var images: [[String: String]]?
     var notes: [String]?
     var tags: [String]?
@@ -219,7 +225,7 @@ extension StudyItem {
         case "points": value = rows(points, ["label", "detail_zh"])
         case "comparisons": value = (comparisons ?? []).map { join([$0["kind"] == "everyday" ? "〔日常〕" + ($0["target"] ?? "") : $0["target"], $0["difference_zh"]]) }.joined(separator: "\n")
         case "register": value = join([register?["note_zh"], register?["exam_tip_zh"]], " · ")
-        case "conjugations": value = rows(conjugations, ["kind", "form", "reading"])
+        case "conjugations": value = (conjugations ?? []).map { join([$0.kind, $0.form, $0.reading]) }.filter { !$0.isEmpty }.joined(separator: "\n")
         case "examples":
             let example = reviewExamples.first
             value = join([example?.ja, example?.zh], "\n")

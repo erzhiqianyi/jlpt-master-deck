@@ -38,3 +38,7 @@ server/vocab-seeds.test.mjs覆盖独立保存、显式题与省略/清空；serv
 ### 已实施素材音频读取
 
 `get_material_audio(material_id,revision)`返回owned冻结音频的MCP audio块；`get_material_audio_download`返回无token的授权URL `/api/materials/:id/versions/:revision/audio`。两工具与OAuth下载要求audio:read，保留LS删除后的AU读取；无实际字节报missingMaterial，不返回虚假音频或猜测转写。Node与Cloudflare R2兼容契约测试覆盖owner、scope、LS删除、R2丢失对象。
+
+### 首次呈现契约（已实施）
+
+`get_practice_session`是保存初始presentation checkpoint的写用例，annotation已改为write。在返回第一道题之前冻结整套有序manifest；开始不记答题/SRS事件，未答仍不返回答案或解析。`start_topic_practice`复用此用例。`submit_practice_answer`消费该快照，源题在首次取题后变化也不改评分。answered missingOriginal历史只读，不能用当前题补版本；旧原始记录与分数保留。

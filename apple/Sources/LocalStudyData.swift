@@ -206,6 +206,10 @@ extension LocalStudyData {
             next.responses = next.responses ?? [:]
             next.responses?[question.id] = .init(title: question.title, selected: answer.selected, correct: answer.correct, answeredAt: answer.answeredAt, sessionID: attempt.id)
         }
+        for response in attempt.unscoredResponses ?? [] {
+            next.responses = next.responses ?? [:]
+            next.responses?[response.questionId] = .init(title:questions.first { $0.id==response.questionId }?.title ?? response.questionId,selected:response.response,correct:nil,answeredAt:response.answeredAt,sessionID:attempt.id)
+        }
         if additions.isEmpty {
             next.pending.append(PendingAnswer(id: UUID(), before: ProgressEntry(),
                 input: .init(questionId: "", itemId: "", selected: "", correct: false, progressEntry: ProgressEntry(), attemptHistory: [attempt]), historyOnly: true))

@@ -23,8 +23,8 @@ const { createRoot } = await import('react-dom/client');
 const root = createRoot(document.getElementById('root'));
 const question = { id: 'reading-1', title: '読解', passage: '日本語を勉強します。\n毎日読みます。', question: '何を勉強しますか。', choices: ['日本語', '英語'], answerIndex: 0, explanation: '日本語です。', rubyTerms: [{ text: '日本語', reading: 'にほんご' }], tags: [], createdAt: '2026-10-05' };
 let key = 0;
-async function render(questions, record, progress = {}, mode = 'library') {
-  await act(async () => root.render(h(SpeechProvider, { settings: { locale: 'zh-CN', ttsProvider: 'browser' }, token: '' }, h(WordLookupProvider, { items: [], captures: [], locale: 'zh-CN', enabled: false, onCapture: async () => {}, authToken: '', ttsProvider: 'browser' }, h(ReadingPanel, { key: ++key, mode, progress, labels: { readingShowAnswer: '确认答案', readingSelectAnswer: '请先选择答案' }, locale: 'zh-CN', questions, activeQuestionId: question.id, onRecordPractice: record, onCreate: async () => {}, onDelete: async () => {} })))));
+async function render(questions, record, progress = {}, mode = 'library',onPresentPractice) {
+  await act(async () => root.render(h(SpeechProvider, { settings: { locale: 'zh-CN', ttsProvider: 'browser' }, token: '' }, h(WordLookupProvider, { items: [], captures: [], locale: 'zh-CN', enabled: false, onCapture: async () => {}, authToken: '', ttsProvider: 'browser' }, h(ReadingPanel, { key: ++key, mode, progress, labels: { readingShowAnswer: '确认答案', readingSelectAnswer: '请先选择答案' }, locale: 'zh-CN', questions, activeQuestionId: question.id, onRecordPractice: record,onPresentPractice, onCreate: async () => {}, onDelete: async () => {} })))));
 }
 const switches = () => document.querySelectorAll('[role="switch"]');
 const speech = () => document.querySelectorAll('button[aria-label^="朗读"]');
@@ -95,3 +95,10 @@ for (const mode of ['library', 'practice']) {
     assert.equal(records.length, 1);
   });
 }
+
+test('reading captures first presentation before choice and sends actual option index',async()=>{
+ const presented=[],answers=[];const source=structuredClone(question);
+ await render([source],async(...args)=>answers.push(args),{},'library',async(items,session)=>presented.push({items:structuredClone(items),session}));
+ assert.equal(presented.length,1);assert.equal(answers.length,0);source.answerIndex=1;source.passage='Changed';
+ await confirm();assert.equal(answers[0][2],true);assert.equal(answers[0][3],0);assert.equal(presented[0].items[0].passage,question.passage);
+});

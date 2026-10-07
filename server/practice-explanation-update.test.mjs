@@ -129,3 +129,17 @@ test('MCP resumes and grades the frozen attempt after its practice source change
  assert.equal(storage.getStudyState(alice.id).answers['frozen-q2'].correct,true);
  assert.equal(storage.getPracticeSession(bob.id,original.id),null);
 });
+
+test('MCP opening freezes before the first answer and presents no answer or score event',async()=>{
+ const source={id:'first-open-p',questions:[{...question,id:'first-open-q'}]};
+ db.prepare("INSERT INTO daily_practices(id,user_id,practice_date,version,title,minutes,practice_json,created_at,updated_at) VALUES(?,?,'2026-10-07',1,'Opening',30,?,'2026-10-07','2026-10-07')").run(source.id,alice.id,JSON.stringify(source));
+ const tool=tools.find(t=>t.name==='get_practice_session');
+ await tool.handler({practice_id:source.id},{ownerId:String(alice.id)});
+ const frozen=storage.getStudyState(alice.id).attemptHistory.find(a=>a.practiceId===source.id);
+ assert.equal(frozen.answers.length,0);assert.equal(frozen.questionManifest[0].snapshot.answer,'さえ');
+ source.questions[0].answer='こそ';source.questions[0].prompt='Edited before choosing';
+ db.prepare('UPDATE daily_practices SET practice_json=? WHERE id=?').run(JSON.stringify(source),source.id);
+ assert.equal(storage.getPracticeSession(alice.id,source.id).questions[0].prompt,question.prompt);
+ storage.submitPracticeAnswer(alice.id,{practiceId:source.id,questionId:'first-open-q',selected:'さえ'});
+ assert.equal(storage.getStudyState(alice.id).answers['first-open-q'].correct,true);
+});

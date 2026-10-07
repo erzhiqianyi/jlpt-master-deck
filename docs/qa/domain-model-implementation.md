@@ -108,3 +108,19 @@ Web新批量协议eventMode=merge，选择暂存为draft，保留可续作的稳
 验证：最终Node全量486/486（0 fail/skip）；原生67项unit、2条UI回归通过（听力暂停/恢复/结果，练习反馈），`.local/domain-closeout-ui.xcresult`。新增真实HTTP OAuth scope/owner检查、实际MCP handler、本机Miniflare REST/OAuth/MCP/R2删源读原音频与缺字节检查；迁移6项及MCP原题修改后的冻结评分检查。tsc/lint、Web+三MCP、Cloud API bundle通过。首轮native缓存旧断言期望不同LS大小产生不同AU缓存；按不可变AU去重契约修正后全量复验通过。日志归档`.local/domain-closeout/`。
 
 剩余边界：没有可靠原始快照的历史无法恢复，明确quarantine/legacy可读；Web分页未呈现/未作答题不假称已冻结；MCP首次取题到首次作答之间尚无单独持久化start事件。听力/阅读专用local-study-responses保留原记录，但尚未统一成NativeAttempt。全类型长内容/图片/多素材的23型跨端视觉验收仍未闭环，浏览器像素工具缺失。未做真实生产迁移、源库删除、灰度切换或发布。
+
+## 收尾三：首次呈现与专用响应统一
+
+已识别的三个数据边界已接实际消费者：
+
+1. Web分页词汇保留`notPresented`索引状态，在题目首次显示时复制完整快照并保存checkpoint，后续渲染优先该快照。尚未显示不是missingOriginal；旧历史确实缺原版本才是missingOriginal。关闭练习只统计有实际选择的答案，未答不算错。
+2. MCP `get_practice_session`现在是真实呈现用例（write annotation），保存无答案的有序manifest后才返回题；`start_topic_practice`也调用该入口。后续修改来源不会改变首次呈现/评分。旧answered missingOriginal记录只能读，不用当前题升级，需另开新练习。未答输出继续隐藏答案/解析；开始不会生成作答或MemoryRated事件。
+3. Web和iOS阅读/听力专用页面首次呈现保存统一attempt；实际选项文本形成客观作答，原始文章/共享AU引用随快照保留。自由回答写`unscoredResponses`，保留文本、不生成假答对、不计正确率。iOS原`LocalStudyResponse`及旧SRS进度不清除/重评分；新响应同时保留兼容记录。音频练习次数由新completed attempt加旧基线投影，无伪造整组答对事件。原生路由已消费owned暂停LS快照，删源恢复入口不再只查当前listening集合。
+
+迟到checkpoint与并发保护：保留已提交答案；已完成attempt保持完成时间、原summary与原主观自由回答；merge写不会删除另一个设备的attempt。旧answered missingOriginal不允许由当前快照自动升级。新增精确回归覆盖这些不变量、分页首次显示、MCP首次取题后修改、Web阅读真实组件先呈现后选项、原生reading/listening离线JSON、混合有答案/自由回答和纯自由回答（historyOnly）。
+
+最终验证数字/日志见收尾清单。原生69项unit通过，阅读和听力两条真实UI回归通过，bundle `.local/domain-first-presentation-ui.xcresult`。浏览器像素工具再次核对确实缺失，23型移交矩阵见[视觉验收移交](visual-validation-handoff.md)；DOM测试、概念SVG与代表UI均未冒充全型像素验收。
+
+本轮不继续扩展领域范围。剩余的是：未知历史原题/真实旧媒体的实际恢复能力（不猜、不生产回填）、23型长内容/图片等逐型视觉验收与设备覆盖、生产灰度/切换/回滚。整个独立库成为唯一权威仍需要获授权的切换工作，不声称已经发布。
+
+收尾三最终复验：Node **494/494**（0 fail/skip）、原生 **69/69**、真实UI **2/2**；tsc/lint、Web/MCP/Cloud API构建通过。为防未答被算错，Web关闭attempt的summary仅统计实际有选择的答案，未呈现索引保持notPresented；精确回归通过。最后一轮代码及测试之后仅更新交付文档。日志归档 `.local/domain-final/`。

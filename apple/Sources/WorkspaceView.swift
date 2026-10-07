@@ -188,7 +188,7 @@ struct WorkspaceView: View {
             }
             return (groups.count, groups.values.filter { $0.contains { studied($0.id) } }.count, "篇", "reading")
         case .listening:
-            let groups = ListeningGroup.make(store.listening)
+            let groups = ListeningGroup.restorable(store.listening,owner:store.isDemo ? "demo" : String(store.session?.user.id ?? 0))
             return (groups.count, groups.filter { studied("listening-audio:\($0.id)") }.count, "套", "listening")
         default: return (0, 0, "", "vocabulary")
         }
@@ -248,7 +248,7 @@ struct WorkspaceView: View {
                 ReadingPracticeView(question: question)
             } else { unavailableRoute }
         case .listening(let id):
-            if let group = ListeningGroup.make(store.listening).first(where: { $0.id == id }) {
+            if let group = ListeningGroup.restorable(store.listening,owner:store.isDemo ? "demo" : String(store.session?.user.id ?? 0)).first(where: { $0.id == id }) {
                 ListeningDetailView(group: group)
             } else { unavailableRoute }
         case .discovery(let id):

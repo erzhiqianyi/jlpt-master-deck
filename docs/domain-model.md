@@ -113,3 +113,7 @@ AnswerSubmitted={eventId,owner,attemptId,entryId,questionRef,selectedOptionId,oc
 当前 rollback：没有部署；旧数据与旧 snapshot 均保留，追加银行记录不影响原题 ID。尚未形成全库单一写入口，必须先补齐全部写入口/同步再启用独立库权威读取。严格考试 eligibility 审核尚未实现，ready 仅表示批准发布，不能据此抽取严格官方模拟卷。
 
 DR-only 保护补充：新草稿创建/修改会在事务中归档原始题目、section 指令为 unreviewed/unscored 版本；删除草稿前也为尚无映射的旧 DR 做同样归档，然后只删组合。原始 numeric answer 原样保存，不猜0/1基。批准发布才写可作答规范版本；重复归档早期版本不降级已发布的新版本。知识点独立更新即使旧 seeds 不完整也可保存；遗漏 seeds 保留且不重新强制修题，明确提交 seeds 才校验。
+
+### 已实施呈现检查点补充
+
+新attempt轻量索引使用notPresented，题目首次显示后转为frozen并保存完整呈现快照；missingOriginal专用于历史原版不可证实的记录。不得将已作答的missingOriginal升级为当前题版本。阅读/听力自由回答保存在unscoredResponses，和objective answers分开，不产生客观答对率。checkpoint不是AnswerSubmitted事件；MCP呈现用例保存检查点后才返回题，Web/iOS也在首次呈现保存。详情见实施记录收尾三。

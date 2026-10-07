@@ -1059,3 +1059,41 @@ final class HistoricalListeningDraftTests: XCTestCase {
         XCTAssertEqual(group.questions.first?.materialRefs?.first?.revision,1)
     }
 }
+
+final class DedicatedAttemptTests: XCTestCase {
+    @MainActor func testReadingFreezesBeforeAnswerAndUsesUnifiedObjectiveHistory() async throws {
+        let store=AppStore();store.startDemo()
+        let source=ReadingQuestion(id:"RD-new",title:"阅读",passage:"原始文章",question:"首次呈现的问题",choices:["A","B","C","D"],answerIndex:1,explanation:"原始解析")
+        let first=DedicatedAttempts.reading(source,sessionID:"reading-new",now:Date(timeIntervalSince1970:100))
+        try store.presentDedicatedAttempt(first)
+        XCTAssertTrue(store.state.attemptHistory?.first { $0.id==first.id }?.answers.isEmpty == true)
+        XCTAssertEqual(first.questionManifest?.first?.snapshot?.context,"原始文章")
+        try await store.answer(source,selection:1,sessionID:"reading-new")
+        let completed=try XCTUnwrap(store.state.attemptHistory?.first { $0.id==first.id })
+        XCTAssertEqual(completed.startedAt,first.startedAt);XCTAssertEqual(completed.answers.first?.questionId,"RD-new");XCTAssertEqual(completed.answers.first?.selected,"B")
+        XCTAssertEqual(completed.correctCount,1);XCTAssertEqual(store.responses["RD-new"]?.correct,true)
+    }
+    func testListeningScoredAndFreeResponsesHaveSeparateStatisticsAndRetainLegacyData() throws {
+        func item(_ id:String,free:Bool) throws -> ListeningItem {
+            try JSONDecoder().decode(ListeningItem.self,from:Data("{\"id\":\"\(id)\",\"title\":\"音频\",\"question\":\"问题\",\"explanation\":\"解析\",\"questionTypeId\":\"listening-basic-training\",\"choices\":\(free ? "[]" : "[\"A\",\"B\",\"C\",\"D\"]"),\"answerIndex\":\(free ? -1 : 1),\"audioAssetId\":\"AU-old\",\"audioFileName\":\"old.mp3\",\"audioSize\":100,\"createdAt\":\"2026-10-01\"}".utf8))
+        }
+        let group=ListeningGroup(id:"AU-old",questions:[try item("scored",free:false),try item("free",free:true)])
+        let start=DedicatedAttempts.listening(group,sessionID:"s")
+        XCTAssertTrue(start.answers.isEmpty);XCTAssertNil(start.completedAt);XCTAssertEqual(start.questionManifest?.count,2)
+        let complete=DedicatedAttempts.listening(group,sessionID:"s",selected:["scored":1],written:["free":"私の回答"],submitted:true)
+        var old=LocalStudyData();old.state.progress["listening-audio:AU-old"]=ProgressEntry(correct:17,wrong:9,status:"review")
+        old.responses=["legacy":.init(title:"旧题",selected:"旧回答",correct:false,answeredAt:"2026-10-01",sessionID:nil)]
+        let next=try old.recordingNativeBatch(questions:complete.questionManifest!.compactMap(\.snapshot),attempt:complete,allowUnanswered:true)
+        XCTAssertEqual(complete.total,1);XCTAssertEqual(complete.correctCount,1);XCTAssertEqual(complete.unscoredResponses?.count,1)
+        XCTAssertEqual(next.responses?["free"]?.selected,"私の回答");XCTAssertNil(next.responses?["free"]?.correct);XCTAssertNotNil(next.responses?["legacy"])
+        XCTAssertEqual(next.state.progress["listening-audio:AU-old"]?.correct,17);XCTAssertEqual(next.pending.count,1);XCTAssertEqual(next.pending[0].input.questionId,"scored")
+        XCTAssertEqual(try next.recordingNativeBatch(questions:complete.questionManifest!.compactMap(\.snapshot),attempt:complete,allowUnanswered:true).pending.count,1)
+        let decoded=try JSONDecoder().decode(NativeAttempt.self,from:JSONEncoder().encode(complete));XCTAssertEqual(decoded,complete)
+        let freeGroup=ListeningGroup(id:"AU-free",questions:[try item("free-only",free:true)])
+        let freeAttempt=DedicatedAttempts.listening(freeGroup,sessionID:"free-s",written:["free-only":"自由回答"],submitted:true)
+        let freeSaved=try old.recordingNativeBatch(questions:freeAttempt.questionManifest!.compactMap(\.snapshot),attempt:freeAttempt,allowUnanswered:true)
+        XCTAssertEqual(freeAttempt.total,0);XCTAssertEqual(freeSaved.pending.count,1);XCTAssertEqual(freeSaved.pending[0].historyOnly,true)
+        XCTAssertTrue(freeAttempt.answers.isEmpty)
+
+    }
+}

@@ -32,3 +32,16 @@
 证据与实现边界见[实施记录](domain-model-implementation.md#收尾二历史冻结与-au-授权离线读取)。最终日志`.local/domain-closeout/`；原生UI结果`.local/domain-closeout-ui.xcresult`。
 
 最终代码全量检查：Node **486/486**；原生 **67/67**；UI **2/2**；tsc、lint、Web/MCP与Cloud API构建、diff check通过。无skip，无生产操作。
+
+## 最终数据收尾（收尾三）
+
+|项|本地交付状态|剩余验收/外部边界|
+|---|---|---|
+|独立作者用例|已实施并接审批/发布|语义正确性仍由用户审批；未发布|
+|历史冻结/映射|三个已识别缺口已补齐：首次显示分页题、MCP先冻结再取题、Web/iOS阅读听力专用响应统一attempt|实际缺原版本的历史保持missingOriginal；不虚构恢复，不生产回填|
+|旧AU授权离线读取|已实施；本机、Miniflare真实R2/OAuth/MCP、原生缓存/恢复通过|真实旧媒体存在性未读取；未迁生产|
+|23型跨端视觉|代表性原生流程已复验；DOM契约与精确呈现回归已测|Web/MCP像素工具缺失；逐型长内容/图片/iPad等仍需验收，详见[移交矩阵](visual-validation-handoff.md)|
+
+此前“收尾二”的分页/MCP窗口/专用响应边界已由本段与收尾三替代；此前证据作为阶段记录保留，不应当作当前未实施清单。
+
+最终代码验证（收尾三）：Node **494/494**、原生 **69/69**、原生真实UI **2/2**；tsc/lint、Web+三MCP、Cloud API bundle、diff check通过。Node 0 fail/skip。原生UI bundle `.local/domain-first-presentation-ui.xcresult`；最后全量日志 `.local/domain-final/domain-delivery-tests.log`、`domain-final-native.log`。真实旧数据、生产MCP、自动化未操作；未push/PR/merge/deploy。

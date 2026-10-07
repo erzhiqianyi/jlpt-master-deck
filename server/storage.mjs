@@ -1914,7 +1914,10 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
       }
     }
     for(const [itemId,entry] of mergedProgress)database.prepare('INSERT INTO progress(user_id,item_id,progress_json,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO UPDATE SET progress_json=excluded.progress_json,updated_at=excluded.updated_at').run(userId,itemId,JSON.stringify(entry),now);
-    upsertPracticeState(userId, attemptHistory, activeAttempt, now);
+    const previous=getPracticeState(userId);
+    const merged=eventMode==='merge' && Array.isArray(attemptHistory) ? [...new Map([...previous.attemptHistory,...attemptHistory].map(entry=>[entry.id,entry])).values()] : attemptHistory;
+    const previousForActive=previous.attemptHistory.find(entry=>entry.id===activeAttempt?.id);
+    upsertPracticeState(userId, merged, previousForActive?.completedAt ? null : activeAttempt, now);
   });
 }
 
@@ -2786,7 +2789,7 @@ export function createTopicPractice(userId, { title, deck, kinds, wordbookId, jl
     `)
     .run(id, userId, practiceDate, practice.version, practice.title, practice.minutes, JSON.stringify(practice), now.toISOString(), now.toISOString());
   });
-  return getPracticeSession(userId, id);
+  return presentPracticeSession(userId, id);
 }
 
 // Agent-authored seeds on the item (practice_questions) carry real sentences; prefer them over
@@ -2819,10 +2822,24 @@ function topicPracticeTitle(filters) {
 }
 
 /** Practice plus the caller's answer state; explanations are only exposed for answered questions. */
+/** Opening a session freezes its presentation; it does not submit an answer. */
+export function presentPracticeSession(userId,practiceId) {
+ const current=getDailyPractice(userId,practiceId);if(!current)return null;
+ transaction(getDb(),()=>{
+  const state=getStudyState(userId);
+  if(!state.attemptHistory.some(entry=>entry.practiceId===practiceId&&entry.questionManifest?.length)) {
+   const attempt=attemptForPractice(state.attemptHistory,current,new Date());
+   upsertPracticeState(userId,[attempt,...state.attemptHistory.filter(entry=>entry.id!==attempt.id)],undefined);
+  }
+ });
+ return getPracticeSession(userId,practiceId);
+}
 export function getPracticeSession(userId, practiceId) {
   const current = getDailyPractice(userId, practiceId);
   if (!current) return null;
   const state = getStudyState(userId);
+  const unknown=state.attemptHistory.find(entry=>entry.practiceId===practiceId && entry.answers?.length && entry.questionManifest?.some(q=>q.status==='missingOriginal'));
+  if(unknown && !state.attemptHistory.some(entry=>entry.practiceId===practiceId && entry.questionManifest?.every(q=>q.status==='frozen')))return {id:current.id,title:current.title,questions:[],missingOriginal:true,legacyHistory:unknown,progress:{total:0,answered:0,correct:0,wrong:0},completed:false};
   const practice = frozenAttemptPractice(current,state.attemptHistory);
   const questions = practice.questions.map((question) => sessionQuestionView(question, state.answers[question.id]));
   const answered = questions.filter((question) => question.answered);
@@ -2863,6 +2880,7 @@ export function submitPracticeAnswer(userId, { practiceId, questionId, selected 
   const current = getDailyPractice(userId, practiceId);
   if (!current) throw new Error('Practice not found');
   const state = getStudyState(userId);
+  if(state.attemptHistory.some(entry=>entry.practiceId===practiceId && entry.answers?.length && entry.questionManifest?.some(q=>q.status==='missingOriginal')))throw new Error('missingOriginal: this legacy attempt is read-only; start a new practice');
   const practice = frozenAttemptPractice(current,state.attemptHistory);
   const question = practice.questions.find((entry) => entry.id === questionId);
   if (!question) throw new Error('Question not found in this practice');

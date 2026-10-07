@@ -307,6 +307,13 @@ struct NativeAttemptDetail: View {
                         else { Text("原始题目版本缺失；仅保留当时作答与分数。").font(.caption).foregroundStyle(DeckTheme.muted) }
                     }; Divider()
                 }
+                ForEach(Array((attempt.unscoredResponses ?? []).enumerated()),id:\.offset) { _,response in
+                    VStack(alignment:.leading,spacing:8) {
+                        Text(attempt.questionManifest?.first { $0.instanceId==response.questionId }?.snapshot?.prompt ?? response.questionId)
+                        Text("自由回答：\(response.response)")
+                        Text("此题无标准答案，不计正确率。").font(.caption).foregroundStyle(DeckTheme.muted)
+                    }
+                }
             }.frame(maxWidth: 850).padding(16).frame(maxWidth: .infinity)
         }.navigationTitle("练习结果")
     }

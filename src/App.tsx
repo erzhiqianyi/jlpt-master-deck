@@ -1,3 +1,5 @@
+import {dedicatedAttempt,recordDedicatedChoice} from './domain/dedicatedAttempts';
+import {freezePresentedQuestion,completeAttempt} from './domain/attemptPresentation';
 import { quickTypePractice } from './domain/typePractice';
 import { TypePracticeSetup, type TypePracticeSelection, type TypePracticeDefaults } from './features/practice/TypePracticeSetup';
 import { syncStudy, syncCollection, syncValue, type StudySyncDocument } from './lib/studySync';
@@ -11,7 +13,7 @@ import { HistoryReplayPanel } from './features/history/HistoryReplayPanel';
 import { ModuleReviewPanel } from './features/history/ModuleReviewPanel';
 import { practiceModules } from './domain/practiceModules.mjs';
 import { WordLookupProvider } from './features/review/WordLookup';
-import { listeningAudioGroupForRoute, listeningAudioRouteId, listeningPracticeKey, recordListeningPractice } from './domain/listeningPractice';
+import { listeningAudioGroupForRoute, listeningAudioRouteId } from './domain/listeningPractice';
 'use client';
 
 import { LoginLanding, LoginLanguageSelect } from './features/auth/LoginLanding';
@@ -590,7 +592,8 @@ export default function App() {
   [activeView, studyPage, selectedDeck, items, materializedQuestions]);
   const questions: QuestionReference[] = pagedVocabulary ? vocabularyIndex : materializedQuestions;
   const batch = useQuestionBatch(questionItems, vocabularyIndex, activeIndex, locale, pagedVocabulary && routeReady);
-  const activeQuestion = pagedVocabulary ? batch.question : materializedQuestions[activeIndex % Math.max(materializedQuestions.length, 1)];
+  const currentQuestionCandidate = pagedVocabulary ? batch.question : materializedQuestions[activeIndex % Math.max(materializedQuestions.length, 1)];
+  const activeQuestion = (activeAttempt?.view === activeView && !activeAttempt.completedAt ? activeAttempt.questionManifest?.find(entry=>entry.instanceId===currentQuestionCandidate?.id && entry.status==='frozen')?.snapshot : undefined) ?? currentQuestionCandidate;
   const practiceAnsweredCount = questions.filter((question) => Boolean(answers[question.id])).length;
   const practiceComplete = questions.length > 0 && practiceAnsweredCount === questions.length;
   const effectiveFeedbackMode = activeView === 'mixed' ? 'batch' : settings.feedbackMode;
@@ -777,6 +780,16 @@ export default function App() {
     if (studyPage !== 'questions' || !activeQuestion) {
       questionTimer.current = null;
       return;
+    }
+    const attempt = withPracticeName(currentAttemptFor(activeAttempt,attemptHistory,activeView,selectedDeck,questions,new Date()));
+    if (!attempt.questionManifest?.some(entry=>entry.instanceId===activeQuestion.id && entry.status==='frozen')) {
+      const presented=freezePresentedQuestion(attempt,activeQuestion);
+      const history=upsertAttemptHistory(attemptHistory,presented);
+      setActiveAttempt(presented);setAttemptHistory(history);
+      if(authToken) void apiRequest('/api/study-state/practice',{method:'PUT',token:authToken,body:{eventMode:'merge',attemptHistory:history,activeAttempt:presented}}).catch(error=>setAuthError(error instanceof Error ? error.message : 'Could not save presented question'));
+    } else if (!activeAttempt || activeAttempt.id!==attempt.id) {
+      const history=upsertAttemptHistory(attemptHistory,attempt);setActiveAttempt(attempt);setAttemptHistory(history);
+      if(authToken) void apiRequest('/api/study-state/practice',{method:'PUT',token:authToken,body:{eventMode:'merge',attemptHistory:history,activeAttempt:attempt}}).catch(error=>setAuthError(String(error)));
     }
     questionTimer.current = { questionId: activeQuestion.id, startedAt: Date.now() };
     const onVisible = () => {
@@ -1537,48 +1550,31 @@ export default function App() {
 
   const listeningProgressRef = useRef(progress);
   listeningProgressRef.current = progress;
-  async function saveListeningPractice(item: ListeningQuestion, sessionId: string) {
-    if (!authToken) throw new Error('请先登录');
-    const save = pendingPracticeSave.current.catch(() => undefined).then(async () => {
-      const key = listeningPracticeKey(item);
-      const previous = listeningProgressRef.current[key];
-      const entry = recordListeningPractice(previous, sessionId, new Date().toISOString());
-      if (entry === previous) return;
-      await apiRequest<StudyState>('/api/study-state/practice', {
-        method: 'PUT', token: authToken, timeoutMs: 15000, body: { progress: { [key]: entry } },
-      });
-      listeningProgressRef.current = { ...listeningProgressRef.current, [key]: entry };
-      setProgress((current) => ({ ...current, [key]: entry }));
-    });
-    pendingPracticeSave.current = save;
-    await save;
+  const listeningDisplayedProgress:ProgressState={...progress};
+  for(const attempt of attemptHistory) if(attempt.view==='listening'&&attempt.completedAt&&attempt.practiceId) {
+    const key=attempt.practiceId;const current=listeningDisplayedProgress[key] ?? {correct:0,wrong:0,status:'new' as const};
+    listeningDisplayedProgress[key]={...current,reviewCount:(current.reviewCount??0)+1};
   }
-
-  async function saveReadingPractice(item: ReadingQuestion, sessionId: string, correct: boolean) {
-    if (!authToken) throw new Error('请先登录');
-    const save = pendingPracticeSave.current.catch(() => undefined).then(async () => {
-      const previous = listeningProgressRef.current[item.id];
-      if (previous?.lastPracticeSessionId === sessionId) return;
-      const now = new Date().toISOString();
-      const entry: ProgressEntry = {
-        ...previous,
-        correct: (previous?.correct ?? 0) + (correct ? 1 : 0),
-        wrong: (previous?.wrong ?? 0) + (correct ? 0 : 1),
-        status: 'learning',
-        reviewCount: (previous?.reviewCount ?? 0) + 1,
-        firstSeenAt: previous?.firstSeenAt ?? now,
-        lastReviewedAt: now,
-        lastPracticeSessionId: sessionId,
-      };
-      await apiRequest<StudyState>('/api/study-state/practice', {
-        method: 'PUT', token: authToken, timeoutMs: 15000, body: { progress: { [item.id]: entry } },
-      });
-      listeningProgressRef.current = { ...listeningProgressRef.current, [item.id]: entry };
-      setProgress((current) => ({ ...current, [item.id]: entry }));
-    });
-    pendingPracticeSave.current = save;
-    await save;
+  const dedicatedAttempts = useRef(new Map<string,PracticeAttempt>());
+  async function presentDedicated(items:(ReadingQuestion|ListeningQuestion)[],sessionId:string,view:'reading'|'listening') {
+    const key=`${view}:${sessionId}`;if(dedicatedAttempts.current.has(key))return;
+    const attempt=dedicatedAttempt(items,sessionId,view,new Date().toISOString());dedicatedAttempts.current.set(key,attempt);
+    setAttemptHistory(current=>upsertAttemptHistory(current,attempt));
+    const save=enqueuePracticeSave(pendingPracticeSave.current,()=>apiRequest('/api/study-state/practice',{method:'PUT',token:authToken,body:{eventMode:'merge',attemptHistory:[attempt]}}));pendingPracticeSave.current=save;await save;
   }
+  async function saveDedicated(item:ReadingQuestion|ListeningQuestion,sessionId:string,view:'reading'|'listening',response:number|string) {
+    const key=`${view}:${sessionId}`;const original=dedicatedAttempts.current.get(key);if(!original)throw new Error('Question presentation has not been saved');
+    const attempt=recordDedicatedChoice(original,item.id,response,new Date().toISOString());dedicatedAttempts.current.set(key,attempt);
+    setAttemptHistory(current=>upsertAttemptHistory(current,attempt));
+    const answer=attempt.answers.find(entry=>entry.questionId===item.id);
+    const ref=attempt.questionManifest?.find(entry=>entry.instanceId===item.id)?.questionRef;
+    const save=enqueuePracticeSave(pendingPracticeSave.current,async()=>{
+      const state=await apiRequest<StudyState>('/api/study-state/practice',{method:'PUT',token:authToken,body:{eventMode:'merge',attemptHistory:[attempt],...(answer?{answers:{[item.id]:{...answer,submissionState:'submitted',eventId:`${key}:${item.id}`,kind:item.questionTypeId,canonicalQuestionId:ref?.id,questionRevision:ref?.revision}}}: {})}});
+      setProgress(state.progress);listeningProgressRef.current=state.progress;
+    });pendingPracticeSave.current=save;await save;
+  }
+  async function saveListeningPractice(item:ListeningQuestion,sessionId:string,response?:number|string) { if(response===undefined)throw new Error('No answer selected');await saveDedicated(item,sessionId,'listening',response); }
+  async function saveReadingPractice(item:ReadingQuestion,sessionId:string,_correct:boolean,selection?:number) { if(selection===undefined)throw new Error('No answer selected');await saveDedicated(item,sessionId,'reading',selection); }
 
   async function createListeningQuestion(input: ListeningQuestionInput) {
     if (!authToken) return;
@@ -2191,8 +2187,9 @@ export default function App() {
                 locale={locale}
                 token={authToken}
                 questions={typePracticeSelection?.module === 'listening' ? typePracticeSelection.listening : listeningQuestions}
-                progress={progress}
+                progress={listeningDisplayedProgress}
                 onRecordPractice={saveListeningPractice}
+                onPresentPractice={(items,session)=>presentDedicated(items,session,'listening').catch(error=>setAuthError(String(error)))}
                 onCreate={createListeningQuestion}
                 onUpdate={updateListeningQuestion}
                 onDelete={removeListeningQuestion}
@@ -2210,8 +2207,9 @@ export default function App() {
                 locale={locale}
                 token={authToken}
                 questions={listeningQuestions}
-                progress={progress}
+                progress={listeningDisplayedProgress}
                 onRecordPractice={saveListeningPractice}
+                onPresentPractice={(items,session)=>presentDedicated(items,session,'listening').catch(error=>setAuthError(String(error)))}
                 onCreate={createListeningQuestion}
                 onUpdate={updateListeningQuestion}
                 onDelete={removeListeningQuestion}
@@ -2232,6 +2230,7 @@ export default function App() {
                 locale={locale}
                 questions={typePracticeSelection?.module === 'reading' ? typePracticeSelection.reading : readingQuestions}
                 onRecordPractice={saveReadingPractice}
+                onPresentPractice={(items,session)=>presentDedicated(items,session,'reading').catch(error=>setAuthError(String(error)))}
                 progress={progress}
                 activeQuestionId={route.itemId === 'type-session' ? undefined : route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
@@ -2253,6 +2252,7 @@ export default function App() {
                 locale={locale}
                 questions={readingQuestions}
                 onRecordPractice={saveReadingPractice}
+                onPresentPractice={(items,session)=>presentDedicated(items,session,'reading').catch(error=>setAuthError(String(error)))}
                 progress={progress}
                 activeQuestionId={route.itemId === 'type-session' ? undefined : route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
@@ -2493,7 +2493,7 @@ function createPracticeAttempt(view: AppView, deck: Deck | 'all', questions: Que
     view,
     deck,
     questionIds: questions.map((question) => question.id),
-    questionManifest: questions.map(question => ({instanceId:question.id,...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),...('choices' in question ? {snapshot:structuredClone(question as Question)} : {}),status:'choices' in question ? 'frozen' : 'missingOriginal'})),
+    questionManifest: questions.map(question => ({instanceId:question.id,...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),...('choices' in question ? {snapshot:structuredClone(question as Question)} : {}),status:'choices' in question ? 'frozen' : 'notPresented'})),
     answers: [],
   };
 }
@@ -2512,10 +2512,12 @@ function currentAttemptFor(
     && attempt.deck === deck
     && attempt.questionIds.length === questionIds.length
     && attempt.questionIds.every((id, index) => id === questionIds[index])
-    && !attempt.completedAt;
+    && !attempt.completedAt
+    && !attempt.questionManifest?.some(entry=>entry.status==='missingOriginal' && attempt.answers.some(answer=>answer.questionId===entry.instanceId));
   if (sameQuestionSet) return attempt;
   const resumable = history.find((candidate) => (
     !candidate.completedAt
+    && !candidate.questionManifest?.some(entry=>entry.status==='missingOriginal' && candidate.answers.some(answer=>answer.questionId===entry.instanceId))
     && candidate.view === view
     && candidate.deck === deck
     && candidate.questionIds.length === questionIds.length
@@ -2555,40 +2557,8 @@ function attemptForReviewSubmission(
 function appendAttemptAnswer(attempt: PracticeAttempt, answer: AttemptAnswer, question?: Question): PracticeAttempt {
   return {
     ...attempt,
-    questionManifest: attempt.questionIds.map(id=> { const old=attempt.questionManifest?.find(entry=>entry.instanceId===id); return old?.status==='frozen' ? old : id===question?.id ? {instanceId:id,status:'frozen',...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),snapshot:structuredClone(question)} : {instanceId:id,status:'missingOriginal'}; }),
+    questionManifest: attempt.questionIds.map(id=> { const old=attempt.questionManifest?.find(entry=>entry.instanceId===id); return old?.status==='frozen' ? old : id===question?.id ? {instanceId:id,status:'frozen',...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),snapshot:structuredClone(question)} : old ?? {instanceId:id,status:'notPresented'}; }),
     answers: [...attempt.answers.filter((item) => item.questionId !== answer.questionId), answer],
-  };
-}
-
-function completeAttempt(attempt: PracticeAttempt, answers: AnswerState, questions: QuestionReference[], now: Date): PracticeAttempt {
-  const completedAnswers = questions.map((question) => {
-    const existing = attempt.answers.find((answer) => answer.questionId === question.id);
-    const stored = answers[question.id];
-    return existing ?? {
-      questionId: question.id,
-      itemId: question.itemId,
-      kind: question.kind,
-      selected: stored?.selected ?? '',
-      correct: Boolean(stored?.correct),
-      startedAt: stored?.startedAt,
-      answeredAt: stored?.answeredAt ?? now.toISOString(),
-      elapsedMs: stored?.elapsedMs ?? 0,
-    };
-  });
-  const correct = completedAnswers.filter((answer) => answer.correct).length;
-  // Total time is the sum of per-question time, not wall-clock time since the attempt was opened.
-  const elapsedMs = completedAnswers.reduce((sum, answer) => sum + Math.max(0, answer.elapsedMs || 0), 0);
-  return {
-    ...attempt,
-    completedAt: now.toISOString(),
-    answers: completedAnswers,
-    summary: {
-      total: questions.length,
-      correct,
-      wrong: questions.length - correct,
-      accuracy: questions.length ? correct / questions.length : 0,
-      elapsedMs,
-    },
   };
 }
 

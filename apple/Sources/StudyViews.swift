@@ -281,6 +281,7 @@ struct ReadingPracticeView: View {
                 } else { VStack(alignment: .leading, spacing: 20) { passage; Divider(); answers }.padding(.horizontal, 16).padding(.vertical, 12) }
             }
         }.background(DeckTheme.paper).navigationTitle("阅读练习")
+        .onAppear { do { try store.presentDedicatedAttempt(DedicatedAttempts.reading(question,sessionID:sessionID)) } catch { self.error=error.localizedDescription } }
         .onDisappear { store.speechPlayer.stop() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !submitted {

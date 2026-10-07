@@ -76,9 +76,9 @@ struct ListeningLibraryView: View {
                         NavigationLink(value: WorkspaceRoute.listening(group.id)) {
                             VStack(alignment: .leading, spacing: 0) {
                                 DeckRow(title: group.title, subtitle: "\(group.questions.first?.audioReference ?? "") · \(group.questions.count) 道题", icon: "headphones", showsChevron: false)
-                                Label("\(store.state.progress["listening-audio:\(group.id)"]?.reviewCount ?? 0) 次", systemImage: "arrow.triangle.2.circlepath")
+                                Label("\(store.listeningPracticeCount(group.id)) 次", systemImage: "arrow.triangle.2.circlepath")
                                     .font(.caption).foregroundStyle(DeckTheme.muted)
-                                    .accessibilityLabel("已练习 \(store.state.progress["listening-audio:\(group.id)"]?.reviewCount ?? 0) 次")
+                                    .accessibilityLabel("已练习 \(store.listeningPracticeCount(group.id)) 次")
                                     .padding(.leading, 54).padding(.bottom, 12)
                             }
                         }
@@ -181,6 +181,8 @@ struct ListeningDetailView: View {
             visible = true
             if draftStorageKey == nil { draftStorageKey = draftKey }
             restoreDraft()
+            saveDraft()
+            do { try store.presentDedicatedAttempt(DedicatedAttempts.listening(group,sessionID:sessionID)) } catch { self.error=error.localizedDescription }
         }
         .onDisappear { visible = false; if !revealed { saveDraft() }; player?.stop(); playing = false }
         .onReceive(ticker) { _ in
@@ -466,27 +468,8 @@ private struct ListeningActionStyle: ButtonStyle {
 
 extension AppStore {
     func recordListening(group: ListeningGroup, sessionID: String, selected: [String: Int], written: [String: String]) async throws {
-        let key = "listening-audio:\(group.id)"
-        let previous = state.progress[key] ?? ProgressEntry()
-        guard previous.lastPracticeSessionId != sessionID else { return }
-        let answeredAt = Date.now.ISO8601Format()
-        var responses: [String: LocalStudyResponse] = [:]
-        for item in group.questions {
-            let response: String
-            let correct: Bool?
-            if item.freeResponse {
-                response = (written[item.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !response.isEmpty else { throw IdentityError.message("请完成所有题目。") }
-                correct = nil
-            } else {
-                guard let choice = selected[item.id], item.choices.indices.contains(choice) else { throw IdentityError.message("请选择有效选项。") }
-                response = "\(choice + 1). \(item.choices[choice])"
-                correct = choice == item.answerIndex
-            }
-            responses[item.id] = LocalStudyResponse(title: item.question, selected: response, correct: correct, answeredAt: answeredAt, sessionID: sessionID)
-        }
-        try saveAnswerLocally(questionID: "memory-card:\(key)", itemID: key, selected: "completed",
-                              correct: true, progress: previous.afterListening(sessionID: sessionID), responses: responses)
+        guard group.questions.allSatisfy({ item in item.freeResponse ? !(written[item.id] ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty : selected[item.id].map { item.choices.indices.contains($0) } ?? false }) else { throw IdentityError.message("请完成所有题目。") }
+        try submitDedicatedAttempt(DedicatedAttempts.listening(group,sessionID:sessionID,selected:selected,written:written,submitted:true))
 
     }
 }
@@ -497,5 +480,11 @@ extension ProgressEntry {
         next.status = "learning"; next.reviewCount = (reviewCount ?? 0) + 1
         next.firstSeenAt = firstSeenAt ?? now.ISO8601Format(); next.lastReviewedAt = now.ISO8601Format(); next.lastPracticeSessionId = sessionID
         return next
+    }
+}
+
+extension AppStore {
+    func listeningPracticeCount(_ id:String) -> Int {
+        (state.progress["listening-audio:\(id)"]?.reviewCount ?? 0) + (state.attemptHistory ?? []).filter { $0.view=="listening" && $0.practiceId=="listening-audio:\(id)" && $0.completedAt != nil }.count
     }
 }

@@ -1214,3 +1214,23 @@ struct NativeTopicConfirmationView: View {
         } catch { failure = error.localizedDescription }
     }
 }
+
+// Dedicated reading/listening surfaces use the same attempt and frozen question contract.
+enum DedicatedAttempts {
+    static func reading(_ source:ReadingQuestion,sessionID:String,selection:Int? = nil,now:Date = .now) -> NativeAttempt {
+        let q=NativeQuestion(canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"reading",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.passage,correctReason:source.explanation)
+        return make(id:"reading:\(sessionID)",practiceID:source.id,view:"reading",title:source.title,questions:[q],selected:selection.flatMap { q.choices.indices.contains($0) ? [q.id:q.choices[$0]] : nil } ?? [:],written:[:],submitted:selection != nil,now:now)
+    }
+    static func listening(_ group:ListeningGroup,sessionID:String,selected:[String:Int] = [:],written:[String:String] = [:],submitted:Bool = false,now:Date = .now) -> NativeAttempt {
+        let questions=group.questions.map { source in NativeQuestion(canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"listening",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.transcript,correctReason:source.explanation) }
+        let choices=Dictionary(group.questions.compactMap { q -> (String,String)? in guard let index=selected[q.id],q.choices.indices.contains(index) else { return nil };return (q.id,q.choices[index]) },uniquingKeysWith:{ first,_ in first })
+        return make(id:"listening:\(sessionID)",practiceID:"listening-audio:\(group.id)",view:"listening",title:group.title,questions:questions,selected:choices,written:written,submitted:submitted,now:now)
+    }
+    private static func make(id:String,practiceID:String,view:String,title:String,questions:[NativeQuestion],selected:[String:String],written:[String:String],submitted:Bool,now:Date) -> NativeAttempt {
+        let timestamp=now.ISO8601Format()
+        let answers=questions.compactMap { q -> NativeAttempt.AttemptAnswer? in guard let chosen=selected[q.id] else { return nil };return .init(questionId:q.id,itemId:q.itemId,kind:q.questionTypeId ?? q.kind,selected:chosen,correct:chosen==q.answer,answeredAt:timestamp,elapsedMs:0) }
+        let unscored=questions.filter { $0.choices.isEmpty }.compactMap { q -> NativeAttempt.UnscoredResponse? in guard let response=written[q.id],!response.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { return nil };return .init(questionId:q.id,response:response,answeredAt:timestamp) }
+        let correct=answers.filter(\.correct).count
+        return NativeAttempt(id:id,title:title,practiceId:practiceID,startedAt:timestamp,completedAt:submitted ? timestamp : nil,view:view,deck:"all",questionIds:questions.map(\.id),unscoredResponses:unscored,questionManifest:questions.map { q in .init(instanceId:q.id,status:"frozen",questionRef:q.canonicalQuestionId.flatMap { id in q.questionRevision.map { .init(id:id,revision:$0) } },snapshot:q) },answers:answers,summary:submitted ? .init(total:answers.count,correct:correct,wrong:answers.count-correct,accuracy:answers.isEmpty ? 0 : Double(correct)/Double(answers.count)*100,elapsedMs:0) : nil)
+    }
+}

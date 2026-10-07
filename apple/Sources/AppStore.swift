@@ -290,17 +290,27 @@ final class AppStore {
     }
     func answer(_ question: ReadingQuestion, selection: Int, sessionID: String) async throws {
         guard question.choices.indices.contains(selection) else { throw IdentityError.message("请选择有效选项。") }
-        var progress = state.progress[question.id] ?? ProgressEntry()
-        if progress.lastPracticeSessionId == sessionID { return }
-        progress.correct += selection == question.answerIndex ? 1 : 0
-        progress.wrong += selection == question.answerIndex ? 0 : 1
-        progress.status = "learning"; progress.reviewCount = (progress.reviewCount ?? 0) + 1
-        progress.firstSeenAt = progress.firstSeenAt ?? Date.now.ISO8601Format()
-        progress.lastReviewedAt = Date.now.ISO8601Format(); progress.lastPracticeSessionId = sessionID
-        try saveAnswerLocally(questionID: "memory-card:\(question.id)", itemID: question.id,
-                              selected: String(selection), correct: selection == question.answerIndex, progress: progress,
-                              responses: [question.id: LocalStudyResponse(title: question.title, selected: question.choices[selection], correct: selection == question.answerIndex, answeredAt: progress.lastReviewedAt!, sessionID: sessionID)])
+        let attempt=DedicatedAttempts.reading(question,sessionID:sessionID,selection:selection)
+        try submitDedicatedAttempt(attempt)
     }
+    func presentDedicatedAttempt(_ attempt:NativeAttempt) throws {
+        guard !(state.attemptHistory ?? []).contains(where:{ $0.id==attempt.id }) else { return }
+        var next=snapshot();next.state.attemptHistory=NativeAttempt.merging(next.state.attemptHistory ?? [],[attempt])
+        if !isDemo { next.pending.append(.init(id:UUID(),before:ProgressEntry(),input:.init(questionId:"",itemId:"",selected:"",correct:false,progressEntry:ProgressEntry(),attemptHistory:[attempt]),historyOnly:true));guard let id=session?.user.id else { throw IdentityError.message("请先登录。") };try files.save(next,userID:id) }
+        state=next.state;pending=isDemo ? [] : next.pending
+        Task { await syncAnswers() }
+    }
+    func submitDedicatedAttempt(_ value:NativeAttempt) throws {
+        var attempt=value
+        if let original=state.attemptHistory?.first(where:{$0.id==attempt.id}) {
+            attempt.questionManifest=original.questionManifest
+            // Started-at belongs to presentation, not submission.
+            attempt=NativeAttempt(id:attempt.id,title:attempt.title,practiceId:attempt.practiceId,startedAt:original.startedAt,completedAt:attempt.completedAt,view:attempt.view,deck:attempt.deck,questionIds:attempt.questionIds,unscoredResponses:attempt.unscoredResponses,questionManifest:attempt.questionManifest,answers:attempt.answers,summary:attempt.summary)
+        }
+        let questions=attempt.questionManifest?.compactMap(\.snapshot) ?? []
+        try submitNativeBatch(questions:questions,attempt:attempt,allowUnanswered:true)
+    }
+
     func submitNativeBatch(questions: [NativeQuestion], attempt: NativeAttempt, allowUnanswered: Bool = false) throws {
         guard !isRestoringLocal, !isSaving, isSignedIn else { throw IdentityError.message("正在同步答题记录，请稍后重试。") }
         let next = try snapshot().recordingNativeBatch(questions: questions, attempt: attempt, allowUnanswered: allowUnanswered)

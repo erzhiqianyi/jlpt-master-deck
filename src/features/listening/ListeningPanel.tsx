@@ -45,7 +45,7 @@ const listeningTypeGuidance: Record<string, { prompt: string; choiceCount: numbe
   'listening-basic-training': { prompt: 'まず音声を聞いてください。それから、質問と選択肢を聞いて、最もよいものを一つ選んでください。', choiceCount: 4, choicesOptional: true },
 };
 
-type RecordPractice = (item: ListeningQuestion) => Promise<void>;
+type RecordPractice = (item: ListeningQuestion,response?:number|string) => Promise<void>;
 
 type ListeningPanelProps = {
   mode: 'practice' | 'library';
@@ -54,7 +54,8 @@ type ListeningPanelProps = {
   token: string;
   questions: ListeningQuestion[];
   progress?: ProgressState;
-  onRecordPractice?: (item: ListeningQuestion, sessionId: string) => Promise<void>;
+  onPresentPractice?: (items:ListeningQuestion[],session:string)=>Promise<void>;
+  onRecordPractice?: (item: ListeningQuestion, sessionId: string,response?:number|string) => Promise<void>;
   onCreate: (input: ListeningQuestionInput) => Promise<void>;
   onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -73,13 +74,14 @@ type ListeningAudioGroup = { key: string; representative: ListeningQuestion; que
 const sameListeningHeading = (a: ListeningQuestion | undefined, b: ListeningQuestion | undefined) =>
   Boolean(a && b && a.questionTypeId === b.questionTypeId && a.title.trim() === b.title.trim());
 
-export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice, onCreate, onUpdate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
+export function ListeningPanel({ mode, labels, locale, token, questions, progress = {}, onRecordPractice,onPresentPractice, onCreate, onUpdate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview, activeQuestionId, onOpenQuestion, onBackToLibrary }: ListeningPanelProps) {
   const sessionId = useMemo(() => crypto.randomUUID(), [mode, activeQuestionId]);
   const [readAlongOpen, setReadAlongOpen] = useState(false);
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
   useEffect(() => { setReadAlongOpen(false); }, [activeQuestionId]);
   useEffect(() => { setMobileQuestionIndex(0); }, [activeQuestionId]);
-  const recordPractice: RecordPractice = async (item) => { await onRecordPractice?.(item, sessionId); };
+  const recordPractice: RecordPractice = async (item,response) => { await onRecordPractice?.(item, sessionId,response); };
+  const presentPractice=(items:ListeningQuestion[])=>onPresentPractice?.(items,sessionId);
   const [title, setTitle] = useState('');
   const [questionTypeId, setQuestionTypeId] = useState(defaultListeningQuestionTypeId);
   const [question, setQuestion] = useState(listeningTypeGuidance[defaultListeningQuestionTypeId]?.prompt ?? '');
@@ -139,7 +141,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
   }, [pageCount]);
 
   if (mode === 'practice') {
-    return <ListeningPracticePanel onRecordPractice={recordPractice} labels={labels} locale={locale} token={token} questions={questions} onOpenLibrary={onOpenLibrary} />;
+    return <ListeningPracticePanel onRecordPractice={recordPractice} onPresentPractice={presentPractice} labels={labels} locale={locale} token={token} questions={questions} onOpenLibrary={onOpenLibrary} />;
   }
 
   const activeGroup = activeQuestionId ? listeningAudioGroupForRoute(questions, activeQuestionId) : [];
@@ -154,7 +156,7 @@ export function ListeningPanel({ mode, labels, locale, token, questions, progres
           {!readAlongOpen ? <ListeningShareButton key={activeLibraryQuestion.id} item={activeLibraryQuestion} token={token} locale={locale} questionCount={activeLibraryQuestion.audioAssetId ? activeGroup.length : 1} /> : null}
         </div>
         <div className="listening-answer-layout">
-        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} active={!readAlongOpen} questions={activeGroup} recordPractice={recordPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
+        <ListeningQuestionGroup key={activeGroup[0].audioAssetId ?? activeGroup[0].id} active={!readAlongOpen} questions={activeGroup} recordPractice={recordPractice} onPresentPractice={presentPractice} labels={labels} locale={locale} onUpdate={onUpdate} onDelete={onDelete} mobileIndex={mobileQuestionIndex} onMobileIndexChange={setMobileQuestionIndex} />
         <aside className="listening-audio-sidebar" aria-label={locale === 'ja' ? '音声と問題ナビゲーション' : locale === 'en' ? 'Audio and question navigation' : '音频与题目导航'}>
           <div className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto">
             {!readAlongOpen ? <ListeningAudioTools item={activeGroup[0]} labels={labels} locale={locale} token={token} onOpenReadAlong={() => setReadAlongOpen(true)} /> : null}
@@ -478,7 +480,9 @@ function ListeningShareButton({ item, token, locale, questionCount }: { item: Li
   </div>;
 }
 
-function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrary, onRecordPractice }: { labels: Record<string, string>; locale: Locale; token: string; questions: ListeningQuestion[]; onOpenLibrary?: () => void; onRecordPractice: RecordPractice }) {
+function ListeningPracticePanel({ labels, locale, token, questions:initialQuestions, onOpenLibrary, onRecordPractice,onPresentPractice }: { labels: Record<string, string>; locale: Locale; token: string; questions: ListeningQuestion[]; onOpenLibrary?: () => void; onRecordPractice: RecordPractice;onPresentPractice?:(items:ListeningQuestion[])=>Promise<void>|undefined }) {
+  const [questions]=useState(()=>structuredClone(initialQuestions));
+  useEffect(()=>{void onPresentPractice?.(questions);},[]);
   const [activeIndex, setActiveIndex] = useState(0);
   const orderedQuestions = useMemo(() => [...questions].sort(byLibraryNumber), [questions]);
   const activeQuestion = orderedQuestions[activeIndex % Math.max(orderedQuestions.length, 1)];
@@ -515,14 +519,16 @@ function ListeningPracticePanel({ labels, locale, token, questions, onOpenLibrar
           </button>
         </div>
       </div>
-      <ListeningPracticeQuestion onRecordPractice={onRecordPractice} item={activeQuestion} labels={labels} token={token} locale={locale} />
+      <ListeningPracticeQuestion key={activeQuestion.id} onRecordPractice={onRecordPractice} onPresentPractice={onPresentPractice} item={activeQuestion} labels={labels} token={token} locale={locale} />
     </section>
   );
 }
 
-function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPractice }: { item: ListeningQuestion; labels: Record<string, string>; token: string; locale: Locale; onRecordPractice: RecordPractice }) {
+function ListeningPracticeQuestion({ item:initialItem, labels, token, locale, onRecordPractice,onPresentPractice }: { item: ListeningQuestion; labels: Record<string, string>; token: string; locale: Locale; onRecordPractice: RecordPractice;onPresentPractice?:(items:ListeningQuestion[])=>Promise<void>|undefined }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [audioError, setAudioError] = useState('');
+  const [item]=useState(()=>structuredClone(initialItem));
+  useEffect(()=>{void onPresentPractice?.([item]);},[]);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [answerNotice, setAnswerNotice] = useState('');
@@ -535,7 +541,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
     setSavingPractice(true);
     setAnswerNotice('');
     try {
-      await onRecordPractice(item);
+      await onRecordPractice(item,isFreeResponse(item)?freeResponse:selected!);
       setRevealed(true);
     } catch (error) {
       setAnswerNotice(error instanceof Error ? error.message : '保存失败，请重试');
@@ -686,7 +692,9 @@ function ListeningQuestionNavigation({ questions, locale, mobileIndex, onMobileI
 
 type GroupAnswer = { selected: number | null; freeResponse: string };
 
-function ListeningQuestionGroup({ active, questions, recordPractice, labels, locale, onUpdate, onDelete, mobileIndex, onMobileIndexChange }: { active: boolean; questions: ListeningQuestion[]; recordPractice: RecordPractice; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
+function ListeningQuestionGroup({ active, questions:initialQuestions, recordPractice,onPresentPractice, labels, locale, onUpdate, onDelete, mobileIndex, onMobileIndexChange }: { active: boolean; questions: ListeningQuestion[]; recordPractice: RecordPractice;onPresentPractice?:(items:ListeningQuestion[])=>Promise<void>|undefined; labels: Record<string, string>; locale: Locale; onUpdate: (id: string, patch: Partial<ListeningQuestion>) => Promise<void>; onDelete: (id: string) => Promise<void>; mobileIndex: number; onMobileIndexChange: (index: number) => void }) {
+  const [questions]=useState(()=>structuredClone(initialQuestions));
+  useEffect(()=>{void onPresentPractice?.(questions);},[]);
   const [answers, setAnswers] = useState<Record<string, GroupAnswer>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   // Keep editor data mounted behind shadowing, but only the visible page owns Back.
@@ -724,7 +732,7 @@ function ListeningQuestionGroup({ active, questions, recordPractice, labels, loc
         const answer = answers[item.id];
         const answerKey = isFreeResponse(item) ? `text:${answer.freeResponse.trim()}` : `choice:${answer.selected}`;
         if (savedAnswers.current[item.id] === answerKey) continue;
-        await recordPractice(item);
+        await recordPractice(item,isFreeResponse(item)?answer.freeResponse:answer.selected!);
         savedAnswers.current[item.id] = answerKey;
       }
       setRevealed(true);

@@ -34,7 +34,7 @@ function questionCountLabel(count: number, locale: Locale) {
   return locale === 'ja' ? `全${count}問` : locale === 'en' ? `${count} questions` : `共 ${count} 题`;
 }
 
-type RecordReadingPractice = (item: ReadingQuestion, sessionId: string, correct: boolean) => Promise<void>;
+type RecordReadingPractice = (item: ReadingQuestion, sessionId: string, correct: boolean,selection?:number) => Promise<void>;
 
 type ReadingPanelProps = {
   activeQuestionId?: string;
@@ -45,6 +45,7 @@ type ReadingPanelProps = {
   questions: ReadingQuestion[];
   progress?: ProgressState;
   onRecordPractice: RecordReadingPractice;
+  onPresentPractice?: (items:ReadingQuestion[],session:string)=>Promise<void>;
   onCreate: (input: ReadingQuestionInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onOpenLibrary?: () => void;
@@ -54,7 +55,7 @@ type ReadingPanelProps = {
   onReview?: () => void;
 };
 
-export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onRecordPractice, onCreate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview }: ReadingPanelProps) {
+export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, locale, questions, progress = {}, onRecordPractice,onPresentPractice, onCreate, onDelete, onOpenLibrary, onPractice, onAsk, onTips, onReview }: ReadingPanelProps) {
   const [title, setTitle] = useState('');
   const [passage, setPassage] = useState('');
   const [question, setQuestion] = useState('');
@@ -77,12 +78,12 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   const filteredGroups = activeTag === '全部' ? groups : groups.filter((group) => group.some((item) => (item.tags ?? []).includes(activeTag)));
 
   if (mode === 'practice') {
-    return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} progress={progress} onRecordPractice={onRecordPractice} onOpenLibrary={onOpenLibrary} />;
+    return <ReadingPracticePanel labels={labels} locale={locale} questions={questions} progress={progress} onRecordPractice={onRecordPractice} onPresentPractice={onPresentPractice} onOpenLibrary={onOpenLibrary} />;
   }
 
   if (activeQuestionId) {
     const group = groups.find((items) => items.some((item) => item.id === activeQuestionId));
-    return group ? <ReadingPassage key={group[0].passage} items={group} progress={progress} onRecordPractice={onRecordPractice} labels={labels} locale={locale} onDelete={async (id) => {
+    return group ? <ReadingPassage key={group[0].id} items={group} progress={progress} onRecordPractice={onRecordPractice} onPresentPractice={onPresentPractice} labels={labels} locale={locale} onDelete={async (id) => {
       await onDelete(id);
       if (id === activeQuestionId) {
         const remaining = group.find((item) => item.id !== id);
@@ -257,7 +258,7 @@ export function ReadingPanel({ activeQuestionId, onBackToLibrary, mode, labels, 
   );
 }
 
-function ReadingPracticePanel({ labels, locale, questions, progress, onRecordPractice, onOpenLibrary }: { progress: ProgressState; labels: Record<string, string>; locale: Locale; questions: ReadingQuestion[]; onRecordPractice: RecordReadingPractice; onOpenLibrary?: () => void }) {
+function ReadingPracticePanel({ labels, locale, questions, progress, onRecordPractice,onPresentPractice, onOpenLibrary }: { progress: ProgressState; labels: Record<string, string>; locale: Locale; questions: ReadingQuestion[]; onRecordPractice: RecordReadingPractice;onPresentPractice?: (items:ReadingQuestion[],session:string)=>Promise<void>; onOpenLibrary?: () => void }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const groups = groupReadingQuestions(questions);
   const activeQuestion = groups[activeIndex % Math.max(groups.length, 1)];
@@ -294,14 +295,16 @@ function ReadingPracticePanel({ labels, locale, questions, progress, onRecordPra
           </button>
         </div>
       </div>
-      <ReadingPassage key={activeQuestion[0].passage} items={activeQuestion} progress={progress} onRecordPractice={onRecordPractice} labels={labels} locale={locale} />
+      <ReadingPassage key={activeQuestion[0].id} items={activeQuestion} progress={progress} onRecordPractice={onRecordPractice} onPresentPractice={onPresentPractice} labels={labels} locale={locale} />
     </section>
   );
 }
 
-function ReadingPassage({ items, labels, locale, progress, onDelete, onRecordPractice }: { progress: ProgressState; items: ReadingQuestion[]; onRecordPractice: RecordReadingPractice; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingPassage({ items:initialItems, labels, locale, progress, onDelete, onRecordPractice,onPresentPractice }: { progress: ProgressState; items: ReadingQuestion[]; onPresentPractice?: (items:ReadingQuestion[],session:string)=>Promise<void>; onRecordPractice: RecordReadingPractice; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+  const [items]=useState(()=>structuredClone(initialItems));
   const item = items[0];
   const [sessionId] = useState(() => crypto.randomUUID());
+  useEffect(()=>{void onPresentPractice?.(items,sessionId);},[]);
   const [segmented, setSegmented] = useState(false);
   const [showRuby, setShowRuby] = useState(false);
   const rubyTerms = items.flatMap((question) => question.rubyTerms ?? []);
@@ -330,7 +333,7 @@ function ReadingPassage({ items, labels, locale, progress, onDelete, onRecordPra
       <button type="button" className="reading-start-answer" onClick={() => { setPassageOpen(false); window.requestAnimationFrame(() => document.getElementById('reading-questions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>{locale === 'ja' ? '本文を閉じて解答する' : locale === 'en' ? 'Close passage and answer' : '收起原文并作答'}</button>
     </details>
     <div id="reading-questions" className="reading-question-column divide-y divide-[#e1e7df]">
-      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} previouslyAnswered={completedIds.includes(question.id) || Boolean((progress[question.id]?.reviewCount ?? 0) > 0 || (progress[question.id]?.correct ?? 0) + (progress[question.id]?.wrong ?? 0) > 0)} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct) => onRecordPractice(question, sessionId, correct)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={reviewAvailable && segmented} labels={labels} locale={locale} onDelete={manageOpen ? onDelete : undefined} />)}
+      {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} previouslyAnswered={completedIds.includes(question.id) || Boolean((progress[question.id]?.reviewCount ?? 0) > 0 || (progress[question.id]?.correct ?? 0) + (progress[question.id]?.wrong ?? 0) > 0)} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct,selection) => onRecordPractice(question, sessionId, correct,selection)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={reviewAvailable && segmented} labels={labels} locale={locale} onDelete={manageOpen ? onDelete : undefined} />)}
     </div>
     </div>
     {items.some((question) => revealedIds.includes(question.id)) ? <div className="reading-explanations mt-8">
@@ -342,7 +345,7 @@ function ReadingPassage({ items, labels, locale, progress, onDelete, onRecordPra
   </article></ReadingRubyProvider>;
 }
 
-function ReadingQuestionItem({ item, number, previouslyAnswered, revealed, setRevealed, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; previouslyAnswered: boolean; revealed: boolean; setRevealed: (revealed: boolean) => void; onRecordPractice: (correct: boolean) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
+function ReadingQuestionItem({ item, number, previouslyAnswered, revealed, setRevealed, onRecordPractice, onComplete, segmented, labels, locale, onDelete }: { item: ReadingQuestion; number: number; previouslyAnswered: boolean; revealed: boolean; setRevealed: (revealed: boolean) => void; onRecordPractice: (correct: boolean,selection?:number) => Promise<void>; onComplete: () => void; segmented: boolean; labels: Record<string, string>; locale: Locale; onDelete?: (id: string) => Promise<void> }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [answerNotice, setAnswerNotice] = useState('');
   const [saving, setSaving] = useState(false);
@@ -382,7 +385,7 @@ function ReadingQuestionItem({ item, number, previouslyAnswered, revealed, setRe
           setAnswerNotice('');
           setSaving(true);
           try {
-            await onRecordPractice(selected === item.answerIndex);
+            await onRecordPractice(selected === item.answerIndex,selected);
             setRevealed(true);
             onComplete();
           } catch (error) {

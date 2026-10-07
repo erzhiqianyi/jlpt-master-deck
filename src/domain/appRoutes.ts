@@ -1,10 +1,8 @@
 import type { AppRoute, AppView, StudyPage } from '../types';
 import type { OfficialSampleModule } from '../data/officialModuleSamples';
-import { migrateNewsHash } from './mockExam.mjs';
 import { replayRouteAttemptId } from './attemptReplay';
 
 export function routeFromHash(hash: string): AppRoute {
-  hash = migrateNewsHash(hash) ?? hash;
   const [viewValue, pageValue, itemValue, detailValue] = hash.replace(/^#\/?/, '').split('/');
   const view = isAppView(viewValue) ? viewValue : 'home';
   if (view === 'plan') {
@@ -14,9 +12,6 @@ export function routeFromHash(hash: string): AppRoute {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
   if (view === 'mock-exams') {
-    return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
-  }
-  if (view === 'news-cycle') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
   if (view === 'history') {
@@ -71,9 +66,6 @@ export function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   if (view === 'mock-exams') {
     return itemId ? `#/mock-exams/${encodeURIComponent(itemId)}` : '#/mock-exams';
   }
-  if (view === 'news-cycle') {
-    return migrateNewsHash(itemId ? `#/news-cycle/${encodeURIComponent(itemId)}` : '#/news-cycle')!;
-  }
   if (view === 'about') {
     return itemId ? `#/about/${encodeURIComponent(itemId)}` : '#/about';
   }
@@ -104,7 +96,7 @@ export function isOfficialSampleModule(view: AppView): view is OfficialSampleMod
 }
 
 export function isAppView(value: string): value is AppView {
-  return ['study', 'market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'news-cycle', 'drafts', 'about', 'profile', 'settings'].includes(value);
+  return ['study', 'market', 'capture', 'captures', 'home', 'memory-review', 'history', 'mistakes', 'memory', 'data', 'mcp', 'insights', 'plan', 'question-types', 'vocabulary', 'grammar', 'listening', 'reading', 'mixed', 'daily-practice', 'mock-exams', 'drafts', 'about', 'profile', 'settings'].includes(value);
 }
 
 export function defaultDesktopStudyPage(view: AppView): StudyPage {
@@ -126,15 +118,9 @@ export function mobileBackRoute(route: AppRoute): AppRoute {
   }
 
   if (route.view === 'mock-exams' && route.itemId) {
-    return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
+    return { view: 'mock-exams', page: 'questions', itemId: /^custom:/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
   }
   if (route.view === 'mock-exams') {
-    return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'news-cycle' && route.itemId) {
-    return { view: 'news-cycle', page: 'questions' };
-  }
-  if (route.view === 'news-cycle') {
     return { view: 'home', page: 'questions' };
   }
   if (route.view === 'mixed' && route.page !== 'tips') {
@@ -192,9 +178,6 @@ export function desktopBackRoute(route: AppRoute): AppRoute | null {
   }
   if (route.view === 'mock-exams') {
     return { view: 'home', page: 'questions' };
-  }
-  if (route.view === 'news-cycle') {
-    return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'home', page: 'questions' };
   }
   if (route.view === 'captures') {
     return { view: 'history', page: 'questions' };

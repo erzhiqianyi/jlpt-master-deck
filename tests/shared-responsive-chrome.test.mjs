@@ -71,10 +71,10 @@ test('global search opens deliberately, has a single type selector, and returns 
 });
 
 test('mock total counts all known catalog families but never turns a failed family into zero', async()=>{
- globalThis.fetch=async path=>({ok:true,json:async()=>path.includes('news-cycles')?{cycles:[{id:'one'}]}:{exams:[{id:'one'}]}});
- await mount('CountFixture');assert.equal(container.textContent,'3');
+ globalThis.fetch=async path=>({ok:true,json:async()=>({exams:[{id:'one'}]})});
+ await mount('CountFixture');assert.equal(container.textContent,'2');
  await ui.act(async()=>root.unmount());root=null;
- globalThis.fetch=async path=>{if(path.includes('news-cycles'))throw new Error('offline');return {ok:true,json:async()=>({exams:[]})}};
+ globalThis.fetch=async path=>{if(path.includes('local-mock-exams'))throw new Error('offline');return {ok:true,json:async()=>({exams:[]})}};
  await mount('CountFixture');assert.equal(container.textContent,'unknown');
 });
 

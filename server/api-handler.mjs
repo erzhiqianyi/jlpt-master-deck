@@ -1,7 +1,7 @@
 import { studySync, studySyncStatus } from './study-sync.mjs';
 import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
 import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
-import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
+import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
 import { getDb } from './storage.mjs';
 import { getDailySummary, listDailySummaries, validSummaryDate, dailyCardReviewStats } from './daily-summary.mjs';
@@ -84,7 +84,6 @@ import { listProviderDescriptors, ttsCredentialStatus, saveTtsCredential, delete
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localOfficialRoot = join(rootDir, '.local', 'official-jlpt');
 const localMockRoot = join(rootDir, '.local', 'mock-exams');
-const localNewsRoot = resolve(process.env.JLPT_NEWS_SOURCE_DIR ?? '/Users/itsuki/AI/knowledge-base/personal-knowledge/sources/jlpt-news');
 
 export function createApiHandler({ mcp, mcpListener, health = () => buildHealthPayload(mcp) }) {
 return async (req, res) => {
@@ -138,28 +137,6 @@ return async (req, res) => {
         return json(res, 403, { error: 'Local mock exams are only available from localhost' });
       }
       return json(res, 200, readLocalMockExamManifest());
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/local-news-cycle') {
-      if (!isLoopbackRequest(req) && !user) {
-        return json(res, 401, { error: 'Authentication required' });
-      }
-      return json(res, 200, readLocalNewsCycle(url.searchParams.get('id'), user?.id));
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/local-news-cycles') {
-      if (!isLoopbackRequest(req) && !user) {
-        return json(res, 401, { error: 'Authentication required' });
-      }
-      return json(res, 200, { cycles: readLocalNewsCycles(user?.id) });
-    }
-
-    const localNewsAudioMatch = /^\/api\/local-news-audio\/(\d{4}-\d{2}-\d{2})\/(.+)$/.exec(url.pathname);
-    if (req.method === 'GET' && localNewsAudioMatch) {
-      if (!isLoopbackRequest(req) && !user) {
-        return json(res, 401, { error: 'Authentication required' });
-      }
-      return streamLocalFile(res, localNewsRoot, `${localNewsAudioMatch[1]}/media/${localNewsAudioMatch[2]}`, 'Local news audio not found');
     }
 
     const localMockExamMatch = /^\/api\/local-mock-exams\/([^/]+)$/.exec(url.pathname);

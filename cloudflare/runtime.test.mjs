@@ -138,7 +138,7 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
       const body=JSON.parse(line?line.slice(5):raw); assert.ok(!body.error,JSON.stringify(body));return body.result;
     };
     const catalogue = (await rpc('tools/list')).tools;
-    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'list_local_news_cycles', 'get_local_news_cycle', 'export_review_data_backup', 'get_listening_recording_analysis_context']) {
+    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'export_review_data_backup', 'get_listening_recording_analysis_context']) {
       assert.ok(!catalogue.some((tool) => tool.name === name), `${name} must not be published from Cloudflare`);
     }
     for (const tool of catalogue) {

@@ -370,7 +370,7 @@
     .study-wordbook-manager, .study-question-bank, .study-module-review, .study-mistakes-page,
     .study-focused-selector, .study-due-review, .practice-hub-content, .practice-review-results,
     .practice-mock-exam, .practice-designed-exam, .attempt-review-card, .review-reading-page,
-    .ai-guide, .handbook, .user-profile, .gentle-news-index, .news-focus,
+    .ai-guide, .handbook, .user-profile, .gentle-news-index, .exam-focus,
     .market-panel, .market-preview, .opinion-practice, .ledger-entry-hub
   ):not(dialog *, [role='dialog'] *) {
     margin-inline: 0 !important;

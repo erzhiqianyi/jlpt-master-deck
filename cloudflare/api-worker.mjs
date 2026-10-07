@@ -148,7 +148,6 @@ export class JlptDatabase extends DurableObject {
     if (url.pathname.startsWith('/api/local-')) {
       const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
       if (!userForToken(token)) return Response.json({error:'Authentication required'},{status:401});
-      if (url.pathname === '/api/local-news-cycles') return Response.json({cycles:[]});
       if (url.pathname === '/api/local-mock-exams') return Response.json({exams:[]});
       return Response.json({error:'此内容尚未同步到云端。'},{status:404});
     }

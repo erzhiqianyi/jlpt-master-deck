@@ -1,13 +1,12 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 const dir = mkdtempSync(join(tmpdir(), 'jlpt-read-parity-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
-process.env.JLPT_NEWS_SOURCE_DIR = join(dir, 'news');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 const storage = await import('./storage.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
@@ -99,18 +98,11 @@ test('state, history, recordings, audio match and market reads match web API', a
   }
 });
 
-test('news data uses shared readers and local-only materials retain their access boundary', async () => {
-  const root = process.env.JLPT_NEWS_SOURCE_DIR;
-  mkdirSync(join(root, 'weekly', '2026-W39'), { recursive: true });
-  mkdirSync(join(root, '2026-09-22'), { recursive: true });
-  writeFileSync(join(root, 'weekly', '2026-W39', 'cycle-summary.json'), JSON.stringify({ range: { from: '2026-09-22', to: '2026-09-22' }, total_questions: 1 }));
-  writeFileSync(join(root, '2026-09-22', 'questions.json'), JSON.stringify({ questions: [{ id: 'news-reading', module: 'reading', passage: '本文' }] }));
-  assert.deepEqual(await call('list_local_news_cycles'), await api('/api/local-news-cycles'));
-  assert.deepEqual(await call('get_local_news_cycle', { id: '2026-W39' }), await api('/api/local-news-cycle?id=2026-W39'));
+test('local-only materials retain their access boundary and retired news tools are absent', async () => {
+  assert.equal(tools.some(tool=>/local_news/.test(tool.name)),false);
   for (const name of ['list_local_official_samples', 'list_local_mock_exams']) {
     await assert.rejects(call(name, {}, alice, { request: new Request('https://public.example/api/jlpt/mcp') }), /localhost/);
     await assert.rejects(call(name, {}, alice, { request: new Request('http://localhost/api/jlpt/mcp', { headers: { 'x-forwarded-host': 'public.example' } }) }), /localhost/);
   }
-  await assert.rejects(withPlatform({ dataSource: 'durable-object' }, () => call('get_local_news_cycle')), /unavailable/);
   await assert.rejects(withPlatform({ dataSource: 'durable-object' }, () => call('list_local_mock_exams', {}, alice, { clientId: 'stdio' })), /unavailable/);
 });

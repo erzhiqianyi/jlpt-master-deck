@@ -1,3 +1,4 @@
+import {assemblyDraftKey} from '../../domain/assemblyDraft.mjs';
 import { QuestionRenderer } from '../../components/QuestionRenderer';
 import {useMaterialAudioResolver} from '../../hooks/useMaterialAudioResolver';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
@@ -250,6 +251,7 @@ export function PracticeReviewPanel({
 
 export function PracticePanel({
   token,
+  draftScope,
   activeQuestion,
   questions,
   questionsLength,
@@ -275,6 +277,7 @@ export function PracticePanel({
   loading = false,
 }: {
   token?: string;
+  draftScope?:string;
   activeQuestion?: Question;
   questions: QuestionReference[];
   questionsLength: number;
@@ -553,7 +556,7 @@ export function PracticePanel({
       </aside>
       <div className="practice-content-column">
       <div className="practice-question-section">
-        {activeQuestion ? <QuestionRenderer presentation={activeQuestion.presentation} resolveAudio={resolveTypedAudio} questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+        {activeQuestion ? <QuestionRenderer draftKey={assemblyDraftKey(draftScope,`${activeQuestion.canonicalQuestionId??activeQuestion.id}@${activeQuestion.questionRevision??0}`)} initialOrder={answers[activeQuestion.id]?.assemblyOrder} presentation={activeQuestion.presentation} resolveAudio={resolveTypedAudio} questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
           materials={activeQuestion.passage?<p className="whitespace-pre-wrap">{activeQuestion.passage}</p>:undefined} taskConditions={activeQuestion.taskConditions}
           instruction={activeQuestion.instruction}
           prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} />}

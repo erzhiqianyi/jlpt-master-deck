@@ -22,8 +22,6 @@ export const HOSTED_EXCLUDED_TOOLS = new Set([
   'list_local_official_samples',
   'list_local_mock_exams',
   'get_local_mock_exam',
-  'list_local_news_cycles',
-  'get_local_news_cycle',
   'export_review_data_backup',
   'get_listening_recording_analysis_context',
 ]);

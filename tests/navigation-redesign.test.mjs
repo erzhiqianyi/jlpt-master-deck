@@ -77,7 +77,7 @@ test('phone tabs are reserved for exactly four roots and never a local child scr
     assert.equal(isPrimaryNavigationRoot({ ...route, itemId: 'detail' }), false);
     assert.equal(contextualBackRoute(route), null);
   }
-  for (const view of ['plan', 'settings', 'profile', 'about', 'mcp', 'capture', 'captures', 'drafts', 'mistakes', 'memory', 'data', 'insights', 'question-types', 'mock-exams', 'news-cycle', 'daily-practice']) {
+  for (const view of ['plan', 'settings', 'profile', 'about', 'mcp', 'capture', 'captures', 'drafts', 'mistakes', 'memory', 'data', 'insights', 'question-types', 'mock-exams', 'daily-practice']) {
     assert.equal(isPrimaryNavigationRoot({ view, page: 'questions' }), false, view);
   }
   for (const view of ['vocabulary', 'grammar', 'reading', 'listening', 'mixed']) {
@@ -110,7 +110,7 @@ test('one semantic Back hierarchy covers detail, list, form, replay and nested e
     [{ view: 'question-types', page: 'questions' }, { view: 'study', page: 'questions' }],
     [{ view: 'capture', page: 'questions' }, { view: 'captures', page: 'questions' }],
     [{ view: 'drafts', page: 'questions' }, { view: 'home', page: 'questions' }],
-    [{ view: 'mock-exams', page: 'questions', itemId: 'week:2026-W40:2026-10-04' }, { view: 'mock-exams', page: 'questions', itemId: 'week:2026-W40' }],
+    [{ view: 'mock-exams', page: 'questions', itemId: 'custom:exam-one:2026-10-04' }, { view: 'mock-exams', page: 'questions', itemId: 'custom:exam-one' }],
     [{ view: 'daily-practice', page: 'review', itemId: 'DP-42' }, { view: 'daily-practice', page: 'questions', itemId: 'DP-42' }],
   ];
   for (const [route, expected] of cases) assert.deepEqual(contextualBackRoute(route), expected, JSON.stringify(route));

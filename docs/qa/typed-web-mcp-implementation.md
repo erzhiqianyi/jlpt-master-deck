@@ -16,13 +16,13 @@
 
 REST原有答案字段行为不变。MCP未答DTO删去canonical answer、correctOrder、答案解析、转写与翻译；提交后才返回完整冻结内容。服务对排序要求完整无重复排列，所选文本必须对应★槽；仍按原canonical答案判分，不按排列重新定义答案。已有attempt snapshot优先于当前源题。材料projection带schemaVersion=1以兼容原生BankCachedVersion；不会把派生presentation递归写入canonical legacy。
 
-测试真实React点击排序控件；测试MCP handler完整提交、非法排列无写入、完整顺序恢复、后续题答案未泄漏、源题修改后冻结历史保留。全仓503/503通过；新增DOM测试是结构/交互测试，不代表浏览器布局截图。type/lint、Web/MCP三个bundle与Cloud API构建通过，未部署。最终补充保留独立legacy context后，4项相关DOM测试及TypeScript检查再次通过；此前全仓503项结果仍保留。
+测试真实React点击排序控件；测试MCP handler完整提交、非法排列无写入、完整顺序恢复、后续题答案未泄漏、源题修改后冻结历史保留。全仓503/503通过；新增DOM测试是结构/交互测试，不代表浏览器布局截图。type/lint、Web/MCP三个bundle与Cloud API构建通过，未部署。在部分排列恢复、新闻退休与最后引用清理完成后，全仓再次503/503通过，TypeScript、ESLint和上述所有构建再次通过。
 
 ## 尚未闭环的差异
 
 - Web/MCP像素、真实浏览器音频和网络图片错误/加载状态尚未验收，当前工具缺失。
-- Web完整提交后的排列已保存；尚未把未提交的部分排列纳入跨退出草稿恢复。原生已保存部分排列。
-- 库/练习与自定义考试已接真实canonical内容；旧本地新闻MockExamPanel仍走legacy DTO兼容入口，本轮不认证其全结构化payload。
+- Web未提交部分排列已加入按账户/attempt与题目版本隔离的本浏览器恢复；不写作答事件。完整提交顺序继续保存。MCP未提交部分排列跨退出恢复不在本次Web专项范围，已提交顺序由服务恢复。
+- 用户已取消新闻练习及其专用记录，相关入口、接口、类型与兼容路由本轮退休。普通本地MockExamPanel仍保留原有local mock考试功能，不能把它误称为新闻专用模块。
 - Web阅读既有答后解析/朗读等仍由容器管理；共享素材内容的逐词查词交互尚未逐屏认证。不能将共享数据契约声称为三端完全相同的像素体验。
 
 审批、内容ready/needs_review、客观作答和SRS自评没有改动。没有真实学习数据/生产MCP/自动化操作，没有push、PR、merge或deploy。

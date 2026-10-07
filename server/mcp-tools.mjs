@@ -5,7 +5,7 @@ import {questionSpecifications,questionRegistrySchemaVersion} from '../src/domai
 import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { currentPlatform } from './platform.mjs';
 import { practiceExplanationPatchSchema, practiceQuestionPatchSchema } from './practice-explanation-schema.mjs';
-import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
+import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, getReferenceQuestion, getReferenceMetadata } from './references.mjs';
 import { sharingSources, listShares, shareDetail, sourcePackage } from './market.mjs';
 import { completeReadingFields, completeReadingSchema, validateCompleteReadingUpdate } from './reading-schema.mjs';
@@ -121,9 +121,6 @@ function requireLocalMaterials(ctx) {
       || request.headers.get('x-forwarded-host') || request.headers.get('forwarded')) {
     throw new Error('Local study materials require a localhost MCP connection or local stdio');
   }
-}
-function requireLocalNews() {
-  if (currentPlatform()?.dataSource) throw new Error('Local news materials are unavailable in the cloud environment');
 }
 
 const dateString = z.string().describe('YYYY-MM-DD');
@@ -249,10 +246,6 @@ export const tools = [
     {}, ro, async (_args, ctx) => { requireLocalMaterials(ctx); return text(readLocalMockExamManifest()); }),
   tool('get_local_mock_exam', 'Read a complete local mock exam, including reading passages. Requires localhost or local stdio.',
     { id: z.string().regex(/^[A-Za-z0-9_-]+$/) }, ro, async ({ id }, ctx) => { requireLocalMaterials(ctx); return text(found(readLocalMockExam(id), 'Local mock exam not found')); }),
-  tool('list_local_news_cycles', 'Read the local news practice cycle catalogue. Unavailable on Cloudflare; connect to the local backend.',
-    {}, ro, async (_args, ctx) => { requireLocalNews(); return text({ cycles: readLocalNewsCycles(uid(ctx)) }); }),
-  tool('get_local_news_cycle', 'Read a local news cycle with all module questions, including reading passages and audio references. Omit id for the latest cycle. Unavailable on Cloudflare.',
-    { id: z.string().regex(/^\d{4}-W\d{2}$/).optional() }, ro, async ({ id }, ctx) => { requireLocalNews(); return text(readLocalNewsCycle(id, uid(ctx))); }),
   tool('resolve_reference', 'Resolve a visible reference such as IT-000123, PR-000045 or QU-000678 within the authenticated account. Returns the original ID and the next lookup tool. Resolve before using existing update tools; never guess IDs.',
     { reference: z.string() }, ro, async ({ reference }, ctx) => text(found(resolveReference(getDb(), uid(ctx), reference), 'Reference not found'))),
   // Every library operation is bound to the authenticated owner.

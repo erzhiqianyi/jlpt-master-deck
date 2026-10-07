@@ -1,13 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { migrateNewsHash, canScoreExamQuestion, readExamAttempt, examSessionScore, examSessionKey } from './mockExam.mjs';
+import { canScoreExamQuestion, readExamAttempt, examSessionScore, examSessionKey } from './mockExam.mjs';
 const questions = [{ id: 'q1', choices: ['A', 'B'], answerIndex: 1, explanation: 'B' }, { id: 'q2', choices: ['C', 'D'], answerIndex: 0, scoringReady: false }];
-test('legacy bookmarks preserve week and date without retaining a separate news module', () => {
-  assert.equal(migrateNewsHash('#/news-cycle'), '#/mock-exams');
-  assert.equal(migrateNewsHash('#/news-cycle/2026-W40%3A2026-10-02'), '#/mock-exams/week%3A2026-W40%3A2026-10-02');
-  assert.equal(migrateNewsHash('#/news-cycle/2026-W40:practice'), '#/mock-exams/week%3A2026-W40');
-  assert.equal(migrateNewsHash('#/mock-exams'), null);
-});
 test('only ready questions count; attempts survive refresh and reset when content changes', () => {
   const attempt = { revision: JSON.stringify(questions), answers: { q1: 1, q2: 0, unknown: 2 }, submitted: true, startedAt: '2026-10-02T01:00:00Z' };
   const storage = { getItem: () => JSON.stringify(attempt) };

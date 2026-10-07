@@ -6116,30 +6116,30 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 }
 
 /* News review: one question, with the directory available on demand. */
-.news-focus { max-width: 760px; margin: 0 auto; color: #34443c; }
-.news-focus-header { display: flex; align-items: center; gap: 16px; padding: 12px 0 24px; }
-.news-focus-header p { margin: 0 0 4px; font-size: 12px; color: #68716b; }
-.news-focus-header h1 { margin: 0; font-size: 22px; font-weight: 650; }
-.news-focus-back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #edf4ef; }
-.news-focus-toolbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dce5df; padding: 0 0 12px; font-size: 14px; color: #68716b; }
-.news-focus-toolbar button { min-height: 44px; padding: 8px 16px; border: 1px solid #cbd6cf; border-radius: 24px; color: #31564c; background: #fffdf8; }
-.news-focus > article { padding: 28px 0 12px; }
-.news-focus-directory { padding: 16px; margin-top: 12px; border: 1px solid #dce5df; border-radius: 12px; background: #fffdf8; }
-.news-focus-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.news-focus-filters button { min-height: 44px; padding: 8px 12px; border-radius: 20px; font-size: 13px; }
-.news-focus-filters button[aria-pressed="true"] { background: #31564c; color: white; }
-.news-focus-questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; max-height: 280px; overflow-y: auto; }
-.news-focus-questions button { display: flex; gap: 12px; align-items: center; text-align: left; min-height: 44px; padding: 10px; font-size: 13px; border-radius: 6px; }
-.news-focus-questions button[aria-current] { background: #edf4ef; color: #31564c; }
-.news-focus-pagination { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; }
-.news-focus-pagination button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; font-size: 14px; color: #31564c; }
-.news-focus-pagination button:disabled { opacity: .35; cursor: not-allowed; }
-.news-focus button:focus-visible { outline: 2px solid #31564c; outline-offset: 3px; }
+.exam-focus { max-width: 760px; margin: 0 auto; color: #34443c; }
+.exam-focus-header { display: flex; align-items: center; gap: 16px; padding: 12px 0 24px; }
+.exam-focus-header p { margin: 0 0 4px; font-size: 12px; color: #68716b; }
+.exam-focus-header h1 { margin: 0; font-size: 22px; font-weight: 650; }
+.exam-focus-back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #edf4ef; }
+.exam-focus-toolbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dce5df; padding: 0 0 12px; font-size: 14px; color: #68716b; }
+.exam-focus-toolbar button { min-height: 44px; padding: 8px 16px; border: 1px solid #cbd6cf; border-radius: 24px; color: #31564c; background: #fffdf8; }
+.exam-focus > article { padding: 28px 0 12px; }
+.exam-focus-directory { padding: 16px; margin-top: 12px; border: 1px solid #dce5df; border-radius: 12px; background: #fffdf8; }
+.exam-focus-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.exam-focus-filters button { min-height: 44px; padding: 8px 12px; border-radius: 20px; font-size: 13px; }
+.exam-focus-filters button[aria-pressed="true"] { background: #31564c; color: white; }
+.exam-focus-questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; max-height: 280px; overflow-y: auto; }
+.exam-focus-questions button { display: flex; gap: 12px; align-items: center; text-align: left; min-height: 44px; padding: 10px; font-size: 13px; border-radius: 6px; }
+.exam-focus-questions button[aria-current] { background: #edf4ef; color: #31564c; }
+.exam-focus-pagination { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; }
+.exam-focus-pagination button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; font-size: 14px; color: #31564c; }
+.exam-focus-pagination button:disabled { opacity: .35; cursor: not-allowed; }
+.exam-focus button:focus-visible { outline: 2px solid #31564c; outline-offset: 3px; }
 @media (max-width: 600px) {
-  .news-focus-header { padding-top: 4px; }
-  .news-focus-header h1 { font-size: 20px; }
-  .news-focus-questions { grid-template-columns: 1fr; }
-  .news-focus > article { padding-top: 20px; }
+  .exam-focus-header { padding-top: 4px; }
+  .exam-focus-header h1 { font-size: 20px; }
+  .exam-focus-questions { grid-template-columns: 1fr; }
+  .exam-focus > article { padding-top: 20px; }
 }
 
 .news-review-details { margin-top: 16px; color: #68716b; font-size: 13px; }
@@ -6178,8 +6178,8 @@ dialog.app-notice[open] { display: flex; flex-direction: column; overflow: hidde
 
 /* Reuse the site's focused reading flow for completed attempts. */
 .attempt-focus { padding: 16px 20px 80px; }
-.attempt-focus .news-focus-header h1 { margin: 0 0 6px; }
-.attempt-focus .news-focus-header p { margin: 0; }
+.attempt-focus .exam-focus-header h1 { margin: 0 0 6px; }
+.attempt-focus .exam-focus-header p { margin: 0; }
 .attempt-focus-prompt { font-size: 24px; line-height: 1.7; font-weight: 600; margin-bottom: 24px; }
 .attempt-focus-answer, .attempt-focus-mistake { font-size: 14px; line-height: 1.9; margin: 8px 0; }
 .attempt-focus-mistake { color: #956057; }

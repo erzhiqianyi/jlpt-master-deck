@@ -6,7 +6,7 @@ export type JapaneseAnnotation = {
 export type Deck = 'n1_vocab' | 'name_reading' | 'grammar_expression';
 export type QuestionKind = 'grammar' | 'moji_goi' | 'meaning' | 'kana_to_kanji' | 'kanji_to_kana' | 'word_formation' | 'usage';
 export type Locale = 'zh-CN' | 'ja' | 'en';
-export type AppView = 'study' | 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'profile' | 'settings';
+export type AppView = 'study' | 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'drafts' | 'about' | 'profile' | 'settings';
 export type StudyPage = 'tips' | 'questions' | 'words' | 'wordbooks' | 'bank' | 'review' | 'samples' | 'mock';
 export type AppRoute = { view: AppView; page: StudyPage; itemId?: string };
 export type AnswerRecord = { assemblyOrder?:string[]; selected: string; correct: boolean; submissionState?:'draft'|'submitted';eventId?:string;itemId?:string;kind?:string;canonicalQuestionId?:string;questionRevision?:number;startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
@@ -317,80 +317,6 @@ export type LocalMockExamManifest = {
   verification_status: 'unverified';
   level_confidence: 'medium';
   exams: LocalMockExamSummary[];
-};
-
-export type NewsCycleModule = 'vocabulary' | 'grammar' | 'listening' | 'reading';
-export type NewsCycleQuestion = {
-  formalQuestionId?: string;
-  quality_review?: {
-    status: 'needs_review' | 'approved' | 'rejected';
-    checks: Record<string, 'pending' | 'pass' | 'fail' | 'not_applicable'>;
-    machine_issues: string[];
-    reviewer?: string | null;
-    reviewed_at?: string | null;
-    notes_zh?: string;
-  };
-  scoring_ready?: boolean;
-  review_note_zh?: string;
-  id: string;
-  date: string;
-  level: string;
-  module: NewsCycleModule;
-  official_type: string;
-  source_id: string;
-  source_url: string;
-  verification_status: string;
-  prompt: string;
-  question?: string;
-  passage?: string;
-  target?: string;
-  choices: string[];
-  answerIndex: number;
-  explanation_zh: string;
-  source_rewrite?: boolean;
-  composition_note?: string;
-  audio?: {
-    duration?: string | null;
-    timecode?: string | null;
-    fileName?: string | null;
-    previewUrl?: string;
-    import_ready?: boolean;
-  };
-};
-export type NewsCycleDay = {
-  date: string;
-  questionCount: number;
-  audioCount: number;
-  sourceCount: number;
-  moduleCounts: Record<NewsCycleModule, number>;
-  questions: NewsCycleQuestion[];
-};
-export type NewsCycleData = {
-  id?: string;
-  summary?: {
-    range?: { from: string; to: string };
-    total_questions?: number;
-    modules?: Partial<Record<NewsCycleModule, number>>;
-    direct_audio_question_count?: number;
-    needs_audio_review_count?: number;
-    status?: string;
-  };
-  days: NewsCycleDay[];
-};
-export type NewsCycleSummary = {
-  id: string;
-  range?: { from: string; to: string };
-  generatedAt?: string;
-  totalQuestions: number;
-  moduleCounts: Record<NewsCycleModule, number>;
-  audioCount: number;
-  needsAudioReviewCount: number;
-  formalQuestionCount: number;
-  formalPracticeQuestionIds: string[];
-  status: string;
-};
-export type NewsCycleCatalogData = {
-  cycles: NewsCycleSummary[];
 };
 
 export type StudyPlanModule = 'grammar' | 'reading' | 'listening' | 'vocabulary' | 'other';

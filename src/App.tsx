@@ -54,7 +54,6 @@ import { MixedEntryIndexPanel, MixedPracticeHub } from './features/practice/Mixe
 import { MockExamCatalog } from './features/practice/MockExamCatalog';
 import { MockExamPanel } from './features/practice/MockExamPanel';
 import { DesignedExamPanel } from './features/practice/DesignedExamPanel';
-import { migrateNewsHash } from './domain/mockExam.mjs';
 import { PracticePanel, PracticeReviewPanel, WordDetailPanel, WordbookManagerPanel, WordIndexPanel, type WordIndexPracticeFocus } from './features/practice/StudyPanels';
 import { QuestionBankPanel } from './features/practice/QuestionBankPanel';
 import { itemInWordbook, wordbookFamily } from './domain/wordbooks';
@@ -234,10 +233,6 @@ export default function App() {
   const route = routeFromHash(browserHash);
   const replayAttemptId = route.view === 'mixed' ? replayRouteAttemptId(route.itemId) : undefined;
   const replayAttempt = attemptHistory.find((attempt) => attempt.id === replayAttemptId);
-  useEffect(() => {
-    const migrated = migrateNewsHash(browserHash);
-    if (migrated) window.location.replace(migrated);
-  }, [browserHash]);
   const [renderedHash, setRenderedHash] = useState<string | null>(null);
   const routeReady = renderedHash === browserHash;
   const [practiceLoadError, setPracticeLoadError] = useState<string | null>(null);
@@ -1849,7 +1844,7 @@ export default function App() {
       question: questionDetailOpen,
     }));
 
-  const pageKind = authoringLocation?.kind || (dataDetailOpen || studyItemDetailOpen || (['market', 'news-cycle'].includes(activeView) && route.itemId)
+  const pageKind = authoringLocation?.kind || (dataDetailOpen || studyItemDetailOpen || (['market'].includes(activeView) && route.itemId)
     ? 'detail'
     : replayAttemptId || (hasStudyControls && studyPage !== 'words' && studyPage !== 'tips') || (activeView === 'mock-exams' && route.itemId)
       ? 'practice'
@@ -2085,7 +2080,7 @@ export default function App() {
               />
             ) : null}
             {activeView === 'mock-exams' ? (
-              route.itemId && /^(week|custom):/.test(route.itemId)
+              route.itemId && /^custom:/.test(route.itemId)
                 ? <DesignedExamPanel key={`${user.id}:${route.itemId}`} userId={user.id} locale={locale} token={authToken} selection={route.itemId} onOpen={openMockExam} />
                 : route.itemId ? <MockExamPanel key={`${user.id}:${route.itemId}`} userId={user.id} examId={route.itemId} locale={locale} onBack={() => openMockExam()} />
                   : <MockExamCatalog locale={locale} token={authToken} onOpen={openMockExam} />
@@ -2266,10 +2261,11 @@ export default function App() {
               />
               </WordLookupProvider>
             ) : null}
-	            {!replayAttemptId && studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'study' && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'news-cycle' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
+	            {!replayAttemptId && studyPage !== 'samples' && studyPage !== 'tips' && studyPage !== 'mock' && studyPage !== 'bank' && !(activeView === 'mixed' && studyPage === 'words') && activeView !== 'study' && activeView !== 'market' && activeView !== 'capture' && activeView !== 'captures' && activeView !== 'history' && activeView !== 'insights' && activeView !== 'mistakes' && activeView !== 'memory' && activeView !== 'data' && activeView !== 'mcp' && activeView !== 'about' && activeView !== 'profile' && activeView !== 'plan' && activeView !== 'question-types' && activeView !== 'mock-exams' && activeView !== 'drafts' && activeView !== 'settings' && activeView !== 'listening' && activeView !== 'reading' ? (
               studyPage === 'questions' ? (
                 <>
                 <PracticePanel
+                  draftScope={user ? `${user.id}:${activeAttempt?.id??`practice:${practiceRouteId(activeDailyPractice)??activeView}`}` : undefined}
                   token={authToken}
                   loading={batch.loading}
                   activeQuestion={activeQuestion}
@@ -2777,9 +2773,6 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
   if (activeView === 'mock-exams') {
     return labels.navMockExams;
   }
-  if (activeView === 'news-cycle') {
-    return labels.navMockExams;
-  }
   return navItems(labels).find((item) => item.view === activeView)?.label ?? labels.brand;
 }
 
@@ -2857,20 +2850,14 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
   if (route.view === 'mock-exams') {
     crumbs[0] = { label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } };
     crumbs.push({ label: labels.navMockExams, route: route.itemId ? { view: 'mock-exams', page: 'questions' } : undefined });
-    if (route.itemId && /^(week|custom):/.test(route.itemId)) {
-      const [kind, week, date] = route.itemId.split(':');
-      crumbs.push({ label: kind === 'week' ? week : (locale === 'zh-CN' ? '试卷' : locale === 'ja' ? '試験' : 'Exam'), route: date ? { view: 'mock-exams', page: 'questions', itemId: `${kind}:${week}` } : undefined });
-      if (date) crumbs.push({ label: kind === 'week' ? date : (locale === 'zh-CN' ? '作答' : locale === 'ja' ? '解答' : 'Session') });
+    if (route.itemId && /^custom:/.test(route.itemId)) {
+      const [kind, examId, sessionId] = route.itemId.split(':');
+      crumbs.push({ label: locale === 'zh-CN' ? '试卷' : locale === 'ja' ? '試験' : 'Exam', route: sessionId ? { view: 'mock-exams', page: 'questions', itemId: `${kind}:${examId}` } : undefined });
+      if (sessionId) crumbs.push({ label: locale === 'zh-CN' ? '作答' : locale === 'ja' ? '解答' : 'Session' });
     }
     return crumbs;
   }
 
-  if (route.view === 'news-cycle') {
-    crumbs[0] = { label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } };
-    crumbs.push({ label: labels.navNewsPractice, route: route.itemId ? { view: 'news-cycle', page: 'questions' } : undefined });
-    if (route.itemId) crumbs.push({ label: route.itemId });
-    return crumbs;
-  }
 
   if (route.view === 'about') {
     crumbs.push({ label: labels.aboutTitle, route: route.itemId ? { view: 'about', page: 'questions' } : undefined });
@@ -2924,8 +2911,6 @@ function moduleLabelFor(view: AppView, labels: Record<string, string>) {
       return labels.navMixed;
     case 'daily-practice':
       return labels.dailyPracticeTitle;
-    case 'news-cycle':
-      return labels.navMockExams;
     case 'plan':
       return labels.navPlan;
     case 'capture':

@@ -1,17 +1,20 @@
 import {useEffect,useState,type ReactNode} from 'react';
 import {assemblyOption,presentationComplete,presentationMaterial,presentationVisible,type TypedPresentation,type TypedMaterial} from '../domain/typedPresentation';
+import {readAssemblyDraft,writeAssemblyDraft} from '../domain/assemblyDraft.mjs';
 import {QuestionPrompt} from './QuestionPrompt';
 import {QuestionOptions} from './QuestionOptions';
 import {QuestionAudioPlayer} from './QuestionAudioPlayer';
 import {JapaneseText} from './JapaneseText';
 import type {JapaneseAnnotation} from '../types';
 
-export function TypedQuestionContent({presentation,selected,reveal=false,disabled=false,audioFinished=false,onSelect,renderText,initialOrder=[],resolveAudio}:{presentation:TypedPresentation;selected?:number|null;reveal?:boolean;disabled?:boolean;audioFinished?:boolean;onSelect:(index:number,order?:string[])=>void;renderText?:(text:string,index:number)=>ReactNode;initialOrder?:string[];resolveAudio?:(ref:{id:string;revision:number})=>Promise<string>}) {
+export function TypedQuestionContent({presentation,selected,reveal=false,disabled=false,audioFinished=false,onSelect,renderText,initialOrder=[],draftKey,resolveAudio}:{presentation:TypedPresentation;selected?:number|null;reveal?:boolean;disabled?:boolean;audioFinished?:boolean;onSelect:(index:number,order?:string[])=>void;renderText?:(text:string,index:number)=>ReactNode;initialOrder?:string[];draftKey?:string;resolveAudio?:(ref:{id:string;revision:number})=>Promise<string>}) {
   const {payload}=presentation,content=payload.legacy;
-  const [order,setOrder]=useState(initialOrder);
+  const [order,setOrder]=useState<string[]>(()=>{try{return initialOrder.length?initialOrder:readAssemblyDraft(localStorage,draftKey,presentation);}catch{return initialOrder;}});
+  const [draftError,setDraftError]=useState(false);
+  function changeOrder(next:string[]) {setOrder(next);try {setDraftError(!writeAssemblyDraft(localStorage,draftKey,presentation,next));}catch{setDraftError(Boolean(draftKey));}}
   const [audioUrl,setAudioUrl]=useState(''),[finished,setFinished]=useState(false),[audioError,setAudioError]=useState('');
   useEffect(()=>{let disposed=false;setFinished(false);setAudioUrl('');setAudioError('');const ref=payload.materialRefs?.find(ref=>presentationMaterial(presentation,ref)?.type==='audio');if(ref&&resolveAudio)void resolveAudio(ref).then(url=>{if(!disposed)setAudioUrl(url);}).catch(()=>{if(!disposed)setAudioError('音频暂时无法读取');});return ()=>{disposed=true;};},[presentation,resolveAudio]);
-  useEffect(()=>setOrder(initialOrder),[presentation]);
+  useEffect(()=>{try {setOrder(initialOrder.length?initialOrder:readAssemblyDraft(localStorage,draftKey,presentation));}catch{setOrder(initialOrder);}setDraftError(false);},[presentation,draftKey]);
   const locked=disabled||!presentationComplete(presentation),options=payload.options??[];
   const articleRefs=(payload.materialRefs??[]).filter(ref=>['article','table'].includes(presentationMaterial(presentation,ref)?.type??''));
   const prompt=content.prompt??content.question??'';
@@ -26,8 +29,8 @@ export function TypedQuestionContent({presentation,selected,reveal=false,disable
     {!presentationComplete(presentation)?<p role="alert">题目素材不完整，暂不能作答</p>:null}
     {presentationVisible(presentation,audioFinished||finished||reveal,true)?<div className="question-renderer-prompt">{content.targetSpan?<JapaneseText text={prompt} annotations={content.japaneseAnnotations as JapaneseAnnotation[]|undefined} ruby={reveal} targetSpan={content.targetSpan}/>:<QuestionPrompt text={prompt}/>}</div>:<p role="status">请先听完音频</p>}
     {presentationVisible(presentation,audioFinished||finished||reveal,false)?content.assembly?<div className="typed-assembly">
-      <ol>{options.map((_,i)=><li key={i}><strong>{i===content.assembly!.starSlot?'★':i+1}</strong> {options.find(o=>o.id===order[i])?.text??'＿＿'}{order[i]&&!locked&&!reveal?<button type="button" aria-label={`移除第${i+1}空`} onClick={()=>setOrder(order.filter((_,j)=>j!==i))}>移除</button>:null}</li>)}</ol>
-      {options.map(option=><button type="button" key={option.id} disabled={locked||reveal||order.includes(option.id)} onClick={()=>setOrder([...order,option.id])}>{option.text}</button>)}
+      {draftError?<p role="alert">排列进度无法保存，请勿关闭页面。</p>:null}<ol>{options.map((_,i)=><li key={i}><strong>{i===content.assembly!.starSlot?'★':i+1}</strong> {options.find(o=>o.id===order[i])?.text??'＿＿'}{order[i]&&!locked&&!reveal?<button type="button" aria-label={`移除第${i+1}空`} onClick={()=>changeOrder(order.filter((_,j)=>j!==i))}>移除</button>:null}</li>)}</ol>
+      {options.map(option=><button type="button" key={option.id} disabled={locked||reveal||order.includes(option.id)} onClick={()=>changeOrder([...order,option.id])}>{option.text}</button>)}
       <button type="button" disabled={locked||reveal||assemblyOption(presentation,order)===null} onClick={()=>{const index=assemblyOption(presentation,order);if(index!==null)onSelect(index,order);}}>确认排列</button>
       {reveal&&content.assembly.correctOrder?<p>完整排列：{content.assembly.correctOrder.map(id=>options.find(o=>o.id===id)?.text).join(' → ')}</p>:null}
     </div>:<QuestionOptions choices={options.map(o=>o.text)} selected={selected} answerIndex={reveal?options.findIndex(o=>o.id===payload.answer?.optionId):undefined} reveal={reveal} disabled={locked} onSelect={onSelect} renderText={(text,index)=><>{content.optionMaterials?.filter(entry=>entry.optionId===options[index].id).map(entry=><span key={entry.materialRef.id}>{image(presentationMaterial(presentation,entry.materialRef))}</span>)}{renderText?renderText(text,index):text}</>}/>:null}

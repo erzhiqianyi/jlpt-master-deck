@@ -16,7 +16,7 @@ after(()=>{for(const handle of process._getActiveHandles())if(handle.constructor
 const {outputFiles}=await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
 import {act} from 'react'; import {createRoot} from 'react-dom/client';import {renderToStaticMarkup} from 'react-dom/server';import {QuestionRenderer} from './src/components/QuestionRenderer';export {assemblyOption,presentationVisible} from './src/domain/typedPresentation';
 export const render=(presentation,props={})=>renderToStaticMarkup(<QuestionRenderer questionId="Q1" prompt="fallback" choices={[]} onSelect={()=>{}} presentation={presentation} {...props}/>);
-export const mount=async(element,presentation,onSelect)=>{const root=createRoot(element);await act(async()=>root.render(<QuestionRenderer questionId="Q1" prompt="fallback" choices={[]} presentation={presentation} onSelect={onSelect}/>));return {click:async(button)=>act(async()=>button.click()),close:async()=>act(async()=>root.unmount())};};
+export const mount=async(element,presentation,onSelect,props={})=>{const root=createRoot(element);await act(async()=>root.render(<QuestionRenderer questionId="Q1" prompt="fallback" choices={[]} presentation={presentation} onSelect={onSelect} {...props}/>));return {click:async(button)=>act(async()=>button.click()),close:async()=>act(async()=>root.unmount())};};
 `},bundle:true,platform:'node',format:'esm',jsx:'automatic',write:false,loader:{'.css':'empty'},banner:{js:"import {createRequire} from 'node:module';const require=createRequire(import.meta.url);"}});
 const file=join(dir,'fixture.mjs');await writeFile(file,outputFiles[0].text);const {render,mount,assemblyOption,presentationVisible}=await import(pathToFileURL(file));
 test('Web and MCP consume real A/B, table, image and exact target structures without answer leakage',()=>{
@@ -44,4 +44,18 @@ test('outline timing hides both task and choices until completion; unscored resp
  const hidden=render(p);assert.doesNotMatch(hidden,/話の主な内容|明日の予定と待ち合わせ/);
  const finished=render(p,{audioFinished:true});assert.match(finished,/話の主な内容/);assert.match(finished,/明日の予定と待ち合わせ/);
  assert.match(render(presentation('listening-basic-training'),{freeResponse:{value:'自答',onChange:()=>{},label:'回答'}}),/<textarea/);
+});
+
+test('partial assembly survives remount without creating an answer and accounts/versions remain isolated',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://local.example'});globalThis.window=dom.window;globalThis.document=dom.window.document;globalThis.localStorage=dom.window.localStorage;globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+ const p=presentationView(presentation('grammar-composition')),selected=[],key='account-7:attempt-1:Q1@1';
+ let view=await mount(document.getElementById('root'),p,(...args)=>selected.push(args),{draftKey:key});
+ const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
+ await view.click(button('昨日'));await view.click(button('駅で'));assert.equal(button('确认排列').disabled,true);assert.equal(selected.length,0);await view.close();
+ view=await mount(document.getElementById('root'),p,(...args)=>selected.push(args),{draftKey:key});assert.equal(button('昨日').disabled,true);assert.equal(button('駅で').disabled,true);assert.equal(button('确认排列').disabled,true);
+ await view.click(document.querySelector('[aria-label="移除第2空"]'));await view.close();
+ view=await mount(document.getElementById('root'),p,()=>{}, {draftKey:key});assert.equal(button('駅で').disabled,false);await view.close();
+ view=await mount(document.getElementById('root'),p,()=>{}, {draftKey:'account-8:attempt-1:Q1@1'});assert.equal(button('昨日').disabled,false);await view.close();
+ const edited=structuredClone(p);edited.payload.options[0].text='本日';view=await mount(document.getElementById('root'),edited,()=>{}, {draftKey:key});assert.equal(button('本日').disabled,false);await view.close();
+ dom.window.close();for(const key of ['window','document','localStorage','IS_REACT_ACT_ENVIRONMENT'])delete globalThis[key];
 });

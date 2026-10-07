@@ -1,4 +1,5 @@
 import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
+import {assemblyDraftKey} from '../../domain/assemblyDraft.mjs';
 import { QuestionRenderer } from '../../components/QuestionRenderer';
 import {useMaterialAudioResolver} from '../../hooks/useMaterialAudioResolver';
 import { JapaneseText } from '../../components/JapaneseText';
@@ -12,12 +13,12 @@ import { apiRequest } from '../../lib/api';
 import { canScoreExamQuestion, examSessionKey, examSessionScore, readExamAttempt } from '../../domain/mockExam.mjs';
 import { ExamAudio } from './ExamAudio';
 import type { DesignedExam, ExamSession } from './mockExamTypes';
-import type { Locale, NewsCycleData } from '../../types';
+import type { Locale } from '../../types';
 
 const copy = {
-  'zh-CN': { retry: '重试', more: '详细解析与参考', back: '返回模拟考试', parts: '内容安排', loading: '正在读取试卷…', unavailable: '这份试卷暂时无法读取。', missing: '找不到这部分内容。', questions: '题', done: '已交卷', ongoing: '作答中', ready: '未开始', start: '开始作答', submit: '交卷', confirm: '确认交卷', cancel: '继续作答', confirmText: '交卷后显示答案与解析，未答题计为未答。', previous: '上一题', next: '下一题', result: '本次结果', correct: '答对', answered: '已答', excluded: '题暂不判分', noQuestions: '暂无可判分题目。', explanation: '解析', answer: '正确答案', source: '查看来源', minutes: '分钟', untimed: '不限时', saved: '作答进度保存在当前浏览器。', storageError: '浏览器无法保存进度，请勿关闭页面。', remaining: '剩余', restart: '重新作答', restartConfirm: '清除本次答案并重新开始？', imported: '由原新闻材料按日期整理；保留原题和来源，未新增人工审核。', draft: '试卷内容由作者提供。', audioLoading: '加载音频…', audioError: '音频暂时无法播放。', noScore: '本题材料或答案尚未就绪，暂不判分。' },
-  ja: { retry: '再試行', more: '詳しい解説と参考', back: '模擬試験へ戻る', parts: '構成', loading: '読み込み中…', unavailable: '試験を読み込めません。', missing: 'パートが見つかりません。', questions: '問', done: '提出済み', ongoing: '解答中', ready: '未開始', start: '開始', submit: '提出', confirm: '提出する', cancel: '続ける', confirmText: '提出後に正解と解説を表示します。未解答は未解答として記録します。', previous: '前へ', next: '次へ', result: '結果', correct: '正解', answered: '解答済み', excluded: '問は採点対象外', noQuestions: '採点できる問題がありません。', explanation: '解説', answer: '正解', source: '出典', minutes: '分', untimed: '時間制限なし', saved: '解答はこのブラウザに保存されます。', storageError: '保存できません。ページを閉じないでください。', remaining: '残り', restart: 'もう一度', restartConfirm: '解答を消去して再開しますか？', imported: '既存のニュース教材を日付別に表示しています。追加の人手レビューは行っていません。', draft: '問題は作成者が提供しています。', audioLoading: '音声読み込み中…', audioError: '音声を再生できません。', noScore: '教材または正解の確認待ちのため採点しません。' },
-  en: { retry: 'Retry', more: 'Detailed explanation and references', back: 'Back to mock exams', parts: 'Sessions', loading: 'Loading exam…', unavailable: 'This exam could not be loaded.', missing: 'Session not found.', questions: 'questions', done: 'Submitted', ongoing: 'In progress', ready: 'Not started', start: 'Start', submit: 'Submit', confirm: 'Confirm submission', cancel: 'Continue', confirmText: 'Answers and explanations appear after submission. Unanswered questions stay unanswered.', previous: 'Previous', next: 'Next', result: 'Results', correct: 'Correct', answered: 'Answered', excluded: 'questions excluded from scoring', noQuestions: 'No scorable questions yet.', explanation: 'Explanation', answer: 'Correct answer', source: 'View source', minutes: 'minutes', untimed: 'Untimed', saved: 'Progress is saved in this browser.', storageError: 'Progress cannot be saved. Keep this page open.', remaining: 'Remaining', restart: 'Try again', restartConfirm: 'Clear this attempt and start again?', imported: 'Previous news material grouped by date. Original questions and sources retained; no new human review performed.', draft: 'Content is supplied by the author.', audioLoading: 'Loading audio…', audioError: 'Audio is unavailable.', noScore: 'Materials or answers are not ready; this question is excluded from scoring.' },
+  'zh-CN': { retry: '重试', more: '详细解析与参考', back: '返回模拟考试', parts: '内容安排', loading: '正在读取试卷…', unavailable: '这份试卷暂时无法读取。', missing: '找不到这部分内容。', questions: '题', done: '已交卷', ongoing: '作答中', ready: '未开始', start: '开始作答', submit: '交卷', confirm: '确认交卷', cancel: '继续作答', confirmText: '交卷后显示答案与解析，未答题计为未答。', previous: '上一题', next: '下一题', result: '本次结果', correct: '答对', answered: '已答', excluded: '题暂不判分', noQuestions: '暂无可判分题目。', explanation: '解析', answer: '正确答案', source: '查看来源', minutes: '分钟', untimed: '不限时', saved: '作答进度保存在当前浏览器。', storageError: '浏览器无法保存进度，请勿关闭页面。', remaining: '剩余', restart: '重新作答', restartConfirm: '清除本次答案并重新开始？', draft: '试卷内容由作者提供。', audioLoading: '加载音频…', audioError: '音频暂时无法播放。', noScore: '本题材料或答案尚未就绪，暂不判分。' },
+  ja: { retry: '再試行', more: '詳しい解説と参考', back: '模擬試験へ戻る', parts: '構成', loading: '読み込み中…', unavailable: '試験を読み込めません。', missing: 'パートが見つかりません。', questions: '問', done: '提出済み', ongoing: '解答中', ready: '未開始', start: '開始', submit: '提出', confirm: '提出する', cancel: '続ける', confirmText: '提出後に正解と解説を表示します。未解答は未解答として記録します。', previous: '前へ', next: '次へ', result: '結果', correct: '正解', answered: '解答済み', excluded: '問は採点対象外', noQuestions: '採点できる問題がありません。', explanation: '解説', answer: '正解', source: '出典', minutes: '分', untimed: '時間制限なし', saved: '解答はこのブラウザに保存されます。', storageError: '保存できません。ページを閉じないでください。', remaining: '残り', restart: 'もう一度', restartConfirm: '解答を消去して再開しますか？', draft: '問題は作成者が提供しています。', audioLoading: '音声読み込み中…', audioError: '音声を再生できません。', noScore: '教材または正解の確認待ちのため採点しません。' },
+  en: { retry: 'Retry', more: 'Detailed explanation and references', back: 'Back to mock exams', parts: 'Sessions', loading: 'Loading exam…', unavailable: 'This exam could not be loaded.', missing: 'Session not found.', questions: 'questions', done: 'Submitted', ongoing: 'In progress', ready: 'Not started', start: 'Start', submit: 'Submit', confirm: 'Confirm submission', cancel: 'Continue', confirmText: 'Answers and explanations appear after submission. Unanswered questions stay unanswered.', previous: 'Previous', next: 'Next', result: 'Results', correct: 'Correct', answered: 'Answered', excluded: 'questions excluded from scoring', noQuestions: 'No scorable questions yet.', explanation: 'Explanation', answer: 'Correct answer', source: 'View source', minutes: 'minutes', untimed: 'Untimed', saved: 'Progress is saved in this browser.', storageError: 'Progress cannot be saved. Keep this page open.', remaining: 'Remaining', restart: 'Try again', restartConfirm: 'Clear this attempt and start again?', draft: 'Content is supplied by the author.', audioLoading: 'Loading audio…', audioError: 'Audio is unavailable.', noScore: 'Materials or answers are not ready; this question is excluded from scoring.' },
 };
 
 type Attempt = { revision: string; answers: Record<string, number>; assemblyOrders?:Record<string,string[]>; submitted: boolean; startedAt?: string };
@@ -37,16 +38,7 @@ export function DesignedExamPanel({ selection, userId, token, locale, onOpen }: 
   useEffect(() => {
     let cancelled = false;
     setExam(null); setFailed(false);
-    const request = kind === 'week'
-      ? apiRequest<NewsCycleData>(`/api/local-news-cycle?id=${encodeURIComponent(id)}`, { token }).then(data => ({
-        id, title: id, revision: 1, description: t.imported,
-        sessions: data.days.map(day => ({ id: day.date, title: day.date, scheduledDate: day.date, questions: day.questions.map(q => ({
-          id: q.id, prompt: [q.prompt, q.question].filter(Boolean).join('\n'), passage: q.passage,
-          choices: q.choices, answerIndex: q.answerIndex, explanation: q.explanation_zh, sourceUrl: q.source_url, type: q.official_type,
-          audioUrl: q.audio?.previewUrl, scoringReady: q.scoring_ready !== false && (q.module !== 'listening' || (q.audio?.import_ready === true && Boolean(q.audio?.timecode) && Boolean(q.audio?.previewUrl))),
-        })) })),
-      }))
-      : apiRequest<{ exam: DesignedExam }>(`/api/mock-exams/${encodeURIComponent(id)}`, { token }).then(payload => payload.exam);
+    const request = apiRequest<{ exam: DesignedExam }>(`/api/mock-exams/${encodeURIComponent(id)}`, { token }).then(payload => payload.exam);
     request.then(value => { if (!cancelled) setExam(value); }).catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
   }, [kind, id, token, t, reload]);
@@ -92,19 +84,19 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
   }, [session.durationMinutes, attempt.startedAt, attempt.submitted]);
   const scorable = question && canScoreExamQuestion(question);
   const started = Boolean(attempt.startedAt) || attempt.submitted;
-  return <section className="news-focus practice-designed-exam">
-    <header className="news-focus-header"><button className="news-focus-back" onClick={onBack} aria-label={t.parts}><ArrowLeft size={20}/></button><div><p>{t.parts}</p><h1>{session.title}</h1></div></header>
+  return <section className="exam-focus practice-designed-exam">
+    <header className="exam-focus-header"><button className="exam-focus-back" onClick={onBack} aria-label={t.parts}><ArrowLeft size={20}/></button><div><p>{t.parts}</p><h1>{session.title}</h1></div></header>
     <div className="practice-designed-summary px-4 py-3"><p>{session.description}</p><p role={storageError ? 'alert' : undefined} className="text-sm">{storageError ? t.storageError : t.saved}</p>
       <p>{t.answered} {score.answered} / {score.total}{score.excluded ? ` · ${score.excluded} ${t.excluded}` : ''}{remaining !== null && !attempt.submitted ? ` · ${t.remaining} ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}` : ''}</p>
       {attempt.submitted ? <p role="status"><strong>{t.result} · {t.correct} {score.correct} / {score.total}</strong></p> : null}
       {!started ? <><p>{session.durationMinutes ? `${session.durationMinutes} ${t.minutes}` : t.untimed}</p><button type="button" className="practice-primary-action" disabled={!score.total} onClick={() => { if (score.total > 0) setAttempt(current => ({ ...current, startedAt: new Date().toISOString() })); }}>{t.start}</button>{!score.total ? <p>{t.noQuestions} <button type="button" className="practice-text-action" onClick={onBack}>{t.parts}</button></p> : null}</> : null}
     </div>
     {started && question ? <>
-      <nav className="news-focus-filters px-4" aria-label={t.questions}>{session.questions.map((q, i) => <button key={q.id} type="button" aria-current={index === i ? 'true' : undefined} onClick={() => setIndex(i)}>{i + 1}{Number.isInteger(attempt.answers[q.id]) ? ' ✓' : ''}</button>)}</nav>
+      <nav className="exam-focus-filters px-4" aria-label={t.questions}>{session.questions.map((q, i) => <button key={q.id} type="button" aria-current={index === i ? 'true' : undefined} onClick={() => setIndex(i)}>{i + 1}{Number.isInteger(attempt.answers[q.id]) ? ' ✓' : ''}</button>)}</nav>
       <article className="px-4 py-5 md:px-7">
         {question.type ? <p className="text-sm">{question.type}</p> : null}
         {!scorable ? <p role="status">{t.noScore}</p> : null}
-        <QuestionRenderer presentation={question.presentation} initialOrder={attempt.assemblyOrders?.[question.id]} resolveAudio={resolveTypedAudio} questionId={question.id} questionTypeId={question.questionTypeId??question.type}
+        <QuestionRenderer draftKey={assemblyDraftKey(`${storageKey}:${attempt.startedAt??""}`,question.id)} presentation={question.presentation} initialOrder={attempt.assemblyOrders?.[question.id]} resolveAudio={resolveTypedAudio} questionId={question.id} questionTypeId={question.questionTypeId??question.type}
           materials={<>
             {question.audioUrl ? question.audioUrl.startsWith('/api/') ? <ExamAudio src={question.audioUrl} token={token} loading={t.audioLoading} unavailable={t.audioError}/> : <QuestionAudioPlayer src={question.audioUrl}/> : null}
             {question.passage ? <div className="whitespace-pre-wrap border-l-4 border-[#a34f3f] bg-[#fffaf7] px-5 py-4 leading-8"><JapaneseText text={question.passage} annotations={question.japaneseAnnotations} ruby={attempt.submitted} /></div> : null}
@@ -122,7 +114,7 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
           </details>
         </div> : null}
       </article>
-      <nav className="news-focus-pagination"><button type="button" disabled={index === 0} onClick={() => setIndex(i => i - 1)}><ArrowLeft size={16}/>{t.previous}</button><button type="button" disabled={index === session.questions.length - 1} onClick={() => setIndex(i => i + 1)}>{t.next}<ChevronRight size={16}/></button></nav>
+      <nav className="exam-focus-pagination"><button type="button" disabled={index === 0} onClick={() => setIndex(i => i - 1)}><ArrowLeft size={16}/>{t.previous}</button><button type="button" disabled={index === session.questions.length - 1} onClick={() => setIndex(i => i + 1)}>{t.next}<ChevronRight size={16}/></button></nav>
       <div className="px-4 py-5">{attempt.submitted ? <button type="button" className="gentle-direct-link" onClick={() => { if (window.confirm(t.restartConfirm)) { setAttempt({ revision: attempt.revision, answers: {}, submitted: false }); setRemaining(null); setIndex(0); } }}>{t.restart}</button>
         : confirming ? <div role="group" aria-label={t.confirm}><p>{t.confirmText}</p><button type="button" className="gentle-direct-link mr-4" onClick={() => { setAttempt(current => ({ ...current, submitted: true })); setConfirming(false); }}>{t.confirm}</button><button type="button" onClick={() => setConfirming(false)}>{t.cancel}</button></div>
           : <button type="button" className="gentle-direct-link" onClick={() => setConfirming(true)}>{t.submit}</button>}</div>

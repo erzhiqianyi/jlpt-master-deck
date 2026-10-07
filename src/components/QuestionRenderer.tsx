@@ -10,6 +10,7 @@ export interface QuestionRendererProps {
   presentation?:TypedPresentation;
   audioFinished?:boolean;
   initialOrder?:string[];
+  draftKey?:string;
   resolveAudio?:(ref:{id:string;revision:number})=>Promise<string>;
   questionId: string;
   questionTypeId?: string;
@@ -32,9 +33,9 @@ export interface QuestionRendererProps {
   feedback?: ReactNode;
   freeResponse?: { value:string; onChange:(value:string)=>void; label:string };
 }
-export function QuestionRenderer({presentation,audioFinished,initialOrder,resolveAudio,questionId,questionTypeId,instruction,prompt,promptClassName='',materials,taskConditions=[],choices,selected,answerIndex,reveal=false,disabled=false,paused=false,onSelect,renderText,optionClassName,optionPresentation,interactiveText,feedback,freeResponse}:QuestionRendererProps) {
+export function QuestionRenderer({presentation,audioFinished,initialOrder,draftKey,resolveAudio,questionId,questionTypeId,instruction,prompt,promptClassName='',materials,taskConditions=[],choices,selected,answerIndex,reveal=false,disabled=false,paused=false,onSelect,renderText,optionClassName,optionPresentation,interactiveText,feedback,freeResponse}:QuestionRendererProps) {
   return <section className="question-renderer" data-question-id={questionId} data-question-type={questionTypeId} data-paused={paused || undefined}>
-    {presentation?<TypedQuestionContent presentation={presentation} selected={selected} reveal={reveal} disabled={disabled||paused} audioFinished={audioFinished} initialOrder={initialOrder} resolveAudio={resolveAudio} onSelect={onSelect} renderText={renderText}/>:<>
+    {presentation?<TypedQuestionContent presentation={presentation} selected={selected} reveal={reveal} disabled={disabled||paused} audioFinished={audioFinished} initialOrder={initialOrder} draftKey={draftKey} resolveAudio={resolveAudio} onSelect={onSelect} renderText={renderText}/>:<>
     {materials ? <div className="question-renderer-materials">{materials}</div> : null}
     {instruction ? <div className="question-renderer-instruction">{instruction}</div> : null}
     {taskConditions.length ? <ul className="question-renderer-conditions">{taskConditions.map((condition,index)=><li key={index}>{condition}</li>)}</ul> : null}

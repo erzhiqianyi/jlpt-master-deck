@@ -1,6 +1,6 @@
 import { PageHeaderActions } from '../../components/PageChrome';
 import { primaryNavigationView, primaryNavigationViews } from '../../domain/appNavigation';
-import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, LayoutGrid, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Newspaper, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
+import { ArrowLeft, ChartNoAxesColumn, BookA, Captions, BookOpen, PanelLeft, LayoutGrid, Library, Settings, BookOpenText, Languages, Headphones, Bot, NotebookPen, CalendarDays, Check, ChevronLeft, ChevronRight, Compass, FileText, Filter, History, House, LogOut, Menu, Search, Shuffle, SlidersHorizontal, Target, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AppRoute, AppView, Deck, StudyPage, Wordbook } from '../../types';
 import { wordbooksForFamily, type WordbookFamily } from '../../domain/wordbooks';
@@ -609,8 +609,6 @@ function mobileNavIcon(view: AppView) {
       return CalendarDays;
     case 'mock-exams':
       return SlidersHorizontal;
-    case 'news-cycle':
-      return Newspaper;
     case 'history':
       return ChartNoAxesColumn;
     case 'captures':

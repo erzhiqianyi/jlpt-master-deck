@@ -146,8 +146,8 @@
 .practice-mock-explanation p, .practice-designed-answer details p { margin-block: 12px; font-size: calc(15px * var(--ui-font-scale, 1)); line-height: 1.75; }
 .practice-designed-summary { display: grid; gap: 12px; }
 .practice-designed-summary .practice-primary-action { justify-self: start; }
-.practice-designed-exam .news-focus-filters { display: flex; flex-wrap: wrap; gap: 8px; }
-.practice-designed-exam .news-focus-filters button { min-width: 44px; }
+.practice-designed-exam .exam-focus-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.practice-designed-exam .exam-focus-filters button { min-width: 44px; }
 .practice-designed-exam audio { max-width: 100%; }
 .practice-designed-answer { line-height: 1.7; overflow-wrap: anywhere; }
 

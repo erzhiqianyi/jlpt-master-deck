@@ -1,15 +1,17 @@
 # 结构化题目视觉验收：阶段记录
 
-本目录先归档20张逐张打开检查的iPad原始PNG：句子组成8张、A/B阅读8张、概要听力4张。来源是 `.local/native-typed-ipad-restored.xcresult` 中对应通过的三个真实UI方法；整次bundle另有一个双空位测试脚本选择错误，不能说整次六项全过。每张图的fixture SHA、canonical ID/revision、材料引用、方法、设备、时间与原始文件SHA在 [evidence.json](evidence.json)。截图没有裁切、拼接或重绘。
+截至2026-10-07，本目录归档95张逐张打开检查的原始PNG：原iPad句子组成/A-B阅读/概要听力20张；手机同类与双空位25张；最终iPad双空位/五列表格/图片选项25张；最终手机表格/图片选项/精确目标词22张；手机表格横向滚动3张。元数据见[evidence.json](evidence.json)：fixture、canonical ID/revision、材料引用、设备、测试方法、时间、原始文件SHA及渲染基线commit。截图未裁切、拼接或重绘；iPad屏幕原图保留EXIF方向，PNG像素2064×2752，显示方向为横屏。
 
-已目视核对：未答排序不能提交，完成排列后★位置明确；正确/错误排列保留完整答案与长解析。A/B两篇原文分别呈现，选择、正确/错误标记和长解说可读。概要听力播放前及暂停时没有问题/选项，成功播放结束才出现；完成页正确率依据实际选择。
+已目视核对：未完成排列不能提交，★与完整顺序保留，正确/错误及长解析可读；双空位共用原文但只标记当前空位；A/B两篇文章分别展示；概要听力播放前/暂停隐藏选项，结束后才解锁。最终iPad五列表格完整可读；手机横向滚动访问费用/对象列并能回到左侧。图片仅在所属选项内出现，播放、结果与解析正常。重复词句中的目标span只标记第二处「明確」，未更改正确答案。
 
-## 发现问题并继续修复
+## 修复与证据边界
 
-初次iPad五个UI方法通过，但人工检查额外发现：表格的自适应单元格使费用/时间列挤到很远的横向区域；图片选项在素材区及选项内重复。代码已改为固定120点表格列宽、选项绑定图片只在选项内呈现。旧表格/图片截图留在 `.local/native-typed-ipad-restored-export` 作为诊断，未归档为修复后视觉通过。
+手机原45张全部已打开检查，其中修复前表格8张、图片12张共20张只计诊断，不计验收通过；记录在[diagnostic-inspection.json](diagnostic-inspection.json)，原图留在本地export。固定120点表格列宽及消除重复图片后，最终手机和iPad图均已检查。双空位测试脚本曾选错option-1；改脚本为fixture原答案option-0，没有修改正确答案。
 
-双空位脚本原本选第二空option-1，fixture真正答案是option-0（そのため）。只改测试脚本，没有更改正确答案；手机修正测试已通过，iPad最终复验也通过。最终布局复验bundle为 `.local/native-typed-layout-final.xcresult`。手机逐型bundle为 `.local/native-typed-phone-restored.xcresult`；最终布局bundle的78项单测和3项UI测试全部通过；手机bundle的6项UI测试全部通过。手机45张原始PNG已导出至 `.local/native-typed-phone-restored-export`，尚未逐张打开；最终iPad布局截图仍待导出检查。这些图片不计入本目录视觉通过数量，手机此次bundle也不认证后来两处布局修复的最终像素。
+最终原生单测78/78；最终iPad结构化布局三个UI方法、手机同布局三个方法、手机横向表格一个方法均通过。旧17类与精确目标词iPad共五个UI方法也通过，115张新宽屏图已导出到.local/native-final-legacy-wide-export，**尚未逐张目视**，见[pending-wide-inspection.json](pending-wide-inspection.json)。这些图不计本目录95张接受数量，无需再次重拍。此前旧135张文本兼容图只是历史基线，不能认证当前23类新payload像素。
 
-专用旧iPad元数据存在而数据目录缺失，专用旧iPhone启动/runner断联。本Mac新建两个仅供本任务的设备，没有删/重置其他模拟器：iPad `02F114E0-712C-4380-8EE7-CD646227D93B`，iPhone `39D4FBF2-A3B0-468E-BD0B-DDA1380F0081`。没有更换执行环境。
+新增元数据fixtureSHA256按UTF-8紧凑JSON、排序对象键计算，算法字段明确记录；既有20项证据保留原记录不改写。
 
-旧135张文本兼容PNG仍是历史基线；本目录20张也不是23类全量验收。仍需补最终修复的表格/图片、手机全部逐型目视、精确目标词专项像素检查，以及旧17类有效宽屏重拍。Web/MCP浏览器像素工具缺失，不表示功能实现停止，见 [Web/MCP结构化实现](../typed-web-mcp-implementation.md)。
+本Mac创建的任务专用iPad为02F114E0-712C-4380-8EE7-CD646227D93B，iPhone为39D4FBF2-A3B0-468E-BD0B-DDA1380F0081。旧专用设备启动/数据目录有问题，没有删除或重置其他设备，也没有更换执行环境。
+
+Web/MCP浏览器像素工具仍缺失；共享阅读逐词查词与真实网络媒体加载失败体验未逐屏认证。准确实施/自动测试/视觉边界见[最终有限验收矩阵](../final-typed-acceptance-matrix.md)。新闻模块已按用户要求退休，不列为后续实施项。

@@ -1,14 +1,3 @@
-/** Legacy bookmarks keep the selected week/day; the old whole-week action opens its daily plan. */
-export function migrateNewsHash(hash) {
-  const match = /^#\/?news-cycle(?:\/([^/]*))?\/?$/.exec(hash);
-  if (!match) return null;
-  if (!match[1]) return '#/mock-exams';
-  try {
-    const selection = decodeURIComponent(match[1]).replace(/:practice$/, '');
-    return `#/mock-exams/${encodeURIComponent(`week:${selection}`)}`;
-  } catch { return '#/mock-exams'; }
-}
-
 export function canScoreExamQuestion(question) {
   return question.scoringReady !== false && question.choices.length > 1
     && Number.isInteger(question.answerIndex) && question.answerIndex >= 0 && question.answerIndex < question.choices.length;

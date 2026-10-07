@@ -470,5 +470,2300 @@
     "sha256": "9a42277abf3e2aa6be70edb9573d390133a8b2ab1c5b1ad9c9dfede83137e723",
     "rawExport": "DFBFC938-CA35-41E2-AB08-8F82F5D3F9C5.png",
     "visuallyInspected": true
+  },
+  {
+    "file": "iphone-grammar-text-blank2-long-explanation-B4131C21.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350468.359,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "b83c18ca255332a6c701db144532480292cc904d0e1eabdbabd2a632896682a8",
+    "rawExport": "B4131C21-9752-4625-ABB0-DB620BD0778C.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/B4131C21-9752-4625-ABB0-DB620BD0778C.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-text-blank2-correct-FA5B1A36.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350464.728,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "592acbbbf6bb54e4ec9ff2c7c8ff30e8c4dc9997564b4b06d68304978e167150",
+    "rawExport": "FA5B1A36-A2C4-4DC6-ACF9-054A01133E54.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/FA5B1A36-A2C4-4DC6-ACF9-054A01133E54.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-text-blank2-unanswered-495B4D45.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350461.571,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "e60572c593383f7230b2a99df6c29141acf52d0ea3385b9aad59b51c65acf6d0",
+    "rawExport": "495B4D45-F3BE-408D-B0EB-1085482F365F.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/495B4D45-F3BE-408D-B0EB-1085482F365F.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-text-blank1-correct-9EA51C00.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350458.924,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "f34633628980cce2df4ff63fedd6ea20b81fe9cb2a4ed1e47dde69e6c8549c34",
+    "rawExport": "9EA51C00-E7C3-4A7E-977D-F0B8E9E5FA53.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/9EA51C00-E7C3-4A7E-977D-F0B8E9E5FA53.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-text-blank1-unanswered-2F8B7F15.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350448.417,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "da618409d017a3901f4ae2c8424e12ec79901fbef0f94ac44cdd5f1306dfd66b",
+    "rawExport": "2F8B7F15-0B19-4090-81A5-A94669AC2C30.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/2F8B7F15-0B19-4090-81A5-A94669AC2C30.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-long-explanation-7D1F4D6D.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350520.817,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "e7313d3e44ad64f691bccf7f0eb7656311976a75604c5e6cea6e0120b2fa02c4",
+    "rawExport": "7D1F4D6D-0B5A-4D75-88F2-7C1890EAD1C6.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/7D1F4D6D-0B5A-4D75-88F2-7C1890EAD1C6.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-correct-5000B47A.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350519.819,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "7bb24c0a103b77764a845ce5dc3ef501feec75e3c305a1baa5a7f4b20a0b36ca",
+    "rawExport": "5000B47A-4ED2-4216-9070-6718EAB4CD9E.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/5000B47A-4ED2-4216-9070-6718EAB4CD9E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-complete-order-87FB43BC.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350515.048,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "f9df8e8baa1c3c7e05731e84fa1a02d545876024599d77978fddbb10d01de904",
+    "rawExport": "87FB43BC-7E47-45AB-9F94-7987ECDC51AC.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/87FB43BC-7E47-45AB-9F94-7987ECDC51AC.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-unanswered-C7177927.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350509.789,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "4fe024f2fd09f0b8fb2ccc33b658230756c8b96cf64334cb1b71dab384b13885",
+    "rawExport": "C7177927-7EEA-4168-B349-B0AC6C70CE35.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/C7177927-7EEA-4168-B349-B0AC6C70CE35.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-long-explanation-6764383F.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350498.49,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "069fb63ed3d69106eab7ffb07741158e4805d7e001938069bd268c76357c05fb",
+    "rawExport": "6764383F-D8DC-402D-80FB-28578EA0EF29.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/6764383F-D8DC-402D-80FB-28578EA0EF29.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-incorrect-EFCDB7CD.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350497.308,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "69ca020f56f2e2cb938f276caed1762be892f8b1ba6c282660d532cd752bede6",
+    "rawExport": "EFCDB7CD-26F3-45D3-BE48-A777D916303E.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/EFCDB7CD-26F3-45D3-BE48-A777D916303E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-complete-order-693CEECE.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350488.443,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "c9360c8081933ab37d835f756292a0fcba1d6a0ac9d5717933a247efbf740e40",
+    "rawExport": "693CEECE-7670-455D-B4E0-78087311C15E.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/693CEECE-7670-455D-B4E0-78087311C15E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-grammar-composition-unanswered-C45C3505.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "8e12c62f1b6e17000dc1eff1a0bbc4877596fecf121b4a1255467d8851e2f191",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350481.661,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "1d450bb0f15f393638d304c9873c41f8505d75efc399f599b6ffc2795c72e716",
+    "rawExport": "C45C3505-F71A-4870-9F1F-A28C96A08B65.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/C45C3505-F71A-4870-9F1F-A28C96A08B65.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-long-explanation-365314BF.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350730.342,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "a7b0070fd32e450146713e4d34c55c3c1d5c9cf7afc34447e72d41f694fad5e0",
+    "rawExport": "365314BF-2A7C-4A6D-8F06-DCFD1EF7EB6E.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/365314BF-2A7C-4A6D-8F06-DCFD1EF7EB6E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-correct-8ACB5042.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350727.555,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "a7b0070fd32e450146713e4d34c55c3c1d5c9cf7afc34447e72d41f694fad5e0",
+    "rawExport": "8ACB5042-B5D8-46B0-B8C5-9FF9E3E0EA5B.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/8ACB5042-B5D8-46B0-B8C5-9FF9E3E0EA5B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-task-options-012DF08D.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350718.134,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "a90c7498edef59b76bf8fd0bac1a9f72b1b7042fca55580b75fa3fe37422a172",
+    "rawExport": "012DF08D-ED1A-4FF1-89F3-8D36F086E92D.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/012DF08D-ED1A-4FF1-89F3-8D36F086E92D.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-materials-unanswered-7B001842.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350717.278,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "a90c7498edef59b76bf8fd0bac1a9f72b1b7042fca55580b75fa3fe37422a172",
+    "rawExport": "7B001842-AAEB-4F5C-839D-3E16FC2599C9.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/7B001842-AAEB-4F5C-839D-3E16FC2599C9.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-long-explanation-BEE59833.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350707.307,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "fb776c4e2173dd542d05f4833bd3b61538a1c4d1d8b64bb77f61f3bc22c125e0",
+    "rawExport": "BEE59833-BD30-4867-9BD9-77D8082724DB.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/BEE59833-BD30-4867-9BD9-77D8082724DB.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-incorrect-9E10996B.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350706.308,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "67c207063c12d47dbf60f66422d4c27a813e7018da21c0cc87720ee1bffa992e",
+    "rawExport": "9E10996B-DD9F-4710-85AC-88895BFB6589.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/9E10996B-DD9F-4710-85AC-88895BFB6589.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-task-options-04F13F29.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350699.273,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "d703fc602464883dddebc39734df59fa06c3cd8a1cbdb43c11b337353a1a193f",
+    "rawExport": "04F13F29-C3ED-457F-8A04-765BCF5BE68E.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/04F13F29-C3ED-457F-8A04-765BCF5BE68E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-integrated-materials-unanswered-A09FB151.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "0d1bb1aa58b17a06930a4dd85a2d0d0e011d28e166a514ffb0f879f55ed9730a",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350698.579,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "d703fc602464883dddebc39734df59fa06c3cd8a1cbdb43c11b337353a1a193f",
+    "rawExport": "A09FB151-9810-49EB-A3EE-ECECCBFB85D0.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/A09FB151-9810-49EB-A3EE-ECECCBFB85D0.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-outline-correct-results-2DA34666.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "737c27c8c08e39ba436e9f2b3356198231bcdedcbe30c4f7c359fbdfbc5c2ec8",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350772.168,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "54c6bfe6634763d59738aab855a708402a355b93e73ac27e2b73a53df4a2b82c",
+    "rawExport": "2DA34666-C4D3-4355-8B7D-D1EC378F9C5B.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/2DA34666-C4D3-4355-8B7D-D1EC378F9C5B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-outline-audio-complete-revealed-544F94F9.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "737c27c8c08e39ba436e9f2b3356198231bcdedcbe30c4f7c359fbdfbc5c2ec8",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350767.052,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "dd701804c585845173efaf12484fad2908d4f32f1a0b003f5c4b406f24553816",
+    "rawExport": "544F94F9-7733-4D2A-8EBE-E2BDA89B71F1.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/544F94F9-7733-4D2A-8EBE-E2BDA89B71F1.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-outline-paused-hidden-0CBCC978.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "737c27c8c08e39ba436e9f2b3356198231bcdedcbe30c4f7c359fbdfbc5c2ec8",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350756.094,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "44eac99304f78452bb8d2e4d03bf56d9353bcb16a190974ebbcbcc40b318f54e",
+    "rawExport": "0CBCC978-CFA4-4C9B-846A-6E7B5EFB71EB.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/0CBCC978-CFA4-4C9B-846A-6E7B5EFB71EB.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-outline-before-audio-2EBD8B4F.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "737c27c8c08e39ba436e9f2b3356198231bcdedcbe30c4f7c359fbdfbc5c2ec8",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-phone-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791350752.017,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "490a68e6dee6eaa9317a26cbd003c9f04b218d88a8f1568a7d58e1e87d0b8046",
+    "rawExport": "2EBD8B4F-CCE6-4E74-A455-FA6391029596.png",
+    "rawLocalPath": ".local/native-typed-phone-restored-export/2EBD8B4F-CCE6-4E74-A455-FA6391029596.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-grammar-text-blank2-long-explanation-F8B200CA.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350843.032,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "13ba1ce11fd160c5a04d71b019db6c31cc737485877e5d649a069dc1caff7ced",
+    "rawExport": "F8B200CA-1EE9-42FE-9224-D7AB9ACC94A7.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/F8B200CA-1EE9-42FE-9224-D7AB9ACC94A7.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-grammar-text-blank2-correct-0BDF1226.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350842.337,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "33ec69791d73f00e2d928e9ad85025535c2fb9d30928dd8159f2a69d71191536",
+    "rawExport": "0BDF1226-2881-4E31-9B85-7F1DABD5917E.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/0BDF1226-2881-4E31-9B85-7F1DABD5917E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-grammar-text-blank2-unanswered-98C731D2.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350839.735,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "ca0a9e56da997af858145752f7d9eed0c167f675834f67d0da73e4dacebd1fac",
+    "rawExport": "98C731D2-9287-490F-B5D4-B2BC2BDD108B.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/98C731D2-9287-490F-B5D4-B2BC2BDD108B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-grammar-text-blank1-correct-F596A6B4.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350837.836,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "fd229e9e6fa104184db7f0b9e79e6f388de1da7957d76eb5c1d15e79d3f94887",
+    "rawExport": "F596A6B4-E54F-4EFD-8F3B-8141AA58054C.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/F596A6B4-E54F-4EFD-8F3B-8141AA58054C.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-grammar-text-blank1-unanswered-15ABF340.png",
+    "fixtureId": "grammar-text",
+    "fixtureSHA256": "5ca35b0cab5cd9807f1b7431a381967e11aad95bd6c8b2c75cdf15e3ebf38dec",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-grammar-text",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-grammar-article",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedArticleTwoBlanksShareOneMaterial()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350833.052,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "5c2a8b3e30e75c133187efd4f8ba454257a4893fb104200a8d30728e5b3ceacf",
+    "rawExport": "15ABF340-9BF2-4F66-9EA1-28F3E2B0A777.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/15ABF340-9BF2-4F66-9EA1-28F3E2B0A777.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-long-explanation-5D5A8199.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350957.366,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "42106201abfca3310529b8349a5109be809c6b711bb51979bd6ea880c1b4d226",
+    "rawExport": "5D5A8199-F2CE-4751-BACA-887948F3D96B.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/5D5A8199-F2CE-4751-BACA-887948F3D96B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-review-26A2A878.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350954.349,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "a610a529f438414d47c3be501219a1b96b3786e0a10af324bde4864729c95f4a",
+    "rawExport": "26A2A878-9C73-426A-9E2F-ADDD428C170F.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/26A2A878-9C73-426A-9E2F-ADDD428C170F.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-correct-results-B9E5D6A7.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350953.239,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "42a61ef0ff7fb845a10ad51aa51e4997b00a75e07ad20d12bab522339bc2787c",
+    "rawExport": "B9E5D6A7-4027-42A8-8940-26E41B9F4398.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/B9E5D6A7-4027-42A8-8940-26E41B9F4398.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-audio-playing-9B3018FA.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350928.691,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "6539540b625f7c89c04d6577c81dd582fa268c59d4dc44f33acbdab63d2e4263",
+    "rawExport": "9B3018FA-47CB-48D4-8DAA-3B6125C94DCA.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/9B3018FA-47CB-48D4-8DAA-3B6125C94DCA.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-image-options-B50357E9.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350921.537,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "f32076d3c53e0319f06bb684fbae262ec454b8e01ecdb25328efed8cc7a4565a",
+    "rawExport": "B50357E9-7477-4D02-8D41-2D8DB7F4FE6C.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/B50357E9-7477-4D02-8D41-2D8DB7F4FE6C.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-unanswered-8DE2655E.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350919.74,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "f32076d3c53e0319f06bb684fbae262ec454b8e01ecdb25328efed8cc7a4565a",
+    "rawExport": "8DE2655E-99C8-4416-8CFB-F5A361F3D8E7.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/8DE2655E-99C8-4416-8CFB-F5A361F3D8E7.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-long-explanation-E33288C5.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350904.859,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "c03897aa22d3454bf3654c4020fe652de499d1b0f5d431e489cdc585c81ba1ac",
+    "rawExport": "E33288C5-951A-4448-BB8A-69F002964ACD.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/E33288C5-951A-4448-BB8A-69F002964ACD.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-review-5A2F1618.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350895.773,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "50bfb6df70a69777a6035aa65f343f43ede2ec998074bdf9c7b5f07416b32875",
+    "rawExport": "5A2F1618-EAB9-4708-9936-36DDD52166F1.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/5A2F1618-EAB9-4708-9936-36DDD52166F1.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-incorrect-results-8912CF86.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350890.941,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "362e5aa9d98dbd2a3c77b727acff9569d3b7e90667372810c0dd38f403c4cfd2",
+    "rawExport": "8912CF86-DA41-4EC9-9422-9CA625EB0759.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/8912CF86-DA41-4EC9-9422-9CA625EB0759.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-audio-playing-419B90DE.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350863.295,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "2b6c5029e756d7572ca79153ba46ddf0c83fca93574b4c1a6e7a49fa0353b43f",
+    "rawExport": "419B90DE-6217-4B08-9B13-C34CB3002A6B.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/419B90DE-6217-4B08-9B13-C34CB3002A6B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-image-options-F8528643.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350857.145,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "85957b0edd9a69d46e9b25408fa8873d1b1dd20288d9e250e1665e7f4127f7bf",
+    "rawExport": "F8528643-46D7-4451-B46D-23845A778510.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/F8528643-46D7-4451-B46D-23845A778510.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-listening-expression-unanswered-144AC570.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350856.516,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "85957b0edd9a69d46e9b25408fa8873d1b1dd20288d9e250e1665e7f4127f7bf",
+    "rawExport": "144AC570-542E-4291-AC43-05FBFF1B7E91.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/144AC570-542E-4291-AC43-05FBFF1B7E91.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-long-explanation-884D7805.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350984.151,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "b330739b2739b9c92fac62d846fd17cd76fc4ef5d299dfef182f432c600cc208",
+    "rawExport": "884D7805-92EE-4A1E-B99E-4698A942823F.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/884D7805-92EE-4A1E-B99E-4698A942823F.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-correct-BAEA227B.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350983.864,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "b330739b2739b9c92fac62d846fd17cd76fc4ef5d299dfef182f432c600cc208",
+    "rawExport": "BAEA227B-9BFA-40A4-967B-90BF1F99FE92.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/BAEA227B-9BFA-40A4-967B-90BF1F99FE92.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-task-options-8B4B0248.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350980.616,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "15b6dddb0aa024ba5cb6f8d18ec5bf9b7eca1cf83723e969360089384caf3c62",
+    "rawExport": "8B4B0248-45E5-4A9F-AA57-FFE797A5B90C.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/8B4B0248-45E5-4A9F-AA57-FFE797A5B90C.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-materials-unanswered-950F6F58.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350980.256,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "15b6dddb0aa024ba5cb6f8d18ec5bf9b7eca1cf83723e969360089384caf3c62",
+    "rawExport": "950F6F58-8AA1-476C-9692-AE985F621A53.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/950F6F58-8AA1-476C-9692-AE985F621A53.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-long-explanation-3889E56C.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350971.006,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "f823ed2ebd99534a6662aac7dea5ae1f52cb04e34bf6fd9158121bc6810fde3b",
+    "rawExport": "3889E56C-5925-4F1A-B4ED-B2A35572FA36.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/3889E56C-5925-4F1A-B4ED-B2A35572FA36.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-incorrect-1EAB660B.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350970.729,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "f823ed2ebd99534a6662aac7dea5ae1f52cb04e34bf6fd9158121bc6810fde3b",
+    "rawExport": "1EAB660B-CC96-4942-B610-9BE99C527F10.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/1EAB660B-CC96-4942-B610-9BE99C527F10.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-task-options-DC692146.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350967.274,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "15b6dddb0aa024ba5cb6f8d18ec5bf9b7eca1cf83723e969360089384caf3c62",
+    "rawExport": "DC692146-57C5-47D8-8F4A-46C132305456.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/DC692146-57C5-47D8-8F4A-46C132305456.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "ipad-wide-reading-information-materials-unanswered-BB045106.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-layout-final.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350966.819,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "15b6dddb0aa024ba5cb6f8d18ec5bf9b7eca1cf83723e969360089384caf3c62",
+    "rawExport": "BB045106-88B2-441E-BC15-CBD4B9DD444F.png",
+    "rawLocalPath": ".local/native-typed-layout-final-export/BB045106-88B2-441E-BC15-CBD4B9DD444F.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-vocabulary-kanji-reading-exact-target-revealed-D165644F.png",
+    "fixtureId": "vocabulary-kanji-reading",
+    "fixtureSHA256": "1e203503d2a266dc070e3e52e54053b2abf4ecd6371b057cd6f9d9d9c4abb8d6",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-vocabulary-kanji-reading",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testExactTargetSpanRepeatedWord()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351502.062,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "93bae93be06de20a2d641cb411ac058cf86ddfc47cc0a8a02568db82d5aac917",
+    "rawExport": "D165644F-C887-4643-AD60-4CD299579CC9.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/D165644F-C887-4643-AD60-4CD299579CC9.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-vocabulary-kanji-reading-exact-target-unanswered-3B4999F5.png",
+    "fixtureId": "vocabulary-kanji-reading",
+    "fixtureSHA256": "1e203503d2a266dc070e3e52e54053b2abf4ecd6371b057cd6f9d9d9c4abb8d6",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-vocabulary-kanji-reading",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testExactTargetSpanRepeatedWord()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351498.788,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "c88235d6d9cb1d7a1f442379a5b41dc54b9cd975c98ff8e4f8ab5bc1047eeec6",
+    "rawExport": "3B4999F5-3B7D-4845-B01C-A30A3DA2B0AC.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/3B4999F5-3B7D-4845-B01C-A30A3DA2B0AC.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-long-explanation-A2900CB4.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351548.081,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "354e7e827edbbd618f36d0ea3e27510e7eb6e89742a1be7f1f374e46c1bb9300",
+    "rawExport": "A2900CB4-12C8-438D-901D-2A462CFE626D.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/A2900CB4-12C8-438D-901D-2A462CFE626D.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-review-029EF959.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351542.588,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "30a52da72aafa537e5dfe6fb187a6c485c070e40fc3f645051617071f6a70817",
+    "rawExport": "029EF959-DC08-4021-B3AF-C68E9A4CD165.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/029EF959-DC08-4021-B3AF-C68E9A4CD165.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-correct-results-5DD13944.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351541.883,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "9550319ca2d86456ad4c36f5ff15635683adadf5980f114afa228bcbc9833966",
+    "rawExport": "5DD13944-0A1A-437B-A216-0BBFF3839F06.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/5DD13944-0A1A-437B-A216-0BBFF3839F06.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-audio-playing-53CAA74D.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351538.623,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "1da7845614d21743b573c67aec17de5aedf247eb3aa3d84dc5705d4da24133bc",
+    "rawExport": "53CAA74D-D757-4DA7-A63B-63E16D6642D5.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/53CAA74D-D757-4DA7-A63B-63E16D6642D5.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-image-options-AD4225C9.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351535.999,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "5363b8c474b3055afaedc0137f5030429d3943f3a7ddbc27e088d621b06a4ae6",
+    "rawExport": "AD4225C9-331B-46CA-B10A-76F2180B671C.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/AD4225C9-331B-46CA-B10A-76F2180B671C.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-unanswered-75BDA8E4.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351535.575,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "5363b8c474b3055afaedc0137f5030429d3943f3a7ddbc27e088d621b06a4ae6",
+    "rawExport": "75BDA8E4-2FCD-41E4-87C3-A4F4E9255DDE.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/75BDA8E4-2FCD-41E4-87C3-A4F4E9255DDE.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-long-explanation-A881C6AC.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351527.67,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "476ce4446cb3cff7113a76936c3faf0747192b6b15443ca3d21e3d8fd54aa2be",
+    "rawExport": "A881C6AC-2879-4B4D-A8DE-B736B45E086D.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/A881C6AC-2879-4B4D-A8DE-B736B45E086D.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-review-CF7C66D3.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351521.743,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "72fb5214374b7868c38a8827c300a4575805fcc5b5bdb20d7112b16a445164a3",
+    "rawExport": "CF7C66D3-B6B2-4C57-A4DA-AA86A75388F7.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/CF7C66D3-B6B2-4C57-A4DA-AA86A75388F7.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-incorrect-results-9E1DD0D8.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351520.557,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "c4bed1323c85630935e10dd05aaa2ce9f0e96e5518a991995490f367a3dec468",
+    "rawExport": "9E1DD0D8-9814-47B5-9E99-86F5F3E22EDF.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/9E1DD0D8-9814-47B5-9E99-86F5F3E22EDF.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-audio-playing-AB90CCA7.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351517,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "869483e6660fd31681d1c2414c55b2cf410342776b188712f04c9560f3ebb8af",
+    "rawExport": "AB90CCA7-2F2B-4DFF-B633-E2EE9719E862.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/AB90CCA7-2F2B-4DFF-B633-E2EE9719E862.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-image-options-9A766F2F.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351513.509,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "5363b8c474b3055afaedc0137f5030429d3943f3a7ddbc27e088d621b06a4ae6",
+    "rawExport": "9A766F2F-0D61-4E85-A3B6-6D0114DB7C48.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/9A766F2F-0D61-4E85-A3B6-6D0114DB7C48.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-listening-expression-unanswered-6AB0BEB3.png",
+    "fixtureId": "listening-expression",
+    "fixtureSHA256": "4ce4052717461f10068806e40122d1b2ba948b6620f7a0c189382543071cd8db",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-listening-expression",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-expression",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-0",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-1",
+        "revision": 1
+      },
+      {
+        "id": "visual-option-image-2",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedExpressionImagesAndAudio()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351512.858,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "5363b8c474b3055afaedc0137f5030429d3943f3a7ddbc27e088d621b06a4ae6",
+    "rawExport": "6AB0BEB3-ED6A-4011-99C7-F674F5F6BDC6.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/6AB0BEB3-ED6A-4011-99C7-F674F5F6BDC6.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-long-explanation-E771C3EB.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351574.395,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "9ca8098b1b3ae03e19119caf7a085383f3a660f3ebf0e8409784c9a8687d86d5",
+    "rawExport": "E771C3EB-A470-4BB3-ACE9-5B9E4E6E10D8.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/E771C3EB-A470-4BB3-ACE9-5B9E4E6E10D8.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-correct-B273204D.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351574.168,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "9ca8098b1b3ae03e19119caf7a085383f3a660f3ebf0e8409784c9a8687d86d5",
+    "rawExport": "B273204D-C658-4D25-91A1-4F8E54DDBDE4.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/B273204D-C658-4D25-91A1-4F8E54DDBDE4.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-task-options-CE02FF60.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351568.224,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "fd0d78caf82b446cd51a6c5d87b9bd125a80b084a76f59c56046c5abf378ad3b",
+    "rawExport": "CE02FF60-2AAB-4559-A672-5FF4A6812CB0.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/CE02FF60-2AAB-4559-A672-5FF4A6812CB0.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-materials-unanswered-EEF7DB7D.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351567.933,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "fd0d78caf82b446cd51a6c5d87b9bd125a80b084a76f59c56046c5abf378ad3b",
+    "rawExport": "EEF7DB7D-C25D-4D38-818B-413E31B46D0B.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/EEF7DB7D-C25D-4D38-818B-413E31B46D0B.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-long-explanation-B97742E5.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351561.396,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "dac1553f3ea379f47d7522ad4283a1b4e196ff7b082da30294401c4cc8be78b2",
+    "rawExport": "B97742E5-10BE-465D-88FE-14383B10DA2E.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/B97742E5-10BE-465D-88FE-14383B10DA2E.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-incorrect-183539DC.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351561.116,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "dac1553f3ea379f47d7522ad4283a1b4e196ff7b082da30294401c4cc8be78b2",
+    "rawExport": "183539DC-C4C3-42E9-9656-186A282A5288.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/183539DC-C4C3-42E9-9656-186A282A5288.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-task-options-9EA5FF8D.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351555.007,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "fd0d78caf82b446cd51a6c5d87b9bd125a80b084a76f59c56046c5abf378ad3b",
+    "rawExport": "9EA5FF8D-8325-4EA9-BE66-3AB40BEF1041.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/9EA5FF8D-8325-4EA9-BE66-3AB40BEF1041.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-materials-unanswered-F92E0130.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-phone-fixes.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testTypedInformationReadingActualTable()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351554.749,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "fd0d78caf82b446cd51a6c5d87b9bd125a80b084a76f59c56046c5abf378ad3b",
+    "rawExport": "F92E0130-E4C4-4D9D-83EE-5D1E0DD11BE8.png",
+    "rawLocalPath": ".local/native-final-phone-fixes-export/F92E0130-E4C4-4D9D-83EE-5D1E0DD11BE8.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-table-left-restored-F6B011D8.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-table-scroll.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testInformationTableHorizontalConditions()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351854.047,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "33fb9e49f7769e5594517ef13bb73c060fcdd7314bf6b4460371207efdf754d0",
+    "rawExport": "F6B011D8-18FA-44A0-A89F-E465F951F911.png",
+    "rawLocalPath": ".local/native-final-table-scroll-export/F6B011D8-18FA-44A0-A89F-E465F951F911.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-table-right-columns-426BDD65.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-table-scroll.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testInformationTableHorizontalConditions()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351852.679,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "5c1049e9572e74eca088a840a4492481be824b98201c9979f43100ad4f584c1b",
+    "rawExport": "426BDD65-5069-45DC-A3A6-0D3AD18C8C76.png",
+    "rawLocalPath": ".local/native-final-table-scroll-export/426BDD65-5069-45DC-A3A6-0D3AD18C8C76.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
+  },
+  {
+    "file": "iphone-reading-information-table-left-columns-445BFF74.png",
+    "fixtureId": "reading-information",
+    "fixtureSHA256": "39a5c2a6526868a2c4920be9ffdf1af4b8fc9282358d7c727ac1eb79b7f97a1f",
+    "fixtureHashAlgorithm": "SHA256 UTF-8 JSON sorted keys compact separators",
+    "canonicalQuestionId": "visual-bank-reading-information",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-course-table",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-final-table-scroll.xcresult",
+    "rendererBaselineCommit": "715632c",
+    "test": "NativeQuestionVisualTests/testInformationTableHorizontalConditions()",
+    "device": "JLPT Typed Visual iPhone 20261007",
+    "deviceId": "39D4FBF2-A3B0-468E-BD0B-DDA1380F0081",
+    "timestamp": 1791351851.276,
+    "width": 1206,
+    "height": 2622,
+    "sha256": "3b7b85802026f49a28cbaebbaaeff2bdf3e15cb3c3a2060c5db3099d599489fd",
+    "rawExport": "445BFF74-5943-4A32-9625-47CF50256E46.png",
+    "rawLocalPath": ".local/native-final-table-scroll-export/445BFF74-5943-4A32-9625-47CF50256E46.png",
+    "visuallyInspected": true,
+    "visualAccepted": true
   }
 ]

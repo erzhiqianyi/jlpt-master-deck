@@ -29,13 +29,12 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
   }
   if (route.view === 'question-types') return route.itemId ? { view: 'question-types', page: 'questions' } : { view: 'study', page: 'questions' };
   if (route.view === 'mock-exams') {
-    if (route.itemId) return { view: 'mock-exams', page: 'questions', itemId: /^(week|custom):/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
+    if (route.itemId) return { view: 'mock-exams', page: 'questions', itemId: /^custom:/.test(route.itemId) && route.itemId.split(':').length > 2 ? route.itemId.split(':').slice(0, 2).join(':') : undefined };
     return { view: 'home', page: 'questions' };
   }
   if (route.view === 'daily-practice') return route.page === 'review'
     ? { view: 'daily-practice', page: 'questions', itemId: route.itemId }
     : dailyPracticeIsTopic ? { view: 'mixed', page: 'tips', itemId: 'topics' } : { view: 'home', page: 'questions' };
-  if (route.view === 'news-cycle') return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'mixed', page: 'tips' };
   if (route.view === 'capture') return { view: 'captures', page: 'questions' };
   if (route.view === 'drafts') return { view: 'home', page: 'questions' };
   if (['captures', 'mistakes', 'memory', 'data', 'insights'].includes(route.view)) return { view: 'history', page: 'questions' };
@@ -50,7 +49,7 @@ export function primaryNavigationView(route: AppRoute): AppView {
   if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
     return route.page === 'questions' || route.page === 'review' ? 'home' : 'study';
   }
-  if (['daily-practice', 'mock-exams', 'news-cycle', 'memory-review'].includes(route.view)) return 'home';
+  if (['daily-practice', 'mock-exams', 'memory-review'].includes(route.view)) return 'home';
   if (route.view === 'question-types' || (route.view === 'mixed' && route.page === 'words')) return 'study';
   if (route.view === 'drafts') return 'home';
   if (['captures', 'capture', 'mistakes', 'insights', 'memory', 'data'].includes(route.view)) return 'history';

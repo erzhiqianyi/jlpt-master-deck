@@ -541,6 +541,14 @@ final class NativeQuestionVisualTests: XCTestCase {
             }
         }
     }
+    func testExactTargetSpanRepeatedWord() {
+        start("vocabulary-kanji-reading")
+        let option=app.buttons["quiz.choice.0"].firstMatch;XCTAssertTrue(option.waitForExistence(timeout:10))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format:"label CONTAINS %@", "明確な条件")).firstMatch.exists)
+        capture("vocabulary-kanji-reading","exact-target-unanswered")
+        reveal(option);option.tap();XCTAssertTrue(app.staticTexts["回答正确"].firstMatch.waitForExistence(timeout:5))
+        capture("vocabulary-kanji-reading","exact-target-revealed")
+    }
     func testVocabularySixActualFixtures() { for kind in ["vocabulary-kanji-reading","vocabulary-orthography","vocabulary-word-formation","vocabulary-context","vocabulary-paraphrase","vocabulary-usage"] { quiz(kind) } }
     func testGrammarFormActualFixture() { quiz("grammar-form") }
     func testTypedAssemblyAnswersAndFullOrder() {
@@ -570,6 +578,15 @@ final class NativeQuestionVisualTests: XCTestCase {
     }
     func testTypedIntegratedReadingActualAB() { typedReading("reading-integrated") }
     func testTypedInformationReadingActualTable() { typedReading("reading-information") }
+    func testInformationTableHorizontalConditions() {
+        start("reading-information")
+        let table=app.scrollViews["typed.material.table"].firstMatch
+        XCTAssertTrue(table.waitForExistence(timeout:10));capture("reading-information","table-left-columns")
+        table.swipeLeft();capture("reading-information","table-right-columns")
+        XCTAssertTrue(app.staticTexts["参加費"].firstMatch.isHittable)
+        XCTAssertTrue(app.staticTexts["対象"].firstMatch.isHittable)
+        table.swipeRight();capture("reading-information","table-left-restored")
+    }
     private func typedReading(_ kind:String) {
         for choice in [1,0] {
             start(kind);let option=app.buttons["reading.choice.\(choice)"].firstMatch
@@ -609,8 +626,8 @@ final class NativeQuestionVisualTests: XCTestCase {
             }
         }
     }
-    func testListeningSixActualFixturesAndLocalJapaneseAudio() {
-        for kind in ["listening-task","listening-points","listening-outline","listening-quick","listening-integrated","listening-basic-training"] {
+    func testListeningFiveLegacyFixturesAndLocalJapaneseAudio() {
+        for kind in ["listening-task","listening-points","listening-quick","listening-integrated","listening-basic-training"] {
             let free=kind=="listening-basic-training"
             for choice in free ? [0] : [1,0] {
                 start(kind)

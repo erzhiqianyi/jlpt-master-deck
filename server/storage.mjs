@@ -1,5 +1,5 @@
 import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
-import { ensureQuestionBankSchema, adaptQuestionSource, saveQuestionSource, linkQuestionAlias, archiveDraftQuestions } from './question-bank.mjs';
+import { ensureQuestionBankSchema, archiveDraftQuestions } from './question-bank.mjs';
 import { resolveLegacyAnswer, questionStrategy } from '../src/domain/questionContract.mjs';
 import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japanese-annotations.mjs';
@@ -2957,6 +2957,10 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       ...(sourceOrigin === 'textbook_original' ? { source_reference: sourceReference } : {}),
       itemId: item?.id ?? String(question.id ?? `draft-q${index + 1}`),
       kind: draftQuestionKind(question.kind ?? question.type),
+      questionTypeId:questionStrategy(question.questionTypeId??question.kind??question.type)?.id,
+      passage:question.passage??section.passage,
+      audioUrl:question.audioUrl??section.audioUrl,
+      materialRefs:question.materialRefs??section.materialRefs,
       title: String(section.title ?? `問題${section.id ?? ''}`).trim(),
       instruction: String(section.instruction ?? '').trim(),
       prompt: String(question.prompt ?? '').trim(),
@@ -2999,14 +3003,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     questions,
   };
   transaction(getDb(), () => {
-    for (const question of practice.questions) {
-      const ref = saveQuestionSource(getDb(), adaptQuestionSource(userId, {
-        kind: 'draft', id: draft.id, questionId: question.sourceQuestionId,
-      }, question, { status: 'ready' }));
-      linkQuestionAlias(getDb(), userId, { kind: 'practice', id, questionId: question.id }, ref);
-      question.canonicalQuestionId = ref.id;
-      question.questionRevision = ref.revision;
-    }
+    attachPracticeReferences(getDb(),userId,practice);
   getDb()
     .prepare(`
       INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
@@ -3203,9 +3200,13 @@ export function refreshDailyPracticeExplanations(userId, id) {
     };
   });
   const now = new Date().toISOString();
+  transaction(getDb(),()=>{
+  attachPracticeReferences(getDb(),userId,{...practice,questions:(JSON.parse(row.practice_json).questions??[]).map(q=>({...q}))},{sourcePracticeId:id});
+  attachPracticeReferences(getDb(),userId,practice,{sourcePracticeId:id});
   getDb()
     .prepare('UPDATE daily_practices SET practice_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')
     .run(JSON.stringify(practice), now, userId, id);
+  });
   return getDailyPractice(userId, id);
 }
 

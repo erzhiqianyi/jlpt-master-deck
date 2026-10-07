@@ -486,11 +486,13 @@ export function importShare(userId, shareId) {
             const id = `import-${randomUUID()}`;
             const item = { ...source, id, date: new Date().toISOString().slice(0, 10), meaning_zh: source.meaning_zh || '',
               core_memory: source.core_memory || [], type: source.type || (source.deck === 'grammar_expression' ? 'grammar' : 'vocabulary') };
+            persistItemSeeds(db,userId,item);
             db.prepare('INSERT INTO user_review_items VALUES (?,?,?)').run(id, userId, JSON.stringify(item));
             return id;
           });
           practice.questions = practice.questions.map((question, index) => ({ ...question,
             itemId: itemIds[pkg.questions[index].sourceItemIndex] ?? question.itemId }));
+          attachPracticeReferences(db,userId,practice,{sourcePracticeId:result.id,status:'needs_review'});
           db.prepare('UPDATE daily_practices SET practice_json=?, updated_at=? WHERE id=? AND user_id=?')
             .run(JSON.stringify(practice), new Date().toISOString(), result.id, userId);
         });

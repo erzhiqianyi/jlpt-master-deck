@@ -2,6 +2,8 @@
 
 日期：2026-10-07。此阶段实现代码、真实调用适配与测试；手机/iPad逐型像素验收是第二阶段，不能以编译、单测或旧截图替代。
 
+后续进展：已接Web/MCP结构化消费，见 [实施记录](typed-web-mcp-implementation.md)；原生真实交互及视觉证据见 [第二阶段](native-typed-visual/README.md)。以下“未实施”范围为第一阶段交接当时的状态。
+
 ## 已实施的调用链
 
 `apple/Sources/QuestionPresentation.swift` 解码现有 schemaVersion=1 canonical bank payload，复用 `legacy` 中的版本化题目字段、`options[].id`、`answer.type=single` 和 `answer.optionId`。原生练习、阅读、听力三个真实入口及练习结果复盘均调用共享 `NativeTypedQuestionRenderer`；没有建立第二套题目ID或改变既有数字答案基准。旧QA的 `option` 编码仅为读取兼容。

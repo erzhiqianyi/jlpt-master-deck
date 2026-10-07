@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QuestionRenderer } from '../components/QuestionRenderer';
 import { QuestionPrompt } from '../components/QuestionPrompt';
+import type {TypedPresentation} from '../domain/typedPresentation';
 // MCP App view for `start_topic_practice` / `get_practice_session`. Runs inside the chat host's
 // iframe: receives the session from the tool result, then answers questions by calling
 // `submit_practice_answer` on the same server with the same grant. Built to a single IIFE by
@@ -12,6 +13,8 @@ import './practice.css';
 
 type ChoiceAnalysis = { choice: string; correct: boolean; explanation: string };
 type SessionQuestion = {
+  presentation?:TypedPresentation;
+  assemblyOrder?:string[];
   canonicalQuestionId?: string;
   questionRevision?: number;
   reference?: string;
@@ -84,8 +87,15 @@ function applyHost(context: Partial<McpUiHostContext>) {
 function textOf(content: unknown) {
   return Array.isArray(content) ? content.map((block) => (block?.type === 'text' ? String(block.text) : '')).join('\n').trim() : '';
 }
+async function resolveMaterialAudio(ref:{id:string;revision:number}) {
+  const result=await app.callServerTool({name:'get_material_audio',arguments:{material_id:ref.id,revision:ref.revision}});
+  if(result.isError)throw new Error(textOf(result.content));
+  const audio=result.content.find(block=>block.type==='audio');
+  if(!audio||audio.type!=='audio')throw new Error('Audio unavailable');
+  return `data:${audio.mimeType};base64,${audio.data}`;
+}
 
-async function choose(choice: string) {
+async function choose(choice: string, assemblyOrder?:string[]) {
   if (!session || busy) return;
   const question = session.questions[index];
   if (!question || question.answered) return;
@@ -93,7 +103,7 @@ async function choose(choice: string) {
   error = '';
   render();
   try {
-    const result = await app.callServerTool({ name: 'submit_practice_answer', arguments: { practice_id: session.id, question_id: question.id, selected: choice } });
+    const result = await app.callServerTool({ name: 'submit_practice_answer', arguments: { practice_id: session.id, question_id: question.id, selected: choice, ...(assemblyOrder?{assemblyOrder}:{}) } });
     const data = result.structuredContent as SubmitResult | undefined;
     if (result.isError || !data?.question) throw new Error(textOf(result.content) || '提交失败');
     session.questions[index] = data.question;
@@ -165,12 +175,13 @@ function questionView(current: Session, question: SessionQuestion) {
   const surface = document.createElement('div');
   questionRoot = createRoot(surface);
   questionRoot.render(createElement(QuestionRenderer, {
+    presentation:question.presentation,initialOrder:question.assemblyOrder,resolveAudio:resolveMaterialAudio,
     questionId:question.id, questionTypeId:question.questionTypeId??question.kind, instruction:question.instruction,
     materials:question.passage?createElement('p',{style:{whiteSpace:'pre-wrap'}},question.passage):undefined,taskConditions:question.taskConditions,
     prompt:createElement(QuestionPrompt,{text:question.prompt,target:question.promptTarget}),
     choices:question.choices,selected:question.choices.indexOf(question.selected??''),
     answerIndex:answered?question.choices.indexOf(question.answer??''):undefined,
-    reveal:answered,disabled:answered||busy,onSelect:(position:number)=>void choose(question.choices[position]),
+    reveal:answered,disabled:answered||busy,onSelect:(position:number,order?:string[])=>void choose(question.choices[position],order),
     renderText:(choice:string)=>createElement('span',null,choice,answered?createElement('span',{className:'why'},question.choiceAnalysis?.find(entry=>entry.choice===choice)?.explanation):null),
   }));
   return el('div', { class: 'card' }, [

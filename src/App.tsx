@@ -799,7 +799,7 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [activeQuestion?.id, studyPage, activeView]);
 
-  function answerQuestion(question: Question, selected: string) {
+  function answerQuestion(question: Question, selected: string, assemblyOrder?:string[]) {
     const correct = selected === question.answer;
     const answerEventId=crypto.randomUUID();
     const now = new Date();
@@ -811,6 +811,7 @@ export default function App() {
     const elapsedMs = (previous?.elapsedMs ?? 0) + Math.max(0, now.getTime() - segmentStart);
     questionTimer.current = { questionId: question.id, startedAt: now.getTime() };
     const nextAttemptAnswer: AttemptAnswer = {
+      assemblyOrder,
       questionId: question.id,
       itemId: question.itemId,
       kind: question.kind,
@@ -824,7 +825,7 @@ export default function App() {
     const nextAttemptHistory = upsertAttemptHistory(attemptHistory, nextAttempt);
     const nextAnswers = {
       ...answers,
-      [question.id]: { submissionState:effectiveFeedbackMode==='batch'?'draft' as const:'submitted' as const,eventId:answerEventId,itemId:question.itemId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
+      [question.id]: { assemblyOrder, submissionState:effectiveFeedbackMode==='batch'?'draft' as const:'submitted' as const,eventId:answerEventId,itemId:question.itemId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
     };
     if (effectiveFeedbackMode === 'batch') {
       setAnswers(nextAnswers);

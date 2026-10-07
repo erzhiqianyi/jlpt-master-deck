@@ -1,6 +1,7 @@
 import type { Locale } from '../types';
 
-export function QuestionPrompt({ text, target, locale = 'zh-CN' }: { text: string; target?: string; locale?: Locale }) {
+export function QuestionPrompt({ text, target, span, locale = 'zh-CN' }: { text: string; target?: string; span?:{start:number;end:number;text:string}; locale?: Locale }) {
+  if(span&&Number.isInteger(span.start)&&Number.isInteger(span.end)&&span.start>=0&&span.end>span.start&&text.slice(span.start,span.end)===span.text)return <>{text.slice(0,span.start)}<span className="font-semibold underline decoration-2 underline-offset-4">{span.text}</span>{text.slice(span.end)}</>;
   // Legacy passage questions append the specific blank instruction to the passage.
   // Only split when that same numbered blank exists in the preceding text.
   const blankQuestion = text.match(/(【[0-9０-９]+】)\s*に入る(?:最もよい)?ものを選びなさい[。．.]?\s*$/u);
@@ -22,4 +23,3 @@ export function QuestionPrompt({ text, target, locale = 'zh-CN' }: { text: strin
   if (targetIndex < 0) return text;
   return <>{text.slice(0, targetIndex)}<span className="font-semibold underline decoration-2 underline-offset-4">{target}</span>{text.slice(targetIndex + target.length)}</>;
 }
-

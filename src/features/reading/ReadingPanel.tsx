@@ -323,7 +323,7 @@ function ReadingPassage({ items:initialItems, labels, locale, progress, onDelete
     {reviewAvailable ? <div className="reading-display-options"><label><span>{locale === 'ja' ? 'ふりがなを表示' : locale === 'en' ? 'Show furigana' : '显示假名'}</span><input type="checkbox" role="switch" checked={showRuby} onChange={(event) => setShowRuby(event.target.checked)} /></label><label><span>{locale === 'ja' ? '分かち書き・単語検索' : locale === 'en' ? 'Word lookup' : '分词查词'}</span><input type="checkbox" role="switch" checked={segmented} onChange={(event) => setSegmented(event.target.checked)} /></label></div> : null}
     {reviewAvailable && showRuby && !rubyTerms.length ? <p role="status" className="mt-2 text-sm text-[#68716b]">{locale === 'ja' ? 'この文章にはまだ読みが登録されていません。' : locale === 'en' ? 'No readings have been added to this passage yet.' : '这篇文章尚未补充读音，补充后即可显示假名。'}</p> : null}
     <div className={`reading-practice-layout${passageOpen ? ' is-passage-open' : ' is-answering'}`}>
-    <details className="reading-passage-body" open={passageOpen} onToggle={(event) => setPassageOpen(event.currentTarget.open)}>
+    {!item.presentation ? <details className="reading-passage-body" open={passageOpen} onToggle={(event) => setPassageOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer text-sm font-semibold text-[#31564c]">{locale === 'ja' ? '本文' : locale === 'en' ? 'Passage' : '阅读原文'}</summary>
       {reviewAvailable ? <div className="reading-passage-speech"><SpeechControls text={item.passage} label={locale === 'ja' ? '本文を読み上げる' : locale === 'en' ? 'Read passage' : '朗读全文'} /></div> : null}
       {item.passage.split(/\n\s*\n|\n/).filter((paragraph) => paragraph.trim()).map((paragraph, index) => <div key={index}>
@@ -331,7 +331,7 @@ function ReadingPassage({ items:initialItems, labels, locale, progress, onDelete
         {reviewAvailable ? <div className="reading-paragraph-speech"><SpeechControls iconOnly text={paragraph} label={locale === 'ja' ? `段落 ${index + 1}` : locale === 'en' ? `Paragraph ${index + 1}` : `朗读第 ${index + 1} 段`} /></div> : null}
       </div>)}
       <button type="button" className="reading-start-answer" onClick={() => { setPassageOpen(false); window.requestAnimationFrame(() => document.getElementById('reading-questions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>{locale === 'ja' ? '本文を閉じて解答する' : locale === 'en' ? 'Close passage and answer' : '收起原文并作答'}</button>
-    </details>
+    </details> : null}
     <div id="reading-questions" className="reading-question-column divide-y divide-[#e1e7df]">
       {items.map((question, index) => <ReadingQuestionItem key={question.id} item={question} number={index + 1} previouslyAnswered={completedIds.includes(question.id) || Boolean((progress[question.id]?.reviewCount ?? 0) > 0 || (progress[question.id]?.correct ?? 0) + (progress[question.id]?.wrong ?? 0) > 0)} revealed={revealedIds.includes(question.id)} setRevealed={(revealed) => setRevealedIds((ids) => revealed ? [...new Set([...ids, question.id])] : ids.filter((id) => id !== question.id))} onRecordPractice={(correct,selection) => onRecordPractice(question, sessionId, correct,selection)} onComplete={() => setCompletedIds((ids) => ids.includes(question.id) ? ids : [...ids, question.id])} segmented={reviewAvailable && segmented} labels={labels} locale={locale} onDelete={manageOpen ? onDelete : undefined} />)}
     </div>
@@ -372,7 +372,7 @@ function ReadingQuestionItem({ item, number, previouslyAnswered, revealed, setRe
       {onDelete ? <RecordReference reference={item.reference} locale={locale} /> : null}
       {onDelete && (item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
-      <QuestionRenderer questionId={item.id} questionTypeId={item.questionTypeId??'reading-basic-training'}
+      <QuestionRenderer presentation={item.presentation} questionId={item.id} questionTypeId={item.questionTypeId??'reading-basic-training'}
         prompt={<ReadingText text={item.question} />} promptClassName="reading-question-stem"
         choices={item.choices} selected={selected} answerIndex={item.answerIndex} reveal={revealed}
         optionPresentation="reading" interactiveText={segmented}

@@ -29,7 +29,9 @@ test('MCP persists a partial explanation update without changing answers or adja
   await tool.handler({ practice_id: 'p1', question_id: 'q1', patch: { correctReason: 'さえ与条件形ば呼应，突出成立的最低条件。' } }, { ownerId: String(alice.id) });
   const practice = storage.getDailyPractice(alice.id, 'p1');
   assert.match(practice.questions[0].correctReason, /最低条件/);
-  const { correctReason, choiceAnalysis, canonicalQuestionId, questionRevision, materialRefs, ...rest } = practice.questions[0];
+  const { correctReason, choiceAnalysis, canonicalQuestionId, questionRevision, materialRefs, presentation, ...rest } = practice.questions[0];
+  assert.equal(presentation.payload.legacy.correctReason,correctReason);
+  assert.equal(presentation.payload.answer.optionId,'option-0');
   assert.match(canonicalQuestionId, /^bank-/);
   assert.ok(questionRevision >= 1);
   assert.deepEqual(materialRefs, []);

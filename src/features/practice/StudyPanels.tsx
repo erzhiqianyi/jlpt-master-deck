@@ -1,4 +1,5 @@
 import { QuestionRenderer } from '../../components/QuestionRenderer';
+import {useMaterialAudioResolver} from '../../hooks/useMaterialAudioResolver';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
 import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
@@ -213,7 +214,7 @@ export function PracticeReviewPanel({
           <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{reviewPosition + 1} / {rows.length} · {copy.list} {activeRow.index + 1}</span></div>
           <div className="practice-result-filters" role="group" aria-label={copy.list}>{([['wrong', copy.wrong, model.wrong + model.unanswered], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} disabled={!count} onClick={() => startReview(value)}>{title} <span>{count}</span></button>)}</div>
           {attempt ? <p className="practice-historical-version" role="note">{copy.currentVersion}</p> : null}
-          <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+          <QuestionRenderer presentation={activeQuestion.presentation} initialOrder={activeAnswer?.assemblyOrder} questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
             materials={activeQuestion.passage?<p className="whitespace-pre-wrap">{activeQuestion.passage}</p>:undefined} taskConditions={activeQuestion.taskConditions}
             instruction={activeQuestion.instruction} promptClassName="practice-review-prompt"
             prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} />}
@@ -287,7 +288,7 @@ export function PracticePanel({
   questionTypeLabel: string;
   practiceReference?: string;
   settings: DisplaySettings;
-  onAnswer: (question: Question, selected: string) => void;
+  onAnswer: (question: Question, selected: string, assemblyOrder?:string[]) => void;
   onPrev: () => void;
   onNext: () => void;
   onJump: (index: number) => void;
@@ -406,9 +407,10 @@ export function PracticePanel({
     }
   }
 
-  const chooseAnswer = useCallback((question: Question, choice: string) => {
+  const resolveTypedAudio = useMaterialAudioResolver(token);
+  const chooseAnswer = useCallback((question: Question, choice: string, order?:string[]) => {
     if (feedbackMode === 'immediate' && answers[question.id]) return;
-    onAnswer(question, choice);
+    onAnswer(question, choice, order);
     setPendingAdvance(feedbackMode === 'batch' && settings.practiceNavigation !== 'manual' ? { questionId: question.id, choice, index: activeIndex } : null);
     if (feedbackMode === 'immediate' && choice === question.answer) {
       setCelebratedQuestion(question.id);
@@ -551,7 +553,7 @@ export function PracticePanel({
       </aside>
       <div className="practice-content-column">
       <div className="practice-question-section">
-        {activeQuestion ? <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+        {activeQuestion ? <QuestionRenderer presentation={activeQuestion.presentation} resolveAudio={resolveTypedAudio} questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
           materials={activeQuestion.passage?<p className="whitespace-pre-wrap">{activeQuestion.passage}</p>:undefined} taskConditions={activeQuestion.taskConditions}
           instruction={activeQuestion.instruction}
           prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} />}
@@ -559,7 +561,7 @@ export function PracticePanel({
           answerIndex={activeQuestion.choices.indexOf(activeQuestion.answer)}
           reveal={Boolean(answers[activeQuestion.id]) && (feedbackMode==='immediate'||(feedbackMode==='batch'&&complete&&analysisStatus==='completed'))}
           disabled={feedbackMode==='immediate'&&Boolean(answers[activeQuestion.id])}
-          onSelect={index=>chooseAnswer(activeQuestion,activeQuestion.choices[index])} optionClassName="cute-choice" /> :
+          onSelect={(index,order)=>chooseAnswer(activeQuestion,activeQuestion.choices[index],order)} optionClassName="cute-choice" /> :
           <p className="mt-3 text-lg leading-8">{loading?null:labels.noQuestionBody}</p>}
         {activeQuestion ? <div className="practice-question-reference">
           {!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={settings.locale} /> : null}

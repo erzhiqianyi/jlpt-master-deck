@@ -230,7 +230,7 @@ struct NativeTypedQuestionRenderer: View {
     }
     private var materialContent: some View {
         ForEach(Array((payload.materialRefs ?? []).enumerated()), id: \.offset) { number, ref in
-            if let material = presentation.material(ref), ["article","table","image"].contains(material.type) {
+            if let material = presentation.material(ref), ["article","table","image"].contains(material.type), !(material.type == "image" && payload.legacy.optionMaterials?.contains(where: { $0.materialRef.id == ref.id && $0.materialRef.revision == ref.revision }) == true) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text((payload.questionTypeId == "reading-integrated" ? (number == 0 ? "A · " : "B · ") : "") + (material.title ?? "素材 \(number + 1)")).font(.headline)
                     if material.type == "image" { materialImage(material) }
@@ -248,9 +248,9 @@ struct NativeTypedQuestionRenderer: View {
     private func table(headers: [String], rows: [[String]]) -> some View {
         ScrollView(.horizontal) {
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 12) {
-                GridRow { ForEach(Array(headers.enumerated()), id: \.offset) { _, cell in Text(cell).bold().frame(minWidth: 90, alignment: .leading) } }
+                GridRow { ForEach(Array(headers.enumerated()), id: \.offset) { _, cell in Text(cell).bold().frame(width: 120, alignment: .leading) } }
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                    GridRow { ForEach(Array(row.enumerated()), id: \.offset) { _, cell in JapaneseText(text: cell, japanese: true).frame(minWidth: 90, alignment: .leading) } }
+                    GridRow { ForEach(Array(row.enumerated()), id: \.offset) { _, cell in JapaneseText(text: cell, japanese: true).frame(width: 120, alignment: .leading) } }
                 }
             }.padding(8)
         }.accessibilityIdentifier("typed.material.table")

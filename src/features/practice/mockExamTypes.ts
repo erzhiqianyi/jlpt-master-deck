@@ -1,5 +1,6 @@
 import type { JapaneseAnnotation } from '../../types';
 export type ExamQuestion = {
+  presentation?:import('../../domain/typedPresentation').TypedPresentation;
   canonicalQuestionId?: string;
   questionRevision?: number;
   questionTypeId?: string;

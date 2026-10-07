@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { adaptQuestionSource, saveQuestionSource } from './question-bank.mjs';
+import { adaptQuestionSource, saveQuestionSource, readQuestionVersion } from './question-bank.mjs';
 import { validateQuestionPayload,validatePresentationMaterials,questionRegistrySchemaVersion } from '../src/domain/questionPayload.mjs';
 const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,stable(value[key])])) : value;
@@ -53,7 +53,7 @@ export function persistLibraryQuestion(db,owner,source,question,{materialRefs=[]
  const validation=validateQuestionPayload({...question,materialRefs},{strict:question.validationMode==='strict',materialPayloads:materialRefs.map(ref=>readMaterialVersion(db,owner,ref))});
  if(question.validationMode==='strict'&&!validation.valid) throw Object.assign(new Error('Question payload failed type-specific validation'),{code:'question_validation_failed',issues:validation.errors});
  const content={...question};
- for (const key of ['canonicalQuestionId','questionRevision','materialRefs','materialGroupId','reference','audioReference','createdAt','libraryNumber']) delete content[key];
+ for (const key of ['presentation','canonicalQuestionId','questionRevision','materialRefs','materialGroupId','reference','audioReference','createdAt','libraryNumber']) delete content[key];
  let adapted;
  if (unscored) {
   const id='bank-'+fingerprint([owner,source.kind,source.id,source.questionId]).slice(0,32);
@@ -75,9 +75,13 @@ export function questionBankMetadata(db,owner,source) {
  const row=db.prepare(`SELECT a.question_id,a.revision,v.payload_json FROM bank_question_aliases a JOIN bank_question_versions v ON v.owner=a.owner AND v.question_id=a.question_id AND v.revision=a.revision WHERE a.owner=? AND a.source_kind=? AND a.source_id=? AND a.source_question_id=?`).get(owner,source.kind,source.id,source.questionId);
  if (!row) return {};
  const payload=JSON.parse(row.payload_json);
- return {canonicalQuestionId:row.question_id,questionRevision:row.revision,...(payload.questionTypeId?{questionTypeId:payload.questionTypeId}:{}),materialRefs:payload.materialRefs??[],materialGroupId:payload.materialGroupId??null,
+ return {presentation:bankPresentation(db,owner,{id:row.question_id,revision:row.revision}),canonicalQuestionId:row.question_id,questionRevision:row.revision,...(payload.questionTypeId?{questionTypeId:payload.questionTypeId}:{}),materialRefs:payload.materialRefs??[],materialGroupId:payload.materialGroupId??null,
   ...Object.fromEntries(['optionMaterials','presentationPolicy','taskConditions','blankId','targetSpan','assembly'].filter(key=>payload.legacy[key]!==undefined).map(key=>[key,payload.legacy[key]])),
   ...(source.kind==='reading'?{questionTypeId:payload.questionTypeId??'reading-basic-training',level:payload.legacy.level??null,materialRef:payload.materialRefs?.length===1?payload.materialRefs[0]:null}: {})};
+}
+export function bankPresentation(db,owner,ref) {
+ const payload=readQuestionVersion(db,owner,ref);if(!payload)return undefined;
+ return {payload,materials:(payload.materialRefs??[]).map(materialRef=>({ ...materialRef,schemaVersion:1,payload:readMaterialVersion(db,owner,materialRef) }))};
 }
 export function bankAudioHasHistory(db,owner,assetId) {
  return !!db.prepare('SELECT revision FROM bank_material_versions WHERE owner=? AND audio_asset_id=? LIMIT 1').get(owner,assetId);
@@ -112,6 +116,7 @@ export function attachPracticeReferences(db,owner,practice,{status='ready',sourc
   // persistLibraryQuestion already linked the primary source. Keep the legacy instance alias too.
   db.prepare(`INSERT INTO bank_question_aliases VALUES(?,?,?,?,?,?) ON CONFLICT(owner,source_kind,source_id,source_question_id) DO UPDATE SET revision=excluded.revision`).run(owner,'practice',practiceId,q.id,ref.id,ref.revision);
   q.materialRefs=materialRefs.length?materialRefs:q.materialRefs??[];
+  q.presentation=bankPresentation(db,owner,ref);
  }
  return practice;
 }

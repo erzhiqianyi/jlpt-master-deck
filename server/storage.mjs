@@ -1,5 +1,6 @@
 import {preserveAttemptManifest,manifestForQuestions} from './attempt-manifest.mjs';
 import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
+import { presentationView } from './presentation-view.mjs';
 import { ensureQuestionBankSchema, archiveDraftQuestions } from './question-bank.mjs';
 import {ensureLearningEventSchema,recordLearningEvent,validateFrozenAnswer,recordAnswerSnapshot} from './learning-events.mjs';
 import { resolveLegacyAnswer, questionStrategy } from '../src/domain/questionContract.mjs';
@@ -2857,7 +2858,8 @@ export function getPracticeSession(userId, practiceId) {
   const unknown=state.attemptHistory.find(entry=>entry.practiceId===practiceId && entry.answers?.length && entry.questionManifest?.some(q=>q.status==='missingOriginal'));
   if(unknown && !state.attemptHistory.some(entry=>entry.practiceId===practiceId && entry.questionManifest?.every(q=>q.status==='frozen')))return {id:current.id,title:current.title,questions:[],missingOriginal:true,legacyHistory:unknown,progress:{total:0,answered:0,correct:0,wrong:0},completed:false};
   const practice = frozenAttemptPractice(current,state.attemptHistory);
-  const questions = practice.questions.map((question) => sessionQuestionView(question, state.answers[question.id]));
+  const frozenAttempt=state.attemptHistory.find(attempt=>attempt.practiceId===practiceId&&attempt.questionManifest?.every(entry=>entry.status==='frozen'));
+  const questions = practice.questions.map((question) => sessionQuestionView(question, state.answers[question.id] ? {...state.answers[question.id],assemblyOrder:frozenAttempt?.answers?.find(answer=>answer.questionId===question.id)?.assemblyOrder} : undefined));
   const answered = questions.filter((question) => question.answered);
   const correct = answered.filter((question) => question.correct).length;
   return {
@@ -2874,6 +2876,7 @@ export function getPracticeSession(userId, practiceId) {
 
 function sessionQuestionView(question, answer) {
   const base = {
+    presentation:presentationView(question.presentation,{revealed:Boolean(answer)}),
     questionTypeId:question.questionTypeId,passage:question.passage,taskConditions:question.taskConditions,
     canonicalQuestionId: question.canonicalQuestionId,
     questionRevision: question.questionRevision,
@@ -2889,10 +2892,10 @@ function sessionQuestionView(question, answer) {
     answered: Boolean(answer),
   };
   if (!answer) return base;
-  return { ...base, selected: answer.selected, correct: Boolean(answer.correct), answer: question.answer, correctReason: question.correctReason, memoryPoint: question.memoryPoint, choiceAnalysis: question.choiceAnalysis };
+  return { ...base, ...(answer.assemblyOrder?{assemblyOrder:answer.assemblyOrder}:{}), selected: answer.selected, correct: Boolean(answer.correct), answer: question.answer, correctReason: question.correctReason, memoryPoint: question.memoryPoint, choiceAnalysis: question.choiceAnalysis };
 }
 
-export function submitPracticeAnswer(userId, { practiceId, questionId, selected }) {
+export function submitPracticeAnswer(userId, { practiceId, questionId, selected, assemblyOrder }) {
   const current = getDailyPractice(userId, practiceId);
   if (!current) throw new Error('Practice not found');
   const state = getStudyState(userId);
@@ -2901,6 +2904,10 @@ export function submitPracticeAnswer(userId, { practiceId, questionId, selected 
   const question = practice.questions.find((entry) => entry.id === questionId);
   if (!question) throw new Error('Question not found in this practice');
   const choice = String(selected ?? '').trim();
+  if(question.presentation?.payload.legacy.assembly) {
+    const {starSlot}=question.presentation.payload.legacy.assembly,options=question.presentation.payload.options??[];
+    if(!Array.isArray(assemblyOrder)||assemblyOrder.length!==options.length||new Set(assemblyOrder).size!==options.length||assemblyOrder.some(id=>!options.some(option=>option.id===id))||options.find(option=>option.id===assemblyOrder[starSlot])?.text!==choice)throw new Error('Complete assembly order must match selected star fragment');
+  }
   if (!question.choices.includes(choice)) throw new Error(`selected must be one of: ${question.choices.join(' | ')}`);
   const existing = state.answers[questionId];
   const now = new Date();
@@ -2911,7 +2918,7 @@ export function submitPracticeAnswer(userId, { practiceId, questionId, selected 
     const startedAt = attempt.answers.at(-1)?.answeredAt ?? attempt.startedAt;
     attempt.answers = [
       ...attempt.answers.filter((entry) => entry.questionId !== questionId),
-      { questionId, itemId: question.itemId, kind: question.kind, selected: choice, correct, startedAt, answeredAt: now.toISOString(), elapsedMs: Math.max(0, now.getTime() - new Date(startedAt).getTime()) },
+      { questionId, itemId: question.itemId, kind: question.kind, selected: choice, correct, ...(assemblyOrder?{assemblyOrder}:{}), startedAt, answeredAt: now.toISOString(), elapsedMs: Math.max(0, now.getTime() - new Date(startedAt).getTime()) },
     ];
     if (attempt.answers.length >= practice.questions.length) {
       const correctCount = attempt.answers.filter((entry) => entry.correct).length;

@@ -1,5 +1,6 @@
 import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
 import { QuestionRenderer } from '../../components/QuestionRenderer';
+import {useMaterialAudioResolver} from '../../hooks/useMaterialAudioResolver';
 import { JapaneseText } from '../../components/JapaneseText';
 import './practice-layout.css';
 import { conciseEvidence } from './practicePresentation';
@@ -19,7 +20,7 @@ const copy = {
   en: { retry: 'Retry', more: 'Detailed explanation and references', back: 'Back to mock exams', parts: 'Sessions', loading: 'Loading exam…', unavailable: 'This exam could not be loaded.', missing: 'Session not found.', questions: 'questions', done: 'Submitted', ongoing: 'In progress', ready: 'Not started', start: 'Start', submit: 'Submit', confirm: 'Confirm submission', cancel: 'Continue', confirmText: 'Answers and explanations appear after submission. Unanswered questions stay unanswered.', previous: 'Previous', next: 'Next', result: 'Results', correct: 'Correct', answered: 'Answered', excluded: 'questions excluded from scoring', noQuestions: 'No scorable questions yet.', explanation: 'Explanation', answer: 'Correct answer', source: 'View source', minutes: 'minutes', untimed: 'Untimed', saved: 'Progress is saved in this browser.', storageError: 'Progress cannot be saved. Keep this page open.', remaining: 'Remaining', restart: 'Try again', restartConfirm: 'Clear this attempt and start again?', imported: 'Previous news material grouped by date. Original questions and sources retained; no new human review performed.', draft: 'Content is supplied by the author.', audioLoading: 'Loading audio…', audioError: 'Audio is unavailable.', noScore: 'Materials or answers are not ready; this question is excluded from scoring.' },
 };
 
-type Attempt = { revision: string; answers: Record<string, number>; submitted: boolean; startedAt?: string };
+type Attempt = { revision: string; answers: Record<string, number>; assemblyOrders?:Record<string,string[]>; submitted: boolean; startedAt?: string };
 function readLocalAttempt(key: string, questions: ExamSession['questions']): Attempt {
   // Accessing localStorage itself may throw when browser storage is unavailable.
   try { return readExamAttempt(localStorage, key, questions) as Attempt; }
@@ -67,6 +68,7 @@ export function DesignedExamPanel({ selection, userId, token, locale, onOpen }: 
 }
 
 function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { session: ExamSession; storageKey: string; locale: Locale; token: string; onBack: () => void }) {
+  const resolveTypedAudio=useMaterialAudioResolver(token);
   const t = copy[locale];
   const [attempt, setAttempt] = useState<Attempt>(() => readLocalAttempt(storageKey, session.questions));
   const [index, setIndex] = useState(0);
@@ -102,7 +104,7 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
       <article className="px-4 py-5 md:px-7">
         {question.type ? <p className="text-sm">{question.type}</p> : null}
         {!scorable ? <p role="status">{t.noScore}</p> : null}
-        <QuestionRenderer questionId={question.id} questionTypeId={question.questionTypeId??question.type}
+        <QuestionRenderer presentation={question.presentation} initialOrder={attempt.assemblyOrders?.[question.id]} resolveAudio={resolveTypedAudio} questionId={question.id} questionTypeId={question.questionTypeId??question.type}
           materials={<>
             {question.audioUrl ? question.audioUrl.startsWith('/api/') ? <ExamAudio src={question.audioUrl} token={token} loading={t.audioLoading} unavailable={t.audioError}/> : <QuestionAudioPlayer src={question.audioUrl}/> : null}
             {question.passage ? <div className="whitespace-pre-wrap border-l-4 border-[#a34f3f] bg-[#fffaf7] px-5 py-4 leading-8"><JapaneseText text={question.passage} annotations={question.japaneseAnnotations} ruby={attempt.submitted} /></div> : null}
@@ -110,7 +112,7 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
           prompt={<JapaneseText text={question.prompt} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}
           choices={question.choices} selected={attempt.answers[question.id]} answerIndex={question.answerIndex}
           reveal={attempt.submitted && scorable} disabled={attempt.submitted || !scorable}
-          onSelect={i => setAttempt(current => ({ ...current, answers: { ...current.answers, [question.id]: i } }))}
+          onSelect={(i,order) => setAttempt(current => ({ ...current, answers: { ...current.answers, [question.id]: i },...(order?{assemblyOrders:{...current.assemblyOrders,[question.id]:order}}:{}) }))}
           renderText={choice => <JapaneseText text={choice} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />} />
         {attempt.submitted && scorable ? <div className="practice-designed-answer mt-5 space-y-3 border-t pt-4"><strong>{t.answer}: {question.answerIndex + 1}. {<JapaneseText text={question.choices[question.answerIndex]} annotations={question.japaneseAnnotations} ruby />}</strong><h3>{t.explanation}</h3><p className="whitespace-pre-wrap">{<JapaneseText text={conciseEvidence(question.explanation).summary} annotations={question.japaneseAnnotations} ruby />}</p>
           <details key={question.id}><summary>{t.more}</summary><p className="whitespace-pre-wrap">{<JapaneseText text={question.explanation} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</p>

@@ -29,7 +29,11 @@ export function readExamAttempt(storage, key, questions) {
       const value = saved.answers[question.id];
       return Number.isInteger(value) && value >= 0 && value < question.choices.length ? [[question.id, value]] : [];
     }));
-    return { revision, answers, submitted: saved.submitted === true, startedAt: typeof saved.startedAt === 'string' && Number.isFinite(Date.parse(saved.startedAt)) ? saved.startedAt : undefined };
+    const assemblyOrders=Object.fromEntries(questions.flatMap(question=>{
+      const order=saved.assemblyOrders?.[question.id],options=question.presentation?.payload.options??[];
+      return Array.isArray(order)&&order.length===options.length&&new Set(order).size===options.length&&order.every(id=>options.some(option=>option.id===id)) ? [[question.id,order]] : [];
+    }));
+    return { revision, answers, ...(Object.keys(assemblyOrders).length?{assemblyOrders}:{}), submitted: saved.submitted === true, startedAt: typeof saved.startedAt === 'string' && Number.isFinite(Date.parse(saved.startedAt)) ? saved.startedAt : undefined };
   } catch { return empty; }
 }
 

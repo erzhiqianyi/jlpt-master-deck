@@ -1,0 +1,474 @@
+[
+  {
+    "file": "ipad-wide-grammar-composition-long-explanation-68A4558E.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350027.542,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "1be712eb4ab0d35c966085ba4497d48d87a1aaa877da5b05af3b6b8776e1ea0d",
+    "rawExport": "68A4558E-955E-4DCA-B447-823F5806BF7C.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-correct-0F3443D7.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350026.81,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "4ef43a3d1c06561f82215424b95431f0ff4e2f8794cf677a20de034fb07c8c04",
+    "rawExport": "0F3443D7-FDE6-4A49-9B6A-562F0B210CD0.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-complete-order-47905CBC.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350022.667,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "724834922f1ed97804c1bd02f49f83b6909609b7028a7635ef8441044defe41b",
+    "rawExport": "47905CBC-0D95-42C6-A52C-03662A443901.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-unanswered-B5EC4C5E.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350019.517,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "df26278ea1ee7fb920ed5c1509d30caba1b80dbd96e640519d5fcb050e7f57bf",
+    "rawExport": "B5EC4C5E-A741-4B31-A2E8-9B12E5D22F67.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-long-explanation-9A1FB652.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350013.325,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "0828e4524f1527a997d30184b59650656dbb99b0e32f254da7bba2e8c89e7f4e",
+    "rawExport": "9A1FB652-1D99-4776-BF02-D1D0B2B25D33.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-incorrect-904BAD83.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350012.777,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "017811ff1ebefe6a997444015ad1cefebe0464d25611e14ad6418a676087b68b",
+    "rawExport": "904BAD83-3A95-495D-A214-C5F72E43837B.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-complete-order-D1E674B3.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350008.871,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "081e29514d305cb114045244c33c2dbbb60c379d73e0a75cb84f81692abacef3",
+    "rawExport": "D1E674B3-E5FA-4EC9-B1D7-1453902E495C.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-grammar-composition-unanswered-836213C2.png",
+    "fixtureId": "grammar-composition",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-grammar-composition",
+    "questionRevision": 1,
+    "materialRefs": [],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedAssemblyAnswersAndFullOrder()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350005.276,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "d9da0b2349de6048c161d6c1709ab6472fe6921dcba018d66f89eab1c5057034",
+    "rawExport": "836213C2-A5EE-47A7-9069-E300A02AEDEF.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-long-explanation-8AD4AB3D.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350119.742,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "5de096144ea6207be96ce2c211078a970d3e2acc1447a2012aa80644bac445a9",
+    "rawExport": "8AD4AB3D-72B2-45BC-BC0F-51F8C24CFA67.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-correct-DED377B7.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350119.471,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "5de096144ea6207be96ce2c211078a970d3e2acc1447a2012aa80644bac445a9",
+    "rawExport": "DED377B7-D306-4856-BCB3-D9EC46C8A918.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-task-options-66539C02.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350116.285,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "8b7868d7e81d0ff3f8ceb193adda4b7c985a5109cf1b04d7237bd2dac8887d6a",
+    "rawExport": "66539C02-C111-4CC9-8341-8A8B8A974076.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-materials-unanswered-D7C8A21B.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350116.04,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "8b7868d7e81d0ff3f8ceb193adda4b7c985a5109cf1b04d7237bd2dac8887d6a",
+    "rawExport": "D7C8A21B-307D-47C0-AA56-B852E0296B0A.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-long-explanation-350C757E.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350110.409,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "d9261737091e30564740e8c5a8e52e1ff9554cf9fdac69268f614da9de3e2f86",
+    "rawExport": "350C757E-F338-48CE-9AE8-0A2B6360B6F4.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-incorrect-B0CC07CA.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350110.14,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "d9261737091e30564740e8c5a8e52e1ff9554cf9fdac69268f614da9de3e2f86",
+    "rawExport": "B0CC07CA-7EC7-4699-B51A-94024D308DB1.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-task-options-34005C02.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350106.951,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "8b7868d7e81d0ff3f8ceb193adda4b7c985a5109cf1b04d7237bd2dac8887d6a",
+    "rawExport": "34005C02-13A6-4F96-AF08-8FD647C1F389.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-reading-integrated-materials-unanswered-7206B09C.png",
+    "fixtureId": "reading-integrated",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-reading-integrated",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-article-A",
+        "revision": 1
+      },
+      {
+        "id": "visual-article-B",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedIntegratedReadingActualAB()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350106.713,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "8b7868d7e81d0ff3f8ceb193adda4b7c985a5109cf1b04d7237bd2dac8887d6a",
+    "rawExport": "7206B09C-2725-4788-BB80-58707E2D0962.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-listening-outline-correct-results-107768AF.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350141.167,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "7fc5a2049c22550ae27f3fbb9fae14d88eeb9a09de0db10ef3eb5c0e0643adb6",
+    "rawExport": "107768AF-A9BE-4EE0-9212-C6D8F5900A5A.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-listening-outline-audio-complete-revealed-94418FE8.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350138.935,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "cff11606ead765070f1043e345e702009e35edd658325dc0955f7d4002e2d3f0",
+    "rawExport": "94418FE8-01A5-47E0-A2BE-3784C596431B.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-listening-outline-paused-hidden-03418E73.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350128.149,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "fa4fbd8f610a73d2f771f27fa30e2a2912069c534ce9ab78e6c53230c9603ae4",
+    "rawExport": "03418E73-E047-44C6-9E51-39EA41D0A4D8.png",
+    "visuallyInspected": true
+  },
+  {
+    "file": "ipad-wide-listening-outline-before-audio-DFBFC938.png",
+    "fixtureId": "listening-outline",
+    "fixtureSHA256": "e95aacb58c9d1df224c11a2e847e5b240ce65ad08e81f2a2bb6940ee35da2d9a",
+    "canonicalQuestionId": "visual-bank-listening-outline",
+    "questionRevision": 1,
+    "materialRefs": [
+      {
+        "id": "visual-listening-outline",
+        "revision": 1
+      }
+    ],
+    "sourceResult": "native-typed-ipad-restored.xcresult",
+    "rendererBaselineCommit": "4b66d1b",
+    "test": "NativeQuestionVisualTests/testTypedOutlineDoesNotLeakBeforeAudioEnds()",
+    "device": "JLPT Typed Visual iPad 20261007",
+    "deviceId": "02F114E0-712C-4380-8EE7-CD646227D93B",
+    "timestamp": 1791350126.086,
+    "width": 2064,
+    "height": 2752,
+    "sha256": "9a42277abf3e2aa6be70edb9573d390133a8b2ab1c5b1ad9c9dfede83137e723",
+    "rawExport": "DFBFC938-CA35-41E2-AB08-8F82F5D3F9C5.png",
+    "visuallyInspected": true
+  }
+]

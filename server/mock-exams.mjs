@@ -9,6 +9,7 @@ const versionRef=z.object({id:z.string().min(1),revision:z.number().int().positi
 const text = z.string().trim().min(1);
 const url = z.string().refine(value => /^https?:\/\//.test(value) || /^\/api\//.test(value), 'Use an HTTP(S) URL or an /api/ asset path');
 export const examQuestionSchema = z.object({
+  presentation:z.unknown().optional(), // Derived response field is regenerated from owned canonical content below.
   canonicalQuestionId:z.string().optional(),questionRevision:z.number().int().positive().optional(),materialRefs:z.array(versionRef).optional(),questionTypeId:z.string().optional(),
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: text, prompt: text, passage: z.string().optional(), choices: z.array(text).min(2).max(10),

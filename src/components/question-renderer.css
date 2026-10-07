@@ -29,3 +29,12 @@
 .question-audio-player button { min-width: 44px; min-height: 44px; padding: .5rem .9rem; border: 1px solid #a34f3f; background: #a34f3f; color: white; border-radius: .375rem; }
 .question-audio-player input[type="range"] { flex: 1; min-width: 5rem; accent-color: #a34f3f; }
 .question-audio-player p { width: 100%; color: #a34f3f; }
+.typed-article { min-width:0; white-space:pre-wrap; line-height:1.9; }
+.typed-article + .typed-article { margin-top:1.5rem; }
+.typed-table-scroll { max-width:100%; overflow-x:auto; }
+.typed-table-scroll table { border-collapse:collapse; min-width:28rem; }
+.typed-table-scroll th,.typed-table-scroll td { border:1px solid #cad9cf; padding:.6rem; text-align:left; }
+.typed-option-image { display:block; width:100%; max-width:16rem; max-height:10rem; object-fit:contain; margin-bottom:.5rem; }
+.typed-assembly { display:grid; gap:.75rem; }
+.typed-assembly button { min-height:44px; border:1px solid #cad9cf; border-radius:.5rem; padding:.5rem; }
+.typed-assembly li { padding:.5rem; }

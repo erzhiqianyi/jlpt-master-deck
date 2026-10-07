@@ -543,6 +543,59 @@ final class NativeQuestionVisualTests: XCTestCase {
     }
     func testVocabularySixActualFixtures() { for kind in ["vocabulary-kanji-reading","vocabulary-orthography","vocabulary-word-formation","vocabulary-context","vocabulary-paraphrase","vocabulary-usage"] { quiz(kind) } }
     func testGrammarFormActualFixture() { quiz("grammar-form") }
+    func testTypedAssemblyAnswersAndFullOrder() {
+        for correct in [false,true] {
+            start("grammar-composition")
+            let confirm=app.buttons["typed.assembly.confirm"]
+            XCTAssertTrue(confirm.waitForExistence(timeout:10));XCTAssertFalse(confirm.isEnabled)
+            XCTAssertFalse(app.staticTexts["解题依据"].exists);capture("grammar-composition","unanswered")
+            for i in correct ? [0,1,2,3] : [0,2,1,3] { let fragment=app.buttons["typed.fragment.option-\(i)"];reveal(fragment);fragment.tap() }
+            reveal(confirm);XCTAssertTrue(confirm.isEnabled);capture("grammar-composition","complete-order");confirm.tap()
+            let outcome=app.staticTexts[correct ? "回答正确" : "回答错误"].firstMatch
+            XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome);capture("grammar-composition",correct ? "correct" : "incorrect")
+            let explanation=app.staticTexts["typed.explanation"].firstMatch;reveal(explanation);capture("grammar-composition","long-explanation")
+            XCTAssertFalse(app.staticTexts["当前源文本（不应显示）"].exists)
+        }
+    }
+    func testTypedArticleTwoBlanksShareOneMaterial() {
+        start("grammar-text")
+        let first=app.buttons["quiz.choice.0"].firstMatch;XCTAssertTrue(first.waitForExistence(timeout:10))
+        capture("grammar-text","blank1-unanswered");reveal(first);first.tap()
+        let outcome=app.staticTexts["回答正确"].firstMatch;XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome);capture("grammar-text","blank1-correct")
+        let next=app.buttons["下一题"].firstMatch;reveal(next);next.tap()
+        let second=app.buttons["quiz.choice.0"].firstMatch;XCTAssertTrue(second.waitForExistence(timeout:5));XCTAssertFalse(app.staticTexts["回答正确"].exists)
+        capture("grammar-text","blank2-unanswered");reveal(second);second.tap()
+        XCTAssertTrue(app.staticTexts["回答正确"].firstMatch.waitForExistence(timeout:5));capture("grammar-text","blank2-correct")
+        reveal(app.staticTexts["typed.explanation"].firstMatch);capture("grammar-text","blank2-long-explanation")
+    }
+    func testTypedIntegratedReadingActualAB() { typedReading("reading-integrated") }
+    func testTypedInformationReadingActualTable() { typedReading("reading-information") }
+    private func typedReading(_ kind:String) {
+        for choice in [1,0] {
+            start(kind);let option=app.buttons["reading.choice.\(choice)"].firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout:10));XCTAssertFalse(app.buttons["reading.confirm"].isEnabled);XCTAssertFalse(app.staticTexts["解题依据"].exists)
+            capture(kind,"materials-unanswered");reveal(option);capture(kind,"task-options");option.tap();app.buttons["reading.confirm"].tap()
+            let outcome=app.staticTexts[choice==0 ? "回答正确" : "再看一下原文"].firstMatch;XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome)
+            capture(kind,choice==0 ? "correct" : "incorrect");reveal(app.staticTexts["typed.explanation"].firstMatch);capture(kind,"long-explanation")
+        }
+    }
+    func testTypedExpressionImagesAndAudio() {
+        for choice in [1,0] {
+            start("listening-expression");XCTAssertTrue(app.buttons["播放音频"].waitForExistence(timeout:10));capture("listening-expression","unanswered")
+            let option=app.buttons["listening.choice.0.\(choice)"];reveal(option);capture("listening-expression","image-options");option.tap()
+            app.buttons["播放音频"].tap();XCTAssertTrue(app.buttons["暂停音频"].waitForExistence(timeout:5));capture("listening-expression","audio-playing");app.buttons["暂停音频"].tap()
+            let submit=app.buttons["完成练习"];reveal(submit);submit.tap();XCTAssertTrue(app.staticTexts["练习完成"].waitForExistence(timeout:5));capture("listening-expression",choice==0 ? "correct-results" : "incorrect-results")
+            app.buttons["查看全部解析"].tap();capture("listening-expression","review");reveal(app.staticTexts["typed.explanation"].firstMatch);capture("listening-expression","long-explanation")
+        }
+    }
+    func testTypedOutlineDoesNotLeakBeforeAudioEnds() {
+        start("listening-outline");XCTAssertTrue(app.buttons["播放音频"].waitForExistence(timeout:10))
+        XCTAssertFalse(app.buttons["listening.choice.0.0"].exists);XCTAssertFalse(app.staticTexts["話の主な内容は何ですか。"].exists);capture("listening-outline","before-audio")
+        app.buttons["播放音频"].tap();XCTAssertTrue(app.buttons["暂停音频"].waitForExistence(timeout:5));app.buttons["暂停音频"].tap()
+        XCTAssertFalse(app.buttons["listening.choice.0.0"].exists);capture("listening-outline","paused-hidden")
+        app.buttons["播放音频"].tap();let option=app.buttons["listening.choice.0.0"];XCTAssertTrue(option.waitForExistence(timeout:50));capture("listening-outline","audio-complete-revealed")
+        reveal(option);option.tap();let submit=app.buttons["完成练习"];reveal(submit);submit.tap();XCTAssertTrue(app.staticTexts["练习完成"].waitForExistence(timeout:5));capture("listening-outline","correct-results")
+    }
     func testReadingFiveActualFixtures() {
         for kind in ["reading-short","reading-mid","reading-long","reading-thematic","reading-basic-training"] {
             for choice in [1,0] {

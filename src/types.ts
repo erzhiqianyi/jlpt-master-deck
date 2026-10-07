@@ -9,7 +9,7 @@ export type Locale = 'zh-CN' | 'ja' | 'en';
 export type AppView = 'study' | 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'profile' | 'settings';
 export type StudyPage = 'tips' | 'questions' | 'words' | 'wordbooks' | 'bank' | 'review' | 'samples' | 'mock';
 export type AppRoute = { view: AppView; page: StudyPage; itemId?: string };
-export type AnswerRecord = { selected: string; correct: boolean; submissionState?:'draft'|'submitted';eventId?:string;itemId?:string;kind?:string;canonicalQuestionId?:string;questionRevision?:number;startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
+export type AnswerRecord = { assemblyOrder?:string[]; selected: string; correct: boolean; submissionState?:'draft'|'submitted';eventId?:string;itemId?:string;kind?:string;canonicalQuestionId?:string;questionRevision?:number;startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
 export type AnswerState = Record<string, AnswerRecord>;
 export type ReviewStatus = 'new' | 'learning' | 'review' | 'mastered';
 
@@ -186,6 +186,7 @@ export type LearningCapture = {
 };
 
 export type ListeningQuestion = {
+  presentation?:import('./domain/typedPresentation').TypedPresentation;
   canonicalQuestionId?: string;
   questionRevision?: number;
   materialRefs?: { id: string; revision: number }[];
@@ -238,6 +239,7 @@ export type ListeningRecording = {
 };
 
 export type ReadingQuestion = {
+  presentation?:import('./domain/typedPresentation').TypedPresentation;
   canonicalQuestionId?: string;
   questionRevision?: number;
   questionTypeId?: string;
@@ -573,6 +575,7 @@ export type ReviewData = {
 };
 
 export type Question = {
+  presentation?:import('./domain/typedPresentation').TypedPresentation;
   passage?:string;
   taskConditions?:string[];
   canonicalQuestionId?: string;

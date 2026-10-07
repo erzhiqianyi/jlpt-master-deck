@@ -5,11 +5,11 @@
 |规则|状态与真实入口|
 |---|---|
 |知识点独立保存，不要求六类题齐全|implemented：upsert_review_item。未提供practice_questions保留；[]清空；显式题严格校验。纯片假名/专名仅出适用题，不改变生成偏好为保存要求。|
-|按题型创建题、关联知识/材料|partial：现有阅读、听力、知识种子、日练与模拟卷适配到canonical题版本。23型注册已存在；尚无通用create_question工具和完整多对多关系编辑。|
+|按题型创建题、关联知识/材料|implemented独立词汇/语法作者：save_question_draft/get_question_draft，九型严格payload、可零或多个可访问知识关联、owned材料refs；真实普通草稿→用户批准→发布。已有阅读、听力专用作者及种子/日练/mock继续接核心。不伪称存在通用create_question或完整关系编辑UI。|
 |已有音频无需重传|implemented：create_listening_question接受owner的audioReference与真实bytes二选一。AU保持旧ID，可挂多LS；材料版本引用AU，不复制上传。|
 |已有文章引用|implemented in stage 2：create/update_reading_question可传materialRef{id,revision}，必须owner匹配且全文一致；不按文本相似度自动合并。图片通用引用proposal。|
 |局部patch省略不删|implemented：reading/listening/practice各已有patch；数组按旧入口整体替换。upsert_review_item仍是旧条目整体输入兼容契约，不能伪称全字段partial patch。|
-|ID+expectedRevision并发控制|partial：模拟卷已有expectedRevision；普通阅读/听力/知识/练习patch尚无统一版本冲突控制，proposal。|
+|ID+expectedRevision并发控制|partial：模拟卷与独立词汇/语法作者、分享已有expectedRevision；普通阅读/听力/知识/练习patch尚无统一版本冲突控制，proposal。|
 |题目新版本与旧快照|implemented canonical不可变版本；源题更新保留旧练习快照。用户显式update_practice_question修改该练习显示版本，历史answers不改；旧未适配练习在首次patch前归档旧版本。|
 |稳定答案optionID、旧数字显式base|partial：canonical答案是冻结版本作用域option-ID；旧answerIndex保持0-based；发布draft拒绝未声明base的numeric answer。日练生成器旧兼容路径仍需统一，不能声称全入口一致。|
 |批量预校验与幂等|proposal：不添加未接工具空壳。目标requestId+每项sourceIdentity，返回每项accepted/rejected/unchanged及真实ID/revision/state。数据库内一个明确batch事务；音频外部上传与数据库不能承诺跨服务原子性。|
@@ -32,3 +32,5 @@
 server/vocab-seeds.test.mjs覆盖独立保存、显式题与省略/清空；server/question-bank.test.mjs覆盖答案base、版本与alias；server/reading-questions.test.mjs和listening-questions.test.mjs覆盖现有MCP/REST权限与patch；server/mock-exams.test.mjs覆盖expectedRevision；server/practice-explanation-update.test.mjs覆盖答案、相邻题、history不变；新bank-materials.test.mjs覆盖共享、版本冻结、owner引用与原子回滚。
 
 后续先补真实入口的材料/版本和迁移，随后接统一呈现、作答事件与统计，再分步加通用写工具、并发/幂等/结构化错误；每步提供集成测试，禁止一次暴露大量未接工具。全部改造仅本地，不操作生产MCP/学习数据/自动化。
+
+四项收尾的逐项缺口、完成标准、作者实测与浏览器工具阻塞见[清单](qa/four-items-closeout.md)。

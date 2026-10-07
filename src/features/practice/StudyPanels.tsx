@@ -214,6 +214,7 @@ export function PracticeReviewPanel({
           <div className="practice-result-filters" role="group" aria-label={copy.list}>{([['wrong', copy.wrong, model.wrong + model.unanswered], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} disabled={!count} onClick={() => startReview(value)}>{title} <span>{count}</span></button>)}</div>
           {attempt ? <p className="practice-historical-version" role="note">{copy.currentVersion}</p> : null}
           <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+            materials={activeQuestion.passage?<p className="whitespace-pre-wrap">{activeQuestion.passage}</p>:undefined} taskConditions={activeQuestion.taskConditions}
             instruction={activeQuestion.instruction} promptClassName="practice-review-prompt"
             prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} />}
             choices={activeQuestion.choices} selected={activeQuestion.choices.indexOf(activeAnswer?.selected??'')}
@@ -551,6 +552,7 @@ export function PracticePanel({
       <div className="practice-content-column">
       <div className="practice-question-section">
         {activeQuestion ? <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+          materials={activeQuestion.passage?<p className="whitespace-pre-wrap">{activeQuestion.passage}</p>:undefined} taskConditions={activeQuestion.taskConditions}
           instruction={activeQuestion.instruction}
           prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} />}
           choices={activeQuestion.choices} selected={activeQuestion.choices.indexOf(answers[activeQuestion.id]?.selected??'')}

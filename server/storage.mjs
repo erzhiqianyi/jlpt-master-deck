@@ -2826,6 +2826,7 @@ export function getPracticeSession(userId, practiceId) {
 
 function sessionQuestionView(question, answer) {
   const base = {
+    questionTypeId:question.questionTypeId,passage:question.passage,taskConditions:question.taskConditions,
     canonicalQuestionId: question.canonicalQuestionId,
     questionRevision: question.questionRevision,
     id: question.id,
@@ -2936,6 +2937,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     throw new Error('Only approved drafts can be published as daily practice');
   }
 
+  const authoredFingerprint=draft.content?.authoringMode==='bank-single-question'?createHash('sha256').update(JSON.stringify(draft.content)).digest('hex'):null;
   const existing = getDb()
     .prepare(`
       SELECT id, practice_json
@@ -2944,7 +2946,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       ORDER BY updated_at DESC
     `)
     .all(userId)
-    .find((row) => JSON.parse(row.practice_json).sourceDraftId === draft.id);
+    .find((row) => {const saved=JSON.parse(row.practice_json);return saved.sourceDraftId===draft.id&&(!authoredFingerprint||saved.sourceDraftContentFingerprint===authoredFingerprint);});
   if (existing) {
     return getDailyPractice(userId, existing.id);
   }
@@ -2992,20 +2994,21 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       sourceDraftId: draft.id,
       ...(sourceOrigin ? { source_origin: sourceOrigin } : {}),
       ...(sourceOrigin === 'textbook_original' ? { source_reference: sourceReference } : {}),
-      itemId: item?.id ?? String(question.id ?? `draft-q${index + 1}`),
+      itemId: item?.id ?? (question.validationMode==='strict'?(question.knowledgeIds?.[0]??`question-bank:${questionBankMetadata(getDb(),userId,{kind:'draft',id:draft.id,questionId:question.id}).canonicalQuestionId}`):String(question.id ?? `draft-q${index + 1}`)),
       kind: draftQuestionKind(question.kind ?? question.type),
       questionTypeId:questionStrategy(question.questionTypeId??question.kind??question.type)?.id,
       passage:question.passage??section.passage,
       audioUrl:question.audioUrl??section.audioUrl,
       materialRefs:question.materialRefs??section.materialRefs,
+      ...(question.validationMode==='strict'?{validationMode:'strict',reviewStatus:'approved',level:question.level,targetSpan:question.targetSpan,assembly:question.assembly,blankId:question.blankId,taskConditions:question.taskConditions,knowledgeIds:question.knowledgeIds}:{}),
       title: String(section.title ?? `問題${section.id ?? ''}`).trim(),
       instruction: String(section.instruction ?? '').trim(),
       prompt: String(question.prompt ?? '').trim(),
-      promptTarget: repairReadingTarget({ kind: draftQuestionKind(question.kind ?? question.type), prompt: String(question.prompt ?? ""), promptTarget: question.target, tested: question.tested }).promptTarget,
+      promptTarget: repairReadingTarget({ kind: draftQuestionKind(question.kind ?? question.type), prompt: String(question.prompt ?? ""), promptTarget: question.target??question.targetSpan?.text, tested: question.tested }).promptTarget,
       choices,
       answer,
       answerIndex,
-      context: String(question.prompt ?? '').trim(),
+      context: String(question.context??question.passage??question.prompt??'').trim(),
       translationZh: String(question.translation_zh ?? question.translationZh ?? '').trim() || undefined,
       correctReason: explanation || `正确答案是「${answer}」。`,
       memoryPoint: String(question.tested ?? question.target ?? answer),
@@ -3025,6 +3028,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
       : 30,
     strategy: 'approved_draft_full_set',
     sourceDraftId: draft.id,
+    ...(authoredFingerprint?{sourceDraftContentFingerprint:authoredFingerprint}:{}),
     description: String(content.description ?? '').trim().slice(0, 600),
     content_origin: knownOrigins.size === 1 ? [...knownOrigins][0] : 'mixed',
     sourceSummary,

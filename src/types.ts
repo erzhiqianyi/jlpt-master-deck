@@ -570,6 +570,8 @@ export type ReviewData = {
 };
 
 export type Question = {
+  passage?:string;
+  taskConditions?:string[];
   canonicalQuestionId?: string;
   questionRevision?: number;
   questionTypeId?: string;

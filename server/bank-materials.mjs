@@ -95,10 +95,12 @@ export function attachPracticeReferences(db,owner,practice,{status='ready',sourc
  if (!practiceId) throw new Error('Practice identity required');
  for (const [index,q] of (practice.questions??[]).entries()) {
   const source=q.sourceDraftId&&q.sourceQuestionId?{kind:'draft',id:q.sourceDraftId,questionId:q.sourceQuestionId}:{kind:'practice',id:practiceId,questionId:String(q.sourceQuestionId??q.id??index)};
-  const materialRefs=[];
-  if (q.passage) materialRefs.push(saveMaterial(db,owner,`source:${source.kind}:${source.id}:${source.questionId}:article`,{type:'article',blocks:[{id:'legacy-text',type:'paragraph',text:q.passage}],translation:q.translation}));
-  if (q.audioUrl) materialRefs.push(saveMaterial(db,owner,`source:${source.kind}:${source.id}:${source.questionId}:audio`,{type:'audio',externalUrl:q.audioUrl,offlinePlayable:false,transcript:q.transcript}));
-  const ref=persistLibraryQuestion(db,owner,source,q,{materialRefs:materialRefs.length?materialRefs:q.materialRefs??[],knowledgeIds:q.itemId?[q.itemId]:[],status});
+  const materialRefs=[...(q.materialRefs??[])];
+  const existingMaterials=materialRefs.map(ref=>readMaterialVersion(db,owner,ref));
+  if(existingMaterials.some(material=>!material))throw new Error('Owned material revision required');
+  if (q.passage&&!existingMaterials.some(material=>['article','table'].includes(material.type))) materialRefs.push(saveMaterial(db,owner,`source:${source.kind}:${source.id}:${source.questionId}:article`,{type:'article',blocks:[{id:'legacy-text',type:'paragraph',text:q.passage}],translation:q.translation}));
+  if (q.audioUrl&&!existingMaterials.some(material=>material.type==='audio')) materialRefs.push(saveMaterial(db,owner,`source:${source.kind}:${source.id}:${source.questionId}:audio`,{type:'audio',externalUrl:q.audioUrl,offlinePlayable:false,transcript:q.transcript}));
+  const ref=persistLibraryQuestion(db,owner,source,q,{materialRefs:materialRefs.length?materialRefs:q.materialRefs??[],knowledgeIds:q.knowledgeIds??(q.itemId?[q.itemId]:[]),status});
   q.canonicalQuestionId=ref.id;q.questionRevision=ref.revision;
   const row=db.prepare('SELECT question_id FROM bank_question_aliases WHERE owner=? AND source_kind=? AND source_id=? AND source_question_id=?').get(owner,'practice',practiceId,q.id);
   if (row && row.question_id!==ref.id) throw new Error('Practice source identity conflict');

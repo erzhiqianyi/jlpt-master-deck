@@ -1,4 +1,5 @@
 import { studySync, studySyncStatus } from './study-sync.mjs';
+import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
 import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest, readLocalNewsCycles, readLocalNewsCycle } from './local-study-data.mjs';
 import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
@@ -629,6 +630,9 @@ return async (req, res) => {
       return json(res, 201, { draft });
     }
 
+    if(req.method==='POST'&&url.pathname==='/api/question-drafts')return json(res,201,saveAuthoredQuestion(user.id,await readJson(req)));
+    const authoredDraftMatch=/^\/api\/question-drafts\/([^/]+)$/.exec(url.pathname);
+    if(req.method==='GET'&&authoredDraftMatch)return json(res,200,getAuthoredQuestion(user.id,authoredDraftMatch[1]));
     const draftAnnotationMatch = /^\/api\/drafts\/([^/]+)\/annotations$/.exec(url.pathname);
     if (req.method === 'POST' && draftAnnotationMatch) {
       const draft = addDraftAnnotation(user.id, draftAnnotationMatch[1], await readJson(req));

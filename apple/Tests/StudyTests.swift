@@ -994,7 +994,7 @@ final class QuestionBankSyncTests: XCTestCase {
         let store = AppStore()
         let question = NativeQuestion(canonicalQuestionId: "bank-Q", questionRevision: 1, id: "legacy-Q", itemId: "I1", kind: "grammar", title: "题", prompt: "当前题", choices: ["B", "A"], answer: "B")
         let old = BankCachedVersion(id: "bank-Q", revision: 1, schemaVersion: 1, payload: .object([
-            "legacy": .object(["prompt": .string("冻结原题")]),
+            "legacy": .object(["prompt": .string("冻结原题"), "taskConditions": .array([.string("平日18時以降")])]),
             "options": .array([.object(["id": .string("option-0"), "text": .string("A")]), .object(["id": .string("option-1"), "text": .string("B")])]),
             "answer": .object(["type": .string("option"), "optionId": .string("option-0")])
         ]))
@@ -1003,6 +1003,7 @@ final class QuestionBankSyncTests: XCTestCase {
         XCTAssertEqual(frozen.id, question.id); XCTAssertEqual(frozen.prompt, "冻结原题")
         XCTAssertEqual(frozen.choices, ["A", "B"]); XCTAssertEqual(frozen.answer, "A")
         XCTAssertEqual(frozen.questionRevision, 1)
+        XCTAssertEqual(frozen.taskConditions, ["平日18時以降"])
         let replay = AnswerInput(questionId: frozen.id, itemId: frozen.itemId, selected: "A", correct: true, progressEntry: ProgressEntry(), canonicalQuestionId: frozen.canonicalQuestionId, questionRevision: frozen.questionRevision, kind: frozen.kind)
         let decoded = try JSONDecoder().decode(AnswerInput.self, from: JSONEncoder().encode(replay))
         XCTAssertEqual(decoded.canonicalQuestionId, "bank-Q"); XCTAssertEqual(decoded.questionRevision, 1)

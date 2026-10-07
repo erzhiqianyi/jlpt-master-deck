@@ -22,6 +22,7 @@ struct NativeQuestion: Codable, Identifiable {
     var questionRevision: Int?
     var questionTypeId: String?
     var materialRefs: [BankVersionReference]?
+    var taskConditions: [String]?
     let id: String; let itemId: String; let kind: String; let title: String
     let prompt: String; let choices: [String]; let answer: String
     var japaneseAnnotations: [JapaneseAnnotation]?
@@ -406,6 +407,7 @@ struct NativeQuizView: View {
         let answer = recorded(question)
         return VStack(alignment: .leading, spacing: 20) {
             if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            ForEach(question.taskConditions ?? [], id: \.self) { JapaneseText(text: $0, japanese: true).font(.subheadline) }
             JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             VStack(spacing: 12) {
                 ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
@@ -577,6 +579,7 @@ struct NativeQuizView: View {
             Text("原题第 \(number) 题").font(.subheadline.bold()).foregroundStyle(DeckTheme.muted)
             JapaneseText(text: question.instruction?.isEmpty == false ? question.instruction! : question.title, japanese: true, weight: .semibold)
             if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
+            ForEach(question.taskConditions ?? [], id: \.self) { JapaneseText(text: $0, japanese: true).font(.subheadline) }
             JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
             ForEach(Array(question.choices.enumerated()), id: \.offset) { number, choice in
                 StudyAnswerChoice(number: number + 1, text: choice, selected: recorded(question)?.selected == choice,
@@ -695,7 +698,7 @@ extension AppStore {
               case .string(let optionID) = answer["optionId"] else { return question }
         do {
             guard var fields = try JSONSerialization.jsonObject(with: JSONEncoder().encode(question)) as? [String: Any] else { return question }
-            for key in ["prompt", "instruction", "context", "correctReason", "memoryPoint", "choiceAnalysis", "promptTarget", "japaneseAnnotations", "translationZh"] {
+            for key in ["prompt", "instruction", "context", "correctReason", "memoryPoint", "choiceAnalysis", "promptTarget", "japaneseAnnotations", "translationZh", "taskConditions"] {
                 if let value = legacy[key] { fields[key] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value), options: .fragmentsAllowed) }
             }
             var texts: [String] = []; var correct: String?

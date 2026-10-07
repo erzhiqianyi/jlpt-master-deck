@@ -18,6 +18,9 @@ type SessionQuestion = {
   id: string;
   itemId: string;
   kind: string;
+  questionTypeId?:string;
+  passage?:string;
+  taskConditions?:string[];
   title: string;
   instruction?: string;
   prompt: string;
@@ -162,7 +165,8 @@ function questionView(current: Session, question: SessionQuestion) {
   const surface = document.createElement('div');
   questionRoot = createRoot(surface);
   questionRoot.render(createElement(QuestionRenderer, {
-    questionId:question.id, questionTypeId:question.kind, instruction:question.instruction,
+    questionId:question.id, questionTypeId:question.questionTypeId??question.kind, instruction:question.instruction,
+    materials:question.passage?createElement('p',{style:{whiteSpace:'pre-wrap'}},question.passage):undefined,taskConditions:question.taskConditions,
     prompt:createElement(QuestionPrompt,{text:question.prompt,target:question.promptTarget}),
     choices:question.choices,selected:question.choices.indexOf(question.selected??''),
     answerIndex:answered?question.choices.indexOf(question.answer??''):undefined,

@@ -1,4 +1,5 @@
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
+import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
 import {questionStrategies} from '../src/domain/questionContract.mjs';
 import {questionSpecifications,questionRegistrySchemaVersion} from '../src/domain/questionPayload.mjs';
 import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
@@ -210,6 +211,9 @@ const listeningUpdateFields = {
 const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, per-choice translations and explanations, answer or overall explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
 
 export const tools = [
+  tool('save_question_draft','Save one independent vocabulary/grammar question without changing knowledge items. Read get_question_registry first. Supply type-specific fields, an explanation for every choice, owned material revisions and optional accessible knowledge IDs. Returns an ordinary draft requiring user approval before publish_draft_as_daily_practice. Stable requestId retries once; edits require draftId and expectedRevision.',
+    {requestId:z.string().min(1).max(120),draftId:z.string().optional(),expectedRevision:z.number().int().positive().optional(),title:z.string().min(1),question:z.record(z.string(),z.unknown()),knowledgeIds:z.array(z.string()).optional(),materialRefs:z.array(z.object({id:z.string(),revision:z.number().int().positive()})).optional()},rw,async(args,ctx)=>text(saveAuthoredQuestion(uid(ctx),args)),{scope:'library:write'}),
+  tool('get_question_draft','Read one owned independently authored question draft and its canonical revision before editing or user approval.',{draftId:z.string()},ro,async({draftId},ctx)=>text(getAuthoredQuestion(uid(ctx),draftId))),
   tool('get_question_registry','Read the versioned 23-type registry before authoring. Includes official level applicability, supplementary flags, required-content guidance, explanation steps, tips and knowledge topics. Schema success does not imply semantic approval; existing tool schemas still govern each write.',{},ro,async(_args,ctx)=>{
     uid(ctx);
     return text({schemaVersion:questionRegistrySchemaVersion,types:Object.values(questionStrategies).map(({id,module,applicableLevels,supplementary,aliases})=>({id,module,applicableLevels,supplementary,aliases,...questionSpecifications[id]}))});

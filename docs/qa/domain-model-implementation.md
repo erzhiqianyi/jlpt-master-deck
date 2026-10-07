@@ -84,3 +84,13 @@ Web新批量协议eventMode=merge，选择暂存为draft，保留可续作的稳
 本地已交付：六领域/23型/知识/媒体/答案/审批/版本/事件/日期/分享契约文档；canonical与材料增量核心及主写入口；真实Web/MCP共享渲染、Web/iOS冻结消费；客观/主观事件与日总结；可续跑影子回填和旧表哈希报告；本机集成/unit/build/native/UI证据及可回退提交。整个独立库尚不能作为全库唯一权威，不宣称原方案全部完成。
 
 仍待实施或额外验收：通用独立词汇/语法作者写用例及完整知识多对多编辑；全attempt manifest冻结和历史题缺失恢复；题型真实长内容/图片/多材料的完整跨平台视觉fixture与统一原生UI；历史AU按材料revision授权离线读取；全库owner/分享/事件映射核对和灰度/回滚演练；旧客户端全量progress并发替代。生产切换、真实数据回填及删除旧库不在本任务执行授权内，仅保留预演与手册；这些边界不是继续扩大工程或触碰生产的理由。
+
+## 收尾一：独立作者用例
+
+新增真实`save_question_draft`/`get_question_draft` MCP与`/api/question-drafts` REST。独立词汇六类/语法三类保存为现有普通草稿，strict校验、每选项解释、可零或多知识关联、owned素材引用。稳定requestId返回接受过的同ID/revision；编辑必须expectedRevision且重置审批。用户批准后走已有发布；不能通过question.reviewStatus伪造ready。纯片假名漢字読み和错level拒绝，数字答案要求显式base；不改旧DR947或用户数据。阅读/听力继续现有专用作者入口，不增空壳通用工具。
+
+修复作者发布的三处真实消费缺口：保留组句assembly/目标span/篇章blankId/level/条件/知识关联；有owned文章引用时复用而非根据passage再造一份；作者修改后重新批准可创建新PR，但保留旧PR和同canonical不同revision。无知识关联的作者题使用canonical作用域的进度ID，不把所有author-q1合并进同一进度。Web/MCP呈现正文和条件；iOS条件解码与冻结消费已接并测，不声称新增九型视觉截图已完成。
+
+最终本地全回归479/479（包含九型作者、知识JSON不变、多对多、numeric base、真实MCP及临时账号REST审批/发布、旧实践冻结）；tsc/lint/Web+3 MCP/Cloud API bundle通过；原生65/65复验通过，新增结构化条件冻结消费断言。日志`.local/domain-authoring/`。先前4UI/22截图仍是先前代表场景证据，本轮没有将其算作九型全视觉验收。
+
+四项具体缺口、逐项完成标准及工具路径见[收尾清单](four-items-closeout.md)。独立作者用例这一缺口已补；完整attempt历史/映射、旧AU离线入口和全23型跨端视觉仍按该清单继续。原方案尚未全部完成。

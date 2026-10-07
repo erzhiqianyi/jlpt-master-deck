@@ -81,3 +81,43 @@ test('final publication preserves all canonical kinds and still rejects missing 
   });
   assert.throws(() => createDailyPracticeFromDraft(user.id, invalid.id), /缺少具体辨析/);
 });
+
+test('published legacy snapshots retain canonical references and survive draft deletion', async () => {
+  const { readQuestionVersion } = await import('./question-bank.mjs');
+  const { deleteReviewPackDraft } = await import('./storage.mjs');
+  const draft = createReviewPackDraft(user.id,{title:'bank publication',status:'approved',content:{sections:[{questions:[question('stable')]}]}});
+  const published = createDailyPracticeFromDraft(user.id,draft.id);
+  const q=published.questions[0];
+  assert.equal(q.sourceQuestionId,'stable');
+  assert.equal(q.answer,'正解');
+  assert.ok(q.questionRevision >= 1);
+  const ref={id:q.canonicalQuestionId,revision:q.questionRevision};
+  assert.equal(readQuestionVersion(getDb(),user.id,ref).answer.optionId,'option-0');
+  assert.equal(createDailyPracticeFromDraft(user.id,draft.id).questions[0].canonicalQuestionId,q.canonicalQuestionId);
+  deleteReviewPackDraft(user.id,draft.id);
+  assert.equal(getDailyPractice(user.id,published.id).questions[0].id,q.id);
+  assert.ok(readQuestionVersion(getDb(),user.id,ref));
+  assert.equal(getDb().prepare('SELECT status FROM bank_questions WHERE owner=? AND id=?').get(user.id,ref.id).status,'ready');
+});
+
+test('deleting an unapproved DR-only draft archives content without making it scorable', async () => {
+  const { deleteReviewPackDraft } = await import('./storage.mjs');
+  const draft=createReviewPackDraft(user.id,{title:'incomplete DR-only',content:{sections:[{instruction:'必要な条件',questions:[{id:'raw-q',kind:'grammar',prompt:'未完成',choices:['a','b'],answer:0}]}]}});
+  assert.throws(()=>createDailyPracticeFromDraft(user.id,draft.id),/Only approved/);
+  deleteReviewPackDraft(user.id,draft.id);
+  const alias=getDb().prepare('SELECT question_id,revision FROM bank_question_aliases WHERE owner=? AND source_id=? AND source_question_id=?').get(user.id,draft.id,'raw-q');
+  const version=JSON.parse(getDb().prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(user.id,alias.question_id,alias.revision).payload_json);
+  assert.equal(version.legacy.answer,0);
+  assert.equal(version.sectionContext.instruction,'必要な条件');
+  assert.equal(version.answer.type,'unscored');
+  assert.equal(getDb().prepare('SELECT status FROM bank_questions WHERE owner=? AND id=?').get(user.id,alias.question_id).status,'needs_review');
+});
+
+test('missing draft question IDs use the same flattened source identity before and after publication', () => {
+  const { id: _id, ...withoutId }=question('no-id');
+  const draft=createReviewPackDraft(user.id,{title:'path identity',status:'approved',content:{sections:[{questions:[withoutId]},{questions:[withoutId]}]}});
+  const before=getDb().prepare('SELECT source_question_id,question_id FROM bank_question_aliases WHERE owner=? AND source_id=? ORDER BY source_question_id').all(user.id,draft.id);
+  const published=createDailyPracticeFromDraft(user.id,draft.id);
+  assert.deepEqual(published.questions.map(q=>q.sourceQuestionId),['draft-q1','draft-q2']);
+  assert.deepEqual(published.questions.map(q=>q.canonicalQuestionId),before.map(row=>row.question_id));
+});

@@ -96,33 +96,34 @@ const call = async (name, args, owner) => {
   return result.structuredContent ?? JSON.parse(result.content[0].text);
 };
 
-test('MCP reads the saved owner rule and requires complete questions only when enabled', async () => {
+test('MCP saves knowledge independently and validates supplied questions for every owner', async () => {
   const owner = createUser('required-questions', 'test-pass');
   const other = createUser('optional-questions', 'test-pass');
   assert.equal((await call('get_study_state', {}, owner)).settings.requireJlptVocabularyQuestions, false);
   saveSettings(owner.id, { ...getStudyState(owner.id).settings, requireJlptVocabularyQuestions: true, jlptVocabularyQuestionKinds: ['usage'] });
   assert.equal((await call('get_study_state', {}, owner)).settings.requireJlptVocabularyQuestions, true);
   const requiredItem = { ...item, id: 'required-word' };
-  await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, requireJlptVocabularyQuestions: false, jlptVocabularyQuestionKinds: [] } }, owner), /jlptVocabularyQuestionKinds/);
+  await call('upsert_review_item', { item: requiredItem }, owner);
   await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ ...usageSeed, kind: 'grammar' }] } }, owner), /vocabulary kind/);
   await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ ...usageSeed, prompt: '' }] } }, owner), /prompt/);
-  assert.ok(!loadReviewData(owner.id).items.some(entry => entry.id === requiredItem.id));
+  assert.equal(loadReviewData(owner.id).items.find(entry => entry.id === requiredItem.id).practice_questions?.length ?? 0, 0);
   await call('upsert_review_item', { item: { ...requiredItem, practice_questions: [usageSeed] } }, owner);
-  await assert.rejects(call('upsert_review_item', { item: requiredItem }, owner), /jlptVocabularyQuestionKinds/);
+  await call('upsert_review_item', { item: requiredItem }, owner);
+  assert.equal(loadReviewData(owner.id).items.find(entry => entry.id === requiredItem.id).practice_questions[0].id, usageSeed.id);
   await call('upsert_review_item', { item: requiredItem }, other);
-  await call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ kind: 'usage' }] } }, other);
+  await assert.rejects(call('upsert_review_item', { item: { ...requiredItem, practice_questions: [{ kind: 'usage' }] } }, other), /prompt/);
   await call('upsert_review_item', { item: { id: 'grammar-exempt', deck: 'grammar_expression', type: 'grammar', original: '〜にほかならない' } }, owner);
   saveSettings(owner.id, { ...getStudyState(owner.id).settings, requireJlptVocabularyQuestions: false, jlptVocabularyQuestionKinds: [] });
   await call('upsert_review_item', { item: requiredItem }, owner);
 });
 
 
-test('selected kinds are canonical, unique and each must have an authored question', async () => {
+test('selected kinds are canonical preferences and do not require unrelated authored questions', async () => {
   const owner = createUser('multi-kinds', 'test-pass');
   saveSettings(owner.id, { jlptVocabularyQuestionKinds: ['usage', 'meaning', 'usage', 'invalid'] });
   assert.deepEqual(getStudyState(owner.id).settings.jlptVocabularyQuestionKinds, ['meaning', 'usage']);
   const input = { ...item, id: 'multi-kinds-word', practice_questions: [usageSeed] };
-  await assert.rejects(call('upsert_review_item', { item: input }, owner), /missing required questions: meaning/);
+  await call('upsert_review_item', { item: input }, owner);
   const meaningSeed = { ...usageSeed, id: 'meaning-seed', kind: 'meaning' };
   await call('upsert_review_item', { item: { ...input, practice_questions: [usageSeed, meaningSeed] } }, owner);
   saveSettings(owner.id, { jlptVocabularyQuestionKinds: [], requireJlptVocabularyQuestions: true });
@@ -135,4 +136,26 @@ test('legacy enabled rules migrate to all six vocabulary kinds', () => {
   getDb().prepare('UPDATE user_settings SET settings_json = ? WHERE user_id = ?').run(JSON.stringify({ requireJlptVocabularyQuestions: true }), owner.id);
   const saved = getStudyState(owner.id).settings;
   assert.deepEqual(saved.jlptVocabularyQuestionKinds, ['kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'meaning', 'usage']);
+});
+
+test('all six preferences allow kana knowledge and independent conjugation updates', async () => {
+  const owner = createUser('independent-capture', 'test-pass');
+  saveSettings(owner.id, { requireJlptVocabularyQuestions: true });
+  const kana = { ...item, id: 'kana-item', original: 'チェック', reading: 'チェック' };
+  await call('upsert_review_item', { item: kana }, owner);
+  await call('upsert_review_item', { item: { ...kana, conjugations: [...kana.conjugations, { kind: 'negative', form: 'チェックしない' }] } }, owner);
+  await call('upsert_review_item', { item: { ...item, id: 'with-seed', practice_questions: [usageSeed] } }, owner);
+  await call('upsert_review_item', { item: { ...item, id: 'with-seed', practice_questions: [] } }, owner);
+  assert.equal(loadReviewData(owner.id).items.find(entry => entry.id === 'with-seed').practice_questions?.length ?? 0, 0);
+});
+
+test('knowledge-only updates preserve legacy incomplete seeds without forcing question repair', () => {
+  const owner=createUser('legacy-independent', 'test-pass');
+  upsertReviewItem({...item,id:'legacy-seed-update'},{userId:owner.id});
+  const row=getDb().prepare('SELECT item_json FROM owned_review_items WHERE user_id=? AND id=?').get(owner.id,'legacy-seed-update');
+  const old=JSON.parse(row.item_json);old.practice_questions=[{kind:'usage',prompt:'規制'}];
+  getDb().prepare('UPDATE owned_review_items SET item_json=? WHERE user_id=? AND id=?').run(JSON.stringify(old),owner.id,old.id);
+  const saved=upsertReviewItem({...item,id:old.id,conjugations:[...item.conjugations,{kind:'negative',form:'規制しない'}]},{userId:owner.id});
+  assert.deepEqual(saved.practice_questions,old.practice_questions);
+  assert.throws(()=>upsertReviewItem({...item,id:old.id,practice_questions:old.practice_questions},{userId:owner.id}),/four distinct choices/);
 });

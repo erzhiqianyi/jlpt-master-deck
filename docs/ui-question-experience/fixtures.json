@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 1,
+  "tokens": {
+    "accent": "#a34f3f",
+    "surface": "#fffaf7",
+    "minTouchTarget": 44,
+    "readingLineHeight": 1.8,
+    "breakpoint": 768
+  },
+  "fixtures": [
+    {
+      "id": "vocabulary-kanji-reading-fixture",
+      "questionTypeId": "vocabulary-kanji-reading",
+      "name": "漢字読み",
+      "stem": "道路の交通が規制されている。",
+      "target": "規制",
+      "choices": [
+        "きせい",
+        "ぎせい",
+        "きさい",
+        "きぜい"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "vocabulary-orthography-fixture",
+      "questionTypeId": "vocabulary-orthography",
+      "name": "表記",
+      "stem": "新しい機械をどうにゅうした。",
+      "target": "どうにゅう",
+      "choices": [
+        "導入",
+        "道入",
+        "導人",
+        "動入"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "vocabulary-word-formation-fixture",
+      "questionTypeId": "vocabulary-word-formation",
+      "name": "語形成",
+      "stem": "（　）規制の動きが広がっている。",
+      "target": "（　）",
+      "choices": [
+        "脱",
+        "非",
+        "無",
+        "不"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "vocabulary-context-fixture",
+      "questionTypeId": "vocabulary-context",
+      "name": "文脈規定",
+      "stem": "危険なので、道路の交通を（　）した。",
+      "target": "（　）",
+      "choices": [
+        "規制",
+        "起床",
+        "調理",
+        "読書"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "vocabulary-paraphrase-fixture",
+      "questionTypeId": "vocabulary-paraphrase",
+      "name": "言い換え類義",
+      "stem": "広告への規制が強まった。",
+      "target": "規制",
+      "choices": [
+        "ルールによる制限",
+        "自由な選択",
+        "技術の発展",
+        "料金の支払い"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "vocabulary-usage-fixture",
+      "questionTypeId": "vocabulary-usage",
+      "name": "用法",
+      "stem": "規制",
+      "target": "規制",
+      "choices": [
+        "交通が規制されている。",
+        "塩を規制して料理した。",
+        "七時に自分を規制する。",
+        "家具を規制して置いた。"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "grammar-form-fixture",
+      "questionTypeId": "grammar-form",
+      "name": "文法形式の判断",
+      "stem": "彼の成功は努力の結果（　）。",
+      "target": "（　）",
+      "choices": [
+        "にほかならない",
+        "を問わず",
+        "かねない",
+        "次第だ"
+      ],
+      "material": null,
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "grammar-composition-fixture",
+      "questionTypeId": "grammar-composition",
+      "name": "文の組み立て",
+      "stem": "彼の成功は ＿＿ ★ ＿＿ ＿＿。",
+      "target": "★",
+      "choices": [
+        "に",
+        "ほか",
+        "努力の結果",
+        "ならない"
+      ],
+      "material": {
+        "type": "composition",
+        "text": "片段 1–4 可点选预排；★ 保持第二位置"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "grammar-text-fixture",
+      "questionTypeId": "grammar-text",
+      "name": "文章の文法",
+      "stem": "【1】に入る表現はどれか。",
+      "target": "【1】",
+      "choices": [
+        "ところが",
+        "例えば",
+        "つまり",
+        "そして"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "毎日練習を続けていた。【1】、試験当日は緊張してしまった。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-short-fixture",
+      "questionTypeId": "reading-short",
+      "name": "内容理解（短文）",
+      "stem": "筆者が大切だと考えていることは何か。",
+      "target": "大切",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "練習では結果だけでなく、間違えた理由を確かめることが大切だ。次の練習で同じ誤りを避けるためである。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-mid-fixture",
+      "questionTypeId": "reading-mid",
+      "name": "内容理解（中文）",
+      "stem": "筆者が大切だと考えていることは何か。",
+      "target": "大切",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "練習では結果だけでなく、間違えた理由を確かめることが大切だ。次の練習で同じ誤りを避けるためである。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-long-fixture",
+      "questionTypeId": "reading-long",
+      "name": "内容理解（長文）",
+      "stem": "筆者が大切だと考えていることは何か。",
+      "target": "大切",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "練習では結果だけでなく、間違えた理由を確かめることが大切だ。次の練習で同じ誤りを避けるためである。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-integrated-fixture",
+      "questionTypeId": "reading-integrated",
+      "name": "統合理解",
+      "stem": "AとBの違いは何か。",
+      "target": "違い",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "comparison",
+        "text": "A：毎日短い時間でも復習する。｜B：週末にまとめて復習する。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-thematic-fixture",
+      "questionTypeId": "reading-thematic",
+      "name": "主張理解（長文）",
+      "stem": "筆者が大切だと考えていることは何か。",
+      "target": "大切",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "練習では結果だけでなく、間違えた理由を確かめることが大切だ。次の練習で同じ誤りを避けるためである。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-information-fixture",
+      "questionTypeId": "reading-information",
+      "name": "情報検索",
+      "stem": "月曜日を避け、学生料金で利用する条件に合うのはどれか。",
+      "target": "月曜日を避け",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "table",
+        "text": "開館 火–日 9:00–18:00｜月曜休館｜料金 学生300円／一般500円"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "reading-basic-training-fixture",
+      "questionTypeId": "reading-basic-training",
+      "name": "基础训练",
+      "stem": "筆者が大切だと考えていることは何か。",
+      "target": "大切",
+      "choices": [
+        "理由を確かめる",
+        "結果だけを見る",
+        "時間を増やす",
+        "回数を減らす"
+      ],
+      "material": {
+        "type": "passage",
+        "text": "練習では結果だけでなく、間違えた理由を確かめることが大切だ。次の練習で同じ誤りを避けるためである。"
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-task-fixture",
+      "questionTypeId": "listening-task",
+      "name": "課題理解",
+      "stem": "女の人は次に何をしますか。",
+      "target": "次",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-points-fixture",
+      "questionTypeId": "listening-points",
+      "name": "ポイント理解",
+      "stem": "男の人が予定を変更した理由は何ですか。",
+      "target": "",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-outline-fixture",
+      "questionTypeId": "listening-outline",
+      "name": "概要理解",
+      "stem": "話の主なテーマは何ですか。",
+      "target": "",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-expression-fixture",
+      "questionTypeId": "listening-expression",
+      "name": "発話表現",
+      "stem": "店員に依頼する時、何と言いますか。",
+      "target": "",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-quick-fixture",
+      "questionTypeId": "listening-quick",
+      "name": "即時応答",
+      "stem": "「手伝いましょうか」への応答を選ぶ。",
+      "target": "",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-integrated-fixture",
+      "questionTypeId": "listening-integrated",
+      "name": "統合理解",
+      "stem": "二人の条件を満たす案はどれですか。",
+      "target": "",
+      "choices": [
+        "選択肢の音声 1",
+        "選択肢の音声 2",
+        "選択肢の音声 3"
+      ],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 2
+      },
+      "answerIndex": 0,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    },
+    {
+      "id": "listening-basic-training-fixture",
+      "questionTypeId": "listening-basic-training",
+      "name": "基础训练",
+      "stem": "聞いた内容を自分の言葉で答える。",
+      "target": "",
+      "choices": [],
+      "material": {
+        "type": "audio",
+        "assetId": "AU-fixture-1",
+        "filename": "lesson_01_original.mp3",
+        "text": "▶ 再生  ━━━━━ 00:00 / 00:35",
+        "sharedQuestionCount": 1
+      },
+      "answerIndex": -1,
+      "explanation": "概念展示用原创占位内容；正式题目需独立审核。",
+      "source": "design_fixture",
+      "strictExamEligible": false
+    }
+  ]
+}

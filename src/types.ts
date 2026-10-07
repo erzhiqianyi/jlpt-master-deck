@@ -550,6 +550,8 @@ export type ReviewData = {
 };
 
 export type Question = {
+  canonicalQuestionId?: string;
+  questionRevision?: number;
   japaneseAnnotations?: JapaneseAnnotation[];
   reference?: string;
   practiceReference?: string;

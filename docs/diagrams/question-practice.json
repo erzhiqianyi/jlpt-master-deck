@@ -1,0 +1,344 @@
+{
+  "title": "关键聚合：知识点、题目版本、素材、练习快照与作答",
+  "width": 1540,
+  "height": 840,
+  "nodes": [
+    {
+      "id": "knowledge",
+      "box": [
+        40,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "知识点聚合 KnowledgeItem",
+        "id / owner",
+        "词形、例句、活用"
+      ]
+    },
+    {
+      "id": "question",
+      "box": [
+        490,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "题目聚合 Question",
+        "id / owner / status / revision",
+        "knowledgeLinks / materialGroupId"
+      ]
+    },
+    {
+      "id": "version",
+      "box": [
+        490,
+        400,
+        280,
+        125
+      ],
+      "lines": [
+        "实体 QuestionVersion",
+        "questionId + revision（不可变）",
+        "Task / Options / Answer",
+        "Explanation / EvidenceRef"
+      ]
+    },
+    {
+      "id": "material",
+      "box": [
+        40,
+        400,
+        280,
+        125
+      ],
+      "lines": [
+        "素材聚合 Material",
+        "id / owner / audioAssetId(AU)",
+        "1:N MaterialVersion"
+      ]
+    },
+    {
+      "id": "set",
+      "box": [
+        980,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "练习聚合 PracticeSet",
+        "1:N Entry(entryId,order,section)",
+        "QuestionRef / MaterialRef 冻结"
+      ]
+    },
+    {
+      "id": "attempt",
+      "box": [
+        980,
+        400,
+        280,
+        125
+      ],
+      "lines": [
+        "作答聚合 Attempt",
+        "id / practiceSetId / snapshot",
+        "旧实例 ID/history 保留"
+      ]
+    },
+    {
+      "id": "alias",
+      "box": [
+        40,
+        680,
+        280,
+        115
+      ],
+      "lines": [
+        "实体 SourceAlias",
+        "owner + 来源定位 唯一键",
+        "旧 DR/PR/LS/item → canonical"
+      ]
+    },
+    {
+      "id": "event",
+      "box": [
+        980,
+        680,
+        280,
+        115
+      ],
+      "lines": [
+        "事件 AnswerSubmitted",
+        "eventId / entryId / versionRef",
+        "selectedOptionId / occurredAt"
+      ]
+    },
+    {
+      "id": "group",
+      "box": [
+        490,
+        680,
+        280,
+        115
+      ],
+      "lines": [
+        "素材组聚合 MaterialGroup",
+        "有序 materialRefs / questionRefs",
+        "整组抽题；专项保持完整材料"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "points": [
+        [
+          490,
+          168
+        ],
+        [
+          320,
+          168
+        ]
+      ],
+      "label": "KnowledgeLink N:M",
+      "labelAt": [
+        325,
+        145
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          630,
+          235
+        ],
+        [
+          630,
+          400
+        ]
+      ],
+      "label": "拥有 1:N",
+      "labelAt": [
+        645,
+        330
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          980,
+          170
+        ],
+        [
+          800,
+          170
+        ],
+        [
+          800,
+          460
+        ],
+        [
+          770,
+          460
+        ]
+      ],
+      "label": "Entry → Version N:1",
+      "labelAt": [
+        810,
+        315
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          980,
+          460
+        ],
+        [
+          770,
+          460
+        ]
+      ],
+      "label": "冻结引用 N:1",
+      "labelAt": [
+        790,
+        440
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          1120,
+          235
+        ],
+        [
+          1120,
+          400
+        ]
+      ],
+      "label": "练习 → 轮次 1:N",
+      "labelAt": [
+        1135,
+        320
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          1120,
+          525
+        ],
+        [
+          1120,
+          680
+        ]
+      ],
+      "label": "提交事件 1:N",
+      "labelAt": [
+        1135,
+        610
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          490,
+          460
+        ],
+        [
+          320,
+          460
+        ]
+      ],
+      "label": "MaterialRef N:M",
+      "labelAt": [
+        335,
+        440
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          40,
+          730
+        ],
+        [
+          20,
+          730
+        ],
+        [
+          20,
+          95
+        ],
+        [
+          630,
+          95
+        ],
+        [
+          630,
+          110
+        ]
+      ],
+      "label": "别名 N:1",
+      "labelAt": [
+        40,
+        650
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          630,
+          680
+        ],
+        [
+          630,
+          525
+        ]
+      ],
+      "label": "QuestionRef 1:N",
+      "labelAt": [
+        645,
+        610
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          490,
+          735
+        ],
+        [
+          380,
+          735
+        ],
+        [
+          380,
+          515
+        ],
+        [
+          320,
+          515
+        ]
+      ],
+      "label": "MaterialRef 1:N",
+      "labelAt": [
+        390,
+        650
+      ],
+      "event": false
+    }
+  ]
+}

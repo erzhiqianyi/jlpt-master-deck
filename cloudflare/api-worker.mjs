@@ -1,3 +1,4 @@
+import { ensureQuestionBankSchema } from '../server/question-bank.mjs';
 import { ensureCacheSchema, cleanupTtsCache } from '../server/tts/cache.mjs';
 import { DurableObject } from 'cloudflare:workers';
 import { withPlatform } from '../server/platform.mjs';
@@ -51,6 +52,7 @@ export class JlptDatabase extends DurableObject {
         }
         ensureCardReviewSchema(this.db);
         ensureDailySummarySchema(this.db);
+        ensureQuestionBankSchema(this.db);
         this.db.exec('INSERT OR IGNORE INTO cloud_schema_version(version) VALUES(5)');
         migrateReviewItemOwnership(this.db);
         ensureItemSchema(this.db);

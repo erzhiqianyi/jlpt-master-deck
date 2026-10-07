@@ -1,3 +1,5 @@
+import { ensureQuestionBankSchema, adaptQuestionSource, saveQuestionSource, linkQuestionAlias, archiveDraftQuestions } from './question-bank.mjs';
+import { resolveLegacyAnswer } from '../src/domain/questionContract.mjs';
 import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japanese-annotations.mjs';
 import { repairReadingTarget } from './practice-reading-target.mjs';
@@ -331,6 +333,7 @@ END;
     ensureTtsSchema(db);
     ensureCardReviewSchema(db);
     ensureDailySummarySchema(db);
+    ensureQuestionBankSchema(db);
   }
   return db;
 }
@@ -486,27 +489,26 @@ function ensureReviewItemsSeeded() {
 export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Authenticated user required');
   const normalized = normalizeReviewItem(item);
-  const requiredKinds = normalized.deck === 'grammar_expression' ? [] : getStudyState(userId).settings.jlptVocabularyQuestionKinds;
-  if (requiredKinds.length) {
-    const seeds = normalized.practice_questions;
-    if (!Array.isArray(seeds) || !seeds.length) {
-      throw new Error(`jlptVocabularyQuestionKinds requires questions for: ${requiredKinds.join(', ')}; include them in practice_questions before saving`);
-    }
-    for (const [index, seed] of seeds.entries()) {
+  // Knowledge capture is independent of practice generation preferences.
+  // Omitted authored questions on an update preserve the existing content.
+  const now = new Date().toISOString();
+  const existing = getDb().prepare('SELECT created_at, user_id, item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  const imported = getDb().prepare('SELECT user_id, item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
+  const previous = existing ?? imported;
+  if (item.practice_questions === undefined && previous && !item.question) {
+    normalized.practice_questions = parseJson(previous.item_json, {}).practice_questions ?? [];
+  }
+  if (normalized.deck !== 'grammar_expression' && (item.practice_questions !== undefined || item.question !== undefined)) {
+    for (const [index, seed] of (normalized.practice_questions ?? []).entries()) {
       const kind = normalizeQuestionKind(seed?.kind);
       if (!kind || kind === 'grammar') throw new Error(`practice_questions[${index}] requires a JLPT vocabulary kind`);
       if (!String(seed?.prompt ?? '').trim()) throw new Error(`practice_questions[${index}] requires prompt`);
     }
-    const missingKinds = requiredKinds.filter(kind => !seeds.some(seed => normalizeQuestionKind(seed.kind) === kind));
-    if (missingKinds.length) throw new Error(`jlptVocabularyQuestionKinds missing required questions: ${missingKinds.join(', ')}`);
-    assertVocabSeeds(seeds);
+    assertVocabSeeds(normalized.practice_questions);
   }
-  const now = new Date().toISOString();
-  const existing = getDb().prepare('SELECT created_at, user_id, item_json FROM owned_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
-  if (item.japanese_annotations === undefined && existing) normalized.japanese_annotations = parseJson(existing.item_json, {}).japanese_annotations ?? [];
+  if (item.japanese_annotations === undefined && previous) normalized.japanese_annotations = parseJson(previous.item_json, {}).japanese_annotations ?? [];
   const book = wordbookById(userId, itemWordbookId(normalized));
   if (!book) throw new Error('Wordbook not found');
-  const imported = getDb().prepare('SELECT user_id, item_json FROM user_review_items WHERE id = ? AND user_id = ?').get(normalized.id, userId);
   if (imported) {
     if (item.japanese_annotations === undefined) normalized.japanese_annotations = parseJson(imported.item_json, {}).japanese_annotations ?? [];
     getDb().prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(normalized), normalized.id, userId);
@@ -2703,6 +2705,8 @@ export function getPracticeSession(userId, practiceId) {
 
 function sessionQuestionView(question, answer) {
   const base = {
+    canonicalQuestionId: question.canonicalQuestionId,
+    questionRevision: question.questionRevision,
     id: question.id,
     itemId: question.itemId,
     kind: question.kind,
@@ -2839,9 +2843,7 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
   const practiceTitle = formatDailyPracticeTitle(practiceDate);
   const questions = sourceQuestions.map(({ section, question }, index) => {
     const choices = Array.isArray(question.choices) ? question.choices.map((choice) => String(choice)) : [];
-    const answerIndex = Number.isInteger(question.answerIndex)
-      ? question.answerIndex
-      : choices.indexOf(String(question.answer ?? ''));
+    const { answerIndex } = resolveLegacyAnswer({ ...question, choices });
     if (choices.length < 2 || answerIndex < 0 || answerIndex >= choices.length) {
       throw new Error(`Draft question ${question.id ?? index + 1} has an invalid answer`);
     }
@@ -2910,12 +2912,22 @@ export function createDailyPracticeFromDraft(userId, draftId, { date, title } = 
     })),
     questions,
   };
+  transaction(getDb(), () => {
+    for (const question of practice.questions) {
+      const ref = saveQuestionSource(getDb(), adaptQuestionSource(userId, {
+        kind: 'draft', id: draft.id, questionId: question.sourceQuestionId,
+      }, question, { status: 'ready' }));
+      linkQuestionAlias(getDb(), userId, { kind: 'practice', id, questionId: question.id }, ref);
+      question.canonicalQuestionId = ref.id;
+      question.questionRevision = ref.revision;
+    }
   getDb()
     .prepare(`
       INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(id, userId, practiceDate, version, practice.title, practice.minutes, JSON.stringify(practice), now, now);
+  });
 
   const annotations = [
     ...draft.annotations,
@@ -3379,12 +3391,15 @@ export function createReviewPackDraft(userId, { title, content, status = 'draft'
     created_at: now,
     updated_at: now,
   };
+  transaction(getDb(), () => {
   getDb()
     .prepare(`
       INSERT INTO review_pack_drafts (id, user_id, title, status, content_json, annotations_json, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(id, userId, draft.title, draft.status, JSON.stringify(draft.content), JSON.stringify(draft.annotations), now, now);
+    archiveDraftQuestions(getDb(), userId, draft);
+  });
   return draft;
 }
 
@@ -3449,17 +3464,23 @@ export function updateReviewPackDraft(userId, id, { title, content }) {
     content,
     updated_at: now,
   };
+  transaction(getDb(), () => {
   getDb()
     .prepare('UPDATE review_pack_drafts SET title = ?, content_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')
     .run(nextDraft.title, JSON.stringify(nextDraft.content), now, userId, id);
+    archiveDraftQuestions(getDb(), userId, nextDraft);
+  });
   return nextDraft;
 }
 
 export function deleteReviewPackDraft(userId, id) {
-  const result = getDb()
-    .prepare('DELETE FROM review_pack_drafts WHERE user_id = ? AND id = ?')
-    .run(userId, id);
-  return result.changes > 0;
+  return transaction(getDb(), () => {
+    const draft = getReviewPackDraft(userId,id);
+    if (!draft) return false;
+    // Also protect legacy DR-only questions that predate the additive bank.
+    archiveDraftQuestions(getDb(),userId,draft);
+    return getDb().prepare('DELETE FROM review_pack_drafts WHERE user_id = ? AND id = ?').run(userId,id).changes > 0;
+  });
 }
 
 export function addDraftAnnotation(userId, id, { body }) {

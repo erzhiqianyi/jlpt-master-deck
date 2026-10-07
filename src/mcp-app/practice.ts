@@ -8,6 +8,8 @@ import './practice.css';
 
 type ChoiceAnalysis = { choice: string; correct: boolean; explanation: string };
 type SessionQuestion = {
+  canonicalQuestionId?: string;
+  questionRevision?: number;
   reference?: string;
   id: string;
   itemId: string;

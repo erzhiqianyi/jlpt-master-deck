@@ -42,6 +42,13 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await json('/api/auth/config')).market,'database');
     const source = await json('/api/market/import','POST',{format:'jlpt-share',version:1,kind:'wordbook',title:'Cloud public snapshot',items:[{deck:'n1_vocab',original:'共有',reading:'きょうゆう',meaning_zh:'共享'}]});
     const share = await json('/api/market','POST',{kind:'wordbook',sourceId:source.id});
+    // Practice import invokes draft creation inside an existing transaction.
+    const importedPractice = await json('/api/market/import', 'POST', {
+      format: 'jlpt-share', version: 1, kind: 'practice', title: 'Nested draft archival',
+      questions: [{ id: 'source-q', kind: 'grammar', prompt: '猫（　）いる。', choices: ['が', 'を'], answer: 'が', correctReason: '主语用が。' }],
+    });
+    assert.ok(importedPractice.id);
+
     const reviewItem = (await json('/api/review-data')).items.find(item => item.original === '共有');
     assert.ok(reviewItem);
     const reviewInput = { questionId: `memory-card:${reviewItem.id}`, itemId: reviewItem.id, selected: 'hard', correct: true,

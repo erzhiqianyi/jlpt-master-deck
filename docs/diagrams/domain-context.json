@@ -1,0 +1,231 @@
+{
+  "title": "六领域上下文与事件边界",
+  "width": 1450,
+  "height": 680,
+  "nodes": [
+    {
+      "id": "knowledge",
+      "box": [
+        40,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "知识点 KnowledgeItem",
+        "词汇 / 语法 / 活用",
+        "词条可独立保存"
+      ]
+    },
+    {
+      "id": "question",
+      "box": [
+        500,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "题目 Question / Material",
+        "审核 / 题型策略 / 不可变版本",
+        "多对多知识点关联"
+      ]
+    },
+    {
+      "id": "practice",
+      "box": [
+        960,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "练习 PracticeSet / Attempt",
+        "组题 / 冻结 / 客观答题",
+        "容器管理题序与计时"
+      ]
+    },
+    {
+      "id": "srs",
+      "box": [
+        40,
+        470,
+        280,
+        125
+      ],
+      "lines": [
+        "SRS ReviewSchedule",
+        "MemoryRated 自评",
+        "排程与记忆记录"
+      ]
+    },
+    {
+      "id": "sharing",
+      "box": [
+        500,
+        470,
+        280,
+        125
+      ],
+      "lines": [
+        "发现分享 Publication",
+        "版本权限 / 许可 / 下架",
+        "不升级题目审核"
+      ]
+    },
+    {
+      "id": "statistics",
+      "box": [
+        960,
+        470,
+        280,
+        125
+      ],
+      "lines": [
+        "统计 ActivityProjection",
+        "按类型去重 / 日期口径",
+        "可重建，不反写答案"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "points": [
+        [
+          500,
+          165
+        ],
+        [
+          320,
+          165
+        ]
+      ],
+      "label": "知识点引用 N:M",
+      "labelAt": [
+        330,
+        145
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          960,
+          165
+        ],
+        [
+          780,
+          165
+        ]
+      ],
+      "label": "冻结题目/材料版本",
+      "labelAt": [
+        790,
+        145
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          180,
+          470
+        ],
+        [
+          180,
+          235
+        ]
+      ],
+      "label": "知识点引用 1:1",
+      "labelAt": [
+        195,
+        360
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          640,
+          470
+        ],
+        [
+          640,
+          235
+        ]
+      ],
+      "label": "许可版本引用 N:M",
+      "labelAt": [
+        655,
+        360
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          1100,
+          235
+        ],
+        [
+          1100,
+          470
+        ]
+      ],
+      "label": "AnswerSubmitted",
+      "labelAt": [
+        1110,
+        355
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          320,
+          535
+        ],
+        [
+          480,
+          535
+        ],
+        [
+          480,
+          635
+        ],
+        [
+          1100,
+          635
+        ],
+        [
+          1100,
+          595
+        ]
+      ],
+      "label": "MemoryRated / ScheduleChanged",
+      "labelAt": [
+        560,
+        625
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          780,
+          535
+        ],
+        [
+          960,
+          535
+        ]
+      ],
+      "label": "PublicationChanged",
+      "labelAt": [
+        785,
+        515
+      ],
+      "event": true
+    }
+  ]
+}

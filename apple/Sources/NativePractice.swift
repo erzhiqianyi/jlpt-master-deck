@@ -18,6 +18,8 @@ struct PracticeEntry: Identifiable {
     ]
 }
 struct NativeQuestion: Codable, Identifiable {
+    var canonicalQuestionId: String?
+    var questionRevision: Int?
     let id: String; let itemId: String; let kind: String; let title: String
     let prompt: String; let choices: [String]; let answer: String
     var japaneseAnnotations: [JapaneseAnnotation]?
@@ -53,7 +55,7 @@ enum NativeItemQuestions {
         let generated = try JSONDecoder().decode([NativeQuestion].self, from: Data(output.utf8))
         let supported = Set(generated.map(\.id))
         var seen = Set<String>()
-        return (packs.flatMap(\.questions).filter { supported.contains($0.id) } + generated).filter { $0.isUsable && seen.insert($0.id).inserted }
+        return (packs.flatMap(\.questions).filter { supported.contains($0.id) } + generated).filter { $0.isUsable && seen.insert($0.canonicalQuestionId ?? $0.id).inserted }
     }
     static func build(item: StudyItem, items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
         guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"),
@@ -69,7 +71,7 @@ enum NativeItemQuestions {
         var seen = Set<String>()
         // Pack versions take precedence when the same question has subsequently been edited.
         return (packs.flatMap(\.questions) + generated).filter {
-            $0.itemId == item.id && $0.isUsable && seen.insert($0.id).inserted
+            $0.itemId == item.id && $0.isUsable && seen.insert($0.canonicalQuestionId ?? $0.id).inserted
         }
     }
 }
@@ -102,7 +104,7 @@ struct NativePracticeScreen: View {
     var topics: [PracticeDraft] { drafts.filter { $0.isTopic && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) } }
     var mixed: [NativeQuestion] {
         var seen = Set<String>()
-        return packs.flatMap(\.questions).filter { $0.isUsable && ["grammar", "moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji"].contains($0.kind) && seen.insert($0.id).inserted }
+        return packs.flatMap(\.questions).filter { $0.isUsable && ["grammar", "moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji"].contains($0.kind) && seen.insert($0.canonicalQuestionId ?? $0.id).inserted }
     }
     var body: some View {
         NavigationStack {

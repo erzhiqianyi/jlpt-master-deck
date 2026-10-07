@@ -1,0 +1,199 @@
+{
+  "title": "复习、分享与统计：实体关系和事件流分离",
+  "width": 1450,
+  "height": 680,
+  "nodes": [
+    {
+      "id": "memory",
+      "box": [
+        40,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "事件 MemoryRated",
+        "eventId / itemId / rating",
+        "forgot / hard / good / easy"
+      ]
+    },
+    {
+      "id": "srs",
+      "box": [
+        500,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "SRS聚合 ReviewSchedule",
+        "owner + knowledgeItemId",
+        "排程规则版本 / nextReviewAt"
+      ]
+    },
+    {
+      "id": "answer",
+      "box": [
+        960,
+        110,
+        280,
+        125
+      ],
+      "lines": [
+        "事件 AnswerSubmitted",
+        "objective correct / selected",
+        "未答没有此事件"
+      ]
+    },
+    {
+      "id": "publication",
+      "box": [
+        40,
+        450,
+        280,
+        125
+      ],
+      "lines": [
+        "分享聚合 Publication",
+        "visibility / license / permissions",
+        "冻结内容版本 N:M"
+      ]
+    },
+    {
+      "id": "versions",
+      "box": [
+        500,
+        450,
+        280,
+        125
+      ],
+      "lines": [
+        "题目/素材不可变版本",
+        "历史引用不可变",
+        "退役不删除历史"
+      ]
+    },
+    {
+      "id": "projection",
+      "box": [
+        960,
+        450,
+        280,
+        125
+      ],
+      "lines": [
+        "统计投影 ActivityProjection",
+        "唯一 owner+eventId+type",
+        "自然日 timezone / 滚动24h"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "points": [
+        [
+          320,
+          168
+        ],
+        [
+          500,
+          168
+        ]
+      ],
+      "label": "消费显式评分",
+      "labelAt": [
+        330,
+        145
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          1100,
+          235
+        ],
+        [
+          1100,
+          450
+        ]
+      ],
+      "label": "客观答题统计",
+      "labelAt": [
+        1115,
+        360
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          780,
+          168
+        ],
+        [
+          870,
+          168
+        ],
+        [
+          870,
+          510
+        ],
+        [
+          960,
+          510
+        ]
+      ],
+      "label": "ScheduleChanged",
+      "labelAt": [
+        900,
+        265
+      ],
+      "event": true
+    },
+    {
+      "points": [
+        [
+          320,
+          510
+        ],
+        [
+          500,
+          510
+        ]
+      ],
+      "label": "权限版本引用 N:M",
+      "labelAt": [
+        330,
+        485
+      ],
+      "event": false
+    },
+    {
+      "points": [
+        [
+          180,
+          450
+        ],
+        [
+          180,
+          320
+        ],
+        [
+          960,
+          320
+        ],
+        [
+          960,
+          465
+        ]
+      ],
+      "label": "PublicationChanged（独立事件类型）",
+      "labelAt": [
+        370,
+        300
+      ],
+      "event": true
+    }
+  ]
+}

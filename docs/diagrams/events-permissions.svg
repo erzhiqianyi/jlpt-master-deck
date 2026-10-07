@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1450" height="680" viewBox="0 0 1450 680">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10" fill="none" stroke="#805244"/></marker></defs>
+<rect width="100%" height="100%" fill="#fffaf7"/>
+<style>text{font-family:Arial,"Hiragino Sans",sans-serif;fill:#382f2c;font-size:16px}.title{font-size:24px;font-weight:bold}.legend{font-size:14px}</style>
+<text x="24" y="38" class="title">复习、分享与统计：实体关系和事件流分离</text>
+<text x="24" y="67" class="legend">实线：实体/版本引用 · 虚线：事件依赖 · 边上标明基数 · 目标模型，未落地项见阶段表</text>
+<polyline points="320,168 500,168" fill="none" stroke="#805244" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="330" y="145" class="legend">消费显式评分</text>
+<polyline points="1100,235 1100,450" fill="none" stroke="#805244" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="1115" y="360" class="legend">客观答题统计</text>
+<polyline points="780,168 870,168 870,510 960,510" fill="none" stroke="#805244" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="900" y="265" class="legend">ScheduleChanged</text>
+<polyline points="320,510 500,510" fill="none" stroke="#805244" stroke-width="2" marker-end="url(#arrow)" />
+<text x="330" y="485" class="legend">权限版本引用 N:M</text>
+<polyline points="180,450 180,320 960,320 960,465" fill="none" stroke="#805244" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="370" y="300" class="legend">PublicationChanged（独立事件类型）</text>
+<rect x="40" y="110" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="54" y="137" class="">事件 MemoryRated</text>
+<text x="54" y="162" class="">eventId / itemId / rating</text>
+<text x="54" y="187" class="">forgot / hard / good / easy</text>
+<rect x="500" y="110" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="514" y="137" class="">SRS聚合 ReviewSchedule</text>
+<text x="514" y="162" class="">owner + knowledgeItemId</text>
+<text x="514" y="187" class="">排程规则版本 / nextReviewAt</text>
+<rect x="960" y="110" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="974" y="137" class="">事件 AnswerSubmitted</text>
+<text x="974" y="162" class="">objective correct / selected</text>
+<text x="974" y="187" class="">未答没有此事件</text>
+<rect x="40" y="450" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="54" y="477" class="">分享聚合 Publication</text>
+<text x="54" y="502" class="">visibility / license / permissions</text>
+<text x="54" y="527" class="">冻结内容版本 N:M</text>
+<rect x="500" y="450" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="514" y="477" class="">题目/素材不可变版本</text>
+<text x="514" y="502" class="">历史引用不可变</text>
+<text x="514" y="527" class="">退役不删除历史</text>
+<rect x="960" y="450" width="280" height="125" rx="12" fill="#f1e7df" stroke="#a34f3f"/>
+<text x="974" y="477" class="">统计投影 ActivityProjection</text>
+<text x="974" y="502" class="">唯一 owner+eventId+type</text>
+<text x="974" y="527" class="">自然日 timezone / 滚动24h</text>
+</svg>

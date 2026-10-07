@@ -23,6 +23,18 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request('/api/me','GET',undefined,'')).status,401);
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
     await request('/__seed');
+    await request('/__large-sync-seed');
+    let syncPage = await json('/api/sync','POST',{},'test-3');
+    const largeChanges = [...syncPage.changes];
+    while (syncPage.nextPage) {
+      syncPage = await json('/api/sync','POST',{page:syncPage.nextPage},'test-3');
+      largeChanges.push(...syncPage.changes);
+    }
+    assert.equal(largeChanges.filter(change => change.collection === 'items').length,12);
+    assert(largeChanges.filter(change => change.collection === 'items').every(change => change.value.meaning_zh === '日本語😀'.repeat(20000)));
+    assert(Buffer.byteLength(JSON.stringify(largeChanges)) > 2 * 1024 * 1024);
+    assert.deepEqual((await json('/api/sync','POST',{cursor:syncPage.cursor},'test-3')).changes,[]);
+
     assert.deepEqual(await json('/__tts-cache'), { generated: true, audio: 'fixture-audio' });
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     assert.ok((await json('/api/study-plan')).plan.profile);

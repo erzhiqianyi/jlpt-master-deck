@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { getDb, getStudyState, getStudyPlan, listReadingQuestions, listListeningQuestions, listLearningCaptures, listDailyPractices, getDailyPractice, listReviewPackDrafts, listWordbooks } from './storage.mjs';
 import { userReviewData, listShares } from './market.mjs';
+import { transaction } from './platform.mjs';
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -15,7 +16,39 @@ function schema(db) {
   ); CREATE TABLE IF NOT EXISTS study_sync_transfers (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, id TEXT NOT NULL,
     cursor TEXT NOT NULL, payload_json TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY(user_id,id)
+  ); CREATE TABLE IF NOT EXISTS study_sync_chunks (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL, id TEXT NOT NULL, chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL, created_at INTEGER NOT NULL,
+    PRIMARY KEY(user_id,kind,id,chunk_index)
   );`);
+}
+
+// Bound storage rows before pagination: a bootstrap can exceed the cloud's
+// SQLite row limit even though each HTTP response is small.
+function storeJson(db, userId, kind, id, value, now) {
+  const serialized = JSON.stringify(value);
+  if (Buffer.byteLength(serialized) <= 512 * 1024) return serialized;
+  const insert = db.prepare('INSERT INTO study_sync_chunks VALUES(?,?,?,?,?,?)');
+  db.prepare('DELETE FROM study_sync_chunks WHERE user_id=? AND kind=? AND id=?').run(userId,kind,id);
+  let count = 0;
+  // At most 120k UTF-16 units per row (including multibyte Japanese text).
+  // Keep surrogate pairs together when binding fragments to SQLite.
+  for (let offset = 0; offset < serialized.length;) {
+    let end = Math.min(offset + 120000,serialized.length);
+    const last = serialized.charCodeAt(end - 1);
+    if (end < serialized.length && last >= 0xD800 && last <= 0xDBFF) end--;
+    insert.run(userId,kind,id,count++,serialized.slice(offset,end),now);
+    offset = end;
+  }
+  return JSON.stringify({ syncChunks:count });
+}
+function readJson(db, userId, kind, id, serialized) {
+  const value = JSON.parse(serialized);
+  if (!value.syncChunks) return value; // Existing transfers/baselines remain readable.
+  const rows = db.prepare('SELECT content FROM study_sync_chunks WHERE user_id=? AND kind=? AND id=? ORDER BY chunk_index').all(userId,kind,id);
+  if (rows.length !== value.syncChunks) throw new Error('Incomplete sync snapshot');
+  return JSON.parse(rows.map(row => row.content).join(''));
 }
 export function studySyncRecords(userId) {
   const review = userReviewData(userId);
@@ -61,6 +94,7 @@ export function studySyncRecords(userId) {
 export function studySync(userId, { cursor = null, page = null } = {}, { pageSize = 150, now = Date.now() } = {}) {
   const db = getDb(); schema(db);
   db.prepare('DELETE FROM study_sync_transfers WHERE created_at < ?').run(now - 3600000);
+  db.prepare("DELETE FROM study_sync_chunks WHERE (kind='transfer' AND created_at < ?) OR (kind='manifest' AND created_at < ?)").run(now - 3600000,now - 90 * 86400000);
   let transfer, offset = 0;
   if (page) {
     const match = /^([a-f0-9-]+):(\d+)$/.exec(page);
@@ -74,18 +108,24 @@ export function studySync(userId, { cursor = null, page = null } = {}, { pageSiz
     const nextCursor = digest(manifest);
     if (cursor === nextCursor) return { changes:[], cursor:nextCursor, nextPage:null, reset:false, total:0 };
     const saved = cursor && db.prepare('SELECT manifest_json FROM study_sync_snapshots WHERE user_id=? AND cursor=?').get(userId,cursor);
-    const previous = saved ? JSON.parse(saved.manifest_json) : {};
+    const previous = saved ? readJson(db,userId,'manifest',cursor,saved.manifest_json) : {};
     const changes = records.filter(r => previous[JSON.stringify([r.collection,r.id])] !== manifest[JSON.stringify([r.collection,r.id])]);
     for (const key of Object.keys(previous)) if (!(key in manifest)) {
       const [collection,id] = JSON.parse(key); changes.push({ collection,id,deleted:true });
     }
-    db.prepare('INSERT OR REPLACE INTO study_sync_snapshots VALUES(?,?,?,?)').run(userId,nextCursor,JSON.stringify(manifest),now);
+    transaction(db, () => {
+      const stored = storeJson(db,userId,'manifest',nextCursor,manifest,now);
+      db.prepare('INSERT OR REPLACE INTO study_sync_snapshots VALUES(?,?,?,?)').run(userId,nextCursor,stored,now);
+    });
     // Retain baselines for offline devices; an expired cursor gets one paged bootstrap.
     db.prepare('DELETE FROM study_sync_snapshots WHERE created_at < ?').run(now - 90 * 86400000);
-    transfer = { id:randomUUID(),cursor:nextCursor,payload_json:JSON.stringify({ changes,reset:!saved }) };
-    db.prepare('INSERT INTO study_sync_transfers VALUES(?,?,?,?,?)').run(userId,transfer.id,transfer.cursor,transfer.payload_json,now);
+    transfer = { id:randomUUID(),cursor:nextCursor };
+    transaction(db, () => {
+      transfer.payload_json = storeJson(db,userId,'transfer',transfer.id,{ changes,reset:!saved },now);
+      db.prepare('INSERT INTO study_sync_transfers VALUES(?,?,?,?,?)').run(userId,transfer.id,transfer.cursor,transfer.payload_json,now);
+    });
   }
-  const payload = JSON.parse(transfer.payload_json);
+  const payload = readJson(db,userId,'transfer',transfer.id,transfer.payload_json);
   const changes = [];
   let bytes = 0;
   for (const change of payload.changes.slice(offset,offset+pageSize)) {

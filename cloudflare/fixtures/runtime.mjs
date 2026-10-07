@@ -42,6 +42,19 @@ JlptDatabase.prototype.fetch = async function(request) {
         return new Response('legacy schema restored');
       });
     }
+    if (new URL(request.url).pathname === '/__large-sync-seed') {
+      return this.ctx.blockConcurrencyWhile(async () => {
+        const now = '2026-10-07';
+        this.db.prepare('INSERT OR IGNORE INTO users VALUES(?,?,?,?,?)').run(3,'test-3','','',now);
+        this.db.prepare('INSERT OR IGNORE INTO sessions VALUES(?,?,?,?)').run('test-3',3,now,now);
+        for (let index = 0; index < 12; index++) {
+          const id = `large-${index}`;
+          const item = { id, deck:'grammar_expression',type:'grammar',original:'範囲',input_at:'2026-10-07T00:00:00Z',meaning_zh:'日本語😀'.repeat(20000) };
+          this.db.prepare('INSERT INTO owned_review_items VALUES(?,?,?,?,?,?)').run(3,id,JSON.stringify(item),'fixture',now,now);
+        }
+        return new Response('seeded');
+      });
+    }
     if (new URL(request.url).pathname === '/__seed') {
       return this.ctx.blockConcurrencyWhile(async () => {
         for (const id of [1,2]) {

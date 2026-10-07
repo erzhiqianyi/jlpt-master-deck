@@ -112,3 +112,25 @@ test('canonical versions sync with immutable revision keys, survive source chang
  assert.ok(!changed.changes.some(c=>c.collection==='questionVersions'&&c.id===old.id));
  assert.ok(!collect(bob.id,null).changes.some(c=>c.value?.id===q.id||c.value?.id===material.id));
 });
+
+test('fresh install bootstrap stores a multi-megabyte transfer in bounded rows', () => {
+  const user = s.createUser('large-sync','password');
+  const meaning = '日本語😀'.repeat(20000);
+  for (let index = 0; index < 12; index++) {
+    s.upsertReviewItem(item(`large-${index}`,meaning),{userId:user.id});
+  }
+  const initial = collect(user.id,null,150);
+  const items = initial.changes.filter(change => change.collection === 'items');
+  assert.equal(items.length,12);
+  assert(items.every(change => change.value.meaning_zh === meaning));
+  assert(Buffer.byteLength(JSON.stringify(initial.changes)) > 2 * 1024 * 1024);
+  const db = s.getDb();
+  const transfers = db.prepare('SELECT payload_json FROM study_sync_transfers WHERE user_id=?').all(user.id);
+  assert(transfers.every(row => Buffer.byteLength(row.payload_json) < 512 * 1024));
+  const chunks = db.prepare('SELECT content FROM study_sync_chunks WHERE user_id=?').all(user.id);
+  assert(chunks.length > 1);
+  assert(chunks.every(row => Buffer.byteLength(row.content) < 512 * 1024));
+  assert.deepEqual(collect(user.id,initial.cursor).changes,[]);
+  s.upsertReviewItem(item('large-0','更新'),{userId:user.id});
+  assert.equal(collect(user.id,initial.cursor).changes.filter(change => change.collection === 'items').length,1);
+});

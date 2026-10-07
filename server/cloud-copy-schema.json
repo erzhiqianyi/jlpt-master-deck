@@ -1,0 +1,1536 @@
+{
+  "version": 1,
+  "tables": {
+    "answers": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "question_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "selected",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "correct",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "answered_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "submission_state",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "answer_event_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question_ref_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question_kind",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_material_group_versions": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "group_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 3
+        },
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_material_groups": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "latest_revision",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_material_versions": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "material_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 3
+        },
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_asset_id",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_materials": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "latest_revision",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_question_aliases": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "source_kind",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "pk": 3
+        },
+        {
+          "name": "source_question_id",
+          "type": "TEXT",
+          "pk": 4
+        },
+        {
+          "name": "question_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_question_versions": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "question_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 3
+        },
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_questions": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "latest_revision",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "card_review_sync_baselines": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "progress_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "card_review_sync_events": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "event_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "card_reviews": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "event_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "rating",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "reviewed_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "count_semantics",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "daily_practices": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "practice_date",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "version",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "minutes",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "practice_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "daily_summaries": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "date",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "total_questions",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "correct_count",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "incorrect_count",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "accuracy",
+          "type": "REAL",
+          "pk": 0
+        },
+        {
+          "name": "stats_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "strengths_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "weaknesses_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "confusion_groups_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "recommendations_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "wrong_questions_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "summary_zh",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "generated_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "time_zone",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "item_images": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "mime",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "size",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "sha256",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "image_path",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "learning_captures": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "context",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "target_deck",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "target_wordbook_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "learning_events": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "event_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "event_type",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "occurred_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "received_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_hash",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "schema_version",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "question_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "listening_audio_assets": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "file_name",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "mime",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "size",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "sha256",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "transcript",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "transcript_translation",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_path",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "listening_questions": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question_type_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "choices_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "answer_index",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "explanation",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "choice_details_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_file_name",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_mime",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_size",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "audio_path",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "library_number",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "audio_asset_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "japanese_annotations_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "listening_recordings": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "listening_question_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_mime",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_size",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "audio_path",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "analysis_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "market_imports": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "digest",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "result_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "market_shares": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "source_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "package_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "withdrawn",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "mock_exams": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "content_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "owned_review_items": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "item_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "practice_state": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "attempt_history_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "active_attempt_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "progress": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "progress_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "question_reference_snapshots": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "original_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "item_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "reading_questions": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "passage",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "choices_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "answer_index",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "explanation",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "tags_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "explanation_nodes_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "translation_lines_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "passage_translation",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "choice_explanations_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "reading_analysis_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "ruby_terms_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "japanese_annotations_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "record_references": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "number",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "entity",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "internal_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "prefix",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "review_pack_drafts": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "content_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "annotations_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "study_plans": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "plan_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "user_review_items": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "item_json",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "users": {
+      "owner": "id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "username",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "wordbook_title_overrides": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "wordbook_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "wordbooks": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "deck",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "practice_completion_stats": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "practice_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "completed_count",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "practice_completion_receipts": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "attempt_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "practice_id",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ]
+    },
+    "bank_author_requests": {
+      "owner": "owner",
+      "columns": [
+        {
+          "name": "owner",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "request_id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "draft_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "question_id",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "study_sync_snapshots": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "cursor",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "manifest_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "study_sync_transfers": {
+      "owner": "user_id",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "INTEGER",
+          "pk": 1
+        },
+        {
+          "name": "id",
+          "type": "TEXT",
+          "pk": 2
+        },
+        {
+          "name": "cursor",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "payload_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ]
+    },
+    "market_share_versions": {
+      "owner": null,
+      "columns": [
+        {
+          "name": "share_id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "pk": 2
+        },
+        {
+          "name": "package_json",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "fingerprint",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "pk": 0
+        }
+      ],
+      "parentOwner": "market_shares"
+    },
+    "market_listening_audio": {
+      "owner": null,
+      "columns": [
+        {
+          "name": "share_id",
+          "type": "TEXT",
+          "pk": 1
+        },
+        {
+          "name": "audio_path",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_mime",
+          "type": "TEXT",
+          "pk": 0
+        },
+        {
+          "name": "audio_size",
+          "type": "INTEGER",
+          "pk": 0
+        }
+      ],
+      "parentOwner": "market_shares"
+    }
+  },
+  "excludedTables": [
+    "sessions",
+    "user_settings",
+    "review_items",
+    "review_item_migrations",
+    "mcp_read_revision",
+    "agent_access_tokens",
+    "agent_clients",
+    "agent_codes",
+    "agent_refresh_tokens",
+    "firebase_identities",
+    "user_tts_credentials",
+    "tts_audio_cache",
+    "cloud_schema_version",
+    "bank_shadow_checkpoint"
+  ],
+  "replacedFields": [
+    "users.username",
+    "users.created_at"
+  ],
+  "excludedFields": [
+    "users.password_hash",
+    "users.salt"
+  ]
+}

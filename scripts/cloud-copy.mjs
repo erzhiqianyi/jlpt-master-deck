@@ -1,0 +1,36 @@
+import {DatabaseSync} from 'node:sqlite';
+import {existsSync,readFileSync,writeFileSync,mkdirSync,rmSync,realpathSync,lstatSync,copyFileSync,linkSync} from 'node:fs';
+import {resolve,join,dirname,sep} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {createTestCopy,auditTestCopy,restoreRows,canonical,digest,mediaKey} from '../server/cloud-copy.mjs';
+const MAX=32*1024*1024;
+function readJson(path){if(lstatSync(path).size>MAX)throw new Error('Input exceeds 32 MiB');return JSON.parse(readFileSync(path,'utf8'));}
+function newFile(path,data){writeFileSync(path,data,{flag:'wx',mode:0o600});}
+function localMedia(root,key){mediaKey('/jlpt/.local/'+key);const base=realpathSync(root),path=join(base,key);let part=base;for(const s of key.split('/')){part=join(part,s);if(lstatSync(part).isSymbolicLink())throw new Error('Symlink media rejected');}const actual=realpathSync(path);if(!actual.startsWith(base+sep)||!lstatSync(actual).isFile())throw new Error('Unsafe offline media');return actual;}
+export function mediaAudit(snapshot,root){return snapshot.media.map(entry=>{if(!root)return {...entry,status:'notProvided'};try{const path=localMedia(root,entry.key),size=lstatSync(path).size;if(size>25*1024*1024)throw new Error('Media exceeds 25 MiB');const sha256=digest(readFileSync(path));if(entry.size!==null&&entry.size!==size)throw new Error('Media size mismatch');if(entry.sha256&&entry.sha256!==sha256)throw new Error('Media hash mismatch');return {...entry,status:entry.sha256?'verified':'copiedHashOnly',offlineSize:size,offlineSHA256:sha256};}catch(e){return {...entry,status:'missingOrInvalid',reason:e.code==='ENOENT'?'missing':e.message};}});}
+export function restoreCopy(snapshot,target,{mediaRoot,requireMedia=false,apply=false}={}){
+ const audit=auditTestCopy(snapshot),media=mediaAudit(snapshot,mediaRoot);target=resolve(target);if(existsSync(target))throw new Error('Target must be new; repeated restore/overwrite refused');const missing=media.filter(m=>!['verified','copiedHashOnly'].includes(m.status));if(requireMedia&&missing.length)throw new Error('Required media closure failed');
+ if(!apply)return {...audit,dryRun:true,target,media};
+ mkdirSync(target,{mode:0o700});const dbPath=join(target,'study.sqlite');let db;
+ try{db=new DatabaseSync(dbPath);restoreRows(db,snapshot);db.close();db=null;
+  for(const m of media)if(['verified','copiedHashOnly'].includes(m.status)){const input=localMedia(mediaRoot,m.key),output=join(target,'media',m.key);mkdirSync(dirname(output),{recursive:true,mode:0o700});copyFileSync(input,output,1);if(digest(readFileSync(output))!==m.offlineSHA256)throw new Error('Media changed during import');}
+  const report={...audit,complete:true,mediaComplete:missing.length===0,sourceMediaHashesKnown:media.every(m=>m.sha256),media,offlineOnly:true,excludedRuntimeAuthAndAlarms:true};newFile(join(target,'report.json'),canonical(report)+'\n');newFile(join(target,'COMPLETE'),audit.snapshotId+'\n');return {...report,target};
+ }catch(e){db?.close();rmSync(target,{recursive:true,force:true});throw e;}
+}
+/** Resumes immutable offline chunks only; no HTTP, bindings or credentials. */
+export function assembleCopy(manifest,chunkRoot,out,{resume=false,maxChunks=Infinity}={}){
+ if(manifest.format!=='jlpt-test-copy-chunks'||manifest.version!==1||!/^([a-f0-9]{64})$/.test(manifest.snapshotId)||!Array.isArray(manifest.chunks)||manifest.chunks.length>128||!Number.isSafeInteger(manifest.bytes)||manifest.bytes<1||manifest.bytes>MAX)throw new Error('Invalid chunk manifest');
+ if(manifest.chunks.reduce((n,c,i)=>{if(c.index!==i||!Number.isSafeInteger(c.bytes)||c.bytes<1||c.bytes>256*1024||!/^[a-f0-9]{64}$/.test(c.sha256))throw new Error('Invalid chunk metadata');return n+c.bytes;},0)!==manifest.bytes)throw new Error('Chunk length mismatch');
+ out=resolve(out);if(existsSync(out))throw new Error('Output exists');const checkpoint=out+'.checkpoint',signature=digest(manifest);
+ if(existsSync(checkpoint)){if(!resume)throw new Error('Explicit --resume required');if(readFileSync(join(checkpoint,'manifest.sha256'),'utf8')!==signature)throw new Error('Checkpoint belongs to another snapshot');}else{if(resume)throw new Error('Missing checkpoint');mkdirSync(checkpoint,{mode:0o700});newFile(join(checkpoint,'manifest.sha256'),signature);}
+ let added=0;for(const c of manifest.chunks){const dst=join(checkpoint,String(c.index)),src=join(resolve(chunkRoot),String(c.index));if(existsSync(dst)){if(digest(readFileSync(dst))!==c.sha256)throw new Error('Corrupt checkpoint');continue;}if(added++>=maxChunks)return {complete:false,snapshotId:manifest.snapshotId,checkpoint};if(lstatSync(src).isSymbolicLink()||lstatSync(src).size!==c.bytes)throw new Error('Invalid chunk file');const data=readFileSync(src);if(digest(data)!==c.sha256)throw new Error('Chunk hash mismatch');newFile(dst,data);}
+ const bytes=Buffer.concat(manifest.chunks.map(c=>readFileSync(join(checkpoint,String(c.index)))));if(bytes.length!==manifest.bytes||digest(bytes)!==manifest.snapshotId)throw new Error('Snapshot hash mismatch');const snapshot=JSON.parse(bytes.toString('utf8'));auditTestCopy(snapshot);const staged=join(checkpoint,'complete.json');if(!existsSync(staged))newFile(staged,bytes);if(digest(readFileSync(staged))!==manifest.snapshotId)throw new Error('Corrupt assembled checkpoint');linkSync(staged,out);rmSync(checkpoint,{recursive:true});return {complete:true,snapshotId:manifest.snapshotId,out};
+}
+export function runCopyCli(args){const [command,...flags]=args;const allowed={export:['--source','--owners','--out'],audit:['--snapshot','--media-root'],restore:['--snapshot','--target','--media-root','--require-media','--apply'],assemble:['--manifest','--chunks','--out','--resume']}[command];if(!allowed)throw new Error('Commands: export, audit, restore, assemble');const values={};for(let i=0;i<flags.length;i++){const flag=flags[i];if(!allowed.includes(flag)||Object.hasOwn(values,flag))throw new Error('Unknown/duplicate argument');if(['--require-media','--apply','--resume'].includes(flag))values[flag]=true;else{const value=flags[++i];if(!value||value.startsWith('--'))throw new Error('Missing argument');values[flag]=value;}}
+ const need=flag=>{if(!values[flag])throw new Error('Explicit '+flag+' required');return values[flag];};
+ if(command==='export'){const db=new DatabaseSync(realpathSync(need('--source')),{readOnly:true});try{db.exec('BEGIN');const result=createTestCopy(db,{owners:need('--owners').split(',').map(Number)});db.exec('COMMIT');newFile(resolve(need('--out')),result.text);return {snapshotId:result.id,out:resolve(values['--out']),audit:auditTestCopy(result.snapshot)};}finally{db.close();}}
+ if(command==='assemble')return assembleCopy(readJson(need('--manifest')),need('--chunks'),need('--out'),{resume:values['--resume']});
+ const snapshot=readJson(need('--snapshot'));if(command==='audit')return {...auditTestCopy(snapshot),media:mediaAudit(snapshot,values['--media-root'])};
+ return restoreCopy(snapshot,need('--target'),{mediaRoot:values['--media-root'],requireMedia:values['--require-media'],apply:values['--apply']});
+}
+if(import.meta.url===pathToFileURL(process.argv[1]??'').href){try{console.log(JSON.stringify(runCopyCli(process.argv.slice(2)),null,2));}catch(e){console.error('Test copy rejected:',e.message);process.exitCode=1;}}

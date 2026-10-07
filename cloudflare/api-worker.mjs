@@ -5,6 +5,7 @@ import { ensureCacheSchema, cleanupTtsCache } from '../server/tts/cache.mjs';
 import { DurableObject } from 'cloudflare:workers';
 import { withPlatform } from '../server/platform.mjs';
 import { sqliteAdapter } from './sqlite-adapter.mjs';
+import { createCopyExporter } from './copy-export.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { shareCover, listeningShareAudio } from '../server/market.mjs';
@@ -28,6 +29,12 @@ export class JlptDatabase extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.db = sqliteAdapter(ctx.storage);
+    // Explicit maintenance mode is read-only, including constructor and alarm.
+    // Enabling against production requires a separately approved deployment.
+    if (env.COPY_EXPORT_MODE === 'read-only') {
+      this.copyExporter = createCopyExporter(this.db, ctx.storage, env);
+      return;
+    }
     this.firebase = JSON.parse(env.FIREBASE_CONFIG);
     if (!['apiKey','authDomain','projectId','appId'].every(key => this.firebase[key])) throw new Error('Incomplete Firebase configuration');
     this.ttsSecretKey = env.TTS_SECRETS_KEY ?? null;
@@ -67,6 +74,7 @@ export class JlptDatabase extends DurableObject {
     });
   }
   async fetch(request) {
+    if (this.copyExporter) return this.ctx.blockConcurrencyWhile(() => this.copyExporter(request));
     // The existing app has one database. Serializing requests preserves its transaction
     // semantics and prevents overlapping authenticated requests from sharing adapters.
     return this.ctx.blockConcurrencyWhile(async () => {
@@ -118,6 +126,7 @@ export class JlptDatabase extends DurableObject {
     }
   }
   async alarm() {
+    if (this.copyExporter) return;
     return this.ctx.blockConcurrencyWhile(async () => {
       let delay = 60000;
       try {

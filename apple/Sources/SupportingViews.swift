@@ -299,12 +299,12 @@ struct NativeAttemptDetail: View {
                 Text("\(attempt.dateKey) · \(attempt.total) 次作答 · 正确率 \(StudyStatistics.metric([attempt]).accuracy)").foregroundStyle(DeckTheme.muted)
                 ForEach(Array(attempt.answers.enumerated()), id: \.offset) { index, answer in
                     VStack(alignment: .leading, spacing: 8) {
-                        let question = store.packs.flatMap(\.questions).first { $0.id == answer.questionId }
+                        let question = attempt.questionManifest?.first { $0.instanceId == answer.questionId && $0.status == "frozen" }?.snapshot
                         JapaneseText(text: "\(index + 1). \(question?.prompt ?? store.items.first { $0.id == answer.itemId }?.original ?? answer.questionId)", japanese: true, annotations: question?.japaneseAnnotations ?? [], weight: .semibold)
                         Text(answer.correct ? "回答正确" : "回答错误").foregroundStyle(answer.correct ? DeckTheme.green : DeckTheme.accent)
                         JapaneseText(text: "你的答案：\(answer.selected)")
-                        if let question { JapaneseText(text: "正确答案：\(question.answer)", annotations: question.japaneseAnnotations ?? []); JapaneseText(text: question.explanationDetails.reason, explanation: true, annotations: question.japaneseAnnotations ?? []).textSelection(.enabled) }
-                        else { Text("完整解析需同步对应练习题目。").font(.caption).foregroundStyle(DeckTheme.muted) }
+                        if let question { JapaneseText(text: "正确答案：\(question.answer)", annotations: question.japaneseAnnotations ?? []); JapaneseText(text: question.correctReason ?? "", explanation: true, annotations: question.japaneseAnnotations ?? []).textSelection(.enabled) }
+                        else { Text("原始题目版本缺失；仅保留当时作答与分数。").font(.caption).foregroundStyle(DeckTheme.muted) }
                     }; Divider()
                 }
             }.frame(maxWidth: 850).padding(16).frame(maxWidth: .infinity)

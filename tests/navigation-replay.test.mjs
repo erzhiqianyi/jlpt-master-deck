@@ -48,10 +48,11 @@ test('previous/next entry resolves the URL identity and does not substitute miss
 
 const source = { id: 'old', practiceId: 'daily-1', title: 'Original set', view: 'daily-practice', deck: 'all', startedAt: '2026-10-01', completedAt: '2026-10-01', analysisStatus: 'completed', questionIds: ['b', 'a'], answers: [{ questionId: 'a', selected: 'A', correct: true, elapsedMs: 2 }], summary: { total: 2, correct: 1 } };
 const originals = [{ id: 'a', choices: ['A', 'B'], answer: 'A' }, { id: 'b', choices: ['C', 'D'], answer: 'D' }];
+source.questionManifest=source.questionIds.map(id=>({instanceId:id,status:'frozen',snapshot:originals.find(q=>q.id===id)}));
 test('history redo preserves exact original order and attribution in a fresh independent attempt', () => {
   assert.deepEqual(replay.questionsForAttempt(source, originals).map((question) => question.id), ['b', 'a']);
   const fresh = replay.createReplayAttempt(source, 'new', '2026-10-03');
-  assert.deepEqual(fresh, { id: 'new', practiceId: 'daily-1', title: 'Original set', view: 'daily-practice', deck: 'all', startedAt: '2026-10-03', analysisStatus: 'idle', questionIds: ['b', 'a'], answers: [] });
+  assert.deepEqual(fresh, { id: 'new', practiceId: 'daily-1', title: 'Original set', view: 'daily-practice', deck: 'all', startedAt: '2026-10-03', analysisStatus: 'idle', questionIds: ['b', 'a'], questionManifest:source.questionManifest, answers: [] });
   assert.equal(source.answers.length, 1);
   assert.equal(source.completedAt, '2026-10-01');
   assert.notEqual(fresh.questionIds, source.questionIds);
@@ -59,8 +60,8 @@ test('history redo preserves exact original order and attribution in a fresh ind
 
 test('redo is unavailable for missing or unsupported questions rather than falling back to random content', () => {
   assert.equal(replay.canReplayAttempt(source, originals), true);
-  assert.equal(replay.canReplayAttempt(source, originals.slice(1)), false);
-  assert.equal(replay.canReplayAttempt(source, [...originals.slice(1), { id: 'a', choices: [], answer: '' }]), false);
+  assert.equal(replay.canReplayAttempt({...source,questionManifest:source.questionManifest.slice(1)}, originals.slice(1)), false);
+  assert.equal(replay.canReplayAttempt({...source,questionManifest:undefined}, originals), false);
   assert.equal(replay.canReplayAttempt({ ...source, questionIds: [] }, originals), false);
 });
 

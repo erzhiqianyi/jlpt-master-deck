@@ -1,3 +1,4 @@
+import {preserveAttemptManifest,manifestForQuestions} from './attempt-manifest.mjs';
 import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
 import { ensureQuestionBankSchema, archiveDraftQuestions } from './question-bank.mjs';
 import {ensureLearningEventSchema,recordLearningEvent,validateFrozenAnswer,recordAnswerSnapshot} from './learning-events.mjs';
@@ -1162,7 +1163,20 @@ export function listeningAudioForUser(userId, id) {
 
 /** Read an owned question's audio for MCP; cloud reads use the request's R2 adapter. */
 export async function readListeningAudioForUser(userId, id) {
-  const audio = listeningAudioForUser(userId, id);
+  return readOwnedAudio(listeningAudioForUser(userId, id));
+}
+
+export function materialAudioForUser(userId, id, revision) {
+  if (!Number.isSafeInteger(revision) || revision < 1) return null;
+  const material = readMaterialVersion(getDb(), userId, {id,revision});
+  if (material?.type !== 'audio' || !material.audioAssetId) return null;
+  const row = getDb().prepare('SELECT audio_path, mime AS audio_mime, file_name AS audio_file_name, size AS audio_size, sha256 FROM listening_audio_assets WHERE user_id=? AND id=?').get(userId, material.audioAssetId);
+  return row && (!material.sha256 || row.sha256 === material.sha256) && existsSync(row.audio_path) ? row : null;
+}
+export async function readMaterialAudioForUser(userId,id,revision) {
+  return readOwnedAudio(materialAudioForUser(userId,id,revision));
+}
+async function readOwnedAudio(audio) {
   if (!audio) return null;
   const limit = 25 * 1024 * 1024;
   if (audio.audio_size > limit) throw new Error('Audio exceeds the 25 MB MCP transfer limit');
@@ -2806,9 +2820,10 @@ function topicPracticeTitle(filters) {
 
 /** Practice plus the caller's answer state; explanations are only exposed for answered questions. */
 export function getPracticeSession(userId, practiceId) {
-  const practice = getDailyPractice(userId, practiceId);
-  if (!practice) return null;
+  const current = getDailyPractice(userId, practiceId);
+  if (!current) return null;
   const state = getStudyState(userId);
+  const practice = frozenAttemptPractice(current,state.attemptHistory);
   const questions = practice.questions.map((question) => sessionQuestionView(question, state.answers[question.id]));
   const answered = questions.filter((question) => question.answered);
   const correct = answered.filter((question) => question.correct).length;
@@ -2845,13 +2860,14 @@ function sessionQuestionView(question, answer) {
 }
 
 export function submitPracticeAnswer(userId, { practiceId, questionId, selected }) {
-  const practice = getDailyPractice(userId, practiceId);
-  if (!practice) throw new Error('Practice not found');
+  const current = getDailyPractice(userId, practiceId);
+  if (!current) throw new Error('Practice not found');
+  const state = getStudyState(userId);
+  const practice = frozenAttemptPractice(current,state.attemptHistory);
   const question = practice.questions.find((entry) => entry.id === questionId);
   if (!question) throw new Error('Question not found in this practice');
   const choice = String(selected ?? '').trim();
   if (!question.choices.includes(choice)) throw new Error(`selected must be one of: ${question.choices.join(' | ')}`);
-  const state = getStudyState(userId);
   const existing = state.answers[questionId];
   const now = new Date();
   if (!existing) {
@@ -2893,6 +2909,10 @@ export function submitPracticeAnswer(userId, { practiceId, questionId, selected 
 
 // The web keeps one in-progress attempt per question set in attemptHistory (resumable); reuse it
 // rather than touching activeAttempt, which belongs to whatever the browser is doing right now.
+function frozenAttemptPractice(practice,history) {
+  const attempt=history.find(entry=>entry.practiceId===practice.id&&entry.questionManifest?.length&&entry.questionManifest.every(q=>q.status==='frozen'&&q.snapshot));
+  return attempt ? {...practice,questions:attempt.questionManifest.map(entry=>entry.snapshot)} : practice;
+}
 function attemptForPractice(history, practice, now) {
   const questionIds = practice.questions.map((question) => question.id);
   const open = history.find((attempt) => !attempt.completedAt && attempt.practiceId === practice.id);
@@ -2906,6 +2926,7 @@ function attemptForPractice(history, practice, now) {
     view: 'daily-practice',
     deck: 'all',
     questionIds,
+    questionManifest:manifestForQuestions(practice.questions),
     answers: [],
   };
 }
@@ -4147,8 +4168,9 @@ function getPracticeState(userId) {
 
 function upsertPracticeState(userId, attemptHistory, activeAttempt, now = new Date().toISOString()) {
   const current = getPracticeState(userId);
-  const history = Array.isArray(attemptHistory) ? attemptHistory.slice(0, 50) : current.attemptHistory;
-  const active = activeAttempt === undefined ? current.activeAttempt : activeAttempt;
+  const previous = new Map(current.attemptHistory.map(entry=>[entry.id,entry]));
+  const history = (Array.isArray(attemptHistory) ? attemptHistory.slice(0,50) : current.attemptHistory).map(entry=>preserveAttemptManifest(getDb(),userId,entry,previous.get(entry.id)));
+  const active = preserveAttemptManifest(getDb(),userId,activeAttempt === undefined ? current.activeAttempt : activeAttempt,current.activeAttempt?.id===activeAttempt?.id?current.activeAttempt:undefined);
   // Count only newly completed attempts; existing completed history is never backfilled.
   const alreadyCompleted = new Set(current.attemptHistory.filter((attempt) => attempt.completedAt).map((attempt) => attempt.id));
   for (const attempt of Array.isArray(attemptHistory) ? attemptHistory : []) {

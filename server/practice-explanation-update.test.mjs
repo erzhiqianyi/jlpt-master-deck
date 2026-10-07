@@ -117,3 +117,15 @@ test('HTTP question PATCH persists corrected reading choices and clears stale pr
   assert.deepEqual(result.japaneseAnnotations, []);
   assert.deepEqual(db.prepare('SELECT * FROM answers').all(), savedAnswers);
 });
+
+test('MCP resumes and grades the frozen attempt after its practice source changes',()=>{
+ const original={id:'frozen-p',questions:[{...question,id:'frozen-q1'},{...question,id:'frozen-q2'}]};
+ db.prepare("INSERT INTO daily_practices(id,user_id,practice_date,version,title,minutes,practice_json,created_at,updated_at) VALUES(?,?,'2026-10-07',1,'Frozen',30,?,'2026-10-07','2026-10-07')").run(original.id,alice.id,JSON.stringify(original));
+ storage.submitPracticeAnswer(alice.id,{practiceId:original.id,questionId:'frozen-q1',selected:'さえ'});
+ const changed=structuredClone(original);changed.questions[1].prompt='更新后的题干';changed.questions[1].answer='こそ';
+ db.prepare('UPDATE daily_practices SET practice_json=? WHERE id=? AND user_id=?').run(JSON.stringify(changed),original.id,alice.id);
+ assert.equal(storage.getPracticeSession(alice.id,original.id).questions[1].prompt,question.prompt);
+ storage.submitPracticeAnswer(alice.id,{practiceId:original.id,questionId:'frozen-q2',selected:'さえ'});
+ assert.equal(storage.getStudyState(alice.id).answers['frozen-q2'].correct,true);
+ assert.equal(storage.getPracticeSession(bob.id,original.id),null);
+});

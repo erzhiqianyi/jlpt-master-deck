@@ -9,7 +9,7 @@ import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { shareCover, listeningShareAudio } from '../server/market.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
-import { userForToken, listeningAudioForUser, listeningRecordingAudioForUser, itemImageForUser } from '../server/storage.mjs';
+import { userForToken, materialAudioForUser, listeningAudioForUser, listeningRecordingAudioForUser, itemImageForUser } from '../server/storage.mjs';
 import { migrateReviewItemOwnership } from '../server/review-item-ownership.mjs';
 import { ensureReferenceSchema } from '../server/references.mjs';
 import { ensureQuerySchema } from '../server/mcp-query-schema.mjs';
@@ -173,7 +173,8 @@ export class JlptDatabase extends DurableObject {
       if (!object) return new Response('Not found',{status:404});
       return new Response(object.body,{headers:{'content-type':row.audio_mime,'content-length':String(object.size),'cache-control':'private, no-store','x-content-type-options':'nosniff'}});
     }
-    if (audio && request.method === 'GET') {
+    const materialAudio = /^\/api\/materials\/([^/]+)\/versions\/(\d+)\/audio$/.exec(url.pathname);
+    if ((audio || materialAudio) && request.method === 'GET') {
       const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
       let userId;
       if (mcp.carriesToken(request)) {
@@ -187,7 +188,7 @@ export class JlptDatabase extends DurableObject {
         userId = userForToken(token)?.id;
       }
       if (!userId) return Response.json({error:'Authentication required'},{status:401});
-      const row = (audio[1] === 'listening-questions' ? listeningAudioForUser : listeningRecordingAudioForUser)(userId, audio[2]);
+      const row = materialAudio ? materialAudioForUser(userId,decodeURIComponent(materialAudio[1]),Number(materialAudio[2])) : (audio[1] === 'listening-questions' ? listeningAudioForUser : listeningRecordingAudioForUser)(userId, audio[2]);
       if (!row) return new Response('Not found',{status:404});
       const object = await this.env.MEDIA.get(objectKey(row.audio_path));
       if (!object) return new Response('Not found',{status:404});

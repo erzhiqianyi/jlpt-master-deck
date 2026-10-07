@@ -251,10 +251,22 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
     await json('/api/listening-questions/'+question.id,'DELETE');
     assert.equal((await request(audioPath)).status,404);
+    const frozenAudioRef=question.materialRefs[0];
+    const frozenAudioPath=`/api/materials/${encodeURIComponent(frozenAudioRef.id)}/versions/${frozenAudioRef.revision}/audio`;
+    assert.equal(await (await request(frozenAudioPath)).text(),'test-audio-bytes');
+    assert.equal((await request(frozenAudioPath,'GET',undefined,'test-2')).status,404);
+    assert.equal((await request(frozenAudioPath,'GET',undefined,'')).status,401);
+    assert.equal((await request(frozenAudioPath,'GET',undefined,studyOnly.access_token)).status,403);
+    assert.equal(await (await request(frozenAudioPath,'GET',undefined,issued.access_token)).text(),'test-audio-bytes');
+    const frozenMcpAudio=await rpc('tools/call',{name:'get_material_audio',arguments:{material_id:frozenAudioRef.id,revision:frozenAudioRef.revision}});
+    assert.ok(!frozenMcpAudio.isError,JSON.stringify(frozenMcpAudio));assert.equal(Buffer.from(frozenMcpAudio.content[0].data,'base64').toString(),'test-audio-bytes');
     // Active question route is gone, but immutable material history still owns bytes.
     const media=await mf.getR2Bucket('MEDIA');
     const retained=(await media.list()).objects;
     assert.equal(retained.length,1);
     assert.equal(await (await media.get(retained[0].key)).text(),'test-audio-bytes');
+    await media.delete(retained[0].key);
+    assert.equal((await request(frozenAudioPath)).status,404);
+    const missingAudio=await rpc('tools/call',{name:'get_material_audio',arguments:{material_id:frozenAudioRef.id,revision:frozenAudioRef.revision}});assert.equal(missingAudio.isError,true);
   } finally {await mf.dispose();rmSync(dir,{recursive:true,force:true});}
 });

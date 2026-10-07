@@ -30,3 +30,9 @@ export function recordListeningPractice(previous: ProgressEntry | undefined, ses
     lastPracticeSessionId: sessionId,
   };
 }
+
+/** Audio revisions outlive LS rows; legacy rows retain their existing route. */
+export function listeningAudioPath(item: {id:string;audioAssetId?:string;materialRefs?:{id:string;revision:number}[]}) {
+  const ref=item.materialRefs?.find(entry=>entry.id===`audio:${item.audioAssetId}`);
+  return ref ? `/api/materials/${encodeURIComponent(ref.id)}/versions/${ref.revision}/audio` : `/api/listening-questions/${encodeURIComponent(item.id)}/audio`;
+}

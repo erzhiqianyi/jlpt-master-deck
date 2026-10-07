@@ -74,7 +74,7 @@ test('practice deletion isolates users, clears related attempts, and preserves s
   assert.ok(storage.getDailyPractice(alice.id, 'keep'));
   const own = storage.getStudyState(alice.id);
   assert.deepEqual(Object.keys(own.answers).sort(), ['keep-q', 'shared-q']);
-  assert.deepEqual(own.attemptHistory, [keepAttempt]);
+  assert.deepEqual(own.attemptHistory, [{...keepAttempt,questionManifest:keepAttempt.questionIds.map(instanceId=>({instanceId,status:"missingOriginal"}))}]);
   assert.equal(own.activeAttempt, null);
   assert.equal(own.progress.item.status, 'review');
   assert.ok(storage.getStudyState(bob.id).answers['target-q']);

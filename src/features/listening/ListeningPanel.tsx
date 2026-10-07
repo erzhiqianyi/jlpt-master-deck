@@ -1,3 +1,4 @@
+import {listeningAudioPath} from '../../domain/listeningPractice';
 import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
 import { QuestionRenderer } from '../../components/QuestionRenderer';
 import { AnswerCelebration } from '../../components/StudyCompanion';
@@ -558,7 +559,7 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
     let objectUrl = '';
     setAudioUrl('');
     setAudioError('');
-    fetch(`/api/listening-questions/${item.id}/audio`, { headers: { authorization: `Bearer ${token}` } })
+    fetch(listeningAudioPath(item), { headers: { authorization: `Bearer ${token}` } })
       .then((response) => {
         if (!response.ok) throw new Error(labels.listeningPlayError);
         return response.blob();
@@ -641,7 +642,7 @@ function ListeningAudioTools({ item, labels, locale, token, onOpenReadAlong }: {
     let objectUrl = '';
     setAudioUrl('');
     setAudioError('');
-    fetch(`/api/listening-questions/${item.id}/audio`, { headers: { authorization: `Bearer ${token}` } })
+    fetch(listeningAudioPath(item), { headers: { authorization: `Bearer ${token}` } })
       .then((response) => {
         if (!response.ok) throw new Error(labels.listeningPlayError);
         return response.blob();

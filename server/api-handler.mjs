@@ -62,6 +62,7 @@ import {
   removeReviewItemImage,
   itemImageForUser,
   listeningAudioForUser,
+  materialAudioForUser,
   listeningRecordingAudioForUser,
   loginUser,
   reviewDataPath,
@@ -98,7 +99,7 @@ return async (req, res) => {
     }
     const token = bearerToken(req);
     let user = userForToken(token);
-    if (!user && req.method === 'GET' && /^\/api\/(listening-questions|listening-recordings)\/[^/]+\/audio$/.test(url.pathname) && mcp) {
+    if (!user && req.method === 'GET' && (/\/api\/(listening-questions|listening-recordings)\/[^/]+\/audio$/.test(url.pathname) || /^\/api\/materials\/[^/]+\/versions\/\d+\/audio$/.test(url.pathname)) && mcp) {
       const authRequest = new Request(url, { headers: req.headers });
       if (mcp.carriesToken(authRequest)) {
         let grant;
@@ -462,6 +463,14 @@ return async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/listening-questions') {
       const question = createListeningQuestion(user.id, await readJson(req, 36 * 1024 * 1024));
       return json(res, 201, { question });
+    }
+
+    const materialAudioMatch = /^\/api\/materials\/([^/]+)\/versions\/(\d+)\/audio$/.exec(url.pathname);
+    if (req.method === 'GET' && materialAudioMatch) {
+      const audio = materialAudioForUser(user.id,decodeURIComponent(materialAudioMatch[1]),Number(materialAudioMatch[2]));
+      if (!audio) return json(res,404,{error:'missingMaterial'});
+      res.writeHead(200,{'content-type':audio.audio_mime,'content-length':audio.audio_size,'cache-control':'private, no-store','x-content-type-options':'nosniff'});
+      return createReadStream(audio.audio_path).pipe(res);
     }
 
     const listeningAudioMatch = /^\/api\/listening-questions\/([^/]+)\/audio$/.exec(url.pathname);

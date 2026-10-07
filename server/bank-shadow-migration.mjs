@@ -71,5 +71,27 @@ export function migrateBankShadow(db,{batchSize=100,maxBatches=Infinity}={}) {
  }
  const after=legacyInventory(db);
  if(hash(after)!==inputHash)throw new Error('Legacy data changed during shadow migration; reject this target');
- return {...report,nextIndex:index,totalJobs:jobs.length,legacyUnchanged:true,inventory:after};
+ return {...report,nextIndex:index,totalJobs:jobs.length,legacyUnchanged:true,inventory:after,identityReport:shadowIdentityReport(db)};
+}
+
+/** Reconcile identities without rewriting history or inventing an original revision. */
+export function shadowIdentityReport(db) {
+ const inventory=legacyInventory(db);
+ const aliases=db.prepare('SELECT owner,source_kind,source_id,source_question_id,question_id,revision FROM bank_question_aliases ORDER BY owner,source_kind,source_id,source_question_id').all();
+ const materials=db.prepare('SELECT owner,material_id,revision,audio_asset_id FROM bank_material_versions ORDER BY owner,material_id,revision').all();
+ const retained=[];const attempts=[];
+ for(const table of Object.keys(inventory)) {
+  const columns=db.prepare(`PRAGMA table_info(${quote(table)})`).all();
+  const keys=columns.filter(c=>c.pk).sort((a,b)=>a.pk-b.pk).map(c=>c.name);
+  const identities=keys.length?keys:columns.map(c=>c.name).filter(name=>['id','user_id','question_id','item_id'].includes(name));
+  if(!identities.length)continue;
+  for(const row of db.prepare(`SELECT * FROM ${quote(table)}`).all()) {
+   retained.push({table,identity:Object.fromEntries(identities.map(key=>[key,row[key]])),status:'legacyRetained',rowHash:hash(row)});
+   if(table==='practice_state')for(const attempt of JSON.parse(row.attempt_history_json??'[]')) {
+    const manifest=attempt.questionManifest;
+    attempts.push({owner:row.user_id,id:attempt.id,questionIds:attempt.questionIds??[],status:manifest?.length===attempt.questionIds?.length&&manifest.every(entry=>entry.status==='frozen'&&entry.snapshot)?'frozen':'missingOriginal',scoreHash:hash({answers:attempt.answers,summary:attempt.summary}),missingOriginal:(attempt.questionIds??[]).filter(id=>!manifest?.some(entry=>entry.instanceId===id&&entry.status==='frozen'&&entry.snapshot))});
+   }
+  }
+ }
+ return {aliases,materials,retained,attempts,counts:{canonicalAliases:aliases.length,materialVersions:materials.length,legacyIdentities:retained.length,frozenAttempts:attempts.filter(a=>a.status==='frozen').length,missingOriginalAttempts:attempts.filter(a=>a.status==='missingOriginal').length},policy:'legacyRetained is not canonical mapping; missingOriginal is quarantined from replay, never regraded'};
 }

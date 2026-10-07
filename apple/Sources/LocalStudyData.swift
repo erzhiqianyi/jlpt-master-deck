@@ -152,8 +152,17 @@ struct LocalStudyFiles {
         let name = SHA256.hash(data: key).map { String(format: "%02x", $0) }.joined()
         return directory(userID: userID).appendingPathComponent("speech-v1", isDirectory: true).appendingPathComponent(name + ".mp3")
     }
-    func audioURL(userID: Int, item: ListeningItem) -> URL {
+    func audioMaterialURL(userID:Int, assetID:String) -> URL {
+        let name = SHA256.hash(data:Data("asset:\(assetID)".utf8)).map { String(format:"%02x",$0) }.joined()
+        return directory(userID:userID).appendingPathComponent("audio",isDirectory:true).appendingPathComponent(name)
+    }
+    func legacyAudioURL(userID:Int,item:ListeningItem) -> URL {
         let key = "\(item.audioKey)|\(item.audioSize)|\(item.createdAt)"
+        let name = SHA256.hash(data:Data(key.utf8)).map { String(format:"%02x",$0) }.joined()
+        return directory(userID:userID).appendingPathComponent("audio",isDirectory:true).appendingPathComponent(name)
+    }
+    func audioURL(userID: Int, item: ListeningItem) -> URL {
+        let key = item.audioAssetId.map { "asset:\($0)" } ?? "\(item.audioKey)|\(item.audioSize)|\(item.createdAt)"
         let name = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
         return directory(userID: userID).appendingPathComponent("audio", isDirectory: true).appendingPathComponent(name)
     }

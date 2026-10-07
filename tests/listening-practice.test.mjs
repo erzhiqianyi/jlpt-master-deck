@@ -5,7 +5,7 @@ import { transform } from 'esbuild';
 
 const source = await readFile(new URL('../src/domain/listeningPractice.ts', import.meta.url), 'utf8');
 const { code } = await transform(source, { loader: 'ts', format: 'esm' });
-const { listeningPracticeKey, recordListeningPractice } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+const { listeningPracticeKey, recordListeningPractice, listeningAudioPath } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
 
 test('questions from the same audio share a count, including legacy files', () => {
   assert.equal(listeningPracticeKey({ id: 'a', audioAssetId: 'audio-1' }), listeningPracticeKey({ id: 'b', audioAssetId: 'audio-1' }));
@@ -21,4 +21,9 @@ test('one audio session counts once despite multiple answers and retries; a new 
   assert.equal(recordListeningPractice(restored, 'session-1', '2026-09-22T01:02:00Z').reviewCount, 1);
   assert.equal(recordListeningPractice(restored, 'session-2', '2026-09-22T02:00:00Z').reviewCount, 2);
   assert.equal(first.reviewCount, 1);
+});
+
+test('audio consumers prefer a frozen owned AU material revision and preserve the legacy route',()=>{
+ assert.equal(listeningAudioPath({id:'LS-deleted',audioAssetId:'AU1',materialRefs:[{id:'audio:AU1',revision:2}]}),'/api/materials/audio%3AAU1/versions/2/audio');
+ assert.equal(listeningAudioPath({id:'LS-old'}),'/api/listening-questions/LS-old/audio');
 });

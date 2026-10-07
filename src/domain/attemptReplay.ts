@@ -5,8 +5,8 @@ export function replayRouteAttemptId(itemId?: string) {
 }
 
 export function questionsForAttempt(attempt: PracticeAttempt, questions: Question[]) {
-  const byId = new Map(questions.map((question) => [question.id, question]));
-  return attempt.questionIds.flatMap((id) => byId.has(id) ? [byId.get(id)!] : []);
+  void questions;
+  return attempt.questionManifest?.flatMap(entry=>entry.status==='frozen' && entry.snapshot ? [entry.snapshot] : []) ?? [];
 }
 
 export function canReplayAttempt(attempt: PracticeAttempt, questions: Question[]) {
@@ -17,7 +17,7 @@ export function canReplayAttempt(attempt: PracticeAttempt, questions: Question[]
 
 export function createReplayAttempt(source: PracticeAttempt, id: string, now: string): PracticeAttempt {
   return { id, title: source.title, practiceId: source.practiceId, view: source.view, deck: source.deck,
-    startedAt: now, analysisStatus: 'idle', questionIds: [...source.questionIds], answers: [] };
+    startedAt: now, analysisStatus: 'idle', questionIds: [...source.questionIds], questionManifest:structuredClone(source.questionManifest), answers: [] };
 }
 
 export function answersForAttempt(attempt: PracticeAttempt): AnswerState {

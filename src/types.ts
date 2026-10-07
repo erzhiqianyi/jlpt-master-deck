@@ -75,6 +75,7 @@ export type PracticeAttempt = {
   view: AppView;
   deck: Deck | 'all';
   questionIds: string[];
+  questionManifest?: {instanceId:string;status:'frozen'|'missingOriginal';questionRef?:{id:string;revision:number};snapshot?:Question}[];
   answers: AttemptAnswer[];
   summary?: {
     total: number;

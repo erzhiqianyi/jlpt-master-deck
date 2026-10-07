@@ -59,6 +59,8 @@ import {
   findListeningAudioQuestions,
   listListeningRecordings,
   listeningAudioForUser,
+  materialAudioForUser,
+  readMaterialAudioForUser,
   listeningRecordingAudioForUser,
   listDueReviews,
   listListeningQuestions,
@@ -361,6 +363,16 @@ export const tools = [
       if (patch.transcript === undefined && patch.transcriptTranslation === undefined) throw new Error('Provide transcript or transcriptTranslation');
       return text(found(updateListeningTranscript(uid(ctx), question_id, patch), 'Listening transcript not found'));
     }, { scope: 'library:write' }),
+  tool('get_material_audio', 'Read an owned immutable audio material revision, including after its LS source was deleted. Missing bytes report missingMaterial. Requires audio:read.',
+    {material_id:z.string().min(1),revision:z.number().int().positive()},ro,
+    async ({material_id,revision},ctx)=>({content:[{type:'audio',...found(await readMaterialAudioForUser(uid(ctx),material_id,revision),'missingMaterial')}]}),{scope:'audio:read'}),
+  tool('get_material_audio_download', 'Get an authenticated owned audio material revision URL; no token is included. Requires audio:read.',
+    {material_id:z.string().min(1),revision:z.number().int().positive()},ro,
+    async ({material_id,revision},ctx)=>{
+      const audio=found(materialAudioForUser(uid(ctx),material_id,revision),'missingMaterial');
+      if(!ctx.request)throw new Error('Audio download URLs require an HTTP MCP connection');
+      return text({url:new URL(`/api/materials/${encodeURIComponent(material_id)}/versions/${revision}/audio`,ctx.request.url).toString(),mimeType:audio.audio_mime,size:audio.audio_size,auth:'MCP OAuth Bearer token with audio:read'});
+    },{scope:'audio:read'}),
   tool('get_listening_audio', 'Read the uploaded audio for one owned listening question as MCP audio content. Requires audio:read permission; use an id from list_listening_questions or resolve_reference. Audio is limited to 25 MB.',
     { question_id: z.string().min(1) }, ro,
     async ({ question_id }, ctx) => ({ content: [{ type: 'audio', ...found(await readListeningAudioForUser(uid(ctx), question_id), 'Listening audio not found') }] }),

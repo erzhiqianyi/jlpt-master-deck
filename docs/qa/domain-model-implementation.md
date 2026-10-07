@@ -83,7 +83,7 @@ Web新批量协议eventMode=merge，选择暂存为draft，保留可续作的稳
 
 本地已交付：六领域/23型/知识/媒体/答案/审批/版本/事件/日期/分享契约文档；canonical与材料增量核心及主写入口；真实Web/MCP共享渲染、Web/iOS冻结消费；客观/主观事件与日总结；可续跑影子回填和旧表哈希报告；本机集成/unit/build/native/UI证据及可回退提交。整个独立库尚不能作为全库唯一权威，不宣称原方案全部完成。
 
-仍待实施或额外验收：通用独立词汇/语法作者写用例及完整知识多对多编辑；全attempt manifest冻结和历史题缺失恢复；题型真实长内容/图片/多材料的完整跨平台视觉fixture与统一原生UI；历史AU按材料revision授权离线读取；全库owner/分享/事件映射核对和灰度/回滚演练；旧客户端全量progress并发替代。生产切换、真实数据回填及删除旧库不在本任务执行授权内，仅保留预演与手册；这些边界不是继续扩大工程或触碰生产的理由。
+以下为阶段四当时缺口，后续完成情况以“收尾一/收尾二”为准：通用独立词汇/语法作者写用例及完整知识多对多编辑；全attempt manifest冻结和历史题缺失恢复；题型真实长内容/图片/多材料的完整跨平台视觉fixture与统一原生UI；历史AU按材料revision授权离线读取；全库owner/分享/事件映射核对和灰度/回滚演练；旧客户端全量progress并发替代。生产切换、真实数据回填及删除旧库不在本任务执行授权内，仅保留预演与手册；这些边界不是继续扩大工程或触碰生产的理由。
 
 ## 收尾一：独立作者用例
 
@@ -94,3 +94,17 @@ Web新批量协议eventMode=merge，选择暂存为draft，保留可续作的稳
 最终本地全回归479/479（包含九型作者、知识JSON不变、多对多、numeric base、真实MCP及临时账号REST审批/发布、旧实践冻结）；tsc/lint/Web+3 MCP/Cloud API bundle通过；原生65/65复验通过，新增结构化条件冻结消费断言。日志`.local/domain-authoring/`。先前4UI/22截图仍是先前代表场景证据，本轮没有将其算作九型全视觉验收。
 
 四项具体缺口、逐项完成标准及工具路径见[收尾清单](four-items-closeout.md)。独立作者用例这一缺口已补；完整attempt历史/映射、旧AU离线入口和全23型跨端视觉仍按该清单继续。原方案尚未全部完成。
+
+## 收尾二：历史冻结与 AU 授权离线读取
+
+本轮使用合成数据库、独立 Simulator、Miniflare SQLite/R2，不回填真实学习库。
+
+`questionManifest`记录有序实例ID、canonical revision和完整呈现/答案快照。Web普通练习在创建attempt时冻结完整题；分页词汇仅有轻量索引时标记missingOriginal，在实际作答时冻结具体题。iOS练习保存可离线JSON往返的同一manifest。MCP首次作答冻结整套，后续读取和评分消费原快照，即使来源内容被修改。服务端校验owned revision、固定题序，已完成attempt保留原答案与summary；旧记录没有原始快照时不查询当前题冒充，Web禁用回放，iOS只展示原作答/分数与缺失提示。不是从当前canonical revision猜历史原题。
+
+影子迁移增加`identityReport`：source aliases、素材versions、全部可识别旧行ID与hash、attempt原始分数hash、missingOriginal清单及分类计数。`legacyRetained`明确不等于canonical已映射。覆盖DR947合成20题0-based、同stem不同来源、SRS旧ID/计数、旧attempt分数；旧表hash不变。报告没有写回旧历史，没有将未知版本自动提升为可重放。
+
+新增`GET /api/materials/:id/versions/:revision/audio`、`get_material_audio`、`get_material_audio_download`，owner与audio:read保护，并接Node和Cloudflare R2。按revision取原AU，验证asset hash；最后LS删除后仍可读，真正没有字节返回404/missingMaterial。Web听力播放器使用此入口；iOS优先此入口，下载包含已同步历史音频素材版本，缓存按账户/AU去重并读取旧缓存。暂停的原生听力题与素材引用冻结到账户作用域draft，即使源LS消失，列表保留恢复入口。无需重复上传。
+
+验证：最终Node全量486/486（0 fail/skip）；原生67项unit、2条UI回归通过（听力暂停/恢复/结果，练习反馈），`.local/domain-closeout-ui.xcresult`。新增真实HTTP OAuth scope/owner检查、实际MCP handler、本机Miniflare REST/OAuth/MCP/R2删源读原音频与缺字节检查；迁移6项及MCP原题修改后的冻结评分检查。tsc/lint、Web+三MCP、Cloud API bundle通过。首轮native缓存旧断言期望不同LS大小产生不同AU缓存；按不可变AU去重契约修正后全量复验通过。日志归档`.local/domain-closeout/`。
+
+剩余边界：没有可靠原始快照的历史无法恢复，明确quarantine/legacy可读；Web分页未呈现/未作答题不假称已冻结；MCP首次取题到首次作答之间尚无单独持久化start事件。听力/阅读专用local-study-responses保留原记录，但尚未统一成NativeAttempt。全类型长内容/图片/多素材的23型跨端视觉验收仍未闭环，浏览器像素工具缺失。未做真实生产迁移、源库删除、灰度切换或发布。

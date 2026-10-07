@@ -17,7 +17,7 @@ struct PracticeEntry: Identifiable {
         .init(id: "daily", title: "今日练习", subtitle: "完成今天准备好的练习题。", icon: "calendar")
     ]
 }
-struct NativeQuestion: Codable, Identifiable {
+struct NativeQuestion: Codable, Identifiable, Equatable {
     var canonicalQuestionId: String?
     var questionRevision: Int?
     var questionTypeId: String?
@@ -29,7 +29,7 @@ struct NativeQuestion: Codable, Identifiable {
     var promptTarget: String?
     var instruction: String?; var translationZh: String?; var context: String?
     var correctReason: String?; var memoryPoint: String?; var choiceAnalysis: [Analysis]?
-    struct Analysis: Codable { let choice: String; let correct: Bool; let explanation: String }
+    struct Analysis: Codable, Equatable { let choice: String; let correct: Bool; let explanation: String }
     var isUsable: Bool { choices.count >= 2 && choices.contains(answer) }
 }
 extension NativeQuestion {
@@ -648,7 +648,7 @@ struct NativeQuizView: View {
         let correct = answers.filter(\.correct).count
         return NativeAttempt(id: resumedAttemptID ?? "native-\(round.id.uuidString)", title: round.title, practiceId: round.practiceId,
                              startedAt: attemptStarted.ISO8601Format(), completedAt: complete ? now.ISO8601Format() : nil, view: round.view, deck: "all",
-                             questionIds: round.questions.map(\.id), answers: answers,
+                             questionIds: round.questions.map(\.id), questionManifest: round.questions.map { q in .init(instanceId:q.id,status:"frozen",questionRef:q.canonicalQuestionId.flatMap { id in q.questionRevision.map { .init(id:id,revision:$0) } },snapshot:q) }, answers: answers,
                              summary: complete ? .init(total: round.questions.count, correct: correct, wrong: answers.count - correct,
                                                        accuracy: Double(correct) / Double(max(1, answers.count)) * 100, elapsedMs: answers.reduce(0) { $0 + $1.elapsedMs }) : nil)
     }

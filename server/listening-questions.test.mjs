@@ -320,3 +320,36 @@ test('MCP accepts expression type without silently classifying it as an N1 liste
  const version=JSON.parse(storage.getDb().prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(alice.id,saved.canonicalQuestionId,saved.questionRevision).payload_json);
  assert.equal(version.questionTypeId,'listening-expression');
 });
+
+test('immutable material audio remains readable after last LS deletion; owner, missing bytes and R2 adapter are enforced',async()=>{
+ const q=storage.createListeningQuestion(alice.id,makeInput(94));
+ const ref=q.materialRefs[0];const expected=Buffer.from('fake-audio-bytes-94');
+ assert.equal(storage.materialAudioForUser(bob.id,ref.id,ref.revision),null);
+ assert.equal(storage.materialAudioForUser(alice.id,ref.id,999),null);
+ storage.deleteListeningQuestion(alice.id,q.id);
+ assert.equal(storage.listeningAudioForUser(alice.id,q.id),null);
+ assert.deepEqual(Buffer.from((await storage.readMaterialAudioForUser(alice.id,ref.id,ref.revision)).data,'base64'),expected);
+ const descriptor=tools.find(t=>t.name==='get_material_audio');assert.equal(descriptor.scope,'audio:read');
+ const result=await descriptor.handler({material_id:ref.id,revision:ref.revision},{ownerId:String(alice.id)});
+ assert.deepEqual(Buffer.from(result.content[0].data,'base64'),expected);
+ const {withPlatform}=await import('./platform.mjs');
+ let requested;
+ await withPlatform({files:{existsSync:()=>true},readMedia:async path=>{requested=path;return expected;}},async()=>{
+  assert.deepEqual(Buffer.from((await storage.readMaterialAudioForUser(alice.id,ref.id,ref.revision)).data,'base64'),expected);
+ });assert.ok(requested);
+ await withPlatform({files:{existsSync:()=>true},readMedia:async()=>null},async()=>assert.equal(await storage.readMaterialAudioForUser(alice.id,ref.id,ref.revision),null));
+});
+
+test('material audio HTTP authenticates OAuth scope and isolates owners after LS deletion',async()=>{
+ const {PassThrough}=await import('node:stream');
+ const q=storage.createListeningQuestion(alice.id,makeInput(95));const ref=q.materialRefs[0];storage.deleteListeningQuestion(alice.id,q.id);
+ const request=async(owner,scopes)=>{
+  const handler=createApiHandler({mcp:{carriesToken:()=>true,authenticate:async()=>({ownerId:String(owner.id),scopes})}});
+  const res=new PassThrough();let status;const chunks=[];res.writeHead=(code)=>{status=code;return res;};res.setHeader=()=>{};
+  res.on('data',data=>chunks.push(data));const done=new Promise(resolve=>res.on('end',resolve));
+  await handler({method:'GET',url:`/api/materials/${encodeURIComponent(ref.id)}/versions/${ref.revision}/audio`,headers:{host:'localhost',authorization:'Bearer synthetic-oauth'}},res);await done;
+  return {status,bytes:Buffer.concat(chunks)};
+ };
+ assert.equal((await request(alice,[])).status,403);assert.equal((await request(bob,['audio:read'])).status,404);
+ const owned=await request(alice,['audio:read']);assert.equal(owned.status,200);assert.equal(owned.bytes.toString(),'fake-audio-bytes-95');
+});

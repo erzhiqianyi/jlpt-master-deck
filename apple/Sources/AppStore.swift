@@ -506,13 +506,21 @@ final class AppStore {
         guard let session else { throw IdentityError.message("请先登录。") }
         let url = files.audioURL(userID: session.user.id, item: item)
         if FileManager.default.fileExists(atPath: url.path) { return try Data(contentsOf: url) }
+        let legacy = files.legacyAudioURL(userID:session.user.id,item:item)
+        if FileManager.default.fileExists(atPath:legacy.path) {
+            let bytes = try Data(contentsOf:legacy); try bytes.write(to:url,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication]); return bytes
+        }
         guard isOnline else { throw IdentityError.message("这段音频尚未下载，请联网后下载。") }
         let expected = generation
-        var request = URLRequest(url: APIClient.origin.appendingPathComponent("api/listening-questions").appendingPathComponent(item.id).appendingPathComponent("audio"))
+        let ref = item.materialRefs?.first { ref in
+            guard case .object(let payload) = bankVersions?["materialVersions"]?[ref.versionKey]?.payload else { return false }; return payload["type"] == .string("audio")
+        }
+        let endpoint = ref.map { APIClient.origin.appendingPathComponent("api/materials").appendingPathComponent($0.id).appendingPathComponent("versions").appendingPathComponent(String($0.revision)).appendingPathComponent("audio") } ?? APIClient.origin.appendingPathComponent("api/listening-questions").appendingPathComponent(item.id).appendingPathComponent("audio")
+        var request = URLRequest(url: endpoint)
         request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard expected == generation else { throw CancellationError() }
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw IdentityError.message("音频下载失败。") }
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw IdentityError.message("音频素材缺失或读取失败（missingMaterial）。") }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         return data
@@ -609,7 +617,7 @@ final class AppStore {
     func cancelSpeechDownload() { speechDownloadTask?.cancel() }
     func downloadListeningAudio() async {
         guard !isDownloadingAudio, !isDemo, session != nil else { return }
-        guard hasListeningCache, !listening.isEmpty else { notice = "请先同步听力题库。"; return }
+        guard hasListeningCache || !(bankVersions?["materialVersions"] ?? [:]).isEmpty else { notice = "请先同步听力题库。"; return }
         isDownloadingAudio = true
         let expected = generation
         defer { isDownloadingAudio = false }
@@ -617,6 +625,22 @@ final class AppStore {
             for group in ListeningGroup.make(listening) {
                 guard let first = group.questions.first, expected == generation else { return }
                 _ = try await audioData(for: first)
+            }
+            // Historical AU revisions remain downloadable even when the last LS is absent.
+            var downloaded = Set<String>()
+            for cached in (bankVersions?["materialVersions"] ?? [:]).values.sorted(by: { $0.versionKey < $1.versionKey }) {
+                guard case .object(let payload) = cached.payload, payload["type"] == .string("audio"), case .string(let asset) = payload["audioAssetId"], !downloaded.contains(asset), let session else { continue }
+                downloaded.insert(asset)
+                let destination = files.audioMaterialURL(userID:session.user.id,assetID:asset)
+                if FileManager.default.fileExists(atPath:destination.path) { continue }
+                guard isOnline else { throw IdentityError.message("音频素材未下载（missingMaterial）。") }
+                var request = URLRequest(url:APIClient.origin.appendingPathComponent("api/materials").appendingPathComponent(cached.id).appendingPathComponent("versions").appendingPathComponent(String(cached.revision)).appendingPathComponent("audio"))
+                request.setValue("Bearer \(session.token)",forHTTPHeaderField:"Authorization")
+                let (bytes,response) = try await URLSession.shared.data(for:request)
+                guard expected == generation else { throw CancellationError() }
+                guard let http = response as? HTTPURLResponse, http.statusCode == 200, http.mimeType?.hasPrefix("audio/") == true, !bytes.isEmpty else { throw IdentityError.message("音频素材缺失（missingMaterial）。") }
+                try FileManager.default.createDirectory(at:destination.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try bytes.write(to:destination,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
             }
             if expected == generation { notice = "听力音频已下载，可离线播放。" }
         } catch { if expected == generation { notice = "音频下载未完成：\(error.localizedDescription)" } }

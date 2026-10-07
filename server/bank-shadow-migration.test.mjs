@@ -49,3 +49,28 @@ test('audio assets are reused for multiple LS questions without uploads and lega
  const group=JSON.parse(db.prepare('SELECT payload_json FROM bank_material_group_versions').get().payload_json);assert.equal(group.questionRefs.length,2);
  }finally{db.close();}
 });
+
+test('identity reconciliation preserves IDs and old scores while quarantining unknown original attempts',()=>{
+ const db=new DatabaseSync(':memory:');try {
+ db.exec('CREATE TABLE daily_practices(id TEXT PRIMARY KEY,user_id INTEGER,practice_json TEXT); CREATE TABLE practice_state(user_id INTEGER PRIMARY KEY,attempt_history_json TEXT); CREATE TABLE progress(user_id INTEGER,item_id TEXT,correct INTEGER,wrong INTEGER);');
+ db.prepare('INSERT INTO daily_practices VALUES(?,?,?)').run('PR-old',1,JSON.stringify({questions:[{id:'Q-old',kind:'grammar',prompt:'same',choices:['A','B'],answerIndex:1}]}));
+ db.prepare('INSERT INTO practice_state VALUES(?,?)').run(1,JSON.stringify([{id:'AT-old',questionIds:['Q-old'],answers:[{questionId:'Q-old',selected:'A',correct:true}],summary:{correct:1}}]));
+ db.prepare('INSERT INTO progress VALUES(?,?,?,?)').run(1,'item-old',17,9);
+ const before=legacyInventory(db);const result=migrateBankShadow(db);
+ assert.deepEqual(result.inventory,before);assert.equal(result.identityReport.attempts[0].status,'missingOriginal');
+ assert.deepEqual(result.identityReport.attempts[0].missingOriginal,['Q-old']);assert.ok(result.identityReport.retained.some(row=>row.identity.item_id==='item-old'));
+ assert.equal(result.identityReport.aliases[0].source_id,'PR-old');assert.equal(JSON.parse(db.prepare('SELECT attempt_history_json FROM practice_state').get().attempt_history_json)[0].summary.correct,1);
+ }finally{db.close();}
+});
+
+test('DR947 twenty zero-based draft answers and duplicate stems retain old bytes and distinct identities',()=>{
+ const db=new DatabaseSync(':memory:');try {
+ db.exec('CREATE TABLE review_pack_drafts(id TEXT PRIMARY KEY,user_id INTEGER,content_json TEXT); CREATE TABLE daily_practices(id TEXT PRIMARY KEY,user_id INTEGER,practice_json TEXT);');
+ const questions=Array.from({length:20},(_,index)=>({id:`DR947-Q${index+1}`,kind:'grammar',prompt:'同じ問題',choices:['A','B','C','D'],answer:index%4}));
+ db.prepare('INSERT INTO review_pack_drafts VALUES(?,?,?)').run('DR947',1,JSON.stringify({sections:[{questions}]}));
+ for(const id of ['PR-A','PR-B'])db.prepare('INSERT INTO daily_practices VALUES(?,?,?)').run(id,1,JSON.stringify({questions:[{id:'same-instance',kind:'grammar',prompt:'同じ問題',choices:['A','B','C','D'],answerIndex:2}]}));
+ const before=legacyInventory(db);const result=migrateBankShadow(db);assert.equal(result.complete,true);assert.deepEqual(result.inventory,before);
+ const mappings=result.identityReport.aliases.filter(a=>a.source_kind==='practice');assert.equal(new Set(mappings.map(a=>a.question_id)).size,2);
+ assert.equal(JSON.parse(db.prepare('SELECT content_json FROM review_pack_drafts').get().content_json).sections[0].questions[19].answer,3);
+ }finally{db.close();}
+});

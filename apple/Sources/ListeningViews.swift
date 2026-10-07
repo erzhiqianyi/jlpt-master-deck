@@ -21,6 +21,15 @@ struct ListeningItem: Codable, Identifiable {
 struct ListeningGroup: Identifiable {
     let id: String; let questions: [ListeningItem]
     var title: String { questions.first?.audioFileName ?? "听力" }
+    static func restorable(_ items:[ListeningItem],owner:String,defaults:UserDefaults = .standard) -> [Self] {
+        var groups = Dictionary(make(items).map { ($0.id,$0) },uniquingKeysWith:{ first,_ in first })
+        let prefix = "listening-draft-v1:\(owner):"
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            guard let bytes = defaults.data(forKey:key),let draft = try? JSONDecoder().decode(ListeningDraft.self,from:bytes),let snapshots = draft.questionSnapshots,!snapshots.isEmpty, snapshots.map(\.id) == draft.questionIDs else { continue }
+            let id = String(key.dropFirst(prefix.count)); groups[id] = .init(id:id,questions:snapshots)
+        }
+        return groups.values.sorted { $0.id < $1.id }
+    }
     static func make(_ items: [ListeningItem]) -> [Self] {
         Dictionary(grouping: items, by: \.audioKey).map { key, values in
             Self(id: key, questions: values.sorted {
@@ -38,7 +47,7 @@ struct ListeningLibraryView: View {
     @State private var showingFilters = false
     static let types = [("all", "全部"), ("listening-task", "課題理解"), ("listening-points", "ポイント理解"), ("listening-outline", "概要理解"), ("listening-expression", "発話表現（N3–N5）"), ("listening-quick", "即時応答"), ("listening-integrated", "統合理解"), ("listening-basic-training", "基础训练")]
     var groups: [ListeningGroup] {
-        ListeningGroup.make(store.listening).filter { group in
+        ListeningGroup.restorable(store.listening,owner:store.isDemo ? "demo" : String(store.session?.user.id ?? 0)).filter { group in
             (type == "all" || group.questions.contains { $0.questionTypeId == type }) && (query.isEmpty || group.questions.contains { "\($0.title) \($0.audioFileName) \($0.reference ?? "")".localizedCaseInsensitiveContains(query) })
         }
     }
@@ -89,7 +98,8 @@ struct ListeningLibraryView: View {
     }
 
 }
-private struct ListeningDraft: Codable {
+struct ListeningDraft: Codable {
+    var questionSnapshots: [ListeningItem]?
     var questionIDs: [String]
     var currentQuestion: Int
     var selected: [String: Int]
@@ -411,7 +421,7 @@ struct ListeningDetailView: View {
     }
     private func saveDraft() {
         guard !revealed, !group.questions.isEmpty else { return }
-        let draft = ListeningDraft(questionIDs: group.questions.map(\.id), currentQuestion: currentQuestion,
+        let draft = ListeningDraft(questionSnapshots:group.questions,questionIDs: group.questions.map(\.id), currentQuestion: currentQuestion,
                                    selected: selected, written: written, audioTime: player?.currentTime ?? audioTime, sessionID: sessionID)
         if let data = try? JSONEncoder().encode(draft) { UserDefaults.standard.set(data, forKey: draftKey) }
     }
@@ -419,7 +429,9 @@ struct ListeningDetailView: View {
         guard phase == .answering, selected.isEmpty, written.isEmpty,
               let data = UserDefaults.standard.data(forKey: draftKey),
               let draft = try? JSONDecoder().decode(ListeningDraft.self, from: data),
-              draft.questionIDs == group.questions.map(\.id), group.questions.indices.contains(draft.currentQuestion) else { return }
+              (draft.questionSnapshots?.indices.contains(draft.currentQuestion) ?? group.questions.indices.contains(draft.currentQuestion)) else { return }
+        if let snapshots = draft.questionSnapshots { group = ListeningGroup(id:group.id,questions:snapshots) }
+        guard draft.questionIDs == group.questions.map(\.id) else { return }
         selected = draft.selected; written = draft.written; currentQuestion = draft.currentQuestion
         audioTime = draft.audioTime; sessionID = draft.sessionID; phase = .resume
     }

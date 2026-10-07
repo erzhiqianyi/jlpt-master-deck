@@ -43,3 +43,7 @@ AU保留原asset ID与SHA-256，多个LS共享一个音频材料；文章副本�
 对账至少含旧ID映射率、题/版本/alias计数、owner权限、答案相等、材料引用闭包、历史媒体保留、分享可导入、pending去重和历史表hash。只允许新增metadata差异，学习事实不变。回滚优先切读，保新旧表和媒体；备份恢复是最后手段，避免丢之后合法作答。当前已有兼容旧snapshot读，并非可验收的完整灰度/回滚开关。
 
 已接Web/MCP共享renderer、canonical分页同步与iOS版本缓存、作答/自评事件和自然日统计消费。下一步补完整离线材料消费、历史媒体读取、原生共享呈现与分享版本授权，再扩展影子迁移核对和回滚演练。全部未完成前，不宣称生产迁移可用或题库已成为唯一权威。
+
+### 历史身份对账报告（2026-10-07 增量）
+
+本地shadow返回`identityReport.aliases/materials/retained/attempts/counts`。旧行identity与rowHash、旧attempt scoreHash用于对账；`legacyRetained`不是canonical映射成功。无当时完整manifest的历史标记missingOriginal，仅旧作答/分数可读，禁止用当前源题重放或重评分。DR947合成20题0-based与旧表hash已有保护测试。报告输出不会改写真实库；真实执行仍须显式新shadow目标。旧知识/进度/历史ID保持，尚未执行生产切换。

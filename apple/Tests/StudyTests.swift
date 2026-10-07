@@ -857,7 +857,9 @@ final class OfflineStudyTests: XCTestCase {
         let files = LocalStudyFiles()
         XCTAssertNotEqual(files.audioURL(userID: 1, item: item), files.audioURL(userID: 2, item: item))
         let updated = try JSONDecoder().decode(ListeningItem.self, from: Data(String(decoding: bytes, as: UTF8.self).replacingOccurrences(of: "100", with: "200").utf8))
-        XCTAssertNotEqual(files.audioURL(userID: 1, item: item), files.audioURL(userID: 1, item: updated))
+        XCTAssertEqual(files.audioURL(userID: 1, item: item), files.audioURL(userID: 1, item: updated))
+        XCTAssertEqual(files.audioURL(userID:1,item:item),files.audioMaterialURL(userID:1,assetID:"shared"))
+        XCTAssertNotEqual(files.audioURL(userID:1,item:item),files.legacyAudioURL(userID:1,item:item))
     }
     private func question(id: String = "q1") -> NativeQuestion {
         NativeQuestion(id: id, itemId: "i1", kind: "grammar", title: "Grammar", prompt: "Q", choices: ["A", "B"], answer: "A")
@@ -1028,5 +1030,32 @@ final class QuestionBankSyncTests: XCTestCase {
         let json=try JSONDecoder().decode(SettingValue.self,from:JSONEncoder().encode(value))
         XCTAssertThrowsError(try data.applySync([.init(collection:"questionVersions",id:#"["Q1",2]"#,value:json)]))
         XCTAssertNil(data.bankVersions)
+    }
+}
+
+final class FrozenAttemptCompatibilityTests: XCTestCase {
+    func testOriginalSnapshotAndMaterialReferenceSurviveOfflineRoundTrip() throws {
+        let question = NativeQuestion(canonicalQuestionId:"bank-old",questionRevision:1,materialRefs:[.init(id:"audio:AU-old",revision:2)],id:"Q-old",itemId:"I-old",kind:"grammar",title:"原题",prompt:"原始题干",choices:["A","B"],answer:"B")
+        let attempt = NativeAttempt(id:"AT-old",startedAt:"2026-10-07",view:"mixed",deck:"all",questionIds:[question.id],questionManifest:[.init(instanceId:question.id,status:"frozen",questionRef:.init(id:"bank-old",revision:1),snapshot:question)],answers:[])
+        let decoded = try JSONDecoder().decode(NativeAttempt.self,from:JSONEncoder().encode(attempt))
+        XCTAssertEqual(decoded,attempt)
+        XCTAssertEqual(decoded.questionManifest?.first?.snapshot?.answer,"B")
+        XCTAssertEqual(decoded.questionManifest?.first?.snapshot?.materialRefs?.first?.id,"audio:AU-old")
+        let legacy = try JSONDecoder().decode(NativeAttempt.self,from:Data(#"{"id":"old","startedAt":"2026-10-01","view":"mixed","deck":"all","questionIds":["q"],"answers":[]}"#.utf8))
+        XCTAssertNil(legacy.questionManifest)
+    }
+}
+
+final class HistoricalListeningDraftTests: XCTestCase {
+    func testDeletedLSSnapshotCanResumeOnlyForItsOwner() throws {
+        let name = "jlpt-historical-listening-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName:name)); defer { defaults.removePersistentDomain(forName:name) }
+        let item = try JSONDecoder().decode(ListeningItem.self,from:Data(#"{"id":"LS-old","title":"Old","question":"原始问题","explanation":"旧解析","questionTypeId":"listening-task","choices":["A","B","C","D"],"answerIndex":2,"audioAssetId":"AU-old","audioFileName":"old.mp3","audioSize":20,"createdAt":"2026-10-01","materialRefs":[{"id":"audio:AU-old","revision":1}]}"#.utf8))
+        let draft = ListeningDraft(questionSnapshots:[item],questionIDs:[item.id],currentQuestion:0,selected:[item.id:2],written:[:],audioTime:7,sessionID:"session-old")
+        defaults.set(try JSONEncoder().encode(draft),forKey:"listening-draft-v1:1:AU-old")
+        XCTAssertTrue(ListeningGroup.restorable([],owner:"2",defaults:defaults).isEmpty)
+        let group = try XCTUnwrap(ListeningGroup.restorable([],owner:"1",defaults:defaults).first)
+        XCTAssertEqual(group.questions.first?.question,"原始问题"); XCTAssertEqual(group.questions.first?.answerIndex,2)
+        XCTAssertEqual(group.questions.first?.materialRefs?.first?.revision,1)
     }
 }

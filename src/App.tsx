@@ -807,7 +807,7 @@ export default function App() {
       answeredAt: now.toISOString(),
       elapsedMs,
     };
-    const nextAttempt = appendAttemptAnswer(attempt, nextAttemptAnswer);
+    const nextAttempt = appendAttemptAnswer(attempt, nextAttemptAnswer, question);
     const nextAttemptHistory = upsertAttemptHistory(attemptHistory, nextAttempt);
     const nextAnswers = {
       ...answers,
@@ -2493,6 +2493,7 @@ function createPracticeAttempt(view: AppView, deck: Deck | 'all', questions: Que
     view,
     deck,
     questionIds: questions.map((question) => question.id),
+    questionManifest: questions.map(question => ({instanceId:question.id,...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),...('choices' in question ? {snapshot:structuredClone(question as Question)} : {}),status:'choices' in question ? 'frozen' : 'missingOriginal'})),
     answers: [],
   };
 }
@@ -2551,9 +2552,10 @@ function attemptForReviewSubmission(
   return matchingCompletedAttempt ?? currentAttemptFor(activeAttempt, history, view, deck, questions, now);
 }
 
-function appendAttemptAnswer(attempt: PracticeAttempt, answer: AttemptAnswer): PracticeAttempt {
+function appendAttemptAnswer(attempt: PracticeAttempt, answer: AttemptAnswer, question?: Question): PracticeAttempt {
   return {
     ...attempt,
+    questionManifest: attempt.questionIds.map(id=> { const old=attempt.questionManifest?.find(entry=>entry.instanceId===id); return old?.status==='frozen' ? old : id===question?.id ? {instanceId:id,status:'frozen',...(question.canonicalQuestionId && question.questionRevision ? {questionRef:{id:question.canonicalQuestionId,revision:question.questionRevision}}:{}),snapshot:structuredClone(question)} : {instanceId:id,status:'missingOriginal'}; }),
     answers: [...attempt.answers.filter((item) => item.questionId !== answer.questionId), answer],
   };
 }

@@ -34,3 +34,7 @@ server/vocab-seeds.test.mjs覆盖独立保存、显式题与省略/清空；serv
 后续先补真实入口的材料/版本和迁移，随后接统一呈现、作答事件与统计，再分步加通用写工具、并发/幂等/结构化错误；每步提供集成测试，禁止一次暴露大量未接工具。全部改造仅本地，不操作生产MCP/学习数据/自动化。
 
 四项收尾的逐项缺口、完成标准、作者实测与浏览器工具阻塞见[清单](qa/four-items-closeout.md)。
+
+### 已实施素材音频读取
+
+`get_material_audio(material_id,revision)`返回owned冻结音频的MCP audio块；`get_material_audio_download`返回无token的授权URL `/api/materials/:id/versions/:revision/audio`。两工具与OAuth下载要求audio:read，保留LS删除后的AU读取；无实际字节报missingMaterial，不返回虚假音频或猜测转写。Node与Cloudflare R2兼容契约测试覆盖owner、scope、LS删除、R2丢失对象。

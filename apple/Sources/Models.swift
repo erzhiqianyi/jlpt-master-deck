@@ -301,6 +301,8 @@ struct NativeAttempt: Codable, Identifiable, Equatable {
     let view: String
     let deck: String
     let questionIds: [String]
+    var questionManifest: [FrozenQuestion]?
+    struct FrozenQuestion: Codable, Equatable { var instanceId:String; var status:String; var questionRef:BankVersionReference?; var snapshot:NativeQuestion? }
     var answers: [AttemptAnswer]
     var summary: Summary?
     var analysisStatus: String?

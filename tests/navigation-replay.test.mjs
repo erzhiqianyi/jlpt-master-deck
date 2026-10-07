@@ -17,7 +17,7 @@ test('primary navigation has a shared order and classifies by task', () => {
     for (const page of ['questions', 'review']) assert.equal(navigation.primaryNavigationView({ view, page }), 'home');
     for (const page of ['words', 'tips', 'bank']) assert.equal(navigation.primaryNavigationView({ view, page }), 'study');
   }
-  assert.equal(navigation.primaryNavigationView({ view: 'drafts', page: 'questions' }), 'history');
+  assert.equal(navigation.primaryNavigationView({ view: 'drafts', page: 'questions' }), 'home');
   assert.equal(navigation.primaryNavigationView({ view: 'market', page: 'questions', itemId: 'share-1' }), 'market');
 });
 

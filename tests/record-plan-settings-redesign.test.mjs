@@ -59,7 +59,7 @@ test('records lead with actual today result and count only completed history and
   assert.equal(document.querySelectorAll('.record-dashboard-recent li').length, 2);
   assert.match(document.querySelector('.record-home-review').textContent, /2 次练习/);
   assert.match(document.querySelector('.record-home-review').textContent, /1 个知识点/);
-  assert.match(document.querySelector('a[href="#/drafts"]').textContent, /4 条记录/);
+  assert.equal(document.querySelector('a[href="#/drafts"]'), null, 'draft preparation lives on the learning home');
 });
 
 test('empty statistics preserve metrics, seven calendar days and the practice CTA', async () => {

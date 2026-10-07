@@ -23,7 +23,12 @@ struct JLPTMasterDeckApp: App {
                 }
                 else if store.isSignedIn {
                     let accountID = store.session.map { String($0.user.id) } ?? "demo"
-                    WorkspaceView(accountID: accountID).id(accountID)
+                    #if DEBUG
+                    if let fixtureID=NativeVisualFixtures.requestedID { NativeVisualFixtureView(id:fixtureID) }
+                    else { WorkspaceView(accountID:accountID).id(accountID) }
+                    #else
+                    WorkspaceView(accountID:accountID).id(accountID)
+                    #endif
                 }
                 else { LoginView() }
             }

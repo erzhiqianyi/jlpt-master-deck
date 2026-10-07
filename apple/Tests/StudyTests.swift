@@ -1,6 +1,7 @@
 import XCTest
 import UIKit
 import SwiftUI
+import AVFoundation
 import CoreText
 @testable import JLPTMasterDeck
 
@@ -1095,5 +1096,26 @@ final class DedicatedAttemptTests: XCTestCase {
         XCTAssertEqual(freeAttempt.total,0);XCTAssertEqual(freeSaved.pending.count,1);XCTAssertEqual(freeSaved.pending[0].historyOnly,true)
         XCTAssertTrue(freeAttempt.answers.isEmpty)
 
+    }
+}
+
+final class NativeVisualFixtureContractTests:XCTestCase {
+    func testFixturesDeclareRealNativeCapabilitiesAndValidContent() throws {
+        let data=try NativeVisualFixtures.load()
+        XCTAssertEqual(data.fixtures.count,23);XCTAssertEqual(Set(data.fixtures.map(\.id)).count,23)
+        XCTAssertEqual(data.fixtures.filter { $0.surface != "unsupported" }.count,18)
+        XCTAssertEqual(Set(data.fixtures.filter { $0.surface=="unsupported" }.map(\.id)),Set(["grammar-composition","grammar-text","reading-integrated","reading-information","listening-expression"]))
+        for fixture in data.fixtures {
+            if fixture.surface=="quiz" { let q=try fixture.decoded(NativeQuestion.self);XCTAssertTrue(q.isUsable);XCTAssertEqual(q.questionTypeId,fixture.id);XCTAssertGreaterThan(q.correctReason?.count ?? 0,200) }
+            if fixture.surface=="reading" { let q=try fixture.decoded(ReadingQuestion.self);XCTAssertEqual(q.questionTypeId,fixture.id);XCTAssertTrue(q.choices.indices.contains(q.answerIndex));if fixture.id=="reading-long" { XCTAssertGreaterThan(q.passage.count,500) } }
+            if fixture.surface=="listening" { let q=try fixture.decoded(ListeningItem.self);XCTAssertEqual(q.questionTypeId,fixture.id);XCTAssertEqual(q.freeResponse,fixture.id=="listening-basic-training");if fixture.id=="listening-quick" { XCTAssertEqual(q.choices.count,3) } }
+        }
+    }
+    func testLocalJapaneseAudioResourcesArePlayable() throws {
+        for name in ["native-visual-narrative","native-visual-quick"] {
+            let url=try XCTUnwrap(Bundle.main.url(forResource:name,withExtension:"wav"))
+            let bytes=try Data(contentsOf:url);XCTAssertEqual(String(data:bytes.prefix(4),encoding:.utf8),"RIFF")
+            let player=try AVAudioPlayer(data:bytes);XCTAssertGreaterThan(player.duration,1)
+        }
     }
 }

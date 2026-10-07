@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class NavigationLifecycleTests: XCTestCase {
     private var app: XCUIApplication!
@@ -505,5 +506,76 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.buttons["practice.topics"].waitForExistence(timeout: 10)); reveal(app.buttons["practice.topics"])
         XCTAssertFalse(app.buttons["practice.back"].exists)
         capture("cold-launch-restored-practice-tab")
+    }
+}
+
+// QA fixtures enter the existing production views; unsupported payload types are excluded explicitly.
+final class NativeQuestionVisualTests: XCTestCase {
+    private var app:XCUIApplication!
+    override func setUpWithError() throws { continueAfterFailure=false;app=XCUIApplication() }
+    private func start(_ kind:String) {
+        app.terminate();XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .landscapeLeft : .portrait
+        app.launchArguments=["--demo","--visual-type=\(kind)"];app.launch()
+    }
+    private func capture(_ kind:String,_ state:String) {
+        let screenshot = UIDevice.current.userInterfaceIdiom == .pad ? XCUIScreen.main.screenshot() : app.screenshot()
+        let screen=XCTAttachment(screenshot:screenshot);screen.name="\(UIDevice.current.userInterfaceIdiom == .pad ? "ipad-wide" : "iphone")-\(kind)-\(state)";screen.lifetime = .keepAlways;add(screen)
+    }
+    private func reveal(_ element:XCUIElement) {
+        for _ in 0..<16 { if element.isHittable && element.frame.midY < app.frame.height-35 { return };app.swipeUp() }
+        XCTAssertTrue(element.isHittable,"Fixture control must remain reachable")
+    }
+    private func quiz(_ kind:String) {
+        for choice in [1,0] {
+            start(kind)
+            let option=app.buttons["quiz.choice.\(choice)"].firstMatch;XCTAssertTrue(option.waitForExistence(timeout:10))
+            XCTAssertFalse(app.staticTexts["当前源文本（不应显示）"].exists,"Render frozen canonical content, not the stale source")
+            XCTAssertFalse(app.staticTexts["回答正确"].exists);XCTAssertFalse(app.staticTexts["解题依据"].exists)
+            capture(kind,choice==1 ? "unanswered" : "retry-unanswered")
+            reveal(option);option.tap()
+            let outcome=app.staticTexts[choice==0 ? "回答正确" : "回答错误"].firstMatch;XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome)
+            capture(kind,choice==0 ? "correct" : "incorrect")
+            if choice==1 {
+                let explanation=app.buttons["完整解题依据"].firstMatch
+                if explanation.exists { reveal(explanation);explanation.tap();capture(kind,"long-explanation") }
+            }
+        }
+    }
+    func testVocabularySixActualFixtures() { for kind in ["vocabulary-kanji-reading","vocabulary-orthography","vocabulary-word-formation","vocabulary-context","vocabulary-paraphrase","vocabulary-usage"] { quiz(kind) } }
+    func testGrammarFormActualFixture() { quiz("grammar-form") }
+    func testReadingFiveActualFixtures() {
+        for kind in ["reading-short","reading-mid","reading-long","reading-thematic","reading-basic-training"] {
+            for choice in [1,0] {
+                start(kind)
+                let option=app.buttons["reading.choice.\(choice)"].firstMatch;XCTAssertTrue(option.waitForExistence(timeout:10))
+                XCTAssertFalse(app.buttons["reading.speak"].exists);XCTAssertFalse(app.buttons["reading.confirm"].isEnabled)
+                capture(kind,choice==1 ? "article-unanswered" : "retry-unanswered")
+                reveal(option);capture(kind,"task-options");option.tap();app.buttons["reading.confirm"].tap()
+                let outcome=app.staticTexts[choice==0 ? "回答正确" : "再看一下原文"].firstMatch;XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome)
+                capture(kind,choice==0 ? "correct" : "incorrect-explanation");app.swipeUp();capture(kind,"long-explanation")
+            }
+        }
+    }
+    func testListeningSixActualFixturesAndLocalJapaneseAudio() {
+        for kind in ["listening-task","listening-points","listening-outline","listening-quick","listening-integrated","listening-basic-training"] {
+            let free=kind=="listening-basic-training"
+            for choice in free ? [0] : [1,0] {
+                start(kind)
+                XCTAssertTrue(app.buttons["播放音频"].waitForExistence(timeout:10));capture(kind,"unanswered")
+                XCTAssertFalse(app.staticTexts["听力原文"].exists);XCTAssertFalse(app.buttons["完成练习"].isEnabled)
+                app.buttons["播放音频"].tap();XCTAssertTrue(app.buttons["暂停音频"].waitForExistence(timeout:5))
+                XCTAssertTrue(app.sliders["音频播放进度"].isEnabled);capture(kind,"audio-playing")
+                app.buttons["暂停音频"].tap()
+                if free {
+                    let field=app.textViews.firstMatch.exists ? app.textViews.firstMatch : app.textFields.firstMatch
+                    XCTAssertTrue(field.exists);field.tap();field.typeText("3pm at the east exit")
+                    app.swipeDown()
+                } else { let option=app.buttons["listening.choice.0.\(choice)"];reveal(option);option.tap() }
+                let submit=app.buttons["完成练习"];reveal(submit);submit.tap()
+                XCTAssertTrue(app.staticTexts["练习完成"].waitForExistence(timeout:5));capture(kind,free ? "unscored-results" : choice==0 ? "correct-results" : "incorrect-results")
+                let review=app.buttons["查看全部解析"]
+                if review.exists { review.tap();capture(kind,"review-explanation");app.swipeUp();capture(kind,"long-explanation") }
+            }
+        }
     }
 }

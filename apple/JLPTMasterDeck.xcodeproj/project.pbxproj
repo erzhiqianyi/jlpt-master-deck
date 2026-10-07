@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B202610070000000000000003 = {isa = PBXBuildFile; fileRef = A202610070000000000000003; };
+		B202610070000000000000002 = {isa = PBXBuildFile; fileRef = A202610070000000000000002; };
+		B202610070000000000000001 = {isa = PBXBuildFile; fileRef = A202610070000000000000001; };
 		A10D15A10000000000000005 /* JapaneseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000000006; };
 		A10D15A10000000000000003 /* ItemQuestions.js in Resources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000000004; };
 		04A6BADD37F82726EA5B6F38 /* JLPTMasterDeckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB95471ABAE4B69878AFC8E /* JLPTMasterDeckApp.swift */; };
@@ -57,6 +60,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A202610070000000000000003 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-visual-quick.wav"; path = "../Fixtures/native-visual-quick.wav"; sourceTree = "<group>"; };
+		A202610070000000000000002 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-visual-narrative.wav"; path = "../Fixtures/native-visual-narrative.wav"; sourceTree = "<group>"; };
+		A202610070000000000000001 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-question-visual.json"; path = "../Fixtures/native-question-visual.json"; sourceTree = "<group>"; };
 		A10D15A10000000000000006 /* JapaneseText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseText.swift; sourceTree = "<group>"; };
 		A10D15A10000000000000004 /* ItemQuestions.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ItemQuestions.js; sourceTree = "<group>"; };
 		0081F089492841CD7A2AF1A6 /* SupportingViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupportingViews.swift; sourceTree = "<group>"; };
@@ -133,6 +139,9 @@
 		49C9B13BFF87EE88262F4FB5 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A202610070000000000000003,
+				A202610070000000000000002,
+				A202610070000000000000001,
 				1DDAAB317BCA440FAD03F6E7 /* BrandAssets.xcassets */,
 				A10D15A10000000000000002 /* Localizable.xcstrings */,
 				A10D15A10000000000000004 /* ItemQuestions.js */,
@@ -340,6 +349,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B202610070000000000000003,
+				B202610070000000000000002,
+				B202610070000000000000001,
 				3E9FE9A185DA026DD24C91E2 /* GoogleService-Info.plist in Resources */,
 				D3C4A1B2031451F7D28570EB /* BrandAssets.xcassets in Resources */,
 				A10D15A10000000000000001 /* Localizable.xcstrings in Resources */,

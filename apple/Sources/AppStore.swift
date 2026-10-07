@@ -513,6 +513,9 @@ final class AppStore {
         }
     }
     func audioData(for item: ListeningItem) async throws -> Data {
+        #if DEBUG
+        if isDemo,NativeVisualFixtures.requestedID != nil,item.audioFileName.hasPrefix("native-visual-"),let url=Bundle.main.url(forResource:String(item.audioFileName.dropLast(4)),withExtension:"wav") { return try Data(contentsOf:url) }
+        #endif
         guard let session else { throw IdentityError.message("请先登录。") }
         let url = files.audioURL(userID: session.user.id, item: item)
         if FileManager.default.fileExists(atPath: url.path) { return try Data(contentsOf: url) }
@@ -719,6 +722,17 @@ final class AppStore {
         if ProcessInfo.processInfo.arguments.contains("--practice-fixture") { packs = [DemoData.practiceFixture] }
         if ProcessInfo.processInfo.arguments.contains("--batch-feedback-fixture") { state.settings = (state.settings ?? [:]).merging(["feedbackMode": .string("batch")]) { _, new in new } }
         if ProcessInfo.processInfo.arguments.contains("--statistics-fixture") { state.attemptHistory = DemoData.statisticsFixture(); packs = [DemoData.practiceFixture] }
+        #endif
+        #if DEBUG
+        if let fixtureID=NativeVisualFixtures.requestedID {
+            if let fixture=try? NativeVisualFixtures.load().fixtures.first(where:{$0.id==fixtureID}),fixture.surface=="quiz",let q=try? fixture.decoded(NativeQuestion.self),let id=q.canonicalQuestionId {
+                let options=q.choices.enumerated().map { number,text in SettingValue.object(["id":.string("option-\(number)"),"text":.string(text)]) }
+                let record=BankCachedVersion(id:id,revision:1,schemaVersion:1,payload:.object(["schemaVersion":.number(1),"questionTypeId":.string(fixtureID),"legacy":fixture.question ?? .null,"options":.array(options),"answer":.object(["type":.string("option"),"optionId":.string("option-0")])]))
+                bankVersions=["questionVersions":[record.versionKey:record]]
+            }
+            UserDefaults.standard.removeObject(forKey:"listening-draft-v1:demo:visual-\(fixtureID)")
+            state.settings=(state.settings ?? [:]).merging(["practiceNavigation":.string("manual")]) { _,new in new }
+        }
         #endif
         plan = DemoData.plan
     }

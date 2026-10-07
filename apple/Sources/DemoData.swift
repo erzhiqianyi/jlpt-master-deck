@@ -116,3 +116,43 @@ extension DemoData {
     }
 }
 #endif
+
+#if DEBUG
+import SwiftUI
+struct NativeVisualFixtures: Decodable {
+    let schemaVersion:Int
+    let fixtures:[Entry]
+    struct Entry:Decodable {
+        let id:String;let surface:String;var blockedReason:String?
+        var question:SettingValue?
+        func staleQuizSource() -> NativeQuestion? {
+            guard case .object(var fields)=question else { return nil }
+            fields["prompt"] = .string("当前源文本（不应显示）")
+            return try? JSONDecoder().decode(NativeQuestion.self,from:JSONEncoder().encode(SettingValue.object(fields)))
+        }
+        func decoded<T:Decodable>(_ type:T.Type) throws -> T {
+            guard let question else { throw APIError.invalidResponse }
+            return try JSONDecoder().decode(type,from:JSONEncoder().encode(question))
+        }
+    }
+    static func load() throws -> Self {
+        guard let url=Bundle.main.url(forResource:"native-question-visual",withExtension:"json") else { throw APIError.invalidResponse }
+        return try JSONDecoder().decode(Self.self,from:Data(contentsOf:url))
+    }
+    static var requestedID:String? { ProcessInfo.processInfo.arguments.first { $0.hasPrefix("--visual-type=") }.map { String($0.dropFirst("--visual-type=".count)) } }
+}
+struct NativeVisualFixtureView:View {
+    let id:String
+    @ViewBuilder var body:some View {
+        if let fixture=try? NativeVisualFixtures.load().fixtures.first(where:{$0.id==id}) {
+            if fixture.surface=="quiz",let q=try? fixture.decoded(NativeQuestion.self) {
+                NativeQuizView(round:NativeRound(title:q.title,questions:[fixture.staleQuizSource() ?? q],view:"vocabulary"))
+            } else if fixture.surface=="reading",let q=try? fixture.decoded(ReadingQuestion.self) {
+                NavigationStack { ReadingPracticeView(question:q) }
+            } else if fixture.surface=="listening",let q=try? fixture.decoded(ListeningItem.self) {
+                NavigationStack { ListeningDetailView(group:.init(id:q.audioKey,questions:[q])) }
+            } else { ContentUnavailableView("原生payload呈现尚未支持",systemImage:"exclamationmark.triangle",description:Text(fixture.blockedReason ?? id)) }
+        } else { ContentUnavailableView("测试fixture读取失败",systemImage:"exclamationmark.triangle") }
+    }
+}
+#endif

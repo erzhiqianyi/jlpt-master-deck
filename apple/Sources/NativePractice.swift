@@ -277,7 +277,7 @@ struct NativeQuizView: View {
                     navigation
                     TabView(selection: $index) {
                         ForEach(Array(round.questions.enumerated()), id: \.offset) { number, question in
-                            ScrollView { questionCard(question).padding(.horizontal, 16).padding(.vertical, 20).frame(maxWidth: 850).frame(maxWidth: .infinity) }
+                            ScrollView { questionCard(store.resolvedBankQuestion(question)).padding(.horizontal, 16).padding(.vertical, 20).frame(maxWidth: 850).frame(maxWidth: .infinity) }
                                 .tag(number).accessibilityIdentifier("quiz.question.\(number)")
                         }
                     }.tabViewStyle(.page(indexDisplayMode: .never)).disabled(saving)
@@ -366,6 +366,7 @@ struct NativeQuizView: View {
             List {
                 Section {
                     ForEach(Array(round.questions.enumerated()), id: \.offset) { number, question in
+                        let question = store.resolvedBankQuestion(question)
                         Button {
                             showingQuestionList = false
                             withAnimation { index = number }

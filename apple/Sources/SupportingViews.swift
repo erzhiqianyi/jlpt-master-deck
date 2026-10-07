@@ -1421,7 +1421,7 @@ struct NativeTypePracticeSetup: View {
     @State private var round: NativeRound?
     @State private var materialSession: NativeTypeMaterialSession?
     private let modules = [("vocabulary", "单词"), ("grammar", "语法"), ("reading", "阅读"), ("listening", "听力")]
-    static let typeNames = ["grammar": "语法选择", "grammar-composition": "句子排列", "grammar-text": "篇章语法", "kanji_to_kana": "汉字读音", "kana_to_kanji": "汉字表记", "moji_goi": "语境规定", "meaning": "近义替换", "usage": "用法", "word_formation": "词语构成", "reading-short": "短文理解", "reading-mid": "中篇理解", "reading-long": "长文理解", "reading-integrated": "综合理解", "reading-thematic": "主张理解", "reading-information": "信息检索", "listening-task": "课题理解", "listening-points": "要点理解", "listening-outline": "概要理解", "listening-quick": "即时应答", "listening-integrated": "综合理解", "listening-basic-training": "基础训练", "unclassified": "未分类"]
+    static let typeNames = ["grammar": "语法选择", "grammar-composition": "句子排列", "grammar-text": "篇章语法", "kanji_to_kana": "汉字读音", "kana_to_kanji": "汉字表记", "moji_goi": "语境规定", "meaning": "近义替换", "usage": "用法", "word_formation": "词语构成", "reading-short": "短文理解", "reading-mid": "中篇理解", "reading-long": "长文理解", "reading-integrated": "综合理解", "reading-thematic": "主张理解", "reading-information": "信息检索", "listening-task": "课题理解", "listening-points": "要点理解", "listening-outline": "概要理解", "listening-expression": "发话表达（N3–N5）", "listening-quick": "即时应答", "listening-integrated": "综合理解", "listening-basic-training": "基础训练", "unclassified": "未分类"]
     private func filterTags(_ item: StudyItem) -> [String] {
         (item.tags ?? []).filter { value in
             !["mcp-draft", "codex-chat-review"].contains(value) && value.count > 1

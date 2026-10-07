@@ -53,7 +53,7 @@ export function archiveDraftQuestions(db, owner, draft) {
       const source={kind:'draft',id:draft.id,questionId:String(question?.id ?? `draft-q${questionIndex}`)};
       const strategy=questionStrategy(question?.questionTypeId ?? question?.kind ?? question?.type);
       const payload=stable({schemaVersion:1,questionTypeId:strategy?.id??null,legacy:question,
-        sectionContext:{title:section.title,instruction:section.instruction},
+        sectionContext:Object.fromEntries(Object.entries(section).filter(([key])=>key!=='questions')),
         answer:{type:'unscored'},validationStatus:'unreviewed'});
       saveQuestionSource(db,{owner,source,id:`bank-${digest([owner,source.kind,source.id,source.questionId]).slice(0,32)}`,
         status:'needs_review',payload,fingerprint:digest(payload)});

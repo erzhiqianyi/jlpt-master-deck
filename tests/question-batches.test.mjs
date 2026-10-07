@@ -16,8 +16,9 @@ const items = (await Promise.all(['08', '09'].map(async (month) =>
   JSON.parse(await readFile(new URL(`../public/data/review-data/2026/${month}.json`, import.meta.url), 'utf8')).items))).flat();
 
 test('index preserves the complete question count, order, IDs and kinds', () => {
-  const expected = buildQuestions(items, 'zh-CN').map(({ id, itemId, kind }) => ({ id, itemId, kind }));
-  assert.deepEqual(buildQuestionIndex(items), expected);
+  const expected = buildQuestions(items, 'zh-CN').map(({ id, itemId, kind, canonicalQuestionId, questionRevision, questionTypeId }) => ({ id, itemId, kind, canonicalQuestionId, questionRevision, questionTypeId }));
+  const index = buildQuestionIndex(items).map(({id,itemId,kind,canonicalQuestionId,questionRevision,questionTypeId})=>({id,itemId,kind,canonicalQuestionId,questionRevision,questionTypeId}));
+  assert.deepEqual(index, expected);
   assert.deepEqual(buildQuestionIndex([]), []);
 });
 
@@ -36,6 +37,7 @@ test('loading selected items preserves choices and explanations in every locale'
 
 test('wordbook-sized and proper-name pools keep accurate indexes', () => {
   for (const subset of [items.slice(0, 8), items.filter((item) => item.deck === 'name_reading'), items.filter((item) => item.deck === 'grammar_expression')]) {
-    assert.deepEqual(buildQuestionIndex(subset), buildQuestions(subset, 'zh-CN').map(({ id, itemId, kind }) => ({ id, itemId, kind })));
+    const fields=({id,itemId,kind,canonicalQuestionId,questionRevision,questionTypeId})=>({id,itemId,kind,canonicalQuestionId,questionRevision,questionTypeId});
+    assert.deepEqual(buildQuestionIndex(subset).map(fields), buildQuestions(subset, 'zh-CN').map(fields));
   }
 });

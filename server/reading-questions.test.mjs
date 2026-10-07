@@ -171,3 +171,25 @@ test('MCP readings round-trip independently, preserve analysis and validate kana
   assert.deepEqual(storage.readingQuestionForUser(alice.id, saved.id), beforeInvalid);
   assert.deepEqual((await call('update_reading_question', { id: saved.id, rubyTerms: [] })).rubyTerms, []);
 });
+
+test('shared article reference groups questions, freezes versions and forks changed passages', () => {
+ const first=storage.createReadingQuestion(alice.id,{...input,questionTypeId:'reading-short',level:'N1'});
+ const second=storage.createReadingQuestion(alice.id,{...input,question:'別の問い',materialRef:first.materialRef,questionTypeId:'reading-short'});
+ assert.deepEqual(first.materialRef,second.materialRef);
+ assert.equal(first.materialGroupId,second.materialGroupId);
+ const database=storage.getDb();
+ const readGroup=id=>JSON.parse(database.prepare('SELECT payload_json FROM bank_material_group_versions WHERE owner=? AND group_id=? ORDER BY revision DESC LIMIT 1').get(alice.id,id).payload_json);
+ assert.equal(readGroup(first.materialGroupId).questionRefs.length,2);
+ const before=database.prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(alice.id,first.canonicalQuestionId,first.questionRevision).payload_json;
+ storage.updateReadingQuestion(alice.id,first.id,{passageTranslation:'新版翻译'});
+ assert.equal(database.prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(alice.id,first.canonicalQuestionId,first.questionRevision).payload_json,before);
+ const changed=storage.updateReadingQuestion(alice.id,second.id,{passage:'新しい本文。',choiceExplanations:[],readingAnalysis:{summary:'',structure:'',keySentences:[]}});
+ assert.notEqual(changed.materialRef.id,first.materialRef.id);
+ assert.equal(changed.id,second.id);assert.equal(changed.canonicalQuestionId,second.canonicalQuestionId);
+ const count=database.prepare('SELECT COUNT(*) AS n FROM reading_questions').get().n;
+ assert.throws(()=>storage.createReadingQuestion(bob.id,{...input,materialRef:first.materialRef}),/owner|article/i);
+ assert.equal(database.prepare('SELECT COUNT(*) AS n FROM reading_questions').get().n,count);
+ storage.deleteReadingQuestion(alice.id,changed.id);
+ assert.equal(readGroup(changed.materialGroupId).questionRefs.length,0);
+ assert.ok(database.prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(alice.id,changed.canonicalQuestionId,changed.questionRevision));
+});

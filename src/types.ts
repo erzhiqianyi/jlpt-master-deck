@@ -183,6 +183,11 @@ export type LearningCapture = {
 };
 
 export type ListeningQuestion = {
+  canonicalQuestionId?: string;
+  questionRevision?: number;
+  materialRefs?: { id: string; revision: number }[];
+  materialGroupId?: string | null;
+
   japaneseAnnotations?: JapaneseAnnotation[];
   reference?: string;
   id: string;
@@ -230,6 +235,13 @@ export type ListeningRecording = {
 };
 
 export type ReadingQuestion = {
+  canonicalQuestionId?: string;
+  questionRevision?: number;
+  questionTypeId?: string;
+  materialRefs?: { id: string; revision: number }[];
+  materialGroupId?: string | null;
+  level?: string | null;
+  materialRef?: {id:string;revision:number} | null;
   japaneseAnnotations?: JapaneseAnnotation[];
   rubyTerms?: RubyTerm[];
   reference?: string;
@@ -249,7 +261,7 @@ export type ReadingQuestion = {
   createdAt: string;
 };
 
-export type ReadingQuestionInput = Omit<ReadingQuestion, 'id' | 'createdAt'>;
+export type ReadingQuestionInput = Omit<ReadingQuestion, 'id' | 'createdAt' | 'canonicalQuestionId' | 'questionRevision' | 'materialRefs' | 'materialGroupId'>;
 
 export type MockExamSection = {
   id: string;
@@ -462,6 +474,12 @@ export type LocalizedText = {
 };
 
 export type PracticeQuestionSeed = {
+  canonicalQuestionId?: string;
+  questionRevision?: number;
+  questionTypeId?: string;
+  materialRefs?: { id: string; revision: number }[];
+  materialGroupId?: string | null;
+
   japanese_annotations?: JapaneseAnnotation[];
   id?: string;
   source_origin?: 'ai_generated' | 'textbook_original';
@@ -552,6 +570,10 @@ export type ReviewData = {
 export type Question = {
   canonicalQuestionId?: string;
   questionRevision?: number;
+  questionTypeId?: string;
+  materialRefs?: { id: string; revision: number }[];
+  materialGroupId?: string | null;
+
   japaneseAnnotations?: JapaneseAnnotation[];
   reference?: string;
   practiceReference?: string;

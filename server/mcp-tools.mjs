@@ -180,7 +180,7 @@ const practiceFilters = {
 const listeningCreateFields = {
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   title: z.string().optional(),
-  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
+  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-expression', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string(),
   choices: z.array(z.string()).max(4),
   choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().optional() })).max(4).optional().describe('Optional per-choice translations and explanations, in choice order. They can be added later.'),
@@ -197,7 +197,7 @@ const listeningUpdateFields = {
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: z.string().min(1),
   title: z.string().optional(),
-  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
+  questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-expression', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
   question: z.string().optional(),
   choices: z.array(z.string()).max(4).optional(),
   choiceDetails: z.array(z.object({ translation: z.string().optional(), explanation: z.string().optional() })).max(4).optional().describe('Optional per-choice translations and explanations, in choice order; replace the full list when supplied.'),
@@ -400,7 +400,7 @@ export const tools = [
     if (args.libraryNumber !== undefined) throw new Error('libraryNumber requires an existing question id');
     return text(createListeningQuestion(uid(ctx), z.object(listeningCreateFields).parse(args)));
   }, { scope: 'library:write' }),
-  tool('delete_listening_question', 'Permanently delete one owned listening question. Its recordings are removed; the shared audio file is removed only when no other question references it. This cannot be undone.',
+  tool('delete_listening_question', 'Delete one owned listening question from the active library. Its recordings are removed; canonical question versions and historically referenced shared audio are retained. Active-library deletion has no restore tool.',
     { id: z.string() }, destructive, async ({ id }, ctx) => text({ ok: found(deleteListeningQuestion(uid(ctx), id), 'Listening question not found') }), { scope: 'library:write' }),
   tool('delete_listening_recording', 'Permanently delete one owned recording, including its audio and analysis. Preserve the listening question, reference audio and other recordings. This cannot be undone.',
     { recording_id: z.string().min(1) }, destructive,
@@ -418,7 +418,7 @@ export const tools = [
     {}, ro, async (_args, ctx) => text(listReadingQuestions(uid(ctx)))),
   tool('get_reading_question', 'Get one owned reading question and its complete reading analysis.',
     { id: z.string() }, ro, async ({ id }, ctx) => text(found(readingQuestionForUser(uid(ctx), id), 'Reading question not found'))),
-  tool('create_reading_question', 'Create a fully explained reading question. Required: full Chinese passage translation, four translated choices with reasoning/evidence/error types, overall explanation, summary/structure/verbatim key sentences, and worked solving steps and elimination techniques in explanationNodes. Incomplete analysis is rejected.',
+  tool('create_reading_question', 'Create a fully explained reading question. Optional materialRef {id,revision} reuses an owned article version whose full text exactly matches passage. questionTypeId distinguishes six official reading types and supplementary basic training. Required: full Chinese passage translation, four translated choices with reasoning/evidence/error types, overall explanation, summary/structure/verbatim key sentences, and worked solving steps and elimination techniques in explanationNodes. Incomplete analysis is rejected.',
     completeReadingFields, rw, async (args, ctx) => text(createReadingQuestion(uid(ctx), completeReadingSchema.parse(args)))),
   tool('update_reading_question', 'Partially update an owned reading question. The merged result must satisfy the same complete-analysis requirements as create; backfill missing legacy analysis in this update. Omitted fields are preserved; arrays and readingAnalysis are replaced as a whole. Never clear required analysis. When changing choices or the correct answer, keep explanations and error types aligned.',
     { id: z.string(), ...Object.fromEntries(Object.entries(completeReadingFields).map(([key, schema]) => [key, schema.optional()])) }, replacing,

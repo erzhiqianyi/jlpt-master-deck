@@ -1,10 +1,15 @@
+import { ensureQuestionBankSchema } from './question-bank.mjs';
+import { ensureBankMaterialSchema, attachPracticeReferences } from './bank-materials.mjs';
+import { transaction } from './platform.mjs';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
 
+const versionRef=z.object({id:z.string().min(1),revision:z.number().int().positive()});
 const text = z.string().trim().min(1);
 const url = z.string().refine(value => /^https?:\/\//.test(value) || /^\/api\//.test(value), 'Use an HTTP(S) URL or an /api/ asset path');
 export const examQuestionSchema = z.object({
+  canonicalQuestionId:z.string().optional(),questionRevision:z.number().int().positive().optional(),materialRefs:z.array(versionRef).optional(),questionTypeId:z.string().optional(),
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: text, prompt: text, passage: z.string().optional(), choices: z.array(text).min(2).max(10),
   answerIndex: z.number().int().min(0), explanation: text,
@@ -31,6 +36,7 @@ const contentSchema = z.object(examContentFields).strict().superRefine((exam, ct
   }
 });
 function ensureSchema(db) {
+  ensureQuestionBankSchema(db);ensureBankMaterialSchema(db);
   db.exec(`CREATE TABLE IF NOT EXISTS mock_exams (
     id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content_json TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1,
@@ -56,8 +62,11 @@ export function createMockExam(db, userId, input) {
   ensureSchema(db);
   const id = randomUUID();
   const now = new Date().toISOString();
+  transaction(db,()=>{
+  for (const session of content.sessions) attachPracticeReferences(db,userId,{id:`mock:${id}:${session.id}`,questions:session.questions});
   db.prepare('INSERT INTO mock_exams (id, user_id, content_json, revision, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)')
     .run(id, userId, JSON.stringify(content), now, now);
+  });
   return getMockExam(db, userId, id);
 }
 export function updateMockExam(db, userId, id, input) {
@@ -69,8 +78,13 @@ export function updateMockExam(db, userId, id, input) {
   if (!current) return null;
   const { revision, createdAt, updatedAt, id: ignored, ...previous } = current;
   const content = contentSchema.parse({ ...previous, ...patch });
+  transaction(db,()=>{
+  // Optimistic guard precedes canonical writes; rollback leaves no orphan versions.
+  if(current.revision!==expectedRevision) {const error=new Error('Exam changed; read it again before updating');error.status=409;throw error;}
+  for (const session of content.sessions) attachPracticeReferences(db,userId,{id:`mock:${id}:${session.id}`,questions:session.questions});
   const result = db.prepare('UPDATE mock_exams SET content_json = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND id = ? AND revision = ?')
     .run(JSON.stringify(content), new Date().toISOString(), userId, id, expectedRevision);
   if (!result.changes) { const error = new Error('Exam changed; read it again before updating'); error.status = 409; throw error; }
+  });
   return getMockExam(db, userId, id);
 }

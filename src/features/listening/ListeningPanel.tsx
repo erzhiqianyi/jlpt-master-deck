@@ -26,11 +26,13 @@ const byLibraryNumber = (a: ListeningQuestion, b: ListeningQuestion) =>
   || a.id.localeCompare(b.id);
 const listeningQuestionTypes = [
   ...officialN1QuestionTypes.filter((type) => type.section === 'listening').map((type) => ({ id: type.id, label: type.officialName })),
+  { id: 'listening-expression', label: '発話表現（N3–N5）' },
   { id: 'listening-basic-training', label: '基础训练' },
 ];
 const defaultListeningQuestionTypeId = listeningQuestionTypes[0]?.id ?? 'listening-task';
 const listeningTypeGuidance: Record<string, { prompt: string; choiceCount: number; freeResponse?: boolean; choicesOptional?: boolean }> = {
   'listening-task': { prompt: 'この問題では、まず質問を聞いてください。それから話を聞いて、問題用紙の1から4の中から、最もよいものを一つ選んでください。', choiceCount: 4 },
+  'listening-expression': { prompt: '場面を見て、そこでどのように話すか、最も自然なものを一つ選んでください。', choiceCount: 3 },
   'listening-points': { prompt: 'この問題では、まず質問を聞いてください。そのあと、問題用紙の選択肢を読んでください。読む時間があります。それから話を聞いて、問題用紙の1から4の中から、最もよいものを一つ選んでください。', choiceCount: 4 },
   'listening-outline': { prompt: 'この問題は、全体としてどんな内容かを聞く問題です。話の前に質問はありません。まず話を聞いてください。それから、質問と選択肢を聞いて、1から4の中から、最もよいものを一つ選んでください。', choiceCount: 4, choicesOptional: true },
   'listening-quick': { prompt: 'まず文を聞いてください。それから、それに対する返事を聞いて、1から3の中から、最もよいものを一つ選んでください。', choiceCount: 3, choicesOptional: true },

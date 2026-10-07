@@ -1,12 +1,13 @@
+import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
 import { ensureQuestionBankSchema, adaptQuestionSource, saveQuestionSource, linkQuestionAlias, archiveDraftQuestions } from './question-bank.mjs';
-import { resolveLegacyAnswer } from '../src/domain/questionContract.mjs';
+import { resolveLegacyAnswer, questionStrategy } from '../src/domain/questionContract.mjs';
 import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japanese-annotations.mjs';
 import { repairReadingTarget } from './practice-reading-target.mjs';
 import { scheduleItemPronunciation } from './tts/prewarm.mjs';
 import { practiceModules } from '../src/domain/practiceModules.mjs';
 import { practiceExplanationPatchSchema, practiceQuestionPatchSchema } from './practice-explanation-schema.mjs';
-import { normalizeReadingQuestion, readingPatchSchema } from './reading-schema.mjs';
+import { normalizeReadingQuestion, readingPatchSchema, readingFields } from './reading-schema.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
 import { normalizePracticeExplanations, assertPracticeExplanations, isEmptyReason } from '../src/domain/practiceExplanations.mjs';
 import { readingDistractors, describeReadingConfusion } from '../src/domain/readingDistractors.mjs';
@@ -76,6 +77,7 @@ const listeningQuestionTypeIds = new Set([
   'listening-task',
   'listening-points',
   'listening-outline',
+  'listening-expression',
   'listening-quick',
   'listening-integrated',
   'listening-basic-training',
@@ -334,6 +336,7 @@ END;
     ensureCardReviewSchema(db);
     ensureDailySummarySchema(db);
     ensureQuestionBankSchema(db);
+    ensureBankMaterialSchema(db);
   }
   return db;
 }
@@ -434,6 +437,7 @@ export function loadReviewData(userId) {
     getDb().exec('CREATE TABLE IF NOT EXISTS user_review_items (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), item_json TEXT NOT NULL)');
     items.push(...getDb().prepare('SELECT item_json FROM user_review_items WHERE user_id = ?').all(userId).map((row) => normalizeStoredReviewItem(JSON.parse(row.item_json))));
   }
+  if (userId!=null) items=items.map(item=>({...item,practice_questions:(item.practice_questions??[]).map((seed,index)=>({...seed,...questionBankMetadata(getDb(),userId,{kind:'item-seed',id:item.id,questionId:String(seed.id??`seed-${index+1}`)})}))}));
   const generatedAt = rows
     .map((row) => row.updated_at)
     .filter(Boolean)
@@ -511,9 +515,13 @@ export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
   if (!book) throw new Error('Wordbook not found');
   if (imported) {
     if (item.japanese_annotations === undefined) normalized.japanese_annotations = parseJson(imported.item_json, {}).japanese_annotations ?? [];
+    transaction(getDb(),()=>{
     getDb().prepare('UPDATE user_review_items SET item_json = ? WHERE id = ? AND user_id = ?').run(JSON.stringify(normalized), normalized.id, userId);
+      persistItemSeeds(getDb(),userId,normalized);
+    });
     return normalized;
   }
+  transaction(getDb(),()=>{
   getDb()
     .prepare(`
       INSERT INTO owned_review_items (id, item_json, source, created_at, updated_at, user_id)
@@ -524,6 +532,8 @@ export function upsertReviewItem(item, { source = 'mcp', userId } = {}) {
         updated_at = excluded.updated_at
     `)
     .run(normalized.id, JSON.stringify(normalized), String(source).slice(0, 120), existing?.created_at ?? now, now, userId);
+    persistItemSeeds(getDb(),userId,normalized);
+  });
   const saved = reviewItemById(normalized.id, userId);
   if (!existing && (saved.type === 'word' || saved.deck === 'grammar_expression')) scheduleItemPronunciation(userId, saved);
   return saved;
@@ -1032,6 +1042,7 @@ export function createListeningQuestion(userId, payload) {
   if (payload.existingQuestionId) {
     const existing = findListeningAudioQuestions(userId, audioHash).find((item) => item.id === payload.existingQuestionId);
     if (!existing) throw new Error('Question does not belong to this audio');
+    transaction(getDb(),()=>{
     getDb().prepare('UPDATE listening_questions SET title=?, question_type_id=?, question=?, choices_json=?, choice_details_json=?, answer_index=?, explanation=?, japanese_annotations_json=? WHERE user_id=? AND id=?')
       .run(String(payload.title || existing.title).slice(0,120), questionTypeId, question, JSON.stringify(choices), JSON.stringify(choiceDetails), answerIndex, String(payload.explanation ?? '').slice(0,2000), JSON.stringify(payload.japaneseAnnotations === undefined ? existing.japaneseAnnotations : japaneseAnnotations), userId, existing.id);
     if (payload.transcript !== undefined || payload.transcriptTranslation !== undefined) {
@@ -1040,6 +1051,8 @@ export function createListeningQuestion(userId, payload) {
         ...(payload.transcriptTranslation !== undefined ? { transcriptTranslation } : {}),
       });
     }
+    persistListeningBank(userId,existing.audioAssetId);
+    });
     return listeningQuestionForUser(userId, existing.id);
   }
   const existingAsset = referencedAsset ?? getDb().prepare('SELECT id, audio_path, file_name, mime, size FROM listening_audio_assets WHERE user_id = ? AND sha256 = ?').get(userId, audioHash);
@@ -1083,6 +1096,7 @@ export function createListeningQuestion(userId, payload) {
         database.prepare('UPDATE listening_audio_assets SET transcript = ?, transcript_translation = ? WHERE user_id = ? AND id = ?')
           .run(payload.transcript === undefined ? prior.transcript : transcript, payload.transcriptTranslation === undefined ? prior.transcript_translation : transcriptTranslation, userId, assetId);
       }
+      persistListeningBank(userId,assetId);
     });
   } catch (error) {
     if (!existingAsset && existsSync(audioPath)) unlinkSync(audioPath);
@@ -1099,7 +1113,7 @@ export function listListeningQuestions(userId) {
     FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
     WHERE q.user_id = ?
     ORDER BY q.library_number ASC, q.created_at ASC, q.id ASC
-  `).all(userId).map(mapListeningQuestion);
+  `).all(userId).map(row => ({...mapListeningQuestion(row),...questionBankMetadata(getDb(),userId,{kind:'listening',id:row.id,questionId:row.id})}));
 }
 
 export function listeningQuestionForUser(userId, id) {
@@ -1110,7 +1124,7 @@ export function listeningQuestionForUser(userId, id) {
     FROM listening_questions q LEFT JOIN listening_audio_assets a ON a.id = q.audio_asset_id AND a.user_id = q.user_id
     WHERE q.user_id = ? AND q.id = ?
   `).get(userId, id);
-  return row ? mapListeningQuestion(row) : null;
+  return row ? {...mapListeningQuestion(row),...questionBankMetadata(getDb(),userId,{kind:'listening',id:row.id,questionId:row.id})} : null;
 }
 
 export function listeningTranscriptForUser(userId, questionId) {
@@ -1127,8 +1141,11 @@ export function updateListeningTranscript(userId, questionId, patch) {
   if (!current) return null;
   const transcript = Object.hasOwn(patch, 'transcript') ? String(patch.transcript ?? '').trim().slice(0, 30000) : current.transcript;
   const transcriptTranslation = Object.hasOwn(patch, 'transcriptTranslation') ? String(patch.transcriptTranslation ?? '').trim().slice(0, 30000) : current.transcriptTranslation;
+  transaction(getDb(), () => {
   getDb().prepare(`UPDATE listening_audio_assets SET transcript = ?, transcript_translation = ? WHERE user_id = ? AND id = ?`)
     .run(transcript, transcriptTranslation, userId, current.audioAssetId);
+    persistListeningBank(userId,current.audioAssetId);
+  });
   return listeningTranscriptForUser(userId, questionId);
 }
 
@@ -1161,9 +1178,14 @@ export function deleteListeningQuestion(userId, id) {
     return false;
   }
   const recordingAudio = getDb().prepare('SELECT audio_path FROM listening_recordings WHERE user_id = ? AND listening_question_id = ?').all(userId, id);
+  transaction(getDb(),()=>{
+  if (!listeningQuestionForUser(userId,id)?.canonicalQuestionId && audio.audio_asset_id) persistListeningBank(userId,audio.audio_asset_id);
   getDb().prepare('DELETE FROM listening_questions WHERE user_id = ? AND id = ?').run(userId, id);
+  retireLibraryQuestion(getDb(),userId,{kind:'listening',id,questionId:id});
+  if (audio.audio_asset_id) persistListeningBank(userId,audio.audio_asset_id);
+  });
   const remaining = audio.audio_asset_id ? getDb().prepare('SELECT COUNT(*) AS count FROM listening_questions WHERE user_id = ? AND audio_asset_id = ?').get(userId, audio.audio_asset_id).count : 0;
-  if (!remaining) {
+  if (!remaining && !bankAudioHasHistory(getDb(),userId,audio.audio_asset_id)) {
     if (existsSync(audio.audio_path)) unlinkSync(audio.audio_path);
     if (audio.audio_asset_id) getDb().prepare('DELETE FROM listening_audio_assets WHERE user_id = ? AND id = ?').run(userId, audio.audio_asset_id);
   }
@@ -1235,6 +1257,7 @@ export function updateListeningQuestion(userId, id, payload) {
     throw new Error('Choose a valid correct answer');
   }
 
+  transaction(getDb(), () => {
   getDb().prepare(`
     UPDATE listening_questions
     SET title = ?, question_type_id = ?, question = ?, choices_json = ?, choice_details_json = ?, answer_index = ?, explanation = ?, japanese_annotations_json = ?
@@ -1245,6 +1268,8 @@ export function updateListeningQuestion(userId, id, payload) {
     reorderListeningQuestion(userId, id, payload.libraryNumber);
   }
 
+    persistListeningBank(userId,current.audioAssetId);
+  });
   return listeningQuestionForUser(userId, id);
 }
 
@@ -1394,6 +1419,45 @@ export function saveListeningRecordingAnalysis(userId, id, payload) {
   return listeningRecordingForUser(userId, id);
 }
 
+function persistReadingBank(userId,id,value) {
+  let materialRef = value.materialRef;
+  if (materialRef) {
+    const material = readMaterialVersion(getDb(),userId,materialRef);
+    if (!material || material.type !== 'article' || material.blocks.map(block=>block.text??'').join('\n') !== value.passage) throw new Error('Shared article must belong to owner and match passage exactly');
+  }
+  if (!materialRef || materialRef.id===`reading:${id}`) materialRef=saveMaterial(getDb(),userId,`reading:${id}`,{type:'article',blocks:[{id:'legacy-text',type:'paragraph',text:value.passage}],translation:value.passageTranslation,translationLines:value.translationLines,readingAnalysis:value.readingAnalysis,rubyTerms:value.rubyTerms,japaneseAnnotations:value.japaneseAnnotations});
+  const questionTypeId=value.questionTypeId??value.tags.find(tag=>questionStrategy(tag)?.module==='reading')??'reading-basic-training';
+  const groupId=`reading:${materialRef.id}@${materialRef.revision}`;
+  const ref=persistLibraryQuestion(getDb(),userId,{kind:'reading',id,questionId:id},{...value,questionTypeId},{materialRefs:[materialRef],groupId});
+  refreshReadingGroups(userId);
+
+  return ref;
+}
+
+function refreshReadingGroups(userId) {
+  const groups=new Map();
+  for (const alias of getDb().prepare("SELECT a.question_id,a.revision FROM bank_question_aliases a JOIN bank_questions q ON q.owner=a.owner AND q.id=a.question_id WHERE a.owner=? AND a.source_kind='reading' AND q.status!='retired' ORDER BY a.source_id,a.source_question_id").all(userId)) {
+    const payload=JSON.parse(getDb().prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(userId,alias.question_id,alias.revision).payload_json);
+    const id=payload.materialGroupId;
+    if (!id) continue;
+    const group=groups.get(id)??{materialRefs:payload.materialRefs,questionRefs:[],extraction:'whole-group'};
+    group.questionRefs.push({id:alias.question_id,revision:alias.revision});groups.set(id,group);
+  }
+  const existing=getDb().prepare("SELECT id FROM bank_material_groups WHERE owner=? AND id LIKE 'reading:%'").all(userId);
+  for (const {id} of existing) if (!groups.has(id)) groups.set(id,{materialRefs:[],questionRefs:[],extraction:'whole-group'});
+  for (const [id,group] of groups) saveMaterialGroup(getDb(),userId,id,group);
+}
+
+export function persistListeningBank(userId,assetId) {
+  const asset=getDb().prepare('SELECT * FROM listening_audio_assets WHERE user_id=? AND id=?').get(userId,assetId);
+  if (!asset) return;
+  const materialRef=saveMaterial(getDb(),userId,`audio:${assetId}`,{type:'audio',audioAssetId:assetId,fileName:asset.file_name,mime:asset.mime,sha256:asset.sha256,transcript:asset.transcript,transcriptTranslation:asset.transcript_translation});
+  const groupId=`audio:${assetId}`;
+  const questions=listListeningQuestions(userId).filter(q=>q.audioAssetId===assetId);
+  const refs=questions.map(q=>persistLibraryQuestion(getDb(),userId,{kind:'listening',id:q.id,questionId:q.id},q,{materialRefs:[materialRef],groupId,unscored:q.answerIndex===-1}));
+  saveMaterialGroup(getDb(),userId,groupId,{materialRefs:[materialRef],questionRefs:refs,extraction:'whole-group'});
+}
+
 function readingQuestionValues(value) {
   return [value.title, value.passage, value.question, JSON.stringify(value.choices), value.answerIndex,
     value.explanation, JSON.stringify(value.tags), JSON.stringify(value.explanationNodes), JSON.stringify(value.translationLines),
@@ -1403,12 +1467,15 @@ function readingQuestionValues(value) {
 export function createReadingQuestion(userId, payload) {
   const value = normalizeReadingQuestion(payload);
   const id = randomBytes(12).toString('base64url');
+  transaction(getDb(), () => {
   getDb().prepare(`
     INSERT INTO reading_questions (
       id, user_id, title, passage, question, choices_json, answer_index, explanation, tags_json,
       explanation_nodes_json, translation_lines_json, passage_translation, choice_explanations_json, reading_analysis_json, ruby_terms_json, japanese_annotations_json, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, userId, ...readingQuestionValues(value), new Date().toISOString());
+    persistReadingBank(userId,id,value);
+  });
   return readingQuestionForUser(userId, id);
 }
 
@@ -1417,12 +1484,17 @@ export function updateReadingQuestion(userId, id, payload) {
   if (!current) return null;
   const patch = readingPatchSchema.parse(payload);
   const { id: _id, createdAt: _createdAt, ...fields } = current;
-  const value = normalizeReadingQuestion({ ...fields, ...patch });
+  const merged={ ...Object.fromEntries(Object.keys(readingFields).map(key=>[key,fields[key]])), ...patch };
+  if (patch.passage !== undefined && patch.passage !== current.passage && patch.materialRef === undefined) merged.materialRef=null;
+  const value = normalizeReadingQuestion(merged);
+  transaction(getDb(), () => {
   getDb().prepare(`UPDATE reading_questions SET
     title = ?, passage = ?, question = ?, choices_json = ?, answer_index = ?, explanation = ?, tags_json = ?,
     explanation_nodes_json = ?, translation_lines_json = ?, passage_translation = ?, choice_explanations_json = ?, reading_analysis_json = ?, ruby_terms_json = ?, japanese_annotations_json = ?
     WHERE user_id = ? AND id = ?
   `).run(...readingQuestionValues(value), userId, id);
+    persistReadingBank(userId,id,value);
+  });
   return readingQuestionForUser(userId, id);
 }
 
@@ -1432,7 +1504,7 @@ export function listReadingQuestions(userId) {
     FROM reading_questions
     WHERE user_id = ?
     ORDER BY created_at DESC
-  `).all(userId).map(mapReadingQuestion);
+  `).all(userId).map(row => ({...mapReadingQuestion(row),...questionBankMetadata(getDb(),userId,{kind:'reading',id:row.id,questionId:row.id})}));
 }
 
 export function readingQuestionForUser(userId, id) {
@@ -1441,12 +1513,19 @@ export function readingQuestionForUser(userId, id) {
     FROM reading_questions
     WHERE user_id = ? AND id = ?
   `).get(userId, id);
-  return row ? mapReadingQuestion(row) : null;
+  return row ? {...mapReadingQuestion(row),...questionBankMetadata(getDb(),userId,{kind:'reading',id:row.id,questionId:row.id})} : null;
 }
 
-export function deleteReadingQuestion(userId, id) {
-  const result = getDb().prepare('DELETE FROM reading_questions WHERE user_id = ? AND id = ?').run(userId, id);
-  return result.changes > 0;
+export function deleteReadingQuestion(userId,id) {
+ return transaction(getDb(),()=>{
+   const existing=readingQuestionForUser(userId,id);
+   if (!existing) return false;
+   if (!existing.canonicalQuestionId) persistReadingBank(userId,id,existing);
+   retireLibraryQuestion(getDb(),userId,{kind:'reading',id,questionId:id});
+   const result=getDb().prepare('DELETE FROM reading_questions WHERE user_id=? AND id=?').run(userId,id);
+   refreshReadingGroups(userId);
+   return result.changes>0;
+ });
 }
 
 export function getStudySettings(userId) {
@@ -2557,12 +2636,15 @@ export function createDailyPractice(userId, { title, minutes = 30, date, start, 
     throw new Error('No daily practice questions could be generated from the current study history');
   }
   assertPracticeExplanations(practice.questions);
+  transaction(getDb(),()=>{
+    attachPracticeReferences(getDb(),userId,practice);
   getDb()
     .prepare(`
       INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(id, userId, practiceDate, version, practice.title, practice.minutes, JSON.stringify(practice), now, now);
+  });
   return getDailyPractice(userId, id);
 }
 
@@ -2646,12 +2728,15 @@ export function createTopicPractice(userId, { title, deck, kinds, wordbookId, jl
   }
   // No assertPracticeExplanations here: these questions are generated from the library, not
   // authored by an agent, so distractor explanations may be generic.
+  transaction(getDb(),()=>{
+    attachPracticeReferences(getDb(),userId,practice);
   getDb()
     .prepare(`
       INSERT INTO daily_practices (id, user_id, practice_date, version, title, minutes, practice_json, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(id, userId, practiceDate, practice.version, practice.title, practice.minutes, JSON.stringify(practice), now.toISOString(), now.toISOString());
+  });
   return getPracticeSession(userId, id);
 }
 
@@ -2664,6 +2749,7 @@ function seededQuestionForKind(item, kind) {
     id: seed.id ?? `${item.id}-${kind}`,
     item_id: item.id,
     generated_from: 'item_seed',
+    canonicalQuestionId:seed.canonicalQuestionId,questionRevision:seed.questionRevision,questionTypeId:seed.questionTypeId,
     japaneseAnnotations: normalizeJapaneseAnnotations(seed.japanese_annotations ?? item.japanese_annotations),
     type: seed.kind,
     instruction: seed.instruction ?? '',
@@ -3045,6 +3131,8 @@ export function updatePracticeQuestion(userId, practiceId, questionId, patch) {
     const matches = (practice.questions ?? []).filter((question) => question.id === questionId);
     if (matches.length !== 1) throw Object.assign(new Error('Question not found or ambiguous in this practice'), { statusCode: 404 });
     const current = matches[0];
+    // Preserve the pre-edit snapshot when a legacy practice is first adapted.
+    if (!current.canonicalQuestionId) attachPracticeReferences(database,userId,{...practice,questions:[{...current}]},{sourcePracticeId:practiceId});
     const choices = changes.choices ?? current.choices;
     const answer = changes.answer ?? (changes.answerIndex !== undefined ? choices[changes.answerIndex] : current.answer);
     const answerIndex = choices.indexOf(answer);
@@ -3068,6 +3156,7 @@ export function updatePracticeQuestion(userId, practiceId, questionId, patch) {
     const updated = normalizePracticeExplanations(merged);
     assertPracticeExplanations([updated]);
     practice.questions = practice.questions.map((question) => question === current ? updated : question);
+    attachPracticeReferences(database,userId,{...practice,questions:[updated]},{sourcePracticeId:practiceId});
     database.prepare('UPDATE daily_practices SET practice_json = ?, updated_at = ? WHERE user_id = ? AND id = ?')
       .run(JSON.stringify(practice), new Date().toISOString(), userId, practiceId);
     return getDailyPractice(userId, practiceId);
@@ -3231,6 +3320,7 @@ function normalizeDailyPracticeQuestion(question, practiceId, index, reviewItems
   return {
     id,
     sourceQuestionId: question.id,
+    canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,questionTypeId:question.questionTypeId,
     source: question.source,
     sourceKind: question.source === 'card_review' ? 'card_review' : 'answer_history',
     japaneseAnnotations: normalizeJapaneseAnnotations(question.japaneseAnnotations ?? question.japanese_annotations ?? sourceItem?.japanese_annotations),

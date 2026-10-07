@@ -251,6 +251,10 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
     await json('/api/listening-questions/'+question.id,'DELETE');
     assert.equal((await request(audioPath)).status,404);
-    assert.equal((await (await mf.getR2Bucket('MEDIA')).list()).objects.length,0);
+    // Active question route is gone, but immutable material history still owns bytes.
+    const media=await mf.getR2Bucket('MEDIA');
+    const retained=(await media.list()).objects;
+    assert.equal(retained.length,1);
+    assert.equal(await (await media.get(retained[0].key)).text(),'test-audio-bytes');
   } finally {await mf.dispose();rmSync(dir,{recursive:true,force:true});}
 });

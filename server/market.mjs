@@ -1,3 +1,4 @@
+import { persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
 import { normalizeJapaneseAnnotations } from './japanese-annotations.mjs';
 import { discoveryPresentation } from '../src/domain/discoveryPresentation.mjs';
 import { currentPlatform, transaction } from './platform.mjs';
@@ -532,6 +533,7 @@ export function importPackage(userId, input) {
           core_memory: source.core_memory || [],
           type: source.type || "vocabulary",
         };
+        persistItemSeeds(db,userId,item);
         db.prepare("INSERT INTO user_review_items VALUES (?,?,?)").run(
           id,
           userId,
@@ -552,6 +554,7 @@ export function importPackage(userId, input) {
         const itemId = `import-${randomUUID()}`;
         const item = { ...source, id: itemId, date, meaning_zh: source.meaning_zh || '',
           core_memory: source.core_memory || [], type: source.type || (source.deck === 'grammar_expression' ? 'grammar' : 'vocabulary') };
+        persistItemSeeds(db,userId,item);
         db.prepare('INSERT INTO user_review_items VALUES (?,?,?)').run(itemId, userId, JSON.stringify(item));
         return itemId;
       });
@@ -586,6 +589,7 @@ export function importPackage(userId, input) {
         content_origin: "user_provided",
         disclaimer: "用户分享内容，请结合解析自行核对。",
       };
+      attachPracticeReferences(db,userId,practice,{status:'needs_review'});
       db.prepare(
         "INSERT INTO daily_practices (id,user_id,practice_date,version,title,minutes,practice_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
       ).run(

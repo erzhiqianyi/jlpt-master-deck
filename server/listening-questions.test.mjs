@@ -295,3 +295,28 @@ for (const name of ['create_listening_question', 'upsert_listening_question']) {
     assert.equal(audioResult.content[0].type, 'audio');
   });
 }
+
+test('shared AU material versions survive transcript edits and removal of both linked LS questions', async () => {
+ const first=await call('create_listening_question',makeInput('bank-material'));
+ const {audioBase64: _bytes,audioMime: _mime,audioFileName: _file,...rest}=makeInput('bank-material-second');
+ const second=await call('create_listening_question',{...rest,audioReference:first.audioReference});
+ assert.equal(first.audioAssetId,second.audioAssetId);
+ assert.deepEqual(first.materialRefs,second.materialRefs);
+ const database=storage.getDb();
+ const before=database.prepare('SELECT payload_json FROM bank_material_versions WHERE owner=? AND material_id=? AND revision=?').get(alice.id,first.materialRefs[0].id,first.materialRefs[0].revision).payload_json;
+ storage.updateListeningTranscript(alice.id,first.id,{transcript:'修正版の音声内容。'});
+ const changed=storage.listeningQuestionForUser(alice.id,second.id);
+ assert.ok(changed.materialRefs[0].revision>second.materialRefs[0].revision);
+ assert.equal(database.prepare('SELECT payload_json FROM bank_material_versions WHERE owner=? AND material_id=? AND revision=?').get(alice.id,first.materialRefs[0].id,first.materialRefs[0].revision).payload_json,before);
+ storage.deleteListeningQuestion(alice.id,first.id);storage.deleteListeningQuestion(alice.id,second.id);
+ assert.ok(database.prepare('SELECT id FROM listening_audio_assets WHERE user_id=? AND id=?').get(alice.id,first.audioAssetId));
+ const latest=JSON.parse(database.prepare('SELECT payload_json FROM bank_material_group_versions WHERE owner=? AND group_id=? ORDER BY revision DESC LIMIT 1').get(alice.id,`audio:${first.audioAssetId}`).payload_json);
+ assert.deepEqual(latest.questionRefs,[]);
+});
+
+test('MCP accepts expression type without silently classifying it as an N1 listening task', async () => {
+ const saved=await call('create_listening_question',{...makeInput('expression'),questionTypeId:'listening-expression',choices:['どうぞ','ごめんなさい','ありがとう'],answerIndex:2,choiceDetails:[]});
+ assert.equal(saved.questionTypeId,'listening-expression');
+ const version=JSON.parse(storage.getDb().prepare('SELECT payload_json FROM bank_question_versions WHERE owner=? AND question_id=? AND revision=?').get(alice.id,saved.canonicalQuestionId,saved.questionRevision).payload_json);
+ assert.equal(version.questionTypeId,'listening-expression');
+});

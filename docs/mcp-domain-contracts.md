@@ -1,0 +1,33 @@
+# MCP领域写入契约与迁移状态
+
+2026-10-07。本文件与server/mcp-tools.mjs、item-schema.mjs、reading-schema.mjs、question-bank.mjs及bank-materials.mjs对齐。implemented=已接现有调用；proposal=尚未提供工具或未完成校验。不能将目标契约当成已发布API。
+
+|规则|状态与真实入口|
+|---|---|
+|知识点独立保存，不要求六类题齐全|implemented：upsert_review_item。未提供practice_questions保留；[]清空；显式题严格校验。纯片假名/专名仅出适用题，不改变生成偏好为保存要求。|
+|按题型创建题、关联知识/材料|partial：现有阅读、听力、知识种子、日练与模拟卷适配到canonical题版本。23型注册已存在；尚无通用create_question工具和完整多对多关系编辑。|
+|已有音频无需重传|implemented：create_listening_question接受owner的audioReference与真实bytes二选一。AU保持旧ID，可挂多LS；材料版本引用AU，不复制上传。|
+|已有文章引用|implemented in stage 2：create/update_reading_question可传materialRef{id,revision}，必须owner匹配且全文一致；不按文本相似度自动合并。图片通用引用proposal。|
+|局部patch省略不删|implemented：reading/listening/practice各已有patch；数组按旧入口整体替换。upsert_review_item仍是旧条目整体输入兼容契约，不能伪称全字段partial patch。|
+|ID+expectedRevision并发控制|partial：模拟卷已有expectedRevision；普通阅读/听力/知识/练习patch尚无统一版本冲突控制，proposal。|
+|题目新版本与旧快照|implemented canonical不可变版本；源题更新保留旧练习快照。用户显式update_practice_question修改该练习显示版本，历史answers不改；旧未适配练习在首次patch前归档旧版本。|
+|稳定答案optionID、旧数字显式base|partial：canonical答案是冻结版本作用域option-ID；旧answerIndex保持0-based；发布draft拒绝未声明base的numeric answer。日练生成器旧兼容路径仍需统一，不能声称全入口一致。|
+|批量预校验与幂等|proposal：不添加未接工具空壳。目标requestId+每项sourceIdentity，返回每项accepted/rejected/unchanged及真实ID/revision/state。数据库内一个明确batch事务；音频外部上传与数据库不能承诺跨服务原子性。|
+|删除关系与资产独立|partial：删除reading/listening旧库条目时canonical退役且保留版本；历史音频引用阻止清理bytes。旧delete_reading_question对现库删除仍不可恢复，不能承诺恢复功能。通用unlink/restore及资产回收工具proposal。|
+|练习draft/approved/published独立|implemented：publish_draft_as_daily_practice保持已有approved/archived门禁；保存未审草稿只归档unscored，不自动ready。普通generate_daily_practice是既有独立直接生成入口，不伪装成走草稿审批。|
+|返回真实ID/version/state|partial：原库ID保留，接入入口追加canonicalQuestionId/questionRevision/materialRefs；所有入口统一state封装proposal。|
+|结构硬校验与内容审查|implemented部分Zod字段/答案/引用约束；语义审查不由schema通过代替。完整type-specific校验与reviewStatus事件proposal。|
+|错误fieldpath+code+可恢复建议|partial：现有Zod校验提供path；现有错误/HTTP状态兼容保留。统一required/not_applicable/revision_conflict/duplicate/permission及建议封装proposal。|
+|registry schema版本发现/刷新|partial：canonical payload schemaVersion=1。MCP注册表发现端点和版本协商proposal；现有tool JSON schema由真实工具导出。|
+
+## 目标返回与错误契约（proposal）
+
+写入返回旧实例ID、canonical ID、revision、state、changed，以及材料引用。幂等重试返回同ID/revision，不增加重复版本。partial outcome逐项说明是否已提交；不能只返回一个true掩盖失败。
+
+错误示例：{code:'revision_conflict',fieldPath:['expectedRevision'],currentRevision:3,recover:'重新读取并基于revision 3合并补丁'}。缺字段建议补真实内容；not_applicable建议改为适用类型或只保存知识；duplicate仅针对显式source identity，不能按stem删除；permission不暴露其他owner资产。过旧schema建议刷新工具schema；语义待审不是技术成功ready。
+
+## 测试证据与后续步骤
+
+server/vocab-seeds.test.mjs覆盖独立保存、显式题与省略/清空；server/question-bank.test.mjs覆盖答案base、版本与alias；server/reading-questions.test.mjs和listening-questions.test.mjs覆盖现有MCP/REST权限与patch；server/mock-exams.test.mjs覆盖expectedRevision；server/practice-explanation-update.test.mjs覆盖答案、相邻题、history不变；新bank-materials.test.mjs覆盖共享、版本冻结、owner引用与原子回滚。
+
+后续先补真实入口的材料/版本和迁移，随后接统一呈现、作答事件与统计，再分步加通用写工具、并发/幂等/结构化错误；每步提供集成测试，禁止一次暴露大量未接工具。全部改造仅本地，不操作生产MCP/学习数据/自动化。

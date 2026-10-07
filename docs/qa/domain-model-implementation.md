@@ -37,3 +37,18 @@
 全 owner 原始清单和全库兼容迁移/对账；item seeds、reading、LS、mock全部写入口；素材版本/组/知识点关联；后台候选与冻结manifest；新增增量同步/offline媒体依赖；AnswerSubmitted/MemoryRated分离与日期统计投影；分享版本授权；全部Web/MCP/native题型renderer与完整fixture/实际截图；原生Xcode构建与iPhone/iPad真实练习回看。
 
 旧删除练习行为仍会按现有逻辑删除部分作答记录，未改为完整事件历史保留；新独立题目版本不随组合删除。独立库目前是追加切片，尚不能成为全库唯一权威。ready表示批准可练习，不代表严格JLPT eligibility核验。不要部署或生产迁移此未完成架构。
+
+## 第二阶段：材料与消费写入口（2026-10-07）
+
+本地追加bank_materials/material_versions/material_groups/group_versions。文章、音频按显式身份与owner保存不可变版本；题组保存有序题引用；不按相同stem合并。reading支持显式article引用、正文变化拆分、删除退役保留版本；LS共享AU，不重传音频，转录更新生成新材料/题版本，历史媒体引用阻止删bytes。草稿归档保留全部section上下文。
+
+item seeds、daily/topic、mock创建/更新、市场词条与练习导入接canonical核心；旧练习第一次局部patch前保存旧版本。相邻题、旧答案及旧history保持。Web/native题生成携带canonical元数据，index与完整题生成保持一致；语法组句/篇章能在题型选项区分。MCP与Web/iOS接listening-expression（N3–N5），不修改N1正式清单。普通practice解释刷新、旧库全量反填及所有复制修复入口仍待接。
+
+新增知识点/23题型/MCP/整体架构文档并相互链接；整体架构JSON/SVG/PNG使用本机QuickLook渲染，发现领域小框字号溢出后调整；没有把架构PNG当产品UI截图。
+
+- 最终 `node --test`：454/454通过，0 fail/skip（包含Cloudflare runtime、MCP/REST、真实材料共享、跨owner拒绝/回滚、历史冻结、原生bundle一致性）。
+- `npx tsc --noEmit`、`npm run lint`、`npm run build`（Web+3 MCP模式）、`npm run build:native-questions`、`swiftc -frontend -parse apple/Sources/*.swift`及`git diff --check`通过。
+- 日志归档在 `.local/domain-stage2/`，只验证本机和本地Cloudflare模拟。没有Xcode签名构建或真实跨端UI运行。
+- 首次全回归450/453：索引新增字段揭示一处真实qtype元数据不一致，已修；两项索引断言扩大到全部元数据一致性；Cloudflare R2删除断言改为历史保留bytes且旧题路由404。最终全量覆盖修正。
+
+剩余范围按architecture与MCP契约标记继续：完整历史反填、所有剩余写入口；canonical增量同步与Apple离线消费；全QuestionRenderer/全型真实fixture与各入口状态；客观作答与自评事件/统计日期投影；分享版本和权限恢复；全并发/幂等/结构化错误。整体目标尚未完成，不能作为生产迁移发布。

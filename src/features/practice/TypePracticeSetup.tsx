@@ -1,3 +1,4 @@
+import { readingQuestionKind, indexedPracticeKind } from '../../domain/typePractice';
 import { useMemo, useState } from 'react';
 import { buildQuestionIndex, buildQuestions } from '../../domain/questions';
 import { filterableTags, itemInWordbook, wordbooksForFamily } from '../../domain/wordbooks';
@@ -16,12 +17,12 @@ export function TypePracticeSetup({ items, wordbooks, reading, listening, locale
   const [kind, setKind] = useState(defaults.kind ?? 'all'); const [book, setBook] = useState(defaults.book ?? 'all'); const [tag, setTag] = useState(defaults.tag ?? 'all'); const [count, setCount] = useState(10);
   const t = (zh: string, ja: string, en: string) => locale === 'zh-CN' ? zh : locale === 'ja' ? ja : en;
   const moduleNames = { vocabulary: t('单词', '単語', 'Vocabulary'), grammar: t('语法', '文法', 'Grammar'), reading: t('阅读', '読解', 'Reading'), listening: t('听力', '聴解', 'Listening') };
-  const kindNames: Record<string, string> = { grammar: t('语法选择', '文法選択', 'Grammar selection'), kanji_to_kana: t('汉字读音', '漢字読み', 'Kanji reading'), kana_to_kanji: t('汉字表记', '漢字表記', 'Kanji spelling'), moji_goi: t('语境规定', '文脈規定', 'Context'), meaning: t('近义替换', '言い換え', 'Paraphrase'), usage: t('用法', '用法', 'Usage'), word_formation: t('词语构成', '語形成', 'Word formation'), unclassified: t('未分类', '未分類', 'Unclassified') };
+  const kindNames: Record<string, string> = { 'listening-expression':t('发话表达（N3–N5）','発話表現（N3–N5）','Verbal expression (N3–N5)'), grammar: t('语法选择', '文法選択', 'Grammar selection'), kanji_to_kana: t('汉字读音', '漢字読み', 'Kanji reading'), kana_to_kanji: t('汉字表记', '漢字表記', 'Kanji spelling'), moji_goi: t('语境规定', '文脈規定', 'Context'), meaning: t('近义替换', '言い換え', 'Paraphrase'), usage: t('用法', '用法', 'Usage'), word_formation: t('词语构成', '語形成', 'Word formation'), 'reading-basic-training':t('基础训练','基礎練習','Basic training'),unclassified: t('未分类', '未分類', 'Unclassified') };
   for (const type of officialN1QuestionTypes) kindNames[type.id] = type.name[locale];
   const library = items.filter(item => (module === 'grammar') === (item.deck === 'grammar_expression') && item.type !== 'proper_name');
   const scopedItems = library.filter(item => (!defaults.itemIds || module !== defaults.module || defaults.itemIds.includes(item.id)) && itemInWordbook(item, book) && (tag === 'all' || filterableTags(item).includes(tag)));
-  const readingKind = (q: ReadingQuestion) => q.tags?.find(value => officialN1QuestionTypes.some(type => type.section === 'reading' && type.id === value)) ?? 'unclassified';
-  const index = useMemo(() => buildQuestionIndex(scopedItems), [scopedItems]);
+  const readingKind = readingQuestionKind;
+  const index = useMemo(() => buildQuestionIndex(scopedItems).map(q=>({...q,kind:indexedPracticeKind(q)})), [scopedItems]);
   const candidates = module === 'reading' ? reading.filter(q => tag === 'all' || q.tags?.includes(tag)).map(q => ({ id: q.id, kind: readingKind(q) })) : module === 'listening' ? listening.map(q => ({ id: q.id, kind: q.questionTypeId })) : index;
   const kinds = [...new Set(candidates.map(q => q.kind))];
   const pool = candidates.filter(q => kind === 'all' || q.kind === kind);

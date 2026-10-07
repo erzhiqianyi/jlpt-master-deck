@@ -1,21 +1,22 @@
+import { questionStrategy } from './questionContract.mjs';
 import { itemExplanation, itemMeaning, itemMemory, itemPatternTexts } from './items';
 import { translations } from '../i18n/translations';
 import { describeReadingConfusion, readingDistractors } from './readingDistractors.mjs';
 import type { Deck, Locale, PracticeQuestionSeed, Question, QuestionKind, VocabItem } from '../types';
 
-export type QuestionReference = Pick<Question, 'id' | 'itemId' | 'kind'>;
+export type QuestionReference = Pick<Question, 'id' | 'itemId' | 'kind' | 'canonicalQuestionId' | 'questionRevision' | 'questionTypeId'>;
 
 // Counting and navigation do not require choices or explanations.
 export function buildQuestionIndex(items: VocabItem[]): QuestionReference[] {
   return items.flatMap((item) => {
     if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
-      return item.practice_questions.flatMap((seed, index) => !seed.kind || seed.kind === 'grammar'
-        ? [{ id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`, itemId: item.id, kind: 'grammar' as const }] : []);
+      return item.practice_questions.flatMap((seed, index) => !seed.kind || questionStrategy(seed.questionTypeId??seed.kind)?.module === 'grammar'
+        ? [{ id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`, itemId: item.id, kind: 'grammar' as const, canonicalQuestionId:seed.canonicalQuestionId, questionRevision:seed.questionRevision,questionTypeId:seed.questionTypeId??questionStrategy(seed.kind)?.id }] : []);
     }
     const seeded = vocabSeeds(item);
     const seededKinds = new Set(seeded.map(({ kind }) => kind));
     const result: QuestionReference[] = seeded.map(({ seed, kind }, index) => ({
-      id: seedQuestionId(item, seed, kind, index), itemId: item.id, kind,
+      id: seedQuestionId(item, seed, kind, index), itemId: item.id, kind, canonicalQuestionId:seed.canonicalQuestionId,questionRevision:seed.questionRevision,questionTypeId:seed.questionTypeId??questionStrategy(seed.kind)?.id,
     }));
     const allowed = new Set(questionKindsForItem(item));
     const suffixes = {
@@ -45,7 +46,7 @@ export function buildQuestions(items: VocabItem[], locale: Locale, maxQuestions 
     if (item.deck === 'grammar_expression' && item.practice_questions?.length) {
       item.practice_questions.forEach((seed, seedIndex) => {
         if (questions.length >= maxQuestions) return;
-        if (seed.kind && seed.kind !== 'grammar') return;
+        if (seed.kind && questionStrategy(seed.questionTypeId??seed.kind)?.module !== 'grammar') return;
         questions.push(buildSeededGrammarQuestion(item, seed, seedIndex, locale, items));
       });
       return;
@@ -272,6 +273,7 @@ function buildSeededGrammarQuestion(
   return {
     id: seed.id ?? `${item.id}-grammar-seed-${index + 1}`,
     ...seedQuestionProvenance(seed),
+    canonicalQuestionId:seed.canonicalQuestionId,questionRevision:seed.questionRevision,questionTypeId:seed.questionTypeId??questionStrategy(seed.kind)?.id,
     itemId: item.id,
     kind: 'grammar',
     title: labels.grammarTitle,
@@ -363,6 +365,7 @@ function buildSeededVocabQuestion(
   return {
     id: seedQuestionId(item, seed, kind, index),
     ...seedQuestionProvenance(seed),
+    canonicalQuestionId:seed.canonicalQuestionId,questionRevision:seed.questionRevision,questionTypeId:seed.questionTypeId??questionStrategy(seed.kind)?.id,
     itemId: item.id,
     kind,
     title: labels[`${titleKey}Title`] ?? labels[titleKey] ?? kind,

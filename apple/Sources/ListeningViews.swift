@@ -33,7 +33,7 @@ struct ListeningLibraryView: View {
     @State private var query = ""
     @State private var type = "all"
     @State private var showingFilters = false
-    static let types = [("all", "全部"), ("listening-task", "課題理解"), ("listening-points", "ポイント理解"), ("listening-outline", "概要理解"), ("listening-quick", "即時応答"), ("listening-integrated", "統合理解"), ("listening-basic-training", "基础训练")]
+    static let types = [("all", "全部"), ("listening-task", "課題理解"), ("listening-points", "ポイント理解"), ("listening-outline", "概要理解"), ("listening-expression", "発話表現（N3–N5）"), ("listening-quick", "即時応答"), ("listening-integrated", "統合理解"), ("listening-basic-training", "基础训练")]
     var groups: [ListeningGroup] {
         ListeningGroup.make(store.listening).filter { group in
             (type == "all" || group.questions.contains { $0.questionTypeId == type }) && (query.isEmpty || group.questions.contains { "\($0.title) \($0.audioFileName) \($0.reference ?? "")".localizedCaseInsensitiveContains(query) })

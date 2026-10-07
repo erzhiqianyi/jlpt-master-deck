@@ -43,7 +43,9 @@ test('MCP and REST share owned exams, permit arbitrary sessions, guard edits and
   const updated = await api(`/api/mock-exams/${created.id}`, 'PATCH', { expectedRevision: 1, title: '更新' });
   assert.equal(updated.status, 200, JSON.stringify(updated.result));
   assert.equal(updated.result.exam.revision, 2);
-  assert.deepEqual(updated.result.exam.sessions, input.sessions);
+  assert.deepEqual(updated.result.exam.sessions, created.sessions);
+  assert.match(created.sessions[0].questions[0].canonicalQuestionId, /^bank-/);
+  assert.equal(created.sessions[0].questions[0].questionRevision, 1);
   assert.equal((await api(`/api/mock-exams/${created.id}`, 'PATCH', { expectedRevision: 1, title: 'stale' })).status, 409);
   const invalid = structuredClone(input); invalid.sessions[0].questions[0].answerIndex = 9;
   assert.equal((await api('/api/mock-exams', 'POST', invalid)).status, 400);

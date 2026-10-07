@@ -260,6 +260,11 @@ extension APIClient {
                 break
             }
         }
+        if data.wordbooks == nil {
+            struct Books: Decodable { let wordbooks: [NativeWordbook] }
+            let result: Books = try await get("api/wordbooks")
+            data.wordbooks = result.wordbooks
+        }
         data.hasPracticeCache = true; data.hasListeningCache = true
         return data
     }

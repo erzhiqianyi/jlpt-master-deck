@@ -119,7 +119,10 @@ export type TtsProviderId = 'browser' | 'openai' | 'google-cloud' | 'azure';
 
 export type AuthUser = { id: number; username: string };
 
+export type CardReviewEvent = { eventId: string; itemId: string; rating: 'forgot' | 'hard' | 'remembered' | 'easy'; reviewedAt: string };
+
 export type StudyState = {
+  cardReviews?: CardReviewEvent[];
   practiceCompletionCounts?: Record<string, number>;
   answers: AnswerState;
   progress: ProgressState;

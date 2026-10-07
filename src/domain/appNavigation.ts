@@ -16,7 +16,7 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
     if (route.itemId?.startsWith('replay:')) return { view: 'history', page: 'questions', itemId: 'history' };
     if (route.page === 'tips' && route.itemId?.startsWith('opinion/')) return { view: 'mixed', page: 'tips', itemId: 'opinion' };
     if (route.page === 'words') return { view: 'study', page: 'questions' };
-    if (route.page === 'review') return { view: 'mixed', page: 'questions' };
+    if (route.page === 'review') return { view: 'mixed', page: 'questions', ...(route.itemId === 'type-session' ? { itemId: route.itemId } : {}) };
     return { view: 'home', page: 'questions' };
   }
   if (['vocabulary', 'grammar', 'reading', 'listening'].includes(route.view)) {
@@ -37,7 +37,8 @@ export function contextualBackRoute(route: AppRoute, { dailyPracticeIsTopic = fa
     : dailyPracticeIsTopic ? { view: 'mixed', page: 'tips', itemId: 'topics' } : { view: 'home', page: 'questions' };
   if (route.view === 'news-cycle') return route.itemId ? { view: 'news-cycle', page: 'questions' } : { view: 'mixed', page: 'tips' };
   if (route.view === 'capture') return { view: 'captures', page: 'questions' };
-  if (['captures', 'drafts', 'mistakes', 'memory', 'data', 'insights'].includes(route.view)) return { view: 'history', page: 'questions' };
+  if (route.view === 'drafts') return { view: 'home', page: 'questions' };
+  if (['captures', 'mistakes', 'memory', 'data', 'insights'].includes(route.view)) return { view: 'history', page: 'questions' };
   if (route.view === 'plan' && route.itemId) return { view: 'plan', page: 'questions' };
   if (route.view === 'about' && route.itemId?.startsWith('guide-')) return { view: 'about', page: 'questions', itemId: 'guide' };
   if (route.view === 'about' && route.itemId) return { view: 'about', page: 'questions' };
@@ -51,7 +52,8 @@ export function primaryNavigationView(route: AppRoute): AppView {
   }
   if (['daily-practice', 'mock-exams', 'news-cycle', 'memory-review'].includes(route.view)) return 'home';
   if (route.view === 'question-types' || (route.view === 'mixed' && route.page === 'words')) return 'study';
-  if (['captures', 'capture', 'drafts', 'mistakes', 'insights', 'memory', 'data'].includes(route.view)) return 'history';
+  if (route.view === 'drafts') return 'home';
+  if (['captures', 'capture', 'mistakes', 'insights', 'memory', 'data'].includes(route.view)) return 'history';
   if (['plan', 'settings', 'profile', 'about', 'mcp'].includes(route.view)) return 'home';
   return route.view === 'mixed' ? 'home' : route.view;
 }

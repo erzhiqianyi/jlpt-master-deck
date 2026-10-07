@@ -16,7 +16,7 @@ struct PracticeHub: View {
                 }
             }.frame(maxWidth: 1200, alignment: .leading).modifier(StudyPagePadding()).frame(maxWidth: .infinity, alignment: .leading)
         }.fullScreenCover(item: $selected) { entry in
-            Group { if entry.id == "mock" { NativeMockExamView() } else { NativePracticeScreen(entry: entry) } }
+            Group { if entry.id == "mock" { NativeMockExamView() } else if entry.id == "types" { NativeTypePracticeSetup() } else { NativePracticeScreen(entry: entry) } }
         }
     }
     private func summary(_ entry: PracticeEntry) -> String {
@@ -24,6 +24,7 @@ struct PracticeHub: View {
             let count = store.drafts.filter { draft in draft.isTopic && store.packs.contains { $0.sourceDraftId == draft.id } }.count
             return "\(count) 套"
         }
+        if entry.id == "types" { return "选择题型与范围，随机抽题" }
         if entry.id == "mock" { return entry.subtitle }
         if entry.id == "daily" { return "\(store.todayPacks.count) 套" }
         let kinds = ["grammar", "moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji"]
@@ -34,10 +35,12 @@ struct PracticeHub: View {
 }
 struct IndependentPracticeEntries: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selected: PracticeEntry?
-    private var entries: [PracticeEntry] { ["topics", "mixed", "mock"].compactMap { id in PracticeEntry.all.first { $0.id == id } } }
+    private var entries: [PracticeEntry] { ["topics", "types", "mixed", "mock"].compactMap { id in PracticeEntry.all.first { $0.id == id } } }
     private func count(_ entry: PracticeEntry) -> String {
         switch entry.id {
+        case "types": return "随机抽题"
         case "topics": return "\(store.drafts.filter { $0.isTopic }.count) 套"
         case "mixed":
             let kinds = ["grammar", "moji_goi", "meaning", "kanji_to_kana", "kana_to_kanji"]
@@ -53,21 +56,21 @@ struct IndependentPracticeEntries: View {
         }.count
     }
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: sizeClass == .regular ? 4 : 2), spacing: 0) {
             ForEach(entries) { entry in
                 Button { selected = entry } label: {
                     VStack(spacing: 10) {
                         Image(systemName: entry.id == "topics" ? "book" : entry.icon).font(.system(size: 29)).foregroundStyle(DeckTheme.green)
                         Text(entry.title).font(.subheadline.bold())
                         Text(count(entry)).font(.subheadline).foregroundStyle(DeckTheme.muted)
-                        Label("\(rounds(entry)) 次", systemImage: "arrow.counterclockwise").font(.caption).foregroundStyle(DeckTheme.muted)
+                        if entry.id != "types" { Label("\(rounds(entry)) 次", systemImage: "arrow.counterclockwise").font(.caption).foregroundStyle(DeckTheme.muted) }
                     }.frame(maxWidth: .infinity).padding(.vertical, 20).padding(.horizontal, 4)
                 }.buttonStyle(.plain).accessibilityIdentifier("practice.\(entry.id)")
-                if entry.id != "mock" { Rectangle().fill(DeckTheme.line).frame(width: 1, height: 110).padding(.top, 18) }
+
             }
         }.overlay(RoundedRectangle(cornerRadius: 18).stroke(DeckTheme.line))
             .fullScreenCover(item: $selected) { entry in
-                Group { if entry.id == "mock" { NativeMockExamView() } else { NativePracticeScreen(entry: entry) } }
+                Group { if entry.id == "mock" { NativeMockExamView() } else if entry.id == "types" { NativeTypePracticeSetup() } else { NativePracticeScreen(entry: entry) } }
             }
     }
 }
@@ -241,7 +244,6 @@ struct HistoryView: View {
             NavigationLink {
                 List(store.captures) { capture in VStack(alignment: .leading, spacing: 8) { JapaneseText(text: capture.body); JapaneseText(text: capture.context).font(.caption).foregroundStyle(DeckTheme.muted) } }.navigationTitle("输入记录")
             } label: { DeckRow(title: "输入记录", subtitle: "\(store.captures.count) 条记录", icon: "square.and.pencil") }.buttonStyle(.plain)
-            NavigationLink { NativeDraftStatisticsView() } label: { DeckRow(title: "练习草稿", subtitle: "\(store.drafts.count) 条记录", icon: "list.bullet.rectangle") }.buttonStyle(.plain)
         }
     }
     private func metrics(_ values: [(String, String)]) -> some View {
@@ -323,14 +325,14 @@ struct NativeMistakesView: View {
         }.navigationTitle("错题集")
     }
 }
-struct NativeDraftStatisticsView: View {
+struct NativePendingPracticesView: View {
     @Environment(AppStore.self) private var store
     @State private var reviewingDraft: PracticeDraft?
     @State private var round: NativeRound?
     @State private var confirmedPack: NativePack?
 
     var body: some View {
-        List(store.drafts) { draft in
+        List(store.drafts.filter { draft in ["draft", "needs_revision", "approved"].contains(draft.status) && !store.packs.contains(where: { $0.sourceDraftId == draft.id }) }.sorted { ($0.created_at ?? "") > ($1.created_at ?? "") }) { draft in
             let pack = store.packs.first { $0.sourceDraftId == draft.id }
             Button {
                 if let pack { start(pack) }
@@ -343,7 +345,7 @@ struct NativeDraftStatisticsView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("draft.open.\(draft.id)")
         }
-        .navigationTitle("练习草稿")
+        .navigationTitle("待确认练习")
         .fullScreenCover(item: $round) { NativeQuizView(round: $0) }
         .fullScreenCover(item: $reviewingDraft, onDismiss: {
             if let pack = confirmedPack { confirmedPack = nil; start(pack) }
@@ -1405,3 +1407,174 @@ struct NativeDailyPracticeSourceSettings: View {
         }
     }
 }
+
+struct NativeTypePracticeSetup: View {
+    @Environment(AppStore.self) private var store
+    @State private var module = "vocabulary"
+    @State private var kind = "all"
+    @State private var book = "all"
+    @State private var tag = "all"
+    @State private var count = 10
+    @State private var generated: [NativeQuestion] = []
+    @State private var loading = false
+    @State private var error: String?
+    @State private var round: NativeRound?
+    @State private var materialSession: NativeTypeMaterialSession?
+    private let modules = [("vocabulary", "单词"), ("grammar", "语法"), ("reading", "阅读"), ("listening", "听力")]
+    static let typeNames = ["grammar": "语法选择", "grammar-composition": "句子排列", "grammar-text": "篇章语法", "kanji_to_kana": "汉字读音", "kana_to_kanji": "汉字表记", "moji_goi": "语境规定", "meaning": "近义替换", "usage": "用法", "word_formation": "词语构成", "reading-short": "短文理解", "reading-mid": "中篇理解", "reading-long": "长文理解", "reading-integrated": "综合理解", "reading-thematic": "主张理解", "reading-information": "信息检索", "listening-task": "课题理解", "listening-points": "要点理解", "listening-outline": "概要理解", "listening-quick": "即时应答", "listening-integrated": "综合理解", "listening-basic-training": "基础训练", "unclassified": "未分类"]
+    private func filterTags(_ item: StudyItem) -> [String] {
+        (item.tags ?? []).filter { value in
+            !["mcp-draft", "codex-chat-review"].contains(value) && value.count > 1
+            && value.range(of: "^N[1-5](?:/N[1-5])?$|^教材・第[0-9]+週$", options: .regularExpression) == nil
+            && !value.contains("単語") && !value.contains("单词") && !value.contains("待整理")
+        }
+    }
+    private var names: [String: String] { Self.typeNames }
+    var autoStart = false
+    init(module: String = "vocabulary", kind: String = "all", book: String = "all", autoStart: Bool = false) {
+        _module = State(initialValue: module); _kind = State(initialValue: kind); _book = State(initialValue: book); self.autoStart = autoStart
+    }
+    private var library: [StudyItem] { store.items.filter { (module == "grammar") == $0.isGrammar && $0.type != "proper_name" } }
+    private var scoped: [StudyItem] { library.filter { (book == "all" || ($0.wordbook_id ?? $0.deck) == book) && (tag == "all" || filterTags($0).contains(tag)) } }
+    private func readingKind(_ item: ReadingQuestion) -> String { (item.tags ?? []).first { names[$0] != nil && $0.hasPrefix("reading-") } ?? "unclassified" }
+    private var readings: [ReadingQuestion] { store.reading.filter { (tag == "all" || ($0.tags ?? []).contains(tag)) && (kind == "all" || readingKind($0) == kind) } }
+    private var listenings: [ListeningItem] { store.listening.filter { kind == "all" || $0.questionTypeId == kind } }
+    private var questions: [NativeQuestion] {
+        let ids = Set(scoped.map(\.id))
+        return generated.filter { ids.contains($0.itemId) && (kind == "all" || $0.kind == kind) }
+    }
+    private var available: Int { module == "reading" ? readings.count : module == "listening" ? listenings.count : questions.count }
+    private var tags: [String] { Array(Set(module == "reading" ? store.reading.flatMap { $0.tags ?? [] } : library.filter { book == "all" || ($0.wordbook_id ?? $0.deck) == book }.flatMap(filterTags))).sorted() }
+    private var kinds: [String] {
+        if module == "reading" { return Array(Set(store.reading.filter { tag == "all" || ($0.tags ?? []).contains(tag) }.map(readingKind))).sorted() }
+        if module == "listening" { return Array(Set(store.listening.map(\.questionTypeId))).sorted() }
+        let ids = Set(scoped.map(\.id)); return Array(Set(generated.filter { ids.contains($0.itemId) }.map(\.kind))).sorted()
+    }
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("模块") {
+                    Picker("模块", selection: $module) { ForEach(modules, id: \.0) { Text($0.1).tag($0.0) } }.pickerStyle(.segmented)
+                }
+                Section("题型与范围") {
+                    if module == "vocabulary" || module == "grammar" {
+                        Picker(module == "grammar" ? "语法本" : "单词本", selection: $book) {
+                            Text("全部").tag("all")
+                            ForEach(store.wordbooks.filter { (module == "grammar") == ($0.deck == "grammar_expression") }) { Text($0.title).tag($0.id) }
+                        }
+                    }
+                    if module != "listening" {
+                        Picker("标签", selection: $tag) { Text("全部标签").tag("all"); ForEach(tags, id: \.self) { Text($0).tag($0) } }
+                    }
+                    Picker("题型", selection: $kind) { Text("全部题型").tag("all"); ForEach(kinds, id: \.self) { Text(names[$0] ?? $0).tag($0) } }
+                    Picker("题量", selection: $count) { ForEach([5, 10, 20, 30], id: \.self) { Text("\($0) 题").tag($0) } }
+                }
+                Section {
+                    Text("符合条件 \(available) 题 · 本次抽取 \(min(count, available)) 题").font(.headline)
+                    Text("随机抽取，不重复凑题；开始后固定本轮题目与顺序。").font(.footnote).foregroundStyle(.secondary)
+                    if module == "reading" { Text("没有明确题型标签的阅读题归入未分类。").font(.footnote).foregroundStyle(.secondary) }
+                    if loading { ProgressView("正在整理题库…") }
+                    if let error { Text(error).foregroundStyle(.red) }
+                    Button("开始练习", action: start).disabled(loading || available == 0).accessibilityIdentifier("practice.types.start")
+                }
+            }.navigationTitle("题型练习")
+                .toolbar { ToolbarItem(placement: .cancellationAction) { DeckDismissButton(kind: .close, label: "关闭题型练习") } }
+                .onChange(of: module) { _, _ in book = "all"; tag = "all"; kind = "all" }
+                .onChange(of: book) { _, _ in tag = "all"; kind = "all" }
+                .onChange(of: tag) { _, _ in kind = "all" }
+                .task {
+                    loading = true; defer { loading = false }
+                    do { generated = try NativeItemQuestions.buildAll(items: store.items, packs: store.packs, locale: "zh-CN"); if autoStart && available > 0 { start() } }
+                    catch { self.error = error.localizedDescription }
+                }
+        }.fullScreenCover(item: $round) { NativeQuizView(round: $0) }
+            .fullScreenCover(item: $materialSession) { NativeTypeMaterialPractice(session: $0) }
+    }
+    private func start() {
+        if module == "reading" { materialSession = NativeTypeMaterialSession(reading: Array(readings.shuffled().prefix(count)), listening: []) }
+        else if module == "listening" { materialSession = NativeTypeMaterialSession(reading: [], listening: ListeningGroup.make(Array(listenings.shuffled().prefix(count))).shuffled()) }
+        else {
+            let title = "题型练习 · \(modules.first { $0.0 == module }?.1 ?? module) · \(names[kind] ?? "全部题型")"
+            round = NativeRound(title: title, questions: Array(questions.shuffled().prefix(count)), view: "mixed")
+        }
+    }
+}
+struct NativeTypeMaterialSession: Identifiable {
+    let id = UUID()
+    let reading: [ReadingQuestion]
+    let listening: [ListeningGroup]
+}
+struct NativeTypeMaterialPractice: View {
+    let session: NativeTypeMaterialSession
+    @State private var index = 0
+    @Environment(\.dismiss) private var dismiss
+    private var total: Int { session.reading.isEmpty ? session.listening.count : session.reading.count }
+    var body: some View {
+        NavigationStack {
+            Group {
+                if !session.reading.isEmpty { ReadingPracticeView(question: session.reading[index]).id(index) }
+                else { ListeningDetailView(group: session.listening[index]).id(index) }
+            }.toolbar {
+                ToolbarItem(placement: .topBarLeading) { DeckDismissButton(kind: .close, label: "退出题型练习") }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack {
+                        Button("上一份") { index -= 1 }.disabled(index == 0)
+                        Text("\(index + 1) / \(total)")
+                        Button(index + 1 < total ? "下一份" : "结束练习") { if index + 1 < total { index += 1 } else { dismiss() } }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+struct NativeLibraryTypeSummary: View {
+    @Environment(AppStore.self) private var store
+    let module: String
+    @State private var book = "all"
+    @State private var generated: [NativeQuestion] = []
+    @State private var selected: NativeLibraryTypeRequest?
+    @State private var error: String?
+    private var books: [NativeWordbook] { store.wordbooks.filter { (module == "grammar") == ($0.deck == "grammar_expression") } }
+    private var items: [StudyItem] { store.items.filter { (module == "grammar") == $0.isGrammar && (book == "all" || ($0.wordbook_id ?? $0.deck) == book) } }
+    private var candidates: [String] {
+        if module == "reading" { return store.reading.map { q in (q.tags ?? []).first { $0.hasPrefix("reading-") && NativeTypePracticeSetup.typeNames[$0] != nil } ?? "unclassified" } }
+        if module == "listening" { return store.listening.map(\.questionTypeId) }
+        let ids = Set(items.filter { $0.type != "proper_name" }.map(\.id))
+        return generated.filter { ids.contains($0.itemId) }.map(\.kind)
+    }
+    private var kinds: [String] {
+        let standard: [String]
+        switch module {
+        case "vocabulary": standard = ["kanji_to_kana", "kana_to_kanji", "moji_goi", "meaning", "usage", "word_formation"]
+        case "grammar": standard = ["grammar", "grammar-composition", "grammar-text"]
+        case "reading": standard = ["reading-short", "reading-mid", "reading-long", "reading-integrated", "reading-thematic", "reading-information"]
+        default: standard = ["listening-task", "listening-points", "listening-outline", "listening-quick", "listening-integrated"]
+        }
+        return standard + Set(candidates).subtracting(standard).sorted()
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if module == "vocabulary" || module == "grammar" {
+                Text(module == "grammar" ? "语法本" : "单词本").font(.caption).foregroundStyle(DeckTheme.muted)
+                Picker("选择书本", selection: $book) {
+                    Text("全部 · \(store.items.filter { (module == "grammar") == $0.isGrammar }.count)").tag("all")
+                    ForEach(books) { value in Text("\(value.title) · \(store.items.filter { ($0.wordbook_id ?? $0.deck) == value.id }.count)").tag(value.id) }
+                }.pickerStyle(.menu)
+            }
+            Text("题型 · 题数").font(.caption).foregroundStyle(DeckTheme.muted)
+            ForEach(kinds, id: \.self) { kind in
+                let count = candidates.filter { $0 == kind }.count
+                Button { selected = NativeLibraryTypeRequest(kind: kind, book: book) } label: {
+                    HStack { Text(NativeTypePracticeSetup.typeNames[kind] ?? kind); Spacer(); Text("\(count) 题"); Image(systemName: "chevron.right").font(.caption) }
+                        .font(.subheadline).padding(.vertical, 8)
+                }.buttonStyle(.plain).disabled(count == 0).opacity(count == 0 ? 0.45 : 1)
+            }
+            if let error { Text(error).font(.caption).foregroundStyle(.red) }
+        }.padding(.horizontal, 18).padding(.bottom, 18)
+            .task { if module == "vocabulary" || module == "grammar" { do { generated = try NativeItemQuestions.buildAll(items: store.items, packs: store.packs, locale: "zh-CN") } catch { self.error = error.localizedDescription } } }
+            .fullScreenCover(item: $selected) { value in NativeTypePracticeSetup(module: module, kind: value.kind, book: value.book, autoStart: true) }
+    }
+}
+private struct NativeLibraryTypeRequest: Identifiable { let id = UUID(); let kind: String; let book: String }

@@ -17,6 +17,7 @@ final class AppStore {
     var notice: String?
     private(set) var syncStage: String?
     @ObservationIgnored private let performanceLog = Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Performance")
+    var wordbooks: [NativeWordbook] = []
     var items: [StudyItem] = []
     var state = StudyState()
     var plan = StudyPlan()
@@ -193,7 +194,7 @@ final class AppStore {
             defer { isSaving = false }
             try await files.saveInBackground(data, userID: userID)
             guard expected == generation else { return nil }
-            items = data.items; state = data.state; plan = data.plan
+            wordbooks = data.wordbooks ?? []; items = data.items; state = data.state; plan = data.plan
             reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             hasPracticeCache = true; hasListeningCache = true
@@ -463,7 +464,7 @@ final class AppStore {
         }
     }
     private func snapshot() -> LocalStudyData {
-        LocalStudyData(items: items, state: state, plan: plan, reading: reading, captures: captures,
+        LocalStudyData(wordbooks: wordbooks, items: items, state: state, plan: plan, reading: reading, captures: captures,
                        packs: packs, drafts: drafts, listening: listening, shares: shares, pending: pending,
                        lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses)
     }
@@ -485,7 +486,7 @@ final class AppStore {
         do {
             let cached = try await readLocalData(id)
             guard expected == generation, session?.user.id == id, let data = cached else { return }
-            items = data.items; state = data.state; plan = data.plan; reading = data.reading; captures = data.captures
+            wordbooks = data.wordbooks ?? []; items = data.items; state = data.state; plan = data.plan; reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             pending = data.pending; lastSync = data.lastSync; syncCursor = data.syncCursor; responses = data.responses ?? [:]
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
@@ -655,7 +656,7 @@ final class AppStore {
         speechDownloadTask?.cancel(); speechDownloadTask = nil
         isDownloadingSpeech = false; speechDownloadProgress = ""
         automaticRefreshTask?.cancel(); automaticRefreshTask = nil; lastAutomaticAttempt = nil
-        items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
+        wordbooks = []; items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
         packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil; syncCursor = nil
         syncStage = nil
         hasPracticeCache = false; hasListeningCache = false

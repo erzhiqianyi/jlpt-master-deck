@@ -33,6 +33,7 @@ struct LocalStudyResponse: Codable {
 }
 
 struct LocalStudyData: Codable {
+    var wordbooks: [NativeWordbook]?
     var items: [StudyItem] = []
     var state = StudyState()
     var plan = StudyPlan()
@@ -292,6 +293,8 @@ extension LocalStudyData {
         }
         for change in changes {
             switch change.collection {
+            case "wordbooks":
+                var values = wordbooks ?? []; try update(&values, change); wordbooks = values
             case "items": try update(&items,change)
             case "reading": try update(&reading,change)
             case "listening": try update(&listening,change)

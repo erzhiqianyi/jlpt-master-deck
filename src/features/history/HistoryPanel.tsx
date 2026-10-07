@@ -241,7 +241,6 @@ function RecordHome({ labels, locale, todayAttempts, attempts, captures, draftCo
         <h2 id="record-materials-title">{copy.saved}</h2>
         <div className="record-home-links">
           <a href="#/captures"><NotebookPen size={21} aria-hidden="true" /><span><strong>{copy.captures}</strong><small>{captures.length} {copy.entries}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
-          <a href="#/drafts"><ListChecks size={21} aria-hidden="true" /><span><strong>{copy.drafts}</strong><small>{draftCount === undefined ? copy.draftsSub : `${draftCount} ${copy.entries}`}</small></span><ChevronRight size={18} aria-hidden="true" /></a>
 
         </div>
       </section>

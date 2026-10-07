@@ -36,6 +36,7 @@ struct StudyItem: Codable, Identifiable {
     // Preserve the web question inputs in downloaded and offline snapshots.
     var type: String?
     var paraphrase_ja: String?
+    var wordbook_id: String?
     var question_kinds: [String]?
     var question_distractors: [String: [String]]?
     var practice_questions: [[String: SettingValue]]?
@@ -118,6 +119,7 @@ struct QuestionEnvelope: Decodable { let questions: [ReadingQuestion] }
 struct ReadingQuestion: Codable, Identifiable {
     let id: String; let title: String; let passage: String
     let question: String; let choices: [String]; let answerIndex: Int; let explanation: String
+    var tags: [String]?
     var rubyTerms: [StudyItem.ReadingTerm]?
     var japaneseAnnotations: [JapaneseAnnotation]?
 }
@@ -335,3 +337,5 @@ struct StudyStatistics {
     }
     static func label(_ view: String) -> String { ["vocabulary": "单词", "grammar": "语法", "reading": "阅读", "listening": "听力", "mixed": "综合", "daily-practice": "今日练习", "mock-exams": "模拟考试"][view] ?? view }
 }
+
+struct NativeWordbook: Codable, Identifiable { let id: String; let title: String; let deck: String }

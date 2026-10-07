@@ -10,6 +10,7 @@ struct PracticeEntry: Identifiable {
         return order.compactMap { id in all.first { $0.id == id } }
     }
     static let all: [Self] = [
+        .init(id: "types", title: "题型练习", subtitle: "选择题型与范围，随机抽取一组题目。", icon: "target"),
         .init(id: "mock", title: "模拟考试", subtitle: "按试卷与考试安排作答。", icon: "doc.badge.clock"),
         .init(id: "topics", title: "专项练习", subtitle: "按教材、汉字或语法主题，集中练一套。", icon: "scope"),
         .init(id: "mixed", title: "综合练习", subtitle: "从已有练习题中混合抽取词汇与语法，最多 20 题。", icon: "square.stack.3d.up"),
@@ -44,6 +45,16 @@ extension NativeQuestion {
 }
 /// Uses the same authored seeds, eligibility rules, distractors and IDs as web practice.
 enum NativeItemQuestions {
+    static func buildAll(items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
+        guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"), let context = JSContext() else { throw APIError.invalidResponse }
+        context.evaluateScript(try String(contentsOf: url, encoding: .utf8))
+        let json = String(decoding: try JSONEncoder().encode(items), as: UTF8.self)
+        guard let output = context.objectForKeyedSubscript("JLPTItemQuestions")?.objectForKeyedSubscript("all")?.call(withArguments: [json, locale])?.toString(), context.exception == nil else { throw APIError.invalidResponse }
+        let generated = try JSONDecoder().decode([NativeQuestion].self, from: Data(output.utf8))
+        let supported = Set(generated.map(\.id))
+        var seen = Set<String>()
+        return (packs.flatMap(\.questions).filter { supported.contains($0.id) } + generated).filter { $0.isUsable && seen.insert($0.id).inserted }
+    }
     static func build(item: StudyItem, items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
         guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"),
               let context = JSContext() else { throw APIError.invalidResponse }

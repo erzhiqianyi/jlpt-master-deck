@@ -552,3 +552,24 @@
 
 .practice-selection-feedback { position: sticky; top: 8px; z-index: 4; padding: 10px 12px; border: 1px solid #dce4dd; border-radius: 8px; background: #fffdf9; }
 .practice-selection-feedback button { margin-left: 8px; padding: 6px 10px; border: 1px solid #bccbc1; border-radius: 6px; color: #31564c; }
+
+/* Desktop results retain the question list alongside summary and explanations. */
+.practice-results-layout, .practice-results-main { min-width: 0; }
+.practice-question-navigation { display: none; }
+@media (min-width: 1200px) {
+  .light-workspace .app-content > section:has(.practice-review-results) { max-width: none; margin-inline: 0; }
+  .practice-review-results, .practice-review-results:not(.is-answer-detail) { width: 100%; max-width: 1520px; }
+  .practice-results-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); gap: 32px; align-items: start; }
+  .practice-question-navigation { display: block; position: sticky; top: 24px; padding: 22px; border: 1px solid var(--ui-border, #e4e5de); border-radius: 16px; background: var(--ui-surface, #fffefd); }
+  .practice-question-navigation-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .practice-question-navigation-heading h2 { margin: 0; font-size: calc(18px * var(--ui-font-scale, 1)); font-weight: 650; }
+  .practice-question-navigation-heading > span { color: var(--ui-muted, #6c7d7b); font-size: calc(14px * var(--ui-font-scale, 1)); }
+  .practice-question-navigation-hint { margin: 10px 0 16px; color: var(--ui-muted, #6c7d7b); font-size: calc(13px * var(--ui-font-scale, 1)); line-height: 1.7; }
+  .practice-question-navigation .practice-result-filters { gap: 4px; }
+  .practice-question-navigation .practice-result-filters button { padding-inline: 8px; font-size: calc(13px * var(--ui-font-scale, 1)); }
+  .practice-question-navigation .practice-result-rows { max-height: calc(100dvh - 290px); min-height: 120px; overflow-y: auto; overscroll-behavior: contain; }
+  .practice-question-navigation .practice-result-rows strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: calc(14px * var(--ui-font-scale, 1)); line-height: 1.6; }
+  .practice-question-navigation .practice-result-rows button { gap: 12px; min-height: 76px; padding-inline: 6px; border-radius: 8px; }
+  .practice-question-navigation .practice-result-rows button:hover { background: var(--ui-hover, #f3f3ed); }
+  .practice-result-number.is-unanswered { background: #eff1ef; color: #637168; }
+}

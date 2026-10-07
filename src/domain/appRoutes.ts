@@ -36,9 +36,9 @@ export function routeFromHash(hash: string): AppRoute {
       return { view, page: 'tips', itemId: `opinion/${detailValue}` };
     }
     const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
-    const itemId = (page === 'words' || ((page === 'questions' || page === 'review') && replayRouteAttemptId(itemValue ? decodeURIComponent(itemValue) : undefined))) && itemValue
+    const itemId = (page === 'words' || ((page === 'questions' || page === 'review') && (itemValue === 'type-session' || replayRouteAttemptId(itemValue ? decodeURIComponent(itemValue) : undefined)))) && itemValue
       ? decodeURIComponent(itemValue)
-      : page === 'tips' && ['topics', 'dialogue', 'opinion'].includes(itemValue)
+      : page === 'tips' && ['topics', 'types', 'dialogue', 'opinion'].includes(itemValue)
         ? itemValue
         : undefined;
     if (page === 'tips' && !itemId) return { view: 'home', page: 'questions' };
@@ -52,7 +52,7 @@ export function routeFromHash(hash: string): AppRoute {
     return { view, page: defaultDesktopStudyPage(view) };
   }
   const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' || (view === 'grammar' && pageValue === 'bank') ? pageValue : 'questions';
-  const itemId = (page === 'tips' || page === 'words') && itemValue ? decodeURIComponent(itemValue) : undefined;
+  const itemId = (page === 'tips' || page === 'words' || (itemValue === 'type-session' && ['questions', 'review'].includes(page))) && itemValue ? decodeURIComponent(itemValue) : undefined;
   return { view, page: supportsStudyPage(view) && (page !== 'wordbooks' || view === 'vocabulary' || view === 'grammar') ? page : 'questions', itemId };
 }
 
@@ -86,6 +86,7 @@ export function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   if (isOfficialSampleModule(view) && page === 'samples') {
     return itemId ? `#/${view}/samples/${encodeURIComponent(itemId)}` : `#/${view}/samples`;
   }
+  if (itemId === 'type-session' && supportsStudyPage(view) && (page === 'questions' || page === 'review')) return `#/${view}/${page}/${itemId}`;
   if (view === 'mixed' && replayRouteAttemptId(itemId) && (page === 'questions' || page === 'review')) return `#/${view}/${page}/${encodeURIComponent(itemId!)}`;
   if (view === 'daily-practice' && itemId) return `#/${view}/${page}/${encodeURIComponent(itemId)}`;
   if (!supportsStudyPage(view)) {

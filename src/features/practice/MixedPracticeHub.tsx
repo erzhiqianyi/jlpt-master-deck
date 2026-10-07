@@ -4,7 +4,7 @@ import './primary-practice.css';
 import { ModuleActionBar } from '../../components/ModuleActionBar';
 import { BatchActionBar, BatchManageButton, useListBatch } from '../../components/ListBatch';
 import { LearningList, LearningListRow, LearningListHeader, LearningListSearch, LearningListPagination, LearningListFrame } from '../../components/LearningList';
-import { ArrowRight, BookOpenText, ChevronLeft, ChevronRight, FileCheck2, FileText, Layers3, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpenText, ChevronLeft, ChevronRight, FileCheck2, FileText, Layers3, Target, MessagesSquare, Mic, Repeat2, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DialoguePracticePanel } from './DialoguePracticePanel';
 import { OpinionPracticePanel } from './OpinionPracticePanel';
@@ -21,8 +21,9 @@ const MIXED_ENTRY_PAGE_SIZE = 8;
 
 export function MixedPracticeHub({
   topicEntries = [], topicCount, topicCompletedCount, mixedQuestionCount, attempts, mockExamCount, mockCompletedCount,
-  groupKey, locale, questions, onStart, onStartMock,
+  groupKey, locale, questions, onStart, onStartMock, onTypePractice,
 }: {
+  onTypePractice?: () => void;
   topicEntries?: PracticeEntry[];
   mixedQuestionCount?: number;
   topicCount?: number;
@@ -59,6 +60,7 @@ export function MixedPracticeHub({
   const topicRounds = topicCompletedCount ?? (topicCountsComplete ? topicEntries.reduce((total, entry) => total + (entry.completedCount ?? 0), 0) : undefined);
   const entries = [
     { key: 'topics', title: copy.topics, count: topicCount ?? topicEntries.length, completedCount: topicRounds, unit: copy.sets, icon: BookOpenText, action: () => setActiveGroupKey('topics') },
+    ...(onTypePractice ? [{ key: 'types', title: locale === 'zh-CN' ? '题型练习' : locale === 'ja' ? '問題形式別練習' : 'Question type practice', icon: Target, unit: '', action: onTypePractice }] : []),
     { key: 'mixed', title: copy.mixed, count: mixedQuestionCount ?? questions.length, completedCount: mixedRounds, retainedRounds: true, unit: copy.questions, icon: Layers3, action: onStart },
     { key: 'mock', title: copy.mock, count: mockExamCount, completedCount: mockCompletedCount, unit: copy.sets, icon: FileCheck2, action: onStartMock },
   ];

@@ -125,6 +125,7 @@ export function PracticeReviewPanel({
 }) {
   const model = practiceReviewModel(questions, answers, attempt);
   const [reviewIndex, setReviewIndex] = useState<number | null>(null);
+  const [navigationFilter, setNavigationFilter] = useState<'all' | 'wrong' | 'unanswered'>('all');
   const [filter, setFilter] = useState<'all' | 'wrong' | 'unanswered'>(() => model.wrong + model.unanswered ? 'wrong' : 'all');
   const reviewTouch = useRef<{ x: number; y: number } | null>(null);
   const questionRef = useRef<HTMLElement>(null);
@@ -168,6 +169,7 @@ export function PracticeReviewPanel({
 
   return (
     <section className={`practice-review-results${activeQuestion ? ' is-answer-detail' : ''}`}>
+      <div className="practice-results-layout"><div className="practice-results-main">
       {!activeQuestion ? <header className="practice-results-heading">
         <button type="button" className="practice-text-action" onClick={onBackToPractice}><ChevronLeft size={18} aria-hidden="true" />{copy.back}</button>
         <div><p>{copy.results}</p><h1>{reviewTitle}</h1></div>
@@ -226,6 +228,22 @@ export function PracticeReviewPanel({
           <div className="practice-question-reference">{!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
           {rows.length > 1 ? <nav className="practice-review-footer" aria-label={copy.list}><button type="button" disabled={reviewPosition <= 0} onClick={() => moveReview(-1)}><ChevronLeft size={18} aria-hidden="true" />{copy.previous}</button><button type="button" disabled={reviewPosition >= rows.length - 1} onClick={() => moveReview(1)}>{copy.next}<ChevronRight size={18} aria-hidden="true" /></button></nav> : null}
         </article> : null}
+      </div>
+      </div>
+      {model.rows.length > 0 ? <aside className="practice-question-navigation" aria-label={copy.list}>
+        <div className="practice-question-navigation-heading"><h2>{copy.list}</h2><span>{model.rows.length}</span></div>
+        <p className="practice-question-navigation-hint">{locale === 'zh-CN' ? '点击题目，直接查看答案与解析' : locale === 'ja' ? '問題を選んで、答えと解説を確認' : 'Select a question to view its answer and explanation'}</p>
+        <div className="practice-result-filters" role="group" aria-label={copy.list}>{([['all', copy.all, model.rows.length], ['wrong', copy.wrong, model.wrong + model.unanswered], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={navigationFilter === value} disabled={!count} onClick={() => setNavigationFilter(value)}>{title} <span>{count}</span></button>)}</div>
+        <ol className="practice-result-rows">{model.rows.filter(row => navigationFilter === 'all' || (navigationFilter === 'wrong' ? row.status !== 'correct' : row.status === 'unanswered')).map(row => {
+          const status = row.status === 'correct' ? labels.correct || (locale === 'zh-CN' ? '正确' : locale === 'ja' ? '正解' : 'Correct') : row.status === 'wrong' ? copy.wrong : copy.unanswered;
+          return <li key={row.question.id}><button type="button" aria-current={reviewIndex === row.index ? 'true' : undefined} onClick={() => { setFilter(navigationFilter); openQuestion(row.index); }}>
+            <span className={`practice-result-number is-${row.status}`}>{row.index + 1}</span>
+            <span><strong>{row.question.prompt.replace(/\s+/g, ' ').trim()}</strong><small>{status}</small></span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button></li>;
+        })}</ol>
+        {model.missingOriginals > 0 ? <p className="practice-question-navigation-hint">{copy.missing} ({model.missingOriginals})</p> : null}
+      </aside> : null}
       </div>
     </section>
   );

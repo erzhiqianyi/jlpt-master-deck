@@ -102,8 +102,8 @@ test('review starts with results, supports wrong/all/unanswered and hides unavai
  let back=0;
  await render(PracticeReviewPanel,{questions,answers:{q1:{selected:'乙',correct:true},q2:{selected:'甲',correct:false}},items:[],labels,locale:'zh-CN',showRuby:false,onBackToPractice:()=>back++});
  assert.equal(document.querySelector('.practice-review-detail'),null);
- assert.equal(document.querySelector('.practice-result-rows'),null);
- assert.ok(!document.body.textContent.includes('問題 1'));
+ assert.equal(document.querySelectorAll('.practice-question-navigation .practice-result-rows li').length,3);
+ assert.ok(document.querySelector('.practice-question-navigation').textContent.includes('問題 1'));
  assert.ok(!button('重新练习'));
  await click(button('只看错题 (2)'));
  await click(button('下一题'));
@@ -294,3 +294,21 @@ for (const navigation of ['manual', 'auto']) {
   }
  });
 }
+
+
+test('desktop question navigation opens the chosen original question and preserves filtered order',async()=>{
+ await render(PracticeReviewPanel,{questions,answers:{q1:{selected:'乙',correct:true},q2:{selected:'甲',correct:false}},items:[],labels,locale:'zh-CN',showRuby:false,onBackToPractice:noop});
+ const nav = document.querySelector('.practice-question-navigation');
+ await click(nav.querySelectorAll('.practice-result-rows button')[1]);
+ assert.match(document.querySelector('.practice-review-prompt').textContent,/問題 2/);
+ assert.equal(nav.querySelector('[aria-current="true"] .practice-result-number').textContent,'2');
+ await click(nav.querySelectorAll('.practice-result-filters button')[1]);
+ assert.deepEqual([...nav.querySelectorAll('.practice-result-number')].map(el=>el.textContent),['2','3']);
+ await click(nav.querySelectorAll('.practice-result-rows button')[1]);
+ assert.match(document.querySelector('.practice-review-prompt').textContent,/問題 3/);
+ await click(button('上一题'));
+ assert.match(document.querySelector('.practice-review-prompt').textContent,/問題 2/);
+ await click(button('返回结果'));
+ assert.ok(document.querySelector('.practice-result-summary'));
+ assert.equal(nav.querySelector('[aria-current="true"]'),null);
+});

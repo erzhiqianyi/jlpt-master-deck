@@ -34,7 +34,7 @@ await build({
   bundle: true, platform: 'node', format: 'esm', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, outfile: output,
 });
 const {
-  HomeDashboard, routeFromHash, routeHash, isPrimaryNavigationRoot, contextualBackRoute, createNavigationRegistry, AuthoringNavigationProvider,
+  HomeDashboard, routeFromHash, routeHash, isPrimaryNavigationRoot, contextualBackRoute,primaryNavigationView, createNavigationRegistry, AuthoringNavigationProvider,
   DialoguePracticePanel, QuestionTypeGuide, QuestionTypeDetail, translations, officialN1QuestionTypes,
   PageChromeProvider, PageHeaderActions,
 } = await import(pathToFileURL(output));
@@ -109,7 +109,7 @@ test('one semantic Back hierarchy covers detail, list, form, replay and nested e
     [{ view: 'question-types', page: 'questions', itemId: 'type' }, { view: 'question-types', page: 'questions' }],
     [{ view: 'question-types', page: 'questions' }, { view: 'study', page: 'questions' }],
     [{ view: 'capture', page: 'questions' }, { view: 'captures', page: 'questions' }],
-    [{ view: 'drafts', page: 'questions' }, { view: 'history', page: 'questions' }],
+    [{ view: 'drafts', page: 'questions' }, { view: 'home', page: 'questions' }],
     [{ view: 'mock-exams', page: 'questions', itemId: 'week:2026-W40:2026-10-04' }, { view: 'mock-exams', page: 'questions', itemId: 'week:2026-W40' }],
     [{ view: 'daily-practice', page: 'review', itemId: 'DP-42' }, { view: 'daily-practice', page: 'questions', itemId: 'DP-42' }],
   ];
@@ -273,4 +273,9 @@ test('learning dashboard uses saved answers and preserves every practice destina
   await click(document.querySelector('.learning-due'));
   assert.equal(opened.length, 5);
   assert.equal(document.querySelector('progress').value, 20);
+});
+
+test('type practice setup and fixed sessions round trip while pending confirmation belongs to Learning', () => {
+ for (const route of [{view:'mixed',page:'tips',itemId:'types'}, {view:'mixed',page:'questions',itemId:'type-session'}, {view:'reading',page:'questions',itemId:'type-session'}, {view:'listening',page:'questions',itemId:'type-session'}]) assert.deepEqual(routeFromHash(routeHash(route.view,route.page,route.itemId)),route);
+ assert.equal(primaryNavigationView({view:'drafts',page:'questions'}),'home');
 });

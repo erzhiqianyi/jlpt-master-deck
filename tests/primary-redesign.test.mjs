@@ -87,10 +87,10 @@ test('library totals deduplicate passage/audio and studied excludes detail-open 
 test('Library renders four uniform entries and only supported study information', async () => {
   const destinations = [];
   await render(StudyModulesHub, { locale: 'zh-CN', labels, items: [{ id: 'a', deck: 'n1_vocab' }], readingQuestions: [], listeningQuestions: [], onNavigate: (...args) => destinations.push(args) });
-  const entries = [...document.querySelectorAll('.primary-library > button')];
+  const entries = [...document.querySelectorAll('.primary-library .library-module-tile')];
   assert.deepEqual(entries.map(node => node.querySelector('strong').textContent), ['词汇', '语法', '阅读', '听力']);
   assert.match(entries[0].textContent, /1 词/);
-  assert.doesNotMatch(document.querySelector('.primary-library').textContent, /已学|已练|更多工具/);
+  assert.doesNotMatch(document.querySelector('.primary-library').textContent, /更多工具/);
   assert.equal(document.querySelector('.primary-library h1'), null);
   for (const entry of entries) await click(entry);
   assert.deepEqual(destinations, [['vocabulary', 'words'], ['grammar', 'words'], ['reading', 'words'], ['listening', 'words']]);
@@ -193,12 +193,12 @@ test('Learning independent routes use supplied counts and callbacks', async () =
   const routes = []; let mocks = 0;
   await render(HomeDashboard, { ...home, topicCount: 4, topicRounds: 2, mixedQuestionCount: 8, mixedRounds: 3, mockExamCount: 1, mockRounds: 0, onNavigate: (...args) => routes.push(args), onStartMock: () => mocks++ });
   const entries = [...document.querySelectorAll('.learning-practice-grid button')];
-  assert.deepEqual(entries.map(entry => entry.querySelector('strong').textContent), ['专项练习', '综合练习', '模拟考试']);
+  assert.deepEqual(entries.map(entry => entry.querySelector('strong').textContent), ['专项练习', '题型练习', '综合练习', '模拟考试']);
   assert.match(entries[0].textContent, /4 套.*2 次/);
-  assert.match(entries[1].textContent, /8 题.*3 次/);
-  assert.match(entries[2].textContent, /1 套.*0 次/);
+  assert.match(entries[2].textContent, /8 题.*3 次/);
+  assert.match(entries[3].textContent, /1 套.*0 次/);
   for (const entry of entries) await click(entry);
-  assert.deepEqual(routes, [['mixed', 'tips', 'topics'], ['mixed', 'questions']]);
+  assert.deepEqual(routes, [['mixed', 'tips', 'topics'], ['mixed', 'tips', 'types'], ['mixed', 'questions']]);
   assert.equal(mocks, 1);
 });
 
@@ -230,4 +230,17 @@ test('Topic management selects original rows and batches confirmed actions witho
   assert.deepEqual(removed, ['one', 'two']);
   assert.match(confirmations[1].description, /来源草稿.*正式练习和答题记录会保留/);
   assert.equal(document.querySelector('.primary-topic-management'), null);
+});
+
+test('Library book filtering updates type counts and starts the displayed scope directly', async()=>{
+ const started=[];
+ const item=(id,book)=>({id,deck:'grammar_expression',wordbook_id:book,original:'かつて',meaning_zh:'曾经',practice_questions:[{id:`${id}-q`,kind:'grammar',prompt:'ここは（　）工場だった。',choices:['かつて','まだ'],answer:'かつて'}]});
+ await render(StudyModulesHub,{locale:'zh-CN',labels,items:[item('a','one'),item('b','two')],wordbooks:[{id:'one',deck:'grammar_expression',title:'時間'},{id:'two',deck:'grammar_expression',title:'場所'}],readingQuestions:[{id:'r',passage:'article',tags:['reading-short']}],listeningQuestions:[],onNavigate(){},onTypePractice:(...args)=>started.push(args)});
+ await click(button('時間 · 1'));
+ assert.ok(button('语法选择1 题') || [...document.querySelectorAll('.library-type-list button')].some(n=>/语法选择.*1 题/.test(n.textContent)));
+ await click([...document.querySelectorAll('.library-type-list button')].find(n=>/语法选择/.test(n.textContent)));
+ assert.deepEqual(started,[['grammar','grammar','one']]);
+ const reading=[...document.querySelectorAll('.library-type-list button')].find(n=>/内容理解：短篇.*1 题/.test(n.textContent));
+ await click(reading);assert.deepEqual(started.at(-1),['reading','reading-short','all']);
+ const empty=[...document.querySelectorAll('.library-type-list button')].find(n=>/内容理解：中篇/.test(n.textContent));assert.equal(empty.disabled,true);
 });

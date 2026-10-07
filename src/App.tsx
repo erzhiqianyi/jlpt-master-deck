@@ -1,3 +1,5 @@
+import { quickTypePractice } from './domain/typePractice';
+import { TypePracticeSetup, type TypePracticeSelection, type TypePracticeDefaults } from './features/practice/TypePracticeSetup';
 import { syncStudy, syncCollection, syncValue, type StudySyncDocument } from './lib/studySync';
 import { normalizeVocabularyQuestionKinds } from './domain/vocabularyQuestionRules.mjs';
 import { SpeechProvider } from './components/SpeechControls';
@@ -216,6 +218,7 @@ export default function App() {
   const [answers, setAnswers] = useState<AnswerState>({});
   const [progress, setProgress] = useState<ProgressState>({});
   const [practiceCompletionCounts, setPracticeCompletionCounts] = useState<Record<string, number>>({});
+  const [cardReviews, setCardReviews] = useState<NonNullable<StudyState['cardReviews']>>([]);
   const [attemptHistory, setAttemptHistory] = useState<PracticeAttempt[]>([]);
   const [activeAttempt, setActiveAttempt] = useState<PracticeAttempt | null>(null);
   const pendingCardReviews = useRef(new Map<string, { rating: MemoryRating; progressEntry: ProgressEntry; reviewEventId: string; reviewedAt: string }>());
@@ -253,6 +256,16 @@ export default function App() {
   const [activeDraftDetailId, setActiveDraftDetailId] = useState<string | null>(null);
   const [activeAttemptDetailId, setActiveAttemptDetailId] = useState<string | null>(null);
   const [attemptQuestionDetailOpen, setAttemptQuestionDetailOpen] = useState(false);
+  const [typePracticeDefaults, setTypePracticeDefaults] = useState<TypePracticeDefaults>({});
+  const [typePracticeSelection, setTypePracticeSelection] = useState<TypePracticeSelection | null>(null);
+  useEffect(() => {
+    setTypePracticeSelection(null);
+    if (!user || route.itemId !== 'type-session') return;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(`jlpt.type-practice.${user.id}`) ?? 'null') as TypePracticeSelection | null;
+      if (saved && Array.isArray(saved.questions) && Array.isArray(saved.reading) && Array.isArray(saved.listening)) setTypePracticeSelection(saved);
+    } catch { /* An unavailable session cache does not prevent a new practice. */ }
+  }, [user?.id]);
   const [practiceFocus, setPracticeFocus] = useState<WordIndexPracticeFocus | null>(null);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(() => { try { return localStorage.getItem('jlpt.sidebar.collapsed') === 'true'; } catch { return false; } });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -468,9 +481,9 @@ export default function App() {
     ? buildQuestionIndex(selectedDeck === 'all' ? items.filter(item => item.deck !== 'name_reading' && item.type !== 'proper_name') : items).length
     : undefined, [activeView, studyPage, items, selectedDeck]);
   const pagedVocabulary = activeView === 'vocabulary' && studyPage === 'questions';
-  const allQuestions = useMemo(() => pagedVocabulary ? [] : activeView === 'mixed'
+  const allQuestions = useMemo(() => activeView === 'mixed' && typePracticeSelection ? typePracticeSelection.questions : pagedVocabulary ? [] : activeView === 'mixed'
     ? shuffledBySeed(buildQuestions(shuffledBySeed(questionItems, mixedQuestionSeed), locale, 20), mixedQuestionSeed)
-    : buildQuestions(questionItems, locale), [questionItems, locale, activeView, mixedQuestionSeed, pagedVocabulary]);
+    : buildQuestions(questionItems, locale), [questionItems, locale, activeView, mixedQuestionSeed, pagedVocabulary, typePracticeSelection]);
   const bankGrammarQuestions = useMemo(() => activeView === 'grammar' && studyPage === 'bank'
     ? buildQuestions(data.items.filter((item) => item.deck === 'grammar_expression'), locale)
     : [], [activeView, studyPage, data.items, locale]);
@@ -854,7 +867,7 @@ export default function App() {
     const now = new Date();
     const attempt = withPracticeName(attemptForReviewSubmission(activeAttempt, attemptHistory, answers, activeView, selectedDeck, questions, now));
     if (attempt.analysisStatus === 'completed' || processingAttemptIds.current.has(attempt.id)) {
-      if (navigateToReview) window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined);
+      if (navigateToReview) window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : typePracticeSelection ? 'type-session' : undefined);
       return;
     }
     processingAttemptIds.current.add(attempt.id);
@@ -904,7 +917,7 @@ export default function App() {
     }
 
     if (navigateToReview) {
-      window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined);
+      window.location.hash = routeHash(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : typePracticeSelection ? 'type-session' : undefined);
     }
   }
 
@@ -944,12 +957,14 @@ export default function App() {
       setQuestionShuffleSeed(Math.random());
     }
     if (supportsStudyPage(activeView)) {
-      window.location.hash = routeHash(activeView, 'questions', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined);
+      window.location.hash = routeHash(activeView, 'questions', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : typePracticeSelection ? 'type-session' : undefined);
     }
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }
 
   function navigateTo(view: AppView, page?: StudyPage, itemId?: string) {
+    if (view === 'mixed' && page === 'tips' && itemId === 'types' && activeView !== 'vocabulary' && activeView !== 'grammar') setTypePracticeDefaults({});
+    if (page === 'questions' && itemId !== 'type-session' && ['mixed', 'reading', 'listening'].includes(view)) setTypePracticeSelection(null);
     const requestedPage = page ?? (supportsStudyPage(view) ? defaultDesktopStudyPage(view) : 'questions');
     const nextRoute = { view, page: supportsStudyPage(view) || isOfficialSampleModule(view) ? requestedPage : 'questions' as StudyPage };
     const nextHash = routeHash(nextRoute.view, nextRoute.page, itemId);
@@ -1021,10 +1036,21 @@ export default function App() {
     navigateTo('mixed', 'questions', `replay:${nextAttempt.id}`);
   }
 
+  function startTypePractice(selection: TypePracticeSelection) {
+              setTypePracticeSelection(selection);
+              if (user) { try { sessionStorage.setItem(`jlpt.type-practice.${user.id}`, JSON.stringify(selection)); } catch { /* Keep the in-memory session when storage is unavailable. */ } }
+              setPracticeFocus(null); setSelectedDeck('all'); setSelectedWordbookId('all'); setActiveIndex(0);
+              const ids = new Set(selection.questions.map(q => q.id));
+              setAnswers(current => Object.fromEntries(Object.entries(current).filter(([id]) => !ids.has(id))));
+              setActiveAttempt(null);
+              navigateTo(selection.module === 'reading' || selection.module === 'listening' ? selection.module : 'mixed', 'questions', 'type-session');
+  }
+
   function startWordIndexPractice(focus?: WordIndexPracticeFocus) {
-    setPracticeFocus(focus && (activeView === 'grammar' || activeView === 'vocabulary') ? focus : null);
-    setActiveIndex(0);
-    navigateTo(activeView, 'questions');
+    setTypePracticeDefaults({ module: activeView === 'grammar' ? 'grammar' : 'vocabulary', book: selectedWordbookId,
+      kind: focus?.kind === 'question-kind' ? focus.questionKind : 'all', tag: focus?.kind === 'tag' ? focus.tag : 'all',
+      itemIds: focus?.kind === 'items' ? focus.itemIds : undefined });
+    navigateTo('mixed', 'tips', 'types');
   }
 
   function openSearchResult(result: SearchResult) {
@@ -1180,6 +1206,7 @@ export default function App() {
     setPracticeCompletionCounts(studyState.practiceCompletionCounts ?? {});
     setAnswers(Object.fromEntries(Object.entries(studyState.answers ?? {}).filter(([id]) => !id.startsWith('memory-card:'))));
     setProgress(studyState.progress ?? {});
+    setCardReviews(studyState.cardReviews ?? []);
     setAttemptHistory(studyState.attemptHistory ?? []);
     setActiveAttempt(studyState.activeAttempt ?? null);
     const accountSettings = normalizeSettings(studyState.settings);
@@ -1222,6 +1249,7 @@ export default function App() {
     setAnswers({});
     setProgress({});
     setAttemptHistory([]);
+    setCardReviews([]);
     setActiveAttempt(null);
     pendingCardReviews.current.clear();
     setSettings({ ...defaultSettings, locale: storedLoginLocale() ?? defaultSettings.locale });
@@ -1751,7 +1779,7 @@ export default function App() {
   const listeningDetailReference = route.view === 'listening' && route.page === 'words' && route.itemId
     ? listeningDetailGroup[0]?.audioReference
     : undefined;
-  const pageCrumbs = routeBreadcrumbs(route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference,
+  const pageCrumbs = routeBreadcrumbs(route.itemId === 'type-session' ? { ...route, itemId: undefined } : route, labels, dataTab, draftDetailOpen ? activeDraft?.title : undefined, detailTitle, locale, listeningDetailReference,
     matchesPracticeRoute(route.itemId, activeDailyPractice) ? activeDailyPractice?.reference : undefined);
   if (captureDetailOpen || attemptDetailOpen) pageCrumbs.push({ label: captureDetailOpen ? labels.captureDetailTitle : labels.historyAttemptDetail });
   if (authoringLocation) pageCrumbs.push({ label: authoringLocation.label });
@@ -1801,7 +1829,7 @@ export default function App() {
         : labels.navBack);
   const activePracticeTitle = activeView === 'daily-practice'
     ? (activeDailyPractice && (topicDraftForPractice(activeDailyPractice, drafts)?.title || activeDailyPractice.title)) || labels.dailyPracticeTitle
-    : activeView === 'mixed' ? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
+    : activeView === 'mixed' ? typePracticeSelection?.title ?? (locale === 'zh-CN' ? '综合练习 · 每组 20 题' : locale === 'ja' ? '総合練習 · 20問ずつ' : 'Mixed practice · 20 questions') : labels.meaningTypeTitle;
   function withPracticeName(attempt: PracticeAttempt): PracticeAttempt {
     if (attempt.title?.trim()) return attempt;
     if (activeView === 'daily-practice' && activeDailyPractice) {
@@ -1934,8 +1962,23 @@ export default function App() {
               locale={locale}
               dueItems={memoryReviewItems}
               plan={studyPlan}
+              pendingDrafts={drafts.filter(draft => ['draft', 'needs_revision', 'approved'].includes(draft.status) && !dailyPracticeDetails.some(pack => pack.sourceDraftId === draft.id)).sort((a, b) => b.created_at.localeCompare(a.created_at))}
               todayPractices={homeTodayPractices}
               dailyAnswers={answers}
+              attempts={attemptHistory}
+              cardReviews={cardReviews}
+              items={data.items}
+              activeAttempt={activeAttempt}
+              onResumeAttempt={(attempt) => {
+                if (attempt.practiceId) void openDailyPractice(attempt.practiceId);
+                else {
+                  let saved: TypePracticeSelection | null = null;
+                  try { saved = JSON.parse(sessionStorage.getItem(`jlpt.type-practice.${user?.id}`) ?? 'null'); } catch { /* Resume through the normal route if no session is cached. */ }
+                  const matching = saved && saved.title === attempt.title && saved.questions.map(q => q.id).join('|') === attempt.questionIds.join('|');
+                  if (matching) setTypePracticeSelection(saved);
+                  setSelectedDeck(attempt.deck); navigateTo(attempt.view, 'questions', matching ? 'type-session' : undefined);
+                }
+              }}
               topicCount={topicPracticeEntries.length}
               topicRounds={topicPracticeEntries.every(entry => entry.completedCount !== undefined) ? topicPracticeEntries.reduce((sum, entry) => sum + (entry.completedCount ?? 0), 0) : undefined}
               mixedQuestionCount={mixedQuestionCount}
@@ -2056,7 +2099,7 @@ export default function App() {
                 <QuestionTypeGuide labels={labels} locale={locale} customTips={settings.questionTypeTips} customTipEntries={settings.customQuestionTypeTips} onOpen={openQuestionType} onCreateCustomTip={createCustomQuestionTypeTip} />
               )
             ) : null}
-            {activeView === 'study' ? <StudyModulesHub locale={locale} labels={labels} onNavigate={navigateTo} items={data.items} progress={progress} readingQuestions={readingQuestions} listeningQuestions={listeningQuestions} /> : null}
+            {activeView === 'study' ? <StudyModulesHub wordbooks={wordbooks} onTypePractice={(module, kind, book) => startTypePractice(quickTypePractice(module,kind,book,data.items,readingQuestions,listeningQuestions,locale))} locale={locale} labels={labels} onNavigate={navigateTo} items={data.items} progress={progress} readingQuestions={readingQuestions} listeningQuestions={listeningQuestions} /> : null}
             {activeView === 'settings' ? (
               <SettingsView onSearch={() => setSearchOpen(true)} labels={labels} settings={settings} username={user.username} authToken={authToken} activeSection={route.itemId} onOpenSection={(section) => { window.location.hash = `#/settings/${section}`; }} onLogout={handleLogout} onUpdateSettings={updateSettings} />
             ) : null}
@@ -2071,7 +2114,8 @@ export default function App() {
                 onBack={() => openOfficialSamples(activeView)}
               />
             ) : null}
-            {activeView === 'mixed' && studyPage === 'tips' ? (
+            {activeView === 'mixed' && studyPage === 'tips' && route.itemId === 'types' ? <TypePracticeSetup defaults={typePracticeDefaults} items={data.items} wordbooks={wordbooks} reading={readingQuestions} listening={listeningQuestions} locale={locale} onStart={startTypePractice} />: null}
+            {activeView === 'mixed' && studyPage === 'tips' && route.itemId !== 'types' ? (
               <MixedPracticeHub
                 topicEntries={topicPracticeEntries}
                 attempts={attemptHistory}
@@ -2091,7 +2135,8 @@ export default function App() {
                 listeningQuestions={listeningQuestions}
                 readingQuestions={readingQuestions}
                 studyPlan={studyPlan}
-                onStart={() => navigateTo('mixed', 'questions')}
+                onStart={() => { setTypePracticeSelection(null); navigateTo('mixed', 'questions'); }}
+                onTypePractice={() => navigateTo('mixed', 'tips', 'types')}
                 onStartMock={() => openMockExam()}
                 onNavigate={(view) => { if (view === 'daily-practice') void openDailyPractice(); else navigateTo(view); }}
                 onStartModule={(view) => navigateTo(view, 'questions')}
@@ -2144,7 +2189,7 @@ export default function App() {
                 labels={labels}
                 locale={locale}
                 token={authToken}
-                questions={listeningQuestions}
+                questions={typePracticeSelection?.module === 'listening' ? typePracticeSelection.listening : listeningQuestions}
                 progress={progress}
                 onRecordPractice={saveListeningPractice}
                 onCreate={createListeningQuestion}
@@ -2173,7 +2218,7 @@ export default function App() {
                 onAsk={(body) => createCapture({ body, category: 'listening', context: '学习模块：听力 · 用户提问' })}
                 onTips={() => navigateTo('listening', 'tips')}
                 onReview={() => navigateTo('listening', 'review')}
-                activeQuestionId={route.itemId}
+                activeQuestionId={route.itemId === 'type-session' ? undefined : route.itemId}
                 onOpenQuestion={(id) => { window.location.hash = routeHash('listening', 'words', id); }}
                 onBackToLibrary={() => navigateTo('listening', 'words')}
               />
@@ -2184,10 +2229,10 @@ export default function App() {
                 mode="practice"
                 labels={labels}
                 locale={locale}
-                questions={readingQuestions}
+                questions={typePracticeSelection?.module === 'reading' ? typePracticeSelection.reading : readingQuestions}
                 onRecordPractice={saveReadingPractice}
                 progress={progress}
-                activeQuestionId={route.itemId}
+                activeQuestionId={route.itemId === 'type-session' ? undefined : route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}
                 onDelete={removeReadingQuestion}
@@ -2208,7 +2253,7 @@ export default function App() {
                 questions={readingQuestions}
                 onRecordPractice={saveReadingPractice}
                 progress={progress}
-                activeQuestionId={route.itemId}
+                activeQuestionId={route.itemId === 'type-session' ? undefined : route.itemId}
                 onBackToLibrary={() => navigateTo('reading', 'words')}
                 onCreate={createReadingQuestion}
                 onDelete={removeReadingQuestion}
@@ -2247,7 +2292,7 @@ export default function App() {
                   }}
                   onPracticeHome={() => navigateTo('mixed', 'tips')}
                   onPrepareReview={() => submitPracticeReview(false)}
-                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined)}
+                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : typePracticeSelection ? 'type-session' : undefined)}
                   analysisStatus={reviewAttempt?.analysisStatus === 'completed' ? 'completed' : processingAttemptIds.current.has(reviewAttempt?.id ?? activeAttempt?.id ?? '') ? 'processing' : 'idle'}
                 />
                 </>
@@ -2307,7 +2352,7 @@ export default function App() {
                   onOpen={(id) => { window.location.hash = routeHash(activeView, 'words', id); }}
                   onPractice={startWordIndexPractice}
                   onTips={() => navigateTo(activeView, 'tips')}
-                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : undefined)}
+                  onReview={() => navigateTo(activeView, 'review', activeView === 'daily-practice' ? practiceRouteId(activeDailyPractice) : typePracticeSelection ? 'type-session' : undefined)}
                   captureCategory={activeView === 'vocabulary' ? 'word' : activeView === 'grammar' ? 'grammar' : undefined}
                   defaultTargetDeck={selectedDeck === 'name_reading' ? 'name_reading' : activeView === 'grammar' ? 'grammar_expression' : 'n1_vocab'}
                   pendingCaptureCount={captures.filter((capture) => capture.status === 'inbox' && capture.category === (activeView === 'grammar' ? 'grammar' : 'word')).length}
@@ -2737,6 +2782,7 @@ function mobileAppTitle(route: AppRoute, labels: Record<string, string>, locale:
     return labels.navQuestionTypes;
   }
   if (activeView === 'mixed' && route.page === 'tips' && route.itemId) {
+    if (route.itemId === 'types') return locale === 'zh-CN' ? '题型练习' : locale === 'ja' ? '問題形式別練習' : 'Question type practice';
     if (route.itemId === 'topics') return labels.navTopicsPractice;
     if (route.itemId === 'dialogue') return labels.navDialoguePractice;
     if (route.itemId === 'opinion' || route.itemId.startsWith('opinion/')) return labels.navOpinionPractice;
@@ -2859,7 +2905,10 @@ function routeBreadcrumbs(route: AppRoute, labels: Record<string, string>, activ
     return crumbs;
   }
 
-  if (['captures', 'drafts', 'insights'].includes(route.view)) {
+  if (route.view === 'drafts') {
+    return [{ label: locale === 'zh-CN' ? '学习' : locale === 'ja' ? '学習' : 'Learn', route: { view: 'home', page: 'questions' } }, { label: locale === 'zh-CN' ? '待确认练习' : locale === 'ja' ? '確認待ちの練習' : 'Practice preparation', route: activeDraftTitle ? { view: 'drafts', page: 'questions' } : undefined }, ...(activeDraftTitle ? [{ label: activeDraftTitle }] : [])];
+  }
+  if (['captures', 'insights'].includes(route.view)) {
     crumbs[0] = { label: locale === 'zh-CN' ? '统计' : locale === 'ja' ? '統計' : 'Statistics', route: { view: 'history', page: 'questions' } };
     const visibleTab = activeDataTab ?? dataTabForRoute(route.view);
     if (route.view !== 'insights' || visibleTab !== 'captures') {

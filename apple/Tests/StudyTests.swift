@@ -152,6 +152,24 @@ final class StudyTests: XCTestCase {
         XCTAssertTrue(questions.allSatisfy { $0.itemId == item.id && $0.isUsable })
     }
 
+    func testTypePracticePoolKeepsBookMetadataAndUniqueSeedIDs() throws {
+        let json = """
+        {"id":"grammar","deck":"grammar_expression","wordbook_id":"book-1","original":"かつて","meaning_zh":"曾经","tags":["時間"],
+         "practice_questions":[{"id":"g-type","kind":"grammar","prompt":"ここは（　）工場だった。","choices":["かつて","まだ"],"answer":"かつて"}]}
+        """
+        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
+        let cached = try JSONDecoder().decode(StudyItem.self, from: JSONEncoder().encode(item))
+        XCTAssertEqual(cached.wordbook_id, "book-1")
+        XCTAssertEqual(cached.tags, ["時間"])
+        let initial = try NativeItemQuestions.buildAll(items: [cached], packs: [], locale: "zh-CN")
+        XCTAssertEqual(initial.map(\.id), ["g-type"])
+        let pack = NativePack(id: "pack", title: "练习", date: "2026-10-07", questions: initial + initial)
+        XCTAssertEqual(try NativeItemQuestions.buildAll(items: [cached], packs: [pack], locale: "zh-CN").map(\.id), ["g-type"])
+        var data = LocalStudyData(); data.wordbooks = [NativeWordbook(id: "book-1", title: "时间", deck: "grammar_expression")]
+        let restored = try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(data))
+        XCTAssertEqual(restored.wordbooks?.first?.id, "book-1")
+    }
+
     func testGrammarItemPracticeKeepsEveryAuthoredSeed() throws {
         let json = """
         {"id":"grammar","deck":"grammar_expression","original":"かつて","meaning_zh":"曾经",

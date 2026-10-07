@@ -195,11 +195,12 @@ struct WorkspaceView: View {
     }
     private var bankRoot: some View {
         GeometryReader { geometry in
-            let artworkHeight = min(160, max(64, (geometry.size.height - 240) / 2))
+            let artworkHeight: CGFloat = 72
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 0), GridItem(.flexible(), spacing: 0)], spacing: 0) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: geometry.size.width >= 1100 ? 4 : 2), spacing: 16) {
                     ForEach(Array(Destination.allCases.suffix(4).enumerated()), id: \.element.id) { index, destination in
                         let counts = bankCounts(destination)
+                        VStack(alignment: .leading, spacing: 0) {
                         Button { selection = destination } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 Image("Library-\(counts.asset)").resizable().scaledToFit().frame(height: artworkHeight).frame(maxWidth: .infinity).accessibilityHidden(true)
@@ -210,6 +211,7 @@ struct WorkspaceView: View {
                                 }
                                 HStack(spacing: 5) {
                                     Text("\(counts.total) \(counts.unit) ·")
+                                    if geometry.size.width < 1100 { Text(index < 2 ? "已学" : "已练") }
                                     Image(systemName: index < 2 ? "checkmark.circle" : "arrow.triangle.2.circlepath")
                                     Text("\(counts.studied)")
                                 }.font(.subheadline).foregroundStyle(DeckTheme.green)
@@ -218,11 +220,12 @@ struct WorkspaceView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }.buttonStyle(.plain)
-                            .overlay(alignment: .trailing) { if index.isMultiple(of: 2) { Rectangle().fill(DeckTheme.line).frame(width: 1) } }
-                            .overlay(alignment: .bottom) { if index < 2 { Rectangle().fill(DeckTheme.line).frame(height: 1) } }
                             .accessibilityIdentifier("nav.\(destination.id)")
+                        if geometry.size.width >= 1100 { NativeLibraryTypeSummary(module: counts.asset) }
+                        }.background(DeckTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+
                     }
-                }.frame(maxWidth: 680).padding(.horizontal, 20).padding(.vertical, 12).frame(maxWidth: .infinity)
+                }.frame(maxWidth: 1200).padding(.horizontal, 20).padding(.vertical, 12).frame(maxWidth: .infinity)
             }
         }
         .modifier(WorkspacePageStyle(title: "题库"))
@@ -351,6 +354,15 @@ struct TodayView: View {
                 }.buttonStyle(.plain).accessibilityIdentifier("learning.countdown")
                 let layout = sizeClass == .regular ? AnyLayout(HStackLayout(alignment: .top, spacing: 16)) : AnyLayout(VStackLayout(spacing: 16))
                 layout { dailyPractice; dueReview }
+                let pending = store.drafts.filter { draft in ["draft", "needs_revision", "approved"].contains(draft.status) && !store.packs.contains { $0.sourceDraftId == draft.id } }.sorted { ($0.created_at ?? "") > ($1.created_at ?? "") }
+                if !pending.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack { Text("待确认练习 · \(pending.count)").font(.headline); Spacer(); NavigationLink("查看全部") { NativePendingPracticesView() } }
+                        ForEach(Array(pending.prefix(3))) { draft in
+                            Button { reviewingDraft = draft } label: { DeckRow(title: draft.title, subtitle: draft.status == "approved" ? "已确认，待发布" : draft.status == "needs_revision" ? "需要修改 · 查看题目" : "查看并确认", icon: "doc.text") }.buttonStyle(.plain)
+                        }
+                    }.padding(16).background(DeckTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+                }
                 VStack(alignment: .leading, spacing: 10) {
                     Text("自主练习").font(.headline)
                     IndependentPracticeEntries()
@@ -364,7 +376,7 @@ struct TodayView: View {
                     round = NativeRound(title: pack.title, questions: pack.questions.filter(\.isUsable), view: "daily-practice", practiceId: pack.id, resumeSavedAnswers: true)
                 }
             }) { draft in
-                NativeTopicConfirmationView(draftID: draft.id, isDaily: true) { confirmedPack = $0 }
+                NativeTopicConfirmationView(draftID: draft.id, isDaily: !draft.isTopic) { confirmedPack = $0 }
             }
             .toolbar { ToolbarItem(placement: .topBarLeading) {
                 Button { showingPlan = true } label: { Image(systemName: "calendar") }.accessibilityLabel("学习计划")
@@ -411,9 +423,39 @@ struct TodayView: View {
                 .background(DeckTheme.green.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
         }.buttonStyle(.plain).disabled(store.dueItems.isEmpty).accessibilityIdentifier("today.review")
     }
+    private func dailyPracticeRow(_ pack: NativePack) -> some View {
+        let questions = pack.questions.filter(\.isUsable)
+        let answered = questions.filter { store.state.answers[$0.id] != nil }.count
+        let complete = !questions.isEmpty && answered == questions.count
+        let action = complete ? "查看练习" : answered > 0 ? "继续练习" : "开始练习"
+        return Button {
+            round = NativeRound(title: pack.title, questions: questions, view: "daily-practice", practiceId: pack.id, resumeSavedAnswers: true)
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(pack.title).font(.subheadline.bold()).foregroundStyle(DeckTheme.ink).fixedSize(horizontal: false, vertical: true)
+                    Text(["\(answered)/\(questions.count) 题", pack.minutes.map { "约 \($0) 分钟" }, complete ? "已完成" : answered > 0 ? "进行中" : "待开始"].compactMap { $0 }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(DeckTheme.muted)
+                    ProgressView(value: Double(answered), total: Double(max(1, questions.count))).tint(DeckTheme.green)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Text(action).font(.caption).foregroundStyle(DeckTheme.green)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(DeckTheme.green)
+            }.padding(.vertical, 8).contentShape(Rectangle())
+        }.buttonStyle(.plain).disabled(questions.isEmpty).accessibilityIdentifier("today.practice.\(pack.id)")
+    }
     private var dailyPractice: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let pack = store.todayPacks.first {
+            if store.todayPacks.count > 1 {
+                HStack {
+                    Text("今日练习").font(.headline)
+                    Spacer()
+                    Text("\(store.todayPacks.count) 套").font(.caption).foregroundStyle(DeckTheme.muted)
+                }
+                ForEach(store.todayPacks) { pack in
+                    dailyPracticeRow(pack)
+                    if pack.id != store.todayPacks.last?.id { Divider() }
+                }
+            } else if let pack = store.todayPacks.first {
                 let questions = pack.questions.filter(\.isUsable)
                 let answered = questions.filter { store.state.answers[$0.id] != nil }.count
                 let complete = !questions.isEmpty && answered == questions.count

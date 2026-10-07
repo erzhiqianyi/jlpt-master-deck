@@ -1,4 +1,5 @@
 import { apiRequest, studyWriteVersion, waitForStudyWrites } from './api';
+import {frozenBankQuestion,validateBankChange} from './bankSync';
 
 export interface StudySyncDocument {
   cursor: string;
@@ -38,7 +39,14 @@ async function saveCache(userId: number, document: StudySyncDocument) {
     });
   } finally { db.close(); }
 }
-export const syncCollection = <T>(document: StudySyncDocument, name: string): T[] => Object.values(document.records[name] ?? {}) as T[];
+export const syncCollection = <T>(document: StudySyncDocument, name: string): T[] => Object.values(document.records[name] ?? {}).map(value=>{
+ if(name==='reading'||name==='listening')return frozenBankQuestion(document.records,value as Record<string,unknown>);
+ if(name==='packs') {
+  const pack=value as Record<string,unknown>;
+  return {...pack,questions:(pack.questions as Record<string,unknown>[]??[]).map(question=>frozenBankQuestion(document.records,question))};
+ }
+ return value;
+}) as T[];
 export const syncValue = <T>(document: StudySyncDocument, name: string): T => document.records[name]?.value as T;
 
 // Publish only complete snapshots. A failed page cannot advance the saved cursor.
@@ -67,7 +75,7 @@ export async function syncStudy(userId: number, token: string, onCached: (docume
     for (const change of response.changes ?? []) {
       const collection = records[change.collection] ??= {};
       if (change.deleted) delete collection[change.id];
-      else collection[change.id] = change.value;
+      else {validateBankChange(change.collection,change.id,change.value);collection[change.id] = change.value;}
     }
     page = response.nextPage ?? null;
     if (page) continue;

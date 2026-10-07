@@ -1,0 +1,178 @@
+[
+  {
+    "file": "listening-mistake-review.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341638.612,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "listening-results.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341636.926,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "listening-resume.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341615.898,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "listening-paused.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341612.5,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "listening-answer-card.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341610.291,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "listening-single-question.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341609.263,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testListeningCardResumeAndResults()"
+  },
+  {
+    "file": "cold-launch-restored-practice-tab.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341663.226,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testPracticeEntryWorksWithoutFloatingActionsAndSurvivesBackground()"
+  },
+  {
+    "file": "practice-modal-after-background.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341656.19,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testPracticeEntryWorksWithoutFloatingActionsAndSurvivesBackground()"
+  },
+  {
+    "file": "native-practice-without-floating-action.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341651.695,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testPracticeEntryWorksWithoutFloatingActionsAndSurvivesBackground()"
+  },
+  {
+    "file": "practice-review-all-swiped.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341725.994,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "practice-review-wrong-only.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341722.394,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "practice-summary-only.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341718,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "grammar-expanded-explanation-and-translation.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341715.304,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "grammar-correct-answer-feedback.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341709.787,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "vocabulary-expanded-choice-analysis.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341701.701,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "vocabulary-wrong-answer-feedback.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341698.814,
+    "sourceResult": "domain-stage4-ui-attachments",
+    "test": "NavigationLifecycleTests/testVocabularyAndGrammarAnswerAndExplanationMatchWeb()"
+  },
+  {
+    "file": "reading-correct-feedback.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341866.398,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  },
+  {
+    "file": "reading-selected-after-background.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341854.771,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  },
+  {
+    "file": "reading-selected-before-background.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341851.961,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  },
+  {
+    "file": "reading-option-visible-before-tap.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341851.059,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  },
+  {
+    "file": "library-portrait.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341844.717,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  },
+  {
+    "file": "today-portrait.png",
+    "device": "JLPT Domain Tests 20261007",
+    "deviceId": "C9F2080C-A879-4BD3-B55F-564909EA1149",
+    "timestamp": 1791341841.906,
+    "sourceResult": "domain-reading-ui-attachments",
+    "test": "NavigationLifecycleTests/testReadingSelectionAndScrollSurviveBackground()"
+  }
+]

@@ -91,7 +91,7 @@ return async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     const publicCover = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
     if (publicCover && req.method === 'GET') {
-      const asset = shareCover(publicCover[1]);
+      const asset = shareCover(publicCover[1],url.searchParams.has('revision')?Number(url.searchParams.get('revision')):undefined);
       res.writeHead(200, { 'content-type': asset.mime, 'content-length': asset.size, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
       return createReadStream(asset.path).pipe(res);
     }
@@ -231,8 +231,9 @@ return async (req, res) => {
     if (url.pathname === '/api/market/import' && req.method === 'POST') {
       const input = await readJson(req);
       if (input?.shareId !== undefined) {
-        const share = shareDetail(user.id, input.shareId);
-        return json(res,201,share.package.kind === 'listening' ? await importListeningShare(user.id, input.shareId) : importShare(user.id, input.shareId));
+        const share = shareDetail(user.id, input.shareId,input.revision);
+        if(share.package.kind==='listening'&&input.revision!==undefined&&input.revision!==share.currentRevision)throw Object.assign(new Error('Historical listening import requires versioned media support'),{statusCode:400});
+        return json(res,201,share.package.kind === 'listening' ? await importListeningShare(user.id, input.shareId) : importShare(user.id, input.shareId,input.revision));
       }
       return json(res,201,importPackage(user.id,input));
     }
@@ -248,7 +249,7 @@ return async (req, res) => {
       res.writeHead(200, { 'content-type': audio.audio_mime, 'content-length': audio.audio_size, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
       return createReadStream(audio.audio_path).pipe(res);
     }
-    if (shareMatch && req.method === 'GET') return json(res,200,shareDetail(user.id,shareMatch[1]));
+    if (shareMatch && req.method === 'GET') return json(res,200,shareDetail(user.id,shareMatch[1],url.searchParams.has('revision')?Number(url.searchParams.get('revision')):undefined));
     if (shareMatch && req.method === 'PATCH') return json(res,200,updateShare(user.id,shareMatch[1],await readJson(req)));
     if (shareMatch && req.method === 'DELETE') return json(res,200,withdrawShare(user.id,shareMatch[1]));
 

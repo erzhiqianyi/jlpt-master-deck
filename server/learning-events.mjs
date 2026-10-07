@@ -7,6 +7,8 @@ export function ensureLearningEventSchema(db) {
  CREATE INDEX IF NOT EXISTS learning_events_owner_time ON learning_events(owner,occurred_at,event_type);`);
  for(const column of ['question_id','item_id']) if(!db.prepare('PRAGMA table_info(learning_events)').all().some(c=>c.name===column)) db.exec(`ALTER TABLE learning_events ADD COLUMN ${column} TEXT`);
  db.exec('CREATE INDEX IF NOT EXISTS learning_events_answer_version ON learning_events(owner,question_id,occurred_at)');
+ if(db.prepare("SELECT name FROM sqlite_master WHERE name='answers'").get()&&!db.prepare('PRAGMA table_info(answers)').all().some(column=>column.name==='submission_state'))db.exec("ALTER TABLE answers ADD COLUMN submission_state TEXT NOT NULL DEFAULT 'legacy_submitted'");
+ if(db.prepare("SELECT name FROM sqlite_master WHERE name='answers'").get())for(const column of ['answer_event_id','question_ref_json','question_kind'])if(!db.prepare('PRAGMA table_info(answers)').all().some(field=>field.name===column))db.exec(`ALTER TABLE answers ADD COLUMN ${column} TEXT`);
 }
 export function recordLearningEvent(db,owner,{eventId,type,occurredAt,payload}) {
  if(!Number.isSafeInteger(owner)||owner<1||typeof eventId!=='string'||!eventId||eventId.length>200||!['AnswerSubmitted','MemoryRated'].includes(type)||!Number.isFinite(Date.parse(occurredAt)))throw new Error('Invalid learning event identity or timestamp');

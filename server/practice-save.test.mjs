@@ -7,7 +7,7 @@ const dir = mkdtempSync(join(tmpdir(), 'jlpt-practice-save-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, savePracticeState, saveAnswer,getStudyState, getDb } = await import('./storage.mjs');
+const { createUser, savePracticeState, saveAnswer,getStudyState, getDb,buildStudyRecord } = await import('./storage.mjs');
 test('live answers merge stale counters, retry once, validate frozen versions, and preserve old answer after editing',async()=>{
  const {persistLibraryQuestion}=await import('./bank-materials.mjs');const {learningEventsInWindow}=await import('./learning-events.mjs');
  const user=createUser('frozen-events-owner','password');const other=createUser('frozen-events-other','password');const db=getDb();
@@ -25,6 +25,24 @@ test('live answers merge stale counters, retry once, validate frozen versions, a
  const state=getStudyState(user.id);assert.equal(state.answers.Q1.eventId,'E2');assert.equal(state.answers.Q1.questionRevision,ref.revision);
  savePracticeState(user.id,{answers:state.answers,answerItemIds:{Q1:'I1'}});
  assert.equal(learningEventsInWindow(db,user.id).length,2);
+});
+test('batch selections resume as drafts, only final submission counts, and stale snapshots cannot erase other events',async()=>{
+ const {learningEventsInWindow}=await import('./learning-events.mjs');const {generateDailySummaryContext}=await import('./daily-summary.mjs');
+ const user=createUser('batch-event-owner','password');const db=getDb();
+ const draft={eventId:'draft-A',itemId:'I1',kind:'grammar-form',selected:'A',correct:false,answeredAt:'2026-10-07T01:00:00Z',submissionState:'draft'};
+ savePracticeState(user.id,{eventMode:'merge',answers:{Q1:draft}});
+ assert.equal(getStudyState(user.id).answers.Q1.eventId,'draft-A');assert.equal(getStudyState(user.id).answers.Q1.submissionState,'draft');
+ assert.equal(learningEventsInWindow(db,user.id).length,0);assert.equal(generateDailySummaryContext(db,user.id,'2026-10-07').overallStats.totalQuestions,0);
+ assert.equal(buildStudyRecord(user.id).summary.answered,0);
+ const final={...draft,eventId:'final-B',selected:'B',correct:true,answeredAt:'2026-10-07T02:00:00Z',submissionState:'submitted'};
+ const payload={eventMode:'merge',answers:{Q1:final},progress:{I1:{correct:99,wrong:99}}};
+ savePracticeState(user.id,payload);savePracticeState(user.id,payload);
+ assert.equal(getStudyState(user.id).progress.I1.correct,1);assert.equal(getStudyState(user.id).progress.I1.wrong,0);
+ saveAnswer(user.id,{questionId:'Q2',itemId:'I1',selected:'C',correct:false,answerEventId:'independent-C',progressEntry:{lastReviewedAt:'2026-10-07T03:00:00Z'}});
+ savePracticeState(user.id,payload);
+ const state=getStudyState(user.id);assert.ok(state.answers.Q2);assert.equal(state.progress.I1.correct,1);assert.equal(state.progress.I1.wrong,1);
+ assert.equal(learningEventsInWindow(db,user.id).length,2);assert.equal(generateDailySummaryContext(db,user.id,'2026-10-07').overallStats.totalQuestions,2);
+ assert.equal(buildStudyRecord(user.id).summary.answered,2);
 });
 test('saves a completed review and progress together, and retry does not double counts', () => {
   const user = createUser('review-test', 'test-password');

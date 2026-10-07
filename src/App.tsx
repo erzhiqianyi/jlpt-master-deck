@@ -811,7 +811,7 @@ export default function App() {
     const nextAttemptHistory = upsertAttemptHistory(attemptHistory, nextAttempt);
     const nextAnswers = {
       ...answers,
-      [question.id]: { eventId:answerEventId,itemId:question.itemId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
+      [question.id]: { submissionState:effectiveFeedbackMode==='batch'?'draft' as const:'submitted' as const,eventId:answerEventId,itemId:question.itemId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
     };
     if (effectiveFeedbackMode === 'batch') {
       setAnswers(nextAnswers);
@@ -822,7 +822,7 @@ export default function App() {
           method: 'PUT',
           token: authToken,
           timeoutMs: 15000,
-          body: { answers: nextAnswers, attemptHistory: nextAttemptHistory, activeAttempt: nextAttempt },
+          body: { eventMode:'merge',answers: nextAnswers, attemptHistory: nextAttemptHistory, activeAttempt: nextAttempt },
         })).catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save answer'));
       }
       return;
@@ -897,7 +897,7 @@ export default function App() {
         const saved = await apiRequest<StudyState>('/api/study-state/practice', {
           method: 'PUT',
           token: authToken,
-          body: { answers, progress: nextProgress, answerItemIds: Object.fromEntries(questions.map((question) => [question.id, question.itemId])), attemptHistory: analyzedHistory, activeAttempt: null },
+          body: { eventMode:'merge',answers:Object.fromEntries(Object.entries(answers).map(([id,answer])=>[id,questions.some(question=>question.id===id)?{...answer,submissionState:'submitted',eventId:answer.eventId??crypto.randomUUID()}:answer])), progress: nextProgress, answerItemIds: Object.fromEntries(questions.map((question) => [question.id, question.itemId])), attemptHistory: analyzedHistory, activeAttempt: null },
           timeoutMs: 30000,
         });
         applyStudyState(saved);

@@ -19,6 +19,7 @@
 |结构硬校验与内容审查|partial：23型validateQuestionPayload校验目标span、组句全排列/★、文章空位、检索条件、不同材料引用及选项数；canonical新作者validationMode=strict才启用，旧档案兼容读取不自动升级。strictExamEligible同时要求approved，结构通过不代替语义审查。统一审核写事件proposal。|
 |错误fieldpath+code+可恢复建议|partial：现有Zod校验提供path；现有错误/HTTP状态兼容保留。统一required/not_applicable/revision_conflict/duplicate/permission及建议封装proposal。|
 |registry schema版本发现/刷新|implemented发现：get_question_registry返回schemaVersion=1、23型level/alias/字段审查/解析步骤/技巧/知识关联指导，真实MCP入口已测。客户端版本协商仍proposal。|
+|分享内容版本和当前访问门禁|implemented：get_market_share可选revision；REST GET/PATCH/导入接内容版本、expectedRevision冲突、旧版词条/练习导入。撤回时所有版本及封面拒绝访问；封面版本保留原bytes。沿用现有公开/撤回权限，没有增加未经确认的新私有分享产品模型。历史听力导入因媒体版本支持未完整明确拒绝。|
 
 ## 目标返回与错误契约（proposal）
 

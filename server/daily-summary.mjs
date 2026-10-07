@@ -128,7 +128,7 @@ export function generateDailySummaryContext(db, userId, date, recentWeakPoints =
     FROM answers a
     LEFT JOIN mcp_questions q ON q.user_id=a.user_id AND q.id=a.question_id
     LEFT JOIN mcp_items i ON i.user_id=a.user_id AND i.id=a.item_id
-    WHERE a.user_id=? AND julianday(a.answered_at)>=julianday(?) AND julianday(a.answered_at)<julianday(?)
+    WHERE a.user_id=? AND a.submission_state!='draft' AND julianday(a.answered_at)>=julianday(?) AND julianday(a.answered_at)<julianday(?)
     ORDER BY a.answered_at, a.question_id`).all(userId,window.start,window.end);
   ensureLearningEventSchema(db);
   const events=learningEventsInWindow(db,userId,{...window,type:'AnswerSubmitted'});

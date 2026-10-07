@@ -1538,7 +1538,7 @@ export function getStudySettings(userId) {
 export function getStudyState(userId) {
   ensureSettings(userId);
   const settingsRow = getDb().prepare('SELECT settings_json FROM user_settings WHERE user_id = ?').get(userId);
-  const answerRows = getDb().prepare('SELECT question_id, selected, correct, answered_at FROM answers WHERE user_id = ?').all(userId);
+  const answerRows = getDb().prepare('SELECT question_id,item_id, selected, correct, answered_at,submission_state,answer_event_id,question_ref_json,question_kind FROM answers WHERE user_id = ?').all(userId);
   const progressRows = getDb().prepare('SELECT item_id, progress_json FROM progress WHERE user_id = ?').all(userId);
   const practice = getPracticeState(userId);
   const eventMetadata=getDb().prepare("SELECT event_id,payload_json FROM learning_events WHERE owner=? AND question_id=? AND event_type='AnswerSubmitted' AND julianday(occurred_at)=julianday(?) ORDER BY received_at DESC LIMIT 1");
@@ -1547,7 +1547,8 @@ export function getStudyState(userId) {
     settings: normalizeSettings(JSON.parse(settingsRow.settings_json)),
     answers: Object.fromEntries(answerRows.map((row) => {
       const event=eventMetadata.get(userId,row.question_id,row.answered_at);const payload=event?JSON.parse(event.payload_json):null;
-      return [row.question_id,{selected:row.selected,correct:Boolean(row.correct),answeredAt:row.answered_at,...(event?{eventId:event.event_id,itemId:payload.itemId,...(payload.questionRef?{canonicalQuestionId:payload.questionRef.id,questionRevision:payload.questionRef.revision}:{})}:{})}];
+      const draftRef=row.question_ref_json?JSON.parse(row.question_ref_json):null;
+      return [row.question_id,{selected:row.selected,correct:Boolean(row.correct),answeredAt:row.answered_at,...(row.submission_state==='draft'?{submissionState:'draft',...(row.answer_event_id?{eventId:row.answer_event_id,itemId:row.item_id,kind:row.question_kind,...(draftRef?{canonicalQuestionId:draftRef.id,questionRevision:draftRef.revision}:{})}:{})}:{}),...(event?{eventId:event.event_id,itemId:payload.itemId,...(payload.questionRef?{canonicalQuestionId:payload.questionRef.id,questionRevision:payload.questionRef.revision}:{})}:{})}];
     })),
     progress: Object.fromEntries(progressRows.map((row) => [row.item_id, JSON.parse(row.progress_json)])),
     practiceCompletionCounts: Object.fromEntries(getDb().prepare('SELECT practice_id, completed_count FROM practice_completion_stats WHERE user_id = ?').all(userId).map((row) => [row.practice_id, row.completed_count])),
@@ -1738,7 +1739,7 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
       database.prepare('DELETE FROM card_review_sync_events WHERE user_id=? AND item_id=?').run(userId,input.itemId);
     }
     database.prepare(`INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)
-      ON CONFLICT(user_id,question_id) DO UPDATE SET item_id=excluded.item_id,selected=excluded.selected,correct=excluded.correct,answered_at=excluded.answered_at
+      ON CONFLICT(user_id,question_id) DO UPDATE SET item_id=excluded.item_id,selected=excluded.selected,correct=excluded.correct,answered_at=excluded.answered_at,submission_state='submitted'
       WHERE julianday(excluded.answered_at)>=julianday(answers.answered_at)`)
       .run(userId,input.questionId,input.itemId,input.selected,input.correct ? 1 : 0,new Date(time).toISOString());
     if (Array.isArray(input.attemptHistory)) {
@@ -1784,7 +1785,8 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
         ON CONFLICT(user_id, question_id) DO UPDATE SET
           selected = excluded.selected,
           correct = excluded.correct,
-          answered_at = excluded.answered_at
+          answered_at = excluded.answered_at,
+          submission_state = 'submitted'
       `)
       .run(userId, questionId, itemId, selected, correct ? 1 : 0, new Date(occurredAt).toISOString());
     database
@@ -1860,21 +1862,31 @@ export function saveProgressEntry(userId, itemId, progressEntry) {
   return getStudyState(userId);
 }
 
-export function savePracticeState(userId, { answers, progress, answerItemIds, attemptHistory, activeAttempt }) {
+export function savePracticeState(userId, { answers, progress, answerItemIds, attemptHistory, activeAttempt,eventMode }) {
   const database = getDb();
   const now = new Date().toISOString();
   transaction(database, () => {
+    const eventItems=new Set();
+    const mergedProgress=new Map();
     if (answers && typeof answers === 'object') {
-      database.prepare('DELETE FROM answers WHERE user_id = ?').run(userId);
+      if(eventMode!=='merge')database.prepare('DELETE FROM answers WHERE user_id = ?').run(userId);
       const insert = database.prepare(`
-        INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at,submission_state,answer_event_id,question_ref_json,question_kind)
+        VALUES (?, ?, ?, ?, ?, ?,?,?,?,?)
+        ON CONFLICT(user_id,question_id) DO UPDATE SET item_id=excluded.item_id,selected=excluded.selected,correct=excluded.correct,answered_at=excluded.answered_at,submission_state=excluded.submission_state,answer_event_id=excluded.answer_event_id,question_ref_json=excluded.question_ref_json,question_kind=excluded.question_kind
+        WHERE julianday(excluded.answered_at)>=julianday(answers.answered_at)
       `);
       for (const [questionId, answer] of Object.entries(answers)) {
         if (questionId.startsWith('memory-card:')) continue;
         const itemId = answerItemIds?.[questionId] ??answer.itemId?? String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
-        if(answer.eventId&&String(answer.selected??'').trim())recordAnswerSnapshot(database,userId,{eventId:answer.eventId,occurredAt:answer.answeredAt??now,payload:{questionId,itemId,selected:String(answer.selected),correct:Boolean(answer.correct),kind:answer.kind??'unknown',source:'web',...(answer.canonicalQuestionId?{questionRef:{id:answer.canonicalQuestionId,revision:answer.questionRevision}}:{})}});
-        insert.run(userId, questionId, itemId, String(answer.selected ?? ''), answer.correct ? 1 : 0, answer.answeredAt ?? now);
+        if(answer.eventId&&answer.submissionState!=='draft'&&String(answer.selected??'').trim()) {
+          const added=recordAnswerSnapshot(database,userId,{eventId:answer.eventId,occurredAt:answer.answeredAt??now,payload:{questionId,itemId,selected:String(answer.selected),correct:Boolean(answer.correct),kind:answer.kind??'unknown',source:'web',...(answer.canonicalQuestionId?{questionRef:{id:answer.canonicalQuestionId,revision:answer.questionRevision}}:{})}});
+          if(eventMode==='merge') {
+            eventItems.add(itemId);
+            if(added)mergedProgress.set(itemId,progressAfterAnswer(mergedProgress.get(itemId)??getStudyState(userId).progress[itemId],Boolean(answer.correct),new Date(answer.answeredAt??now)));
+          }
+        }
+        insert.run(userId, questionId, itemId, String(answer.selected ?? ''), answer.correct ? 1 : 0, answer.answeredAt ?? now,answer.submissionState==='draft'?'draft':'submitted',answer.eventId??null,answer.canonicalQuestionId?JSON.stringify({id:answer.canonicalQuestionId,revision:answer.questionRevision}):null,answer.kind??null);
       }
     }
     if (progress && typeof progress === 'object') {
@@ -1883,9 +1895,11 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
         ON CONFLICT(user_id, item_id) DO UPDATE SET progress_json = excluded.progress_json, updated_at = excluded.updated_at
       `);
       for (const [itemId, entry] of Object.entries(progress)) {
+        if(eventItems.has(itemId))continue;
         saveProgress.run(userId, itemId, JSON.stringify(entry), now);
       }
     }
+    for(const [itemId,entry] of mergedProgress)database.prepare('INSERT INTO progress(user_id,item_id,progress_json,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO UPDATE SET progress_json=excluded.progress_json,updated_at=excluded.updated_at').run(userId,itemId,JSON.stringify(entry),now);
     upsertPracticeState(userId, attemptHistory, activeAttempt, now);
   });
 }
@@ -1893,8 +1907,9 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
 export function buildStudyRecord(userId) {
   const data = loadReviewData(userId);
   const state = getStudyState(userId);
-  const answered = Object.keys(state.answers).length;
-  const correct = Object.values(state.answers).filter((answer) => answer.correct).length;
+  const submittedAnswers=Object.values(state.answers).filter(answer=>answer.submissionState!=='draft'&&answer.selected.trim());
+  const answered = submittedAnswers.length;
+  const correct = submittedAnswers.filter((answer) => answer.correct).length;
   const mastered = Object.values(state.progress).filter((item) => item.status === 'mastered').length;
   return {
     exported_at: new Date().toISOString(),

@@ -74,3 +74,5 @@ Web 与 SwiftUI 无法直接共用 React 代码。二者共用 JSON fixture、�
 - 图没有完整长解析/失败状态目视验收，尚无所有平台实际截图。共享组件已有DOM回归，原生只有语法解析检查，设备构建/截图仍待完成。
 
 [本地可交互概念图索引](ui-question-experience/index.html)：切换23题型/作答-结果-解析，移动与大屏并列。此页直接展示概念SVG，不能代替生产 renderer 或实际截图。
+
+另见[原生真实运行验收与22张截图](qa/native-question-experience/README.md)：词汇/语法、听力、阅读、练习入口四条demo流程已在独立iPhone Simulator通过。不是23型完整状态或实体设备覆盖，Web/IAB视觉验收仍待补齐。

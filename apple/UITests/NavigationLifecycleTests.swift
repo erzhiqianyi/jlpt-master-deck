@@ -20,18 +20,20 @@ final class NavigationLifecycleTests: XCTestCase {
         add(attachment)
     }
     private func primary(_ title: String) {
+        let bank = app.tabBars.buttons["题库"]
+        if ["词汇", "语法", "阅读", "听力"].contains(title), bank.exists { bank.tap() }
         let tab = app.tabBars.buttons[title]
         let sidebar = app.buttons["nav.\(title)"]
         // Cold launch may restore a library module, whose focused phone route
         // intentionally hides the primary tab bar. Return via its context first.
         for _ in 0..<4 {
             if tab.exists || sidebar.exists { break }
-            let back = app.buttons["BackButton"].firstMatch
+            let back = app.buttons.matching(NSPredicate(format: "identifier == %@ OR label IN %@", "BackButton", ["返回", "Back", "题库"])).firstMatch
             if back.exists { back.tap() }
-            else if app.navigationBars.buttons.firstMatch.exists { app.navigationBars.buttons.firstMatch.tap() }
+            else { break }
         }
         if tab.exists { tab.tap() }
-        else { sidebar.tap() }
+        else { XCTAssertTrue(sidebar.waitForExistence(timeout: 5), "Missing current navigation: \(title)"); sidebar.tap() }
     }
     private func reveal(_ element: XCUIElement) {
         for _ in 0..<6 {
@@ -238,7 +240,6 @@ final class NavigationLifecycleTests: XCTestCase {
     }
     func testReadingSelectionAndScrollSurviveBackground() throws {
         primary("学习"); capture("today-portrait")
-        primary("练习"); capture("practice-portrait")
         primary("题库")
         capture("library-portrait")
         app.buttons["nav.阅读"].tap()
@@ -485,11 +486,11 @@ final class NavigationLifecycleTests: XCTestCase {
         capture("practice-review-all-swiped")
     }
     func testPracticeEntryWorksWithoutFloatingActionsAndSurvivesBackground() throws {
-        primary("练习")
+        primary("学习")
         XCTAssertFalse(app.buttons["workspace.companion"].exists)
         XCTAssertFalse(app.buttons["detail.companion"].exists)
         let topic = app.buttons["practice.topics"].firstMatch
-        XCTAssertTrue(topic.waitForExistence(timeout: 5))
+        XCTAssertTrue(topic.waitForExistence(timeout: 5)); reveal(topic)
         capture("native-practice-without-floating-action")
         topic.tap()
         XCTAssertTrue(app.staticTexts["演示模式"].waitForExistence(timeout: 5))
@@ -500,7 +501,8 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["演示模式"].exists)
         capture("practice-modal-after-background")
         app.terminate(); app.launch()
-        XCTAssertTrue(app.buttons["practice.topics"].waitForExistence(timeout: 10))
+        primary("学习")
+        XCTAssertTrue(app.buttons["practice.topics"].waitForExistence(timeout: 10)); reveal(app.buttons["practice.topics"])
         XCTAssertFalse(app.buttons["practice.back"].exists)
         capture("cold-launch-restored-practice-tab")
     }

@@ -66,3 +66,21 @@ AnswerSubmitted与MemoryRated追加事件ledger；Web单题/MCP/native replay/�
 影子迁移CLI默认只读，显式源/新目标SQLite backup；逐批checkpoint和逐行savepoint、旧表内容hash核对。已覆盖owned/user seeds、草稿、日练、mock、reading、AU/LS；全局无owner词条和孤立LS报告拒绝，数字answer歧义不猜。源码和旧学习表不改；只在合成测试库执行，未运行真实用户迁移。完整生产灰度/回滚、媒体恢复与全历史映射仍待实施。
 
 阶段中验证：全量469/469通过，包含冻结版本作答、旧题改答案后原答案保持、稳定ID重试、多个陈旧计数客户端合并、外owner拒绝及日总结事件投影；tsc、lint、Web+3 MCP构建、Cloud API bundle通过。最新本机Xcode单元65/65通过，含原生冻结版本实际消费、版本作答payload和旧缓存兼容。正在运行四条已有demo UI验收；尚不能宣称UI完成。本机新建独立iPhone17/iOS26.5模拟器，测试使用ignored非生产配置，未配置真实Firebase。
+
+## 第四阶段：消费与权限闭环
+
+Web syncCollection真实解析冻结题目/文章revision，保留PR题实例和item ID，不跟latest改历史；完整分页才保存cursor，非法版本key拒绝推进。缺旧缓存revision仍兼容原snapshot，素材不全不截断替换正文。iOS已接冻结消费和待提交引用。离线历史AU独立下载与所有材料呈现尚未完成。
+
+分享写入追加market_share_versions，源修改不重写旧包；get_market_share/REST可读取指定revision，词条/练习导入能指定版本；expectedRevision防止陈旧编辑。readonly详情不回填版本，旧包先作为兼容revision 1，下一次真实更新先归档旧包。撤回后当前/历史版本及封面都拒绝访问；封面历史bytes不清理，指定内容版本返回对应封面URL。旧已导入副本保留；历史听力导入暂拒绝，不用当前音频冒充旧版。现有公开/撤回模式保留，新私有分享产品模型未添加。
+
+Web新批量协议eventMode=merge，选择暂存为draft，保留可续作的稳定eventId/引用；改选不产出AnswerSubmitted。最终提交才写事件，合并服务器客观计数；重试不增分，不删除另一设备的新答题。旧无eventMode快照协议保持兼容。新增答案metadata列默认legacy_submitted，旧correct与selected不改；draft不进入日总结或学习记录客观计数。答题事件+progress+attempt同SQLite事务；旧全量progress写协议仍有兼容边界，不能声称旧客户端并发全面解决。
+
+原生65项unit通过；四条真实demo UI流程通过，22张PNG与来源记录见[截图验收](native-question-experience/README.md)。首轮UI旧主导航失败/阻塞保留证据，修正定位后复验通过，不能拿概念图或失败bundle当成功。Web/IAB截图工具当前未提供，因此没有声称Web真实浏览器或iPad/实体设备视觉验证。
+
+最终全量474/474通过；tsc、lint、Web+3 MCP构建及Cloud API bundle通过。新增真实迁移CLI进程测试：默认不建目标、只读source、显式新target backup、拒绝覆盖、checkpoint resume、源文件bytes不变。阶段初全回归3项失败：两项测试用INSERT VALUES依赖旧列数，改为显式列并保留历史保护断言；REST封面旧断言补为冻结内容revision URL，真实接口复验通过。日志归档`.local/domain-stage4/`。所有运行限本机合成库/demo，没有用户真实迁移、生产MCP或自动化操作。
+
+## 本地交付边界与剩余项
+
+本地已交付：六领域/23型/知识/媒体/答案/审批/版本/事件/日期/分享契约文档；canonical与材料增量核心及主写入口；真实Web/MCP共享渲染、Web/iOS冻结消费；客观/主观事件与日总结；可续跑影子回填和旧表哈希报告；本机集成/unit/build/native/UI证据及可回退提交。整个独立库尚不能作为全库唯一权威，不宣称原方案全部完成。
+
+仍待实施或额外验收：通用独立词汇/语法作者写用例及完整知识多对多编辑；全attempt manifest冻结和历史题缺失恢复；题型真实长内容/图片/多材料的完整跨平台视觉fixture与统一原生UI；历史AU按材料revision授权离线读取；全库owner/分享/事件映射核对和灰度/回滚演练；旧客户端全量progress并发替代。生产切换、真实数据回填及删除旧库不在本任务执行授权内，仅保留预演与手册；这些边界不是继续扩大工程或触碰生产的理由。

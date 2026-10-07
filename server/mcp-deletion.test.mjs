@@ -26,7 +26,7 @@ function practice(id, user, questionIds) {
     .run(id, user.id, JSON.stringify({ questions: questionIds.map((id) => ({ id, itemId: 'item', choices: ['A','B'], answer: 'A' })) }));
 }
 function answer(user, questionId) {
-  db.prepare("INSERT INTO answers VALUES (?,?,'item','A',1,'2026-09-24')").run(user.id, questionId);
+  db.prepare("INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES (?,?,'item','A',1,'2026-09-24')").run(user.id, questionId);
 }
 function state(user, history, active) {
   db.prepare("INSERT OR REPLACE INTO practice_state VALUES (?,?,?,'2026-09-24')")

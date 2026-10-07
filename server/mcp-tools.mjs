@@ -264,7 +264,7 @@ export const tools = [
   tool('list_market_shares', 'List currently published marketplace shares visible to the authenticated learner.',
     {}, ro, async (_args, ctx) => text(listShares(uid(ctx)))),
   tool('get_market_share', 'Read one published share and its complete content package, with the same visibility rules as the web page.',
-    { id: z.string() }, ro, async ({ id }, ctx) => text(shareDetail(uid(ctx), id))),
+    { id: z.string(),revision:z.number().int().positive().optional() }, ro, async ({ id,revision }, ctx) => text(shareDetail(uid(ctx), id,revision))),
   tool('preview_market_source', 'Preview a share package from your own wordbook or practice without publishing it.',
     { kind: z.enum(['wordbook', 'practice']), sourceId: z.string(), title: z.string().optional(), description: z.string().optional() }, ro,
     async (args, ctx) => text({ package: sourcePackage(uid(ctx), args) })),

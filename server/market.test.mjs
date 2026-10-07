@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync,existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const dir = mkdtempSync(join(tmpdir(), "jlpt-market-"));
@@ -20,6 +20,7 @@ const {
   updateShare,
   shareDetail,
   validatePackage,
+  setShareCover,shareCover,
 } = await import("./market.mjs");
 const a = createUser("author", "test-pass"),
   b = createUser("reader", "test-pass"),
@@ -224,4 +225,38 @@ test('My shares is not clipped by the public latest-200 feed', () => {
   assert.equal(listShares(a.id).some(share => share.id === 'old-own-share'), false);
   assert.equal(listShares(a.id, true).some(share => share.id === 'old-own-share'), true);
   assert.equal(listShares(a.id, true).every(share => share.mine), true);
+});
+
+test('published versions are immutable, stale owner edits conflict, imports freeze selected content and withdrawal gates all revisions',()=>{
+ const source=importPackage(a.id,{...words,title:'版本来源'});
+ const published=publishShare(a.id,{kind:'wordbook',sourceId:source.id,title:'第一版'});
+ assert.equal(published.contentRevision,1);
+ const oldCopy=importShare(c.id,published.id,1);
+ const edited=updateShare(a.id,published.id,{title:'第二版',expectedRevision:1});
+ assert.equal(edited.contentRevision,2);assert.equal(edited.id,published.id);
+ assert.equal(shareDetail(b.id,published.id,1).package.title,'第一版');
+ assert.equal(shareDetail(b.id,published.id).package.title,'第二版');
+ assert.equal(shareDetail(b.id,published.id,1).sourceId,undefined);
+ assert.throws(()=>updateShare(a.id,published.id,{title:'陈旧写入',expectedRevision:1}),{statusCode:409});
+ assert.equal(importShare(c.id,published.id,1).id,oldCopy.id);
+ assert.throws(()=>shareDetail(b.id,published.id,99),{statusCode:404});
+ const count=getDb().prepare('SELECT COUNT(*) AS n FROM market_share_versions WHERE share_id=?').get(published.id).n;
+ updateShare(a.id,published.id,{title:'第二版',expectedRevision:2});
+ assert.equal(getDb().prepare('SELECT COUNT(*) AS n FROM market_share_versions WHERE share_id=?').get(published.id).n,count);
+ withdrawShare(a.id,published.id);
+ assert.throws(()=>shareDetail(b.id,published.id,1),{statusCode:404});
+ assert.throws(()=>importShare(c.id,published.id,1),{statusCode:404});
+ assert.ok(userReviewData(c.id).items.length);
+});
+test('cover versions keep original bytes and withdrawn versions cannot expose their paths',()=>{
+ const source=importPackage(a.id,{...words,title:'封面版本来源'});
+ const published=publishShare(a.id,{kind:'wordbook',sourceId:source.id});
+ const cover={mime:'image/png',imageBase64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='};
+ setShareCover(a.id,published.id,cover);const first=shareCover(published.id,2);
+ setShareCover(a.id,published.id,cover);const latest=shareDetail(b.id,published.id);
+ assert.equal(latest.contentRevision,3);assert.notEqual(first.path,shareCover(published.id).path);assert.ok(existsSync(first.path));
+ assert.equal(shareCover(published.id,2).path,first.path);
+ assert.match(shareDetail(b.id,published.id,2).package.coverUrl,/revision=2/);
+ assert.equal(shareDetail(b.id,published.id,2).package.coverAsset,undefined);
+ withdrawShare(a.id,published.id);assert.throws(()=>shareCover(published.id,2),{statusCode:404});
 });

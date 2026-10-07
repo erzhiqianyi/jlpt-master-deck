@@ -47,7 +47,16 @@ function database() {
     CREATE TABLE IF NOT EXISTS market_imports (user_id INTEGER NOT NULL REFERENCES users(id), digest TEXT NOT NULL, result_json TEXT NOT NULL, PRIMARY KEY(user_id,digest));
     CREATE TABLE IF NOT EXISTS user_review_items (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), item_json TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS market_listening_audio (share_id TEXT PRIMARY KEY REFERENCES market_shares(id), audio_path TEXT NOT NULL, audio_mime TEXT NOT NULL, audio_size INTEGER NOT NULL);`);
+  db.exec('CREATE TABLE IF NOT EXISTS market_share_versions(share_id TEXT NOT NULL REFERENCES market_shares(id),revision INTEGER NOT NULL,package_json TEXT NOT NULL,fingerprint TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(share_id,revision))');
   return db;
+}
+function archiveShareVersion(db,row) {
+  const fingerprint=createHash('sha256').update(row.package_json).digest('hex');
+  const latest=db.prepare('SELECT revision,fingerprint FROM market_share_versions WHERE share_id=? ORDER BY revision DESC LIMIT 1').get(row.id);
+  if(latest?.fingerprint===fingerprint)return latest.revision;
+  const revision=(latest?.revision??0)+1;
+  db.prepare('INSERT INTO market_share_versions VALUES(?,?,?,?,?)').run(row.id,revision,row.package_json,fingerprint,new Date().toISOString());
+  return revision;
 }
 export function userReviewData(userId) {
   database();
@@ -293,6 +302,7 @@ export function publishShare(userId, input) {
     db.prepare(
       "INSERT INTO market_shares (id,user_id,source_id,kind,package_json,created_at) VALUES (?,?,?,?,?,?)",
     ).run(id, userId, input.sourceId, pkg.kind, JSON.stringify(pkg), now);
+    archiveShareVersion(db,{id,package_json:JSON.stringify(pkg)});
     return shareDetail(userId, id);
   });
 }
@@ -325,6 +335,7 @@ export async function publishListeningShare(userId, input) {
         .run(id, userId, source.id, 'listening', JSON.stringify(pkg), new Date().toISOString());
       database().prepare('INSERT INTO market_listening_audio (share_id,audio_path,audio_mime,audio_size) VALUES (?,?,?,?)')
         .run(id, path, source.audioMime, bytes.length);
+      archiveShareVersion(database(),{id,package_json:JSON.stringify(pkg)});
     });
   } catch (error) {
     if (existsSync(path)) unlinkSync(path);
@@ -389,8 +400,9 @@ export function listShares(userId, mineOnly = false) {
       };
     });
 }
-export function shareDetail(userId, id) {
-  const row = database()
+export function shareDetail(userId, id, revision) {
+  const db=database();
+  const row = db
     .prepare("SELECT * FROM market_shares WHERE id = ? AND withdrawn = 0")
     .get(id);
   if (!row) {
@@ -398,12 +410,18 @@ export function shareDetail(userId, id) {
     error.statusCode = 404;
     throw error;
   }
+  const latest=db.prepare('SELECT revision FROM market_share_versions WHERE share_id=? ORDER BY revision DESC LIMIT 1').get(id);
+  const currentRevision=latest?.revision??1;
+  if(revision!==undefined&&(!Number.isSafeInteger(revision)||revision<1))throw Object.assign(new Error('Invalid share revision'),{statusCode:400});
+  const snapshot=revision===undefined||(!latest&&revision===1)?row:db.prepare('SELECT package_json FROM market_share_versions WHERE share_id=? AND revision=?').get(id,revision);
+  if(!snapshot)throw Object.assign(new Error('Share revision not found'),{statusCode:404});
   return {
     id: row.id,
     mine: row.user_id === userId,
     createdAt: row.created_at,
+    contentRevision:revision??currentRevision,currentRevision,
     ...(row.user_id === userId ? { sourceId: row.source_id } : {}),
-    package: (() => { const { coverAsset, ...pkg } = JSON.parse(row.package_json); return pkg; })(),
+    package: (() => { const { coverAsset, ...pkg } = JSON.parse(snapshot.package_json); if(coverAsset&&pkg.coverUrl)pkg.coverUrl+=`${pkg.coverUrl.includes('?')?'&':'?'}revision=${revision??currentRevision}`;return pkg; })(),
   };
 }
 /** Editing a published snapshot keeps its ID and preserves existing imported copies. */
@@ -414,6 +432,8 @@ export function updateShare(userId, id, input) {
     if (!row) { const error = new Error('找不到自己的分享'); error.statusCode = 404; throw error; }
     const invalid = message => { const error = new Error(message); error.statusCode = 400; throw error; };
     if (!input || typeof input !== 'object' || Array.isArray(input)) invalid('修改内容格式无效');
+    const currentRevision=archiveShareVersion(db,row);
+    if(input.expectedRevision!==undefined&&input.expectedRevision!==currentRevision)throw Object.assign(new Error('Share revision conflict'),{statusCode:409,code:'revision_conflict',currentRevision,fieldPath:['expectedRevision']});
     const old = JSON.parse(row.package_json);
     const title = input.title === undefined ? old.title : input.title;
     const description = input.description === undefined ? old.description ?? '' : input.description;
@@ -428,6 +448,7 @@ export function updateShare(userId, id, input) {
     }
     pkg = { ...pkg, title: title.trim(), description: description.trim() };
     db.prepare('UPDATE market_shares SET package_json=? WHERE id=? AND user_id=? AND withdrawn=0').run(JSON.stringify(pkg), id, userId);
+    archiveShareVersion(db,{id,package_json:JSON.stringify(pkg)});
     return shareDetail(userId, id);
   });
 }
@@ -453,9 +474,9 @@ export function withdrawShare(userId, id) {
   return { ok: true };
 }
 // Resolve the published snapshot on the server, never the browser's preview copy.
-export function importShare(userId, shareId) {
+export function importShare(userId, shareId, revision) {
   if (typeof shareId !== 'string' || !shareId.trim()) throw new Error('请选择分享内容');
-  const share = shareDetail(userId, shareId);
+  const share = shareDetail(userId, shareId, revision);
   let pkg = share.package;
   // Older published practices contain only questions. Recover links from the original
   // practice when it still exists and the question sequence is unchanged.
@@ -617,9 +638,12 @@ export function importPackage(userId, input) {
 }
 
 // Covers are public only while the corresponding share is published.
-export function shareCover(id) {
-  const row = database().prepare('SELECT package_json FROM market_shares WHERE id=? AND withdrawn=0').get(id);
-  const asset = row && JSON.parse(row.package_json).coverAsset;
+export function shareCover(id,revision) {
+  const db=database();
+  const row = db.prepare('SELECT package_json FROM market_shares WHERE id=? AND withdrawn=0').get(id);
+  if(revision!==undefined&&(!Number.isSafeInteger(revision)||revision<1))throw Object.assign(new Error('Cover revision not found'),{statusCode:404});
+  const version=row&&revision!==undefined?db.prepare('SELECT package_json FROM market_share_versions WHERE share_id=? AND revision=?').get(id,revision):row;
+  const asset = version && JSON.parse(version.package_json).coverAsset;
   if (!asset) { const error = new Error('Cover not found'); error.statusCode = 404; throw error; }
   return asset;
 }
@@ -632,14 +656,17 @@ export function setShareCover(userId, id, payload) {
     const error = new Error('请选择 PNG、JPEG、WebP 或 GIF 图片，大小不超过 5 MB'); error.statusCode = 400; throw error;
   }
   const pkg = JSON.parse(row.package_json);
-  const old = pkg.coverAsset;
   const coverDir = join(dirname(databasePath()), 'item-images', 'share-covers');
   const path = join(coverDir, `${randomUUID()}.cover`);
   mkdirSync(coverDir, { recursive: true });
   writeFileSync(path, bytes);
   pkg.coverAsset = { path, mime, size: bytes.length };
   pkg.coverUrl = `/api/market/${id}/cover?v=${randomUUID()}`;
-  database().prepare('UPDATE market_shares SET package_json=? WHERE id=? AND user_id=?').run(JSON.stringify(pkg), id, userId);
-  if (old && existsSync(old.path)) unlinkSync(old.path);
+  const db=database();
+  transaction(db,()=>{
+    archiveShareVersion(db,{id,package_json:row.package_json});
+    db.prepare('UPDATE market_shares SET package_json=? WHERE id=? AND user_id=?').run(JSON.stringify(pkg), id, userId);
+    archiveShareVersion(db,{id,package_json:JSON.stringify(pkg)});
+  });
   return { coverUrl: pkg.coverUrl };
 }

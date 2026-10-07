@@ -64,7 +64,7 @@ flowchart TB
 
 现有下载以每条内容哈希构建manifest，固定分页payload，最后提交cursor，删除以tombstone传播。新canonical题/材料/组必须一起入本机可持久集合，消费者支持完成之前不能只推进cursor忽略未知集合。原生pending先保存事件再推进题，重试使用稳定eventId。完整设计见[多端同步](multi-device-study-sync-architecture.md)，其中旧现状须以最新代码核对。
 
-作答与自评分开：selected客观结果及unanswered不能变成forgot/hard；评分影响SRS排程，未答不计错。自然日按明确账户时区边界，滚动24小时独立参数。跨设备统计由稳定事件去重投影；这些全面改造尚未实施。
+作答与自评分开：selected客观结果及unanswered不能变成forgot/hard；评分影响SRS排程，未答不计错。自然日按明确账户时区边界，滚动24小时独立参数。已接类型化learning_events、冻结版本作答校验、日总结事件投影、SRS新评分分离和Web批量draft/提交门禁；旧快照协议仍兼容，全面统计repository和统一事件投影仍是图中的目标。
 
 答案权限来自练习容器与用例：考试未交卷隐藏答案/解析/转录/翻译；回看使用当时snapshot；作者编辑可以读完整内容但必须持library:write。分享visibility、owner和授权下载沿用server规则；导入不能复用他人私有引用或伪造owner。
 

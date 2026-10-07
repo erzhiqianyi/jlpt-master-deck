@@ -9,7 +9,7 @@ export type Locale = 'zh-CN' | 'ja' | 'en';
 export type AppView = 'study' | 'market' | 'capture' | 'captures' | 'home' | 'memory-review' | 'history' | 'mistakes' | 'memory' | 'data' | 'mcp' | 'insights' | 'plan' | 'question-types' | 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'mixed' | 'daily-practice' | 'mock-exams' | 'news-cycle' | 'drafts' | 'about' | 'profile' | 'settings';
 export type StudyPage = 'tips' | 'questions' | 'words' | 'wordbooks' | 'bank' | 'review' | 'samples' | 'mock';
 export type AppRoute = { view: AppView; page: StudyPage; itemId?: string };
-export type AnswerRecord = { selected: string; correct: boolean; eventId?:string;itemId?:string;kind?:string;canonicalQuestionId?:string;questionRevision?:number;startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
+export type AnswerRecord = { selected: string; correct: boolean; submissionState?:'draft'|'submitted';eventId?:string;itemId?:string;kind?:string;canonicalQuestionId?:string;questionRevision?:number;startedAt?: string; answeredAt?: string; elapsedMs?: number; attemptId?: string };
 export type AnswerState = Record<string, AnswerRecord>;
 export type ReviewStatus = 'new' | 'learning' | 'review' | 'mastered';
 

@@ -106,7 +106,7 @@ test("local deployment: registration, login, sharing, per-account import and own
     assert.equal(edited.body.id, id);
     assert.equal(edited.body.package.title, '编辑后的分享');
     assert.equal(edited.body.package.description, '新简介');
-    assert.equal(edited.body.package.coverUrl, uploaded.body.coverUrl);
+    assert.equal(edited.body.package.coverUrl, `${uploaded.body.coverUrl}&revision=${edited.body.contentRevision}`);
     assert.equal(edited.body.package.items[0].original, '本');
     const list = await call("/api/market", { token: b.token });
     assert.equal(list.body.shares[0].mine, false);

@@ -155,7 +155,7 @@ export class JlptDatabase extends DurableObject {
     const cover = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
     if (cover && request.method === 'GET') {
       let asset;
-      try { asset = shareCover(cover[1]); } catch { return new Response('Not found', { status: 404 }); }
+      try { asset = shareCover(cover[1],url.searchParams.has('revision')?Number(url.searchParams.get('revision')):undefined); } catch { return new Response('Not found', { status: 404 }); }
       const object = await this.env.MEDIA.get(objectKey(asset.path));
       if (!object) return new Response('Not found', { status: 404 });
       return new Response(object.body, { headers: { 'content-type': asset.mime, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });

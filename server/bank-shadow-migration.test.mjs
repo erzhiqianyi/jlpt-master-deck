@@ -1,5 +1,20 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';
 import {legacyInventory,migrateBankShadow} from './bank-shadow-migration.mjs';
+import {mkdtempSync,readFileSync,rmSync,existsSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {spawnSync} from 'node:child_process';
+test('real CLI defaults read-only, backs up only to a new explicit target, and resumes only that shadow',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'jlpt-shadow-cli-'));try{
+ const source=join(dir,'source.sqlite');const target=join(dir,'shadow.sqlite');const db=new DatabaseSync(source);
+ db.exec('CREATE TABLE daily_practices(id TEXT,user_id INTEGER,practice_json TEXT)');
+ db.prepare('INSERT INTO daily_practices VALUES(?,?,?)').run('PR1',1,JSON.stringify({questions:[{id:'Q1',kind:'grammar',prompt:'問題',choices:['A','B'],answer:'A'}]}));db.close();
+ const bytes=readFileSync(source);
+ const run=args=>spawnSync(process.execPath,['scripts/migrate-bank-shadow.mjs','--source',source,'--target',target,...args],{cwd:process.cwd(),encoding:'utf8'});
+ const dry=run([]);assert.equal(dry.status,0,dry.stderr);assert.equal(JSON.parse(dry.stdout).dryRun,true);assert.equal(existsSync(target),false);
+ const execute=run(['--execute']);assert.equal(execute.status,0,execute.stderr);assert.equal(JSON.parse(execute.stdout).report.legacyUnchanged,true);
+ assert.notEqual(run(['--execute']).status,0);
+ const resumed=run(['--execute','--resume']);assert.equal(resumed.status,0,resumed.stderr);assert.equal(JSON.parse(resumed.stdout).report.processed,1);
+ assert.deepEqual(readFileSync(source),bytes);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 test('shadow batches resume without changing legacy answers, identities or drafts, and report ambiguous answers',()=>{
  const db=new DatabaseSync(':memory:');try{
  db.exec('CREATE TABLE daily_practices(id TEXT,user_id INTEGER,practice_json TEXT); CREATE TABLE answers(question_id TEXT,correct INTEGER); CREATE TABLE review_pack_drafts(id TEXT,user_id INTEGER,content_json TEXT);');

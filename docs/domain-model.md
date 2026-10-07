@@ -68,7 +68,7 @@ PracticeSetEntry={entryId,questionRef,materialRefs,section,order,scoringRule}；
 
 ## 事件、SRS、统计、权限
 
-AnswerSubmitted={eventId,owner,attemptId,entryId,questionRef,selectedOptionId,occurredAt,durationMs}；唯一 owner+eventId 重试幂等，类型固定；correct 从冻结版本算，未提交无 AnswerSubmitted。MemoryRated={eventId,knowledgeItemId,rating:forgot/hard/good/easy,occurredAt} 与客观答题事件不同；自评不能增加客观 wrong，答错也不自行伪造自评。SRS 消费评分后发 ScheduleChanged。
+AnswerSubmitted={eventId,owner,attemptId,entryId,questionRef,selectedOptionId,occurredAt,durationMs}是目标契约；当前兼容payload保留selected原文本并用questionRef冻结选项校验，未全面换成selectedOptionId。唯一 owner+eventId 重试幂等，类型固定；correct 从冻结版本校验，未提交无 AnswerSubmitted。MemoryRated={eventId,knowledgeItemId,rating:forgot/hard/remembered/easy,occurredAt} 与客观答题事件不同；remembered沿用现有客户端枚举，不擅自改为good。自评不能增加客观 wrong，答错也不自行伪造自评。SRS 消费评分后更新排程；ScheduleChanged独立事件仍是目标。
 
 统计按事件类型分别累计，重建仍相同；自然日明确 owner IANA timezone 和 [当地00:00,次日00:00)，滚动24h 为 [now-24h,now)，DST 按时区边界，不把两者混为今日。历史旧 score 不重算覆盖；新事件与历史导入使用稳定来源去重键。
 

@@ -23,6 +23,8 @@ REST原有答案字段行为不变。MCP未答DTO删去canonical answer、correc
 - Web/MCP像素、真实浏览器音频和网络图片错误/加载状态尚未验收，当前工具缺失。
 - Web未提交部分排列已加入按账户/attempt与题目版本隔离的本浏览器恢复；不写作答事件。完整提交顺序继续保存。MCP未提交部分排列跨退出恢复不在本次Web专项范围，已提交顺序由服务恢复。
 - 用户已取消新闻练习及其专用记录，相关入口、接口、类型与兼容路由本轮退休。普通本地MockExamPanel仍保留原有local mock考试功能，不能把它误称为新闻专用模块。
-- Web阅读既有答后解析/朗读等仍由容器管理；共享素材内容的逐词查词交互尚未逐屏认证。不能将共享数据契约声称为三端完全相同的像素体验。
+- Web阅读既有答后解析/朗读等仍由容器管理；引用审计确认共享素材正文逐词查词尚未接入：TypedQuestionContent.article调用components/JapaneseText，后者没有lookup回调，ReadingPanel外围provider及选项ReadingText不能替代正文入口。MCP共享正文同样未接；原生共享正文默认关闭japaneseLookupEnabled。不能将共享数据契约声称为三端完全相同的像素体验。
 
 审批、内容ready/needs_review、客观作答和SRS自评没有改动。没有真实学习数据/生产MCP/自动化操作，没有push、PR、merge或deploy。
+
+本地有限视觉收尾已完成：210张原始PNG已逐张检查并校验SHA256，其中现成旧17类/精确目标词iPad宽屏115张无新布局缺陷，未重拍。23类均有iPad证据，不能宣称本轮全23类手机新验收。最终平台差异及工具解锁条件见[有限验收矩阵](final-typed-acceptance-matrix.md)。本次只提交文档/证据，运行代码与3828763最终503/78回归状态一致。

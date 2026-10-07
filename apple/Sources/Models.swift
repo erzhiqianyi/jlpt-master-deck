@@ -82,8 +82,7 @@ struct ProgressEntry: Codable, Equatable {
 
     func rated(_ rating: MemoryRating, now: Date = .now) -> Self {
         var next = self
-        next.correct += rating == .forgot ? 0 : 1
-        next.wrong += rating == .forgot ? 1 : 0
+        // Subjective memory ratings change scheduling, not objective counts.
         next.status = rating == .forgot ? "learning" : (reviewCount ?? 0) >= 4 ? "mastered" : "review"
         next.firstSeenAt = firstSeenAt ?? now.ISO8601Format()
         next.lastReviewedAt = now.ISO8601Format()
@@ -123,6 +122,10 @@ struct DailySummary: Codable, Identifiable {
 }
 struct QuestionEnvelope: Decodable { let questions: [ReadingQuestion] }
 struct ReadingQuestion: Codable, Identifiable {
+    var canonicalQuestionId: String?
+    var questionRevision: Int?
+    var questionTypeId: String?
+    var materialRefs: [BankVersionReference]?
     let id: String; let title: String; let passage: String
     let question: String; let choices: [String]; let answerIndex: Int; let explanation: String
     var tags: [String]?
@@ -149,6 +152,9 @@ struct AnswerInput: Codable {
     var reviewedAt: String?
     var source: String?
     var syncEventId: String?
+    var canonicalQuestionId: String?
+    var questionRevision: Int?
+    var kind: String?
 }
 
 enum StudyDates {

@@ -721,7 +721,7 @@ final class StudyTests: XCTestCase {
         var prior = ProgressEntry(correct: 4, wrong: 1, status: "review")
         prior.reviewCount = 5; prior.ease = 1.3; prior.lastPracticeSessionId = "reading-session"
         let next = prior.rated(.forgot, now: now)
-        XCTAssertEqual(next.correct, 4); XCTAssertEqual(next.wrong, 2)
+        XCTAssertEqual(next.correct, 4); XCTAssertEqual(next.wrong, 1)
         XCTAssertEqual(next.reviewCount, 6); XCTAssertEqual(next.status, "learning")
         XCTAssertEqual(next.ease, 1.3)
         XCTAssertEqual(try XCTUnwrap(StudyDates.parse(next.nextReviewAt!)).timeIntervalSince(now), 600, accuracy: 0.01)
@@ -731,7 +731,7 @@ final class StudyTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_791_000_000)
         for (rating, days) in [(MemoryRating.hard, 1), (.remembered, 3), (.easy, 7)] {
             let next = ProgressEntry().rated(rating, now: now)
-            XCTAssertEqual(next.correct, 1); XCTAssertEqual(next.wrong, 0)
+            XCTAssertEqual(next.correct, 0); XCTAssertEqual(next.wrong, 0)
             XCTAssertEqual(next.intervalDays, days)
             XCTAssertEqual(StudyDates.parse(next.nextReviewAt!), Calendar.current.date(byAdding: .day, value: days, to: now))
         }
@@ -987,4 +987,45 @@ final class CompanionAssetTests: XCTestCase {
     }
 
 
+}
+
+final class QuestionBankSyncTests: XCTestCase {
+    @MainActor func testPracticeResolvesFrozenVersionAndBatchRetainsItsReference() throws {
+        let store = AppStore()
+        let question = NativeQuestion(canonicalQuestionId: "bank-Q", questionRevision: 1, id: "legacy-Q", itemId: "I1", kind: "grammar", title: "题", prompt: "当前题", choices: ["B", "A"], answer: "B")
+        let old = BankCachedVersion(id: "bank-Q", revision: 1, schemaVersion: 1, payload: .object([
+            "legacy": .object(["prompt": .string("冻结原题")]),
+            "options": .array([.object(["id": .string("option-0"), "text": .string("A")]), .object(["id": .string("option-1"), "text": .string("B")])]),
+            "answer": .object(["type": .string("option"), "optionId": .string("option-0")])
+        ]))
+        store.bankVersions = ["questionVersions": [old.versionKey: old]]
+        let frozen = store.resolvedBankQuestion(question)
+        XCTAssertEqual(frozen.id, question.id); XCTAssertEqual(frozen.prompt, "冻结原题")
+        XCTAssertEqual(frozen.choices, ["A", "B"]); XCTAssertEqual(frozen.answer, "A")
+        XCTAssertEqual(frozen.questionRevision, 1)
+        let replay = AnswerInput(questionId: frozen.id, itemId: frozen.itemId, selected: "A", correct: true, progressEntry: ProgressEntry(), canonicalQuestionId: frozen.canonicalQuestionId, questionRevision: frozen.questionRevision, kind: frozen.kind)
+        let decoded = try JSONDecoder().decode(AnswerInput.self, from: JSONEncoder().encode(replay))
+        XCTAssertEqual(decoded.canonicalQuestionId, "bank-Q"); XCTAssertEqual(decoded.questionRevision, 1)
+    }
+    func testImmutableVersionsDecodePersistAndRemainAcrossLaterRevisions() throws {
+        var data = LocalStudyData()
+        let old = BankCachedVersion(id: "article:A/B", revision: 1, schemaVersion: 1, payload: .object(["text": .string("旧本文")]))
+        let newer = BankCachedVersion(id: old.id, revision: 2, schemaVersion: 1, payload: .object(["text": .string("新本文")]))
+        try data.applySync([.init(collection: "materialVersions", id: old.versionKey, value: try JSONDecoder().decode(SettingValue.self, from: JSONEncoder().encode(old)))])
+        try data.applySync([.init(collection: "materialVersions", id: newer.versionKey, value: try JSONDecoder().decode(SettingValue.self, from: JSONEncoder().encode(newer)))])
+        let copy = try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(data))
+        XCTAssertEqual(copy.bankVersion(collection: "materialVersions", ref: .init(id:old.id,revision:1)), old)
+        XCTAssertEqual(copy.bankVersion(collection: "materialVersions", ref: .init(id:old.id,revision:2)), newer)
+        XCTAssertEqual(old.versionKey, #"["article:A/B",1]"#)
+        var legacy = try JSONDecoder().decode(LocalStudyData.self, from: Data(#"{"items":[],"state":{"progress":{},"answers":{}},"plan":{"tasks":[],"dailySummaries":[]},"reading":[],"captures":[],"packs":[],"drafts":[],"listening":[],"shares":[],"pending":[],"hasPracticeCache":false,"hasListeningCache":false}"#.utf8))
+        XCTAssertNil(legacy.bankVersions)
+        try legacy.applySync([.init(collection:"materialVersions",id:old.versionKey,deleted:true)])
+    }
+    func testWrongVersionKeyCannotBeAcknowledgedAsCached() throws {
+        var data=LocalStudyData()
+        let value=BankCachedVersion(id:"Q1",revision:1,schemaVersion:1,payload:.object([:]))
+        let json=try JSONDecoder().decode(SettingValue.self,from:JSONEncoder().encode(value))
+        XCTAssertThrowsError(try data.applySync([.init(collection:"questionVersions",id:#"["Q1",2]"#,value:json)]))
+        XCTAssertNil(data.bankVersions)
+    }
 }

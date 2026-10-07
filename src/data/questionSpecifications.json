@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "types": [
+    {
+      "id": "vocabulary-kanji-reading",
+      "officialName": "漢字読み",
+      "task": "目标汉字词在句中读什么",
+      "requiredContent": [
+        "targetSpan",
+        "语境",
+        "假名选项"
+      ],
+      "reviewChecks": "目标必须含汉字且定位唯一；专名多有效读音不得单一判错",
+      "explanationSteps": [
+        "拆目标词读音",
+        "核对语境义项",
+        "辨长音促音清浊"
+      ],
+      "tip": "先确认词义再读，防止仅按单字音拼读",
+      "knowledgeTopics": [
+        "单词义项",
+        "读音",
+        "同形异音"
+      ],
+      "example": "彼は会議に【遅刻】した。→ちこく"
+    },
+    {
+      "id": "vocabulary-orthography",
+      "officialName": "表記",
+      "task": "给定假名词应写成什么",
+      "requiredContent": [
+        "targetSpan",
+        "假名目标",
+        "表记选项"
+      ],
+      "reviewChecks": "假名目标定位；有效异体表记需审查；纯片假名不强造汉字",
+      "explanationSteps": [
+        "确定假名词义",
+        "核对汉字组合",
+        "排除形近字"
+      ],
+      "tip": "先按语境锁定义项",
+      "knowledgeTopics": [
+        "单词标准表记",
+        "形近词"
+      ],
+      "example": "資料を【せいり】する。→整理"
+    },
+    {
+      "id": "vocabulary-word-formation",
+      "officialName": "語形成",
+      "task": "构词成分如何组合",
+      "requiredContent": [
+        "构词空位",
+        "词素选项",
+        "完整语境"
+      ],
+      "reviewChecks": "必须有明确词素边界与自然组合；正式覆盖N2",
+      "explanationSteps": [
+        "辨词素功能",
+        "检验复合词",
+        "排除不成立组合"
+      ],
+      "tip": "比较前后词素而非仅背译义",
+      "knowledgeTopics": [
+        "前后缀",
+        "复合词",
+        "词性"
+      ],
+      "example": "この制度は実用（　）が高い。→性"
+    },
+    {
+      "id": "vocabulary-context",
+      "officialName": "文脈規定",
+      "task": "哪个词符合句子语境",
+      "requiredContent": [
+        "完整句",
+        "空位",
+        "同词性候选"
+      ],
+      "reviewChecks": "空位数量明确；其他选项在该完整语境不可同样成立",
+      "explanationSteps": [
+        "取主体对象与搭配",
+        "验意义语体",
+        "逐项排除"
+      ],
+      "tip": "同时检查意义和搭配",
+      "knowledgeTopics": [
+        "词义",
+        "搭配",
+        "使用限制"
+      ],
+      "example": "使用前に説明書をよく（　）ください。→読んで"
+    },
+    {
+      "id": "vocabulary-paraphrase",
+      "officialName": "言い換え類義",
+      "task": "目标表达在此语境等价于什么",
+      "requiredContent": [
+        "目标位置",
+        "完整句",
+        "替换选项"
+      ],
+      "reviewChecks": "等价必须保持该句含义与语体；非辞书全义同义",
+      "explanationSteps": [
+        "还原原句意义",
+        "替换读句",
+        "比较强弱语域"
+      ],
+      "tip": "比较此处意义范围",
+      "knowledgeTopics": [
+        "义项",
+        "近义表达",
+        "语域"
+      ],
+      "example": "予定を【変更する】。→変える"
+    },
+    {
+      "id": "vocabulary-usage",
+      "officialName": "用法",
+      "task": "哪个句子自然使用目标词",
+      "requiredContent": [
+        "目标词",
+        "完整句选项"
+      ],
+      "reviewChecks": "每项为独立完整句；不能两项都自然；语用需人工审查",
+      "explanationSteps": [
+        "明确搭配对象",
+        "检验句子语义",
+        "说明各项误用"
+      ],
+      "tip": "关注目标词搭配的对象",
+      "knowledgeTopics": [
+        "搭配",
+        "词性",
+        "使用限制"
+      ],
+      "example": "目標：延期。会議を来週に延期した。"
+    },
+    {
+      "id": "grammar-form",
+      "officialName": "文法形式の判断",
+      "task": "哪个形式符合句法和语义",
+      "requiredContent": [
+        "完整句",
+        "空位",
+        "形式选项"
+      ],
+      "reviewChecks": "接续与语义均成立；多正确变体需退回审查",
+      "explanationSteps": [
+        "确认前接后续",
+        "判逻辑与语体",
+        "逐项排除"
+      ],
+      "tip": "接续先筛，再判断说话者意图",
+      "knowledgeTopics": [
+        "语法接续",
+        "语义约束"
+      ],
+      "example": "雨さえ降れば、涼しくなる。"
+    },
+    {
+      "id": "grammar-composition",
+      "officialName": "文の組み立て",
+      "task": "正确排列后★位置是什么",
+      "requiredContent": [
+        "句框",
+        "全部片段",
+        "slotCount",
+        "starSlot",
+        "正确排列"
+      ],
+      "reviewChecks": "片段各用一次；★在有效空位内；完整排序与★答案一致",
+      "explanationSteps": [
+        "给完整排序",
+        "标★片段",
+        "解释相邻依赖"
+      ],
+      "tip": "先固定成对结构，再接句框",
+      "knowledgeTopics": [
+        "语法结构",
+        "修饰关系",
+        "助词"
+      ],
+      "example": "彼が【来る】【か】【どう】【か】★=第3空「どう」"
+    },
+    {
+      "id": "grammar-text",
+      "officialName": "文章の文法",
+      "task": "篇章空位中哪个形式成立",
+      "requiredContent": [
+        "文章引用",
+        "blankId",
+        "该空位选项"
+      ],
+      "reviewChecks": "空位在文章中存在且唯一；跨句衔接条件保留",
+      "explanationSteps": [
+        "引用前后句",
+        "判断指代逻辑时态",
+        "解释各项"
+      ],
+      "tip": "空位前后都读，不只看接续",
+      "knowledgeTopics": [
+        "接续词",
+        "指示",
+        "时态",
+        "视点"
+      ],
+      "example": "今日は雨だ。（　）、試合は中止になった。→そのため"
+    },
+    {
+      "id": "reading-short",
+      "officialName": "内容理解（短文）",
+      "task": "短文中事实或观点是什么",
+      "requiredContent": [
+        "文章",
+        "设问",
+        "选项",
+        "证据位置"
+      ],
+      "reviewChecks": "全文完整；正确项有证据；不能靠外部知识",
+      "explanationSteps": [
+        "定位证据",
+        "改写句意",
+        "逐项对照"
+      ],
+      "tip": "先看问什么，再定位",
+      "knowledgeTopics": [
+        "词汇语法关联",
+        "阅读技能"
+      ],
+      "example": "お知らせ：明日は休館です。問：明日の予定は？"
+    },
+    {
+      "id": "reading-mid",
+      "officialName": "内容理解（中文）",
+      "task": "段落间理由与要点是什么",
+      "requiredContent": [
+        "多段文章",
+        "设问",
+        "选项",
+        "证据"
+      ],
+      "reviewChecks": "完整段落逻辑；引用证据不能截断反转",
+      "explanationSteps": [
+        "段落关系",
+        "证据",
+        "概括与排除"
+      ],
+      "tip": "关注理由、转折、指代",
+      "knowledgeTopics": [
+        "词汇语法",
+        "因果与照应"
+      ],
+      "example": "利用者が増えた。そこで開館時間を延ばす。問：変更の理由は？"
+    },
+    {
+      "id": "reading-long",
+      "officialName": "内容理解（長文）",
+      "task": "长文观点与理由如何构成",
+      "requiredContent": [
+        "完整长文",
+        "多段",
+        "设问与证据"
+      ],
+      "reviewChecks": "正式覆盖N1/N3；长度并非难度充分证据",
+      "explanationSteps": [
+        "画论述脉络",
+        "证据",
+        "作者立场"
+      ],
+      "tip": "区分举例与结论",
+      "knowledgeTopics": [
+        "语篇逻辑",
+        "词汇语法"
+      ],
+      "example": "長文中の筆者の主張を問う；fixture需真实多段，不可用短文冒充"
+    },
+    {
+      "id": "reading-integrated",
+      "officialName": "統合理解",
+      "task": "两篇材料一致或不同在哪里",
+      "requiredContent": [
+        "A/B独立文章引用",
+        "比较设问",
+        "各自证据"
+      ],
+      "reviewChecks": "两篇都有来源标识；答案必须同时由两篇支持",
+      "explanationSteps": [
+        "分别摘要",
+        "比较维度",
+        "双证据判断"
+      ],
+      "tip": "别把A的说法当B也认可",
+      "knowledgeTopics": [
+        "比较技能",
+        "词汇语法"
+      ],
+      "example": "A：平日夜まで開館。B：週末も開館。問：両方の特徴は？"
+    },
+    {
+      "id": "reading-thematic",
+      "officialName": "主張理解（長文）",
+      "task": "作者核心主张是什么",
+      "requiredContent": [
+        "完整长文",
+        "观点设问",
+        "支持与转折证据"
+      ],
+      "reviewChecks": "正式N1/N2；观点归作者，不混被批判的他人观点",
+      "explanationSteps": [
+        "划分立场",
+        "结论与支持",
+        "排除过度概括"
+      ],
+      "tip": "尤其读转折后的结论",
+      "knowledgeTopics": [
+        "立场",
+        "评价",
+        "论证技能"
+      ],
+      "example": "賛否を紹介後「しかし私は…」と結論する文章"
+    },
+    {
+      "id": "reading-information",
+      "officialName": "情報検索",
+      "task": "按多个条件找到适用信息",
+      "requiredContent": [
+        "表格/公告",
+        "任务条件",
+        "选项"
+      ],
+      "reviewChecks": "条件完整；表头/单位/例外不可丢；答案匹配所有条件",
+      "explanationSteps": [
+        "列条件",
+        "逐行筛选",
+        "验例外"
+      ],
+      "tip": "时间费用资格逐项核验",
+      "knowledgeTopics": [
+        "条件检索技能",
+        "数量时间词"
+      ],
+      "example": "平日18時以降、1000円以内で参加できる講座は？"
+    },
+    {
+      "id": "reading-basic-training",
+      "officialName": "阅读基础训练",
+      "task": "阅读基础技能专项",
+      "requiredContent": [
+        "训练目标",
+        "材料",
+        "任务"
+      ],
+      "reviewChecks": "非正式模拟卷；不得自动计入正式题型覆盖",
+      "explanationSteps": [
+        "解释训练目标",
+        "证据",
+        "改进方法"
+      ],
+      "tip": "依训练技能给提示",
+      "knowledgeTopics": [
+        "照应",
+        "段落",
+        "词汇语法"
+      ],
+      "example": "「それ」が指す内容を找出"
+    },
+    {
+      "id": "listening-task",
+      "officialName": "課題理解",
+      "task": "听完应做什么",
+      "requiredContent": [
+        "音频引用",
+        "角色/场景",
+        "任务设问",
+        "选项模态"
+      ],
+      "reviewChecks": "动作主体、顺序与最终修正清楚；音频实际可播需单独验证",
+      "explanationSteps": [
+        "还原任务",
+        "筛必要条件",
+        "最终行动证据"
+      ],
+      "tip": "记最终要求和修正",
+      "knowledgeTopics": [
+        "行为词",
+        "请求",
+        "条件"
+      ],
+      "example": "先に資料を配って、それから窓を開けてください。"
+    },
+    {
+      "id": "listening-points",
+      "officialName": "ポイント理解",
+      "task": "预告重点的信息是什么",
+      "requiredContent": [
+        "音频",
+        "先呈现的设问/选项"
+      ],
+      "reviewChecks": "所问关键维度明确；前后修正保留",
+      "explanationSteps": [
+        "预判维度",
+        "记关键点",
+        "排除旧计划"
+      ],
+      "tip": "先看重点，再听对应信息",
+      "knowledgeTopics": [
+        "时间数量",
+        "转折表达"
+      ],
+      "example": "集合は九時ではなく、九時半です。"
+    },
+    {
+      "id": "listening-outline",
+      "officialName": "概要理解",
+      "task": "对话或讲话整体是什么",
+      "requiredContent": [
+        "音频",
+        "整体意图设问",
+        "听后选项"
+      ],
+      "reviewChecks": "正式N1–N3；选项呈现时机明确，不能全部提前显示",
+      "explanationSteps": [
+        "概括整体意图",
+        "支持线索",
+        "排除局部事实"
+      ],
+      "tip": "听主题与结论",
+      "knowledgeTopics": [
+        "意图",
+        "态度",
+        "概括技能"
+      ],
+      "example": "話者が新しい制度を説明し、利用を勧める"
+    },
+    {
+      "id": "listening-expression",
+      "officialName": "発話表現",
+      "task": "在此场景应如何说",
+      "requiredContent": [
+        "场景图/描述",
+        "音频选项或合法文本辅助"
+      ],
+      "reviewChecks": "正式N3–N5；图片必须存在可读；语体与对象正确",
+      "explanationSteps": [
+        "识别关系场景",
+        "言语行为",
+        "语体自然度"
+      ],
+      "tip": "先看对谁说、为了什么",
+      "knowledgeTopics": [
+        "请求",
+        "感谢",
+        "道歉",
+        "敬语"
+      ],
+      "example": "借りた本を返す時、相手に何と言いますか"
+    },
+    {
+      "id": "listening-quick",
+      "officialName": "即時応答",
+      "task": "对听到的一句应如何回应",
+      "requiredContent": [
+        "短音频问题",
+        "音频应答选项"
+      ],
+      "reviewChecks": "文本预览权限明确；应答顺序与答案optionId一致",
+      "explanationSteps": [
+        "辨问话意图",
+        "回应关系",
+        "排除字面诱饵"
+      ],
+      "tip": "听否定、反问、言外之意",
+      "knowledgeTopics": [
+        "口语缩约",
+        "终助词",
+        "语用"
+      ],
+      "example": "ちょっと窓を開けてもらえますか。→ええ、いいですよ。"
+    },
+    {
+      "id": "listening-integrated",
+      "officialName": "統合理解",
+      "task": "综合多人/多条件信息做决策",
+      "requiredContent": [
+        "共享音频",
+        "多问",
+        "说话者",
+        "条件表"
+      ],
+      "reviewChecks": "完整组抽取；说话者和最终条件不能错配",
+      "explanationSteps": [
+        "分别记条件",
+        "综合比较",
+        "最终结论"
+      ],
+      "tip": "画条件表并记录修改",
+      "knowledgeTopics": [
+        "比较决策",
+        "条件表达"
+      ],
+      "example": "二人が費用と時間を比較し、最後に案Bに決める"
+    },
+    {
+      "id": "listening-basic-training",
+      "officialName": "听力基础训练",
+      "task": "辨音/跟读/自由回答等专项",
+      "requiredContent": [
+        "音频",
+        "训练目标",
+        "客观答案可选"
+      ],
+      "reviewChecks": "非正式题；自由回答unscored，自评不能产生客观正确率",
+      "explanationSteps": [
+        "音形对应或训练反馈",
+        "具体改进"
+      ],
+      "tip": "按训练目标提供步骤",
+      "knowledgeTopics": [
+        "音变",
+        "口语",
+        "单词语法"
+      ],
+      "example": "听写/跟读：お疲れさまでした。"
+    }
+  ]
+}

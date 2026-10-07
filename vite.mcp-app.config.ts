@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // Builds the MCP App view (src/mcp-app/practice.ts) into one IIFE + one CSS file that
 // server/mcp-ui.mjs inlines into the `ui://jlpt/practice.html` resource.
 export default defineConfig(({ mode }) => {
 const name = mode === 'review-cards' ? 'review-cards' : mode === 'ai-learning-home' ? 'ai-learning-home' : 'practice';
 return {
+  plugins:[react()],
   publicDir: false,
   build: {
     outDir: 'dist-mcp-app',

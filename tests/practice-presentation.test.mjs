@@ -72,7 +72,7 @@ test('answer feedback prioritizes result and correct answer; all extra content s
  assert.equal(document.querySelector('.practice-feedback-evidence .study-text').textContent,'第一句依据。');
  assert.ok([...document.querySelectorAll('.practice-feedback details')].every(n=>!n.open));
  assert.match(document.querySelector('.practice-feedback').textContent,/第二句详细解释|完整翻译内容|甲的完整说明/);
- assert.equal(document.querySelector('.cute-choice[aria-pressed="true"]').textContent.trim(),'2乙');
+ assert.equal(document.querySelector('.cute-choice[aria-pressed="true"]').textContent.trim(),'2. 乙');
 });
 
 test('batch selection waits for stored answer; answer sheet pauses shortcuts and closes cleanly',async()=>{

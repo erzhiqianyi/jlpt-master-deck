@@ -27,6 +27,8 @@ final class AppStore {
     var drafts: [PracticeDraft] = []
     var listening: [ListeningItem] = []
     var shares: [DiscoveryShare] = []
+    var bankVersions: [String: [String: BankCachedVersion]]?
+    var bankQuestionStates: [String: BankQuestionState]?
     private(set) var responses: [String: LocalStudyResponse] = [:]
     private(set) var pending: [PendingAnswer] = []
     private(set) var lastSync: Date?
@@ -197,6 +199,7 @@ final class AppStore {
             wordbooks = data.wordbooks ?? []; items = data.items; state = data.state; plan = data.plan
             reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
+            bankVersions = data.bankVersions; bankQuestionStates = data.bankQuestionStates
             hasPracticeCache = true; hasListeningCache = true
             lastSync = data.lastSync; syncCursor = data.syncCursor
             notice = result.uploadError.map { syncSummary + "\n" + $0 } ?? syncSummary
@@ -311,7 +314,7 @@ final class AppStore {
         notice = isDemo ? nil : "已保存到本机，等待同步。"
         Task { await syncAnswers() }
     }
-    func saveAnswerLocally(questionID: String, itemID: String, selected: String, correct: Bool, progress: ProgressEntry, responses newResponses: [String: LocalStudyResponse] = [:], attempt: NativeAttempt? = nil) throws {
+    func saveAnswerLocally(questionID: String, itemID: String, selected: String, correct: Bool, progress: ProgressEntry, responses newResponses: [String: LocalStudyResponse] = [:], attempt: NativeAttempt? = nil, canonicalQuestionId: String? = nil, questionRevision: Int? = nil, kind: String? = nil) throws {
         guard !isRestoringLocal, !isSaving, isSignedIn else { throw IdentityError.message("正在同步答题记录，请稍后重试。") }
         if isDemo {
             state.progress[itemID] = progress
@@ -323,6 +326,7 @@ final class AppStore {
         let previousResponses = responses
         let eventID = UUID()
         var operation = PendingAnswer(id: eventID, before: before, input: AnswerInput(questionId: questionID, itemId: itemID, selected: selected, correct: correct, progressEntry: progress, attemptHistory: attempt.map { [$0] }, reviewEventId: questionID.hasPrefix("memory-card:") ? UUID().uuidString : nil, reviewedAt: questionID.hasPrefix("memory-card:") ? progress.lastReviewedAt : nil, source: questionID.hasPrefix("memory-card:") ? "ios" : nil, syncEventId: eventID.uuidString))
+        operation.input.canonicalQuestionId = canonicalQuestionId; operation.input.questionRevision = questionRevision; operation.input.kind = kind
         if !operation.isCardReview && pending.contains(where: { $0.input.itemId == itemID && $0.needsSyncReview == true }) { operation.needsSyncReview = true }
         pending.append(operation)
         if newResponses.isEmpty {
@@ -464,7 +468,7 @@ final class AppStore {
         }
     }
     private func snapshot() -> LocalStudyData {
-        LocalStudyData(wordbooks: wordbooks, items: items, state: state, plan: plan, reading: reading, captures: captures,
+        LocalStudyData(bankVersions: bankVersions, bankQuestionStates: bankQuestionStates, wordbooks: wordbooks, items: items, state: state, plan: plan, reading: reading, captures: captures,
                        packs: packs, drafts: drafts, listening: listening, shares: shares, pending: pending,
                        lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses)
     }
@@ -489,6 +493,7 @@ final class AppStore {
             wordbooks = data.wordbooks ?? []; items = data.items; state = data.state; plan = data.plan; reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             pending = data.pending; lastSync = data.lastSync; syncCursor = data.syncCursor; responses = data.responses ?? [:]
+            bankVersions = data.bankVersions; bankQuestionStates = data.bankQuestionStates
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
             applyPending()
             Task { await self.updateImageCount() }
@@ -658,6 +663,7 @@ final class AppStore {
         automaticRefreshTask?.cancel(); automaticRefreshTask = nil; lastAutomaticAttempt = nil
         wordbooks = []; items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
         packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil; syncCursor = nil
+        bankVersions = nil; bankQuestionStates = nil
         syncStage = nil
         hasPracticeCache = false; hasListeningCache = false
     }

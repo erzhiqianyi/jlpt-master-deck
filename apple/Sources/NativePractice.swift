@@ -20,6 +20,8 @@ struct PracticeEntry: Identifiable {
 struct NativeQuestion: Codable, Identifiable {
     var canonicalQuestionId: String?
     var questionRevision: Int?
+    var questionTypeId: String?
+    var materialRefs: [BankVersionReference]?
     let id: String; let itemId: String; let kind: String; let title: String
     let prompt: String; let choices: [String]; let answer: String
     var japaneseAnnotations: [JapaneseAnnotation]?
@@ -257,7 +259,7 @@ struct NativeQuizView: View {
     @State private var elapsed: [String: Int] = [:]
     @State private var timingActive = true
     private var batchFeedback: Bool { store.state.settings?["feedbackMode"] == .string("batch") }
-    private var question: NativeQuestion? { round.questions.indices.contains(index) ? round.questions[index] : nil }
+    private var question: NativeQuestion? { round.questions.indices.contains(index) ? store.resolvedBankQuestion(round.questions[index]) : nil }
     private var autoAdvance: Bool { store.state.settings?["practiceNavigation"] != .string("manual") }
     private var autoAdvanceSeconds: Double {
         if case .number(let seconds) = store.state.settings?["practiceAutoAdvanceSeconds"], seconds.isFinite { return min(10, max(0, seconds)) }
@@ -548,7 +550,7 @@ struct NativeQuizView: View {
                 TabView(selection: $reviewIndex) {
                     ForEach(Array(reviewQuestions.enumerated()), id: \.element) { position, originalIndex in
                         ScrollView {
-                            reviewCard(round.questions[originalIndex], number: originalIndex + 1)
+                            reviewCard(store.resolvedBankQuestion(round.questions[originalIndex]), number: originalIndex + 1)
                                 .padding(20).frame(maxWidth: 850).frame(maxWidth: .infinity)
                         }.tag(position).accessibilityIdentifier("quiz.review.question.\(originalIndex)")
                     }
@@ -644,8 +646,8 @@ struct NativeQuizView: View {
         return NativeAttempt(id: resumedAttemptID ?? "native-\(round.id.uuidString)", title: round.title, practiceId: round.practiceId,
                              startedAt: attemptStarted.ISO8601Format(), completedAt: complete ? now.ISO8601Format() : nil, view: round.view, deck: "all",
                              questionIds: round.questions.map(\.id), answers: answers,
-                             summary: complete ? .init(total: round.questions.count, correct: correct, wrong: round.questions.count - correct,
-                                                       accuracy: Double(correct) / Double(max(1, round.questions.count)) * 100, elapsedMs: answers.reduce(0) { $0 + $1.elapsedMs }) : nil)
+                             summary: complete ? .init(total: round.questions.count, correct: correct, wrong: answers.count - correct,
+                                                       accuracy: Double(correct) / Double(max(1, answers.count)) * 100, elapsedMs: answers.reduce(0) { $0 + $1.elapsedMs }) : nil)
     }
     private func confirm(_ question: NativeQuestion) {
         guard let selected = selections[question.id], !saving, recorded(question) == nil else { return }
@@ -670,13 +672,14 @@ struct NativeQuizView: View {
         defer { saving = false }
         do {
             let now = Date.now
-            let answers = round.questions.compactMap { question -> NativeAttempt.AttemptAnswer? in
+            let frozenQuestions = round.questions.map { store.resolvedBankQuestion($0) }
+            let answers = frozenQuestions.compactMap { question -> NativeAttempt.AttemptAnswer? in
                 guard let selected = selections[question.id] else { return nil }
                 return recorded(question) ?? answer(question, selected: selected, now: now)
             }
             let result = attempt(answers, now: now, submitted: true)
             if savesProgress && !(resumedAttemptID == nil && attemptAnswers.count == round.questions.count) {
-                try store.submitNativeBatch(questions: round.questions, attempt: result, allowUnanswered: true)
+                try store.submitNativeBatch(questions: frozenQuestions, attempt: result, allowUnanswered: true)
             }
             attemptAnswers = answers; finished = true
         } catch { failure = error.localizedDescription }
@@ -684,11 +687,32 @@ struct NativeQuizView: View {
 }
 
 extension AppStore {
+    func resolvedBankQuestion(_ question: NativeQuestion) -> NativeQuestion {
+        guard let id = question.canonicalQuestionId, let revision = question.questionRevision,
+              let cached = bankVersions?["questionVersions"]?[BankVersionReference(id: id, revision: revision).versionKey],
+              case .object(let payload) = cached.payload, case .object(let legacy) = payload["legacy"],
+              case .array(let options) = payload["options"], case .object(let answer) = payload["answer"],
+              case .string(let optionID) = answer["optionId"] else { return question }
+        do {
+            guard var fields = try JSONSerialization.jsonObject(with: JSONEncoder().encode(question)) as? [String: Any] else { return question }
+            for key in ["prompt", "instruction", "context", "correctReason", "memoryPoint", "choiceAnalysis", "promptTarget", "japaneseAnnotations", "translationZh"] {
+                if let value = legacy[key] { fields[key] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value), options: .fragmentsAllowed) }
+            }
+            var texts: [String] = []; var correct: String?
+            for case .object(let option) in options {
+                guard case .string(let text) = option["text"], case .string(let id) = option["id"] else { return question }
+                texts.append(text); if id == optionID { correct = text }
+            }
+            guard let correct else { return question }
+            fields["choices"] = texts; fields["answer"] = correct
+            return try JSONDecoder().decode(NativeQuestion.self, from: JSONSerialization.data(withJSONObject: fields))
+        } catch { return question }
+    }
     func submitNativeQuestion(_ question: NativeQuestion, selected: String, attempt: NativeAttempt? = nil) async throws {
         guard question.choices.contains(selected) else { throw IdentityError.message("请选择有效选项。") }
         let progress = (state.progress[question.itemId] ?? ProgressEntry()).afterPractice(correct: selected == question.answer)
         try saveAnswerLocally(questionID: question.id, itemID: question.itemId, selected: selected,
-                              correct: selected == question.answer, progress: progress, attempt: attempt)
+                              correct: selected == question.answer, progress: progress, attempt: attempt, canonicalQuestionId: question.canonicalQuestionId, questionRevision: question.questionRevision, kind: question.questionTypeId ?? question.kind)
 
     }
 }

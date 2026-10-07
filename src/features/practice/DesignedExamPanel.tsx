@@ -1,4 +1,5 @@
-import { QuestionOptions } from '../../components/QuestionOptions';
+import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
+import { QuestionRenderer } from '../../components/QuestionRenderer';
 import { JapaneseText } from '../../components/JapaneseText';
 import './practice-layout.css';
 import { conciseEvidence } from './practicePresentation';
@@ -100,11 +101,14 @@ function ExamSessionPanel({ session, storageKey, locale, token, onBack }: { sess
       <nav className="news-focus-filters px-4" aria-label={t.questions}>{session.questions.map((q, i) => <button key={q.id} type="button" aria-current={index === i ? 'true' : undefined} onClick={() => setIndex(i)}>{i + 1}{Number.isInteger(attempt.answers[q.id]) ? ' ✓' : ''}</button>)}</nav>
       <article className="px-4 py-5 md:px-7">
         {question.type ? <p className="text-sm">{question.type}</p> : null}
-        {question.audioUrl ? question.audioUrl.startsWith('/api/') ? <ExamAudio src={question.audioUrl} token={token} loading={t.audioLoading} unavailable={t.audioError}/> : <audio controls preload="none" src={question.audioUrl}/> : null}
-        {question.passage ? <div className="mt-4 whitespace-pre-wrap border-l-4 border-[#31564c] bg-[#f4f6f1] px-5 py-4 leading-8">{<JapaneseText text={question.passage} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</div> : null}
-        <h2 className="my-5 whitespace-pre-wrap text-xl leading-9">{<JapaneseText text={question.prompt} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}</h2>
         {!scorable ? <p role="status">{t.noScore}</p> : null}
-        <QuestionOptions choices={question.choices} selected={attempt.answers[question.id]} answerIndex={question.answerIndex}
+        <QuestionRenderer questionId={question.id} questionTypeId={question.questionTypeId??question.type}
+          materials={<>
+            {question.audioUrl ? question.audioUrl.startsWith('/api/') ? <ExamAudio src={question.audioUrl} token={token} loading={t.audioLoading} unavailable={t.audioError}/> : <QuestionAudioPlayer src={question.audioUrl}/> : null}
+            {question.passage ? <div className="whitespace-pre-wrap border-l-4 border-[#a34f3f] bg-[#fffaf7] px-5 py-4 leading-8"><JapaneseText text={question.passage} annotations={question.japaneseAnnotations} ruby={attempt.submitted} /></div> : null}
+          </>}
+          prompt={<JapaneseText text={question.prompt} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />}
+          choices={question.choices} selected={attempt.answers[question.id]} answerIndex={question.answerIndex}
           reveal={attempt.submitted && scorable} disabled={attempt.submitted || !scorable}
           onSelect={i => setAttempt(current => ({ ...current, answers: { ...current.answers, [question.id]: i } }))}
           renderText={choice => <JapaneseText text={choice} annotations={question.japaneseAnnotations} ruby={attempt.submitted} />} />

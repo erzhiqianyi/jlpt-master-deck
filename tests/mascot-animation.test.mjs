@@ -115,7 +115,7 @@ test('practice waits for an asynchronously accepted answer before starting its c
   const props = { activeQuestion: q, questions: [q], questionsLength: 1, activeIndex: 0, answeredCount: 0, complete: false, feedbackMode: 'immediate', answers: {}, items: [], labels: translations['zh-CN'], questionTypeLabel: 'Test', settings: { locale: 'zh-CN', showExplanationRuby: false }, onAnswer: noop, onPrev: noop, onNext: noop, onJump: noop, onRestart: noop, onPracticeHome: noop, onPrepareReview: async () => {}, onReview: noop, analysisStatus: 'idle' };
   root = createRoot(document.getElementById('root'));
   await act(async () => root.render(h(PracticePanel, props)));
-  await act(async () => document.querySelectorAll('.practice-answer-choices button')[1].click());
+  await act(async () => document.querySelectorAll('.question-renderer .question-options button')[1].click());
   assert.equal(document.querySelector('[data-mascot-action]'), null);
   await act(async () => root.render(h(PracticePanel, { ...props, answers: { q1: { selected: '乙', correct: true } }, answeredCount: 1 })));
   assert.equal(document.querySelector('[data-mascot-action]').dataset.mascotAction, 'celebrate');

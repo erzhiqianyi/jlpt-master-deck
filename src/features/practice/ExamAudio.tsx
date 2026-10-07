@@ -1,3 +1,4 @@
+import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
 import { useEffect, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 export function ExamAudio({ src, token, loading, unavailable }: { src: string; token: string; loading: string; unavailable: string }) {
@@ -30,5 +31,5 @@ export function ExamAudio({ src, token, loading, unavailable }: { src: string; t
 
   if (error) return <p className="text-xs font-semibold text-[#973f3f]">{unavailable}</p>;
   if (!audioUrl) return <div className="flex h-10 items-center gap-2 text-xs font-semibold text-[#775516]"><LoaderCircle className="animate-spin" size={16} />{loading}</div>;
-  return <audio className="h-10 w-full" controls preload="metadata" src={audioUrl} />;
+  return <QuestionAudioPlayer src={audioUrl} />;
 }

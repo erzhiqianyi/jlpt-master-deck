@@ -1,0 +1,31 @@
+.question-renderer { min-width: 0; color: #382f2c; }
+.question-renderer-materials { min-width: 0; margin-bottom: 1.5rem; }
+.question-renderer-materials > * { max-width: 100%; }
+.question-renderer-instruction { margin: .75rem 0; color: #74645b; font-size: .9rem; line-height: 1.7; }
+.question-renderer-prompt { margin: 1rem 0 1.25rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.15rem; line-height: 1.9; }
+.question-renderer-conditions { margin: .75rem 0; padding-left: 1.25rem; line-height: 1.8; }
+.question-renderer-feedback { min-width: 0; margin-top: 1.5rem; border-top: 1px solid #e7d8cc; padding-top: 1rem; overflow-wrap: anywhere; }
+.question-renderer-response { display: grid; gap: .5rem; }
+.question-renderer-response textarea { min-height: 7rem; width: 100%; padding: .75rem; border: 1px solid #d8d1c8; border-radius: .375rem; }
+.question-renderer .question-options { min-width: 0; }
+.question-renderer .study-answer-option { min-width: 0; }
+.question-renderer .study-answer-option:focus-visible { outline: 3px solid #a34f3f; outline-offset: 3px; }
+.question-renderer[data-paused] { opacity: .65; }
+/* Explicit rules also apply in the MCP iframe, which does not load Web Tailwind. */
+.question-renderer .question-options { display: grid; gap: .75rem; }
+.question-renderer .study-answer-option { display: flex; gap: .75rem; align-items: flex-start; width: 100%; min-height: 3.5rem; padding: .75rem 1rem; text-align: left; font: inherit; line-height: 1.8; border: 1px solid #d8d1c8; border-radius: .375rem; background: white; color: #382f2c; cursor: pointer; }
+.question-renderer .study-answer-option > span:first-child { flex-shrink: 0; }
+.question-renderer .study-answer-option > span:last-child { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.question-renderer .study-answer-option[data-answer-state="selected"] { border-color: #a34f3f; background: #faeee8; }
+.question-renderer .study-answer-option[data-answer-state="correct"] { border-color: #397255; background: #f0fff5; }
+.question-renderer .study-answer-option[data-answer-state="incorrect-selected"] { border-color: #a34f3f; background: #fff0eb; }
+.question-renderer .study-answer-option:disabled { cursor: default; }
+.question-renderer .reading-choices { display: grid; gap: .75rem; }
+.question-renderer .reading-choice { min-width: 0; background: white; border: 1px solid #d8d1c8; }
+.question-renderer .reading-choice[data-answer-state="selected"], .question-renderer .reading-choice[data-answer-state="incorrect"] { border-color: #a34f3f; background: #faeee8; }
+.question-renderer .reading-choice[data-answer-state="correct"] { border-color: #397255; background: #f0fff5; }
+.question-audio-player { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; width: 100%; min-width: 0; }
+.question-audio-player audio { display: none; }
+.question-audio-player button { min-width: 44px; min-height: 44px; padding: .5rem .9rem; border: 1px solid #a34f3f; background: #a34f3f; color: white; border-radius: .375rem; }
+.question-audio-player input[type="range"] { flex: 1; min-width: 5rem; accent-color: #a34f3f; }
+.question-audio-player p { width: 100%; color: #a34f3f; }

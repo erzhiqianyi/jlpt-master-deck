@@ -68,8 +68,8 @@ export function rateReviewCard(userId, itemId, rating, now = new Date(), eventId
   else nextDate.setDate(nextDate.getDate() + intervals[rating]);
   const progress = {
     ...current,
-    correct: current.correct + (rating === 'forgot' ? 0 : 1),
-    wrong: current.wrong + (rating === 'forgot' ? 1 : 0),
+    correct: current.correct,
+    wrong: current.wrong,
     status: rating === 'forgot' ? 'learning' : (current.reviewCount ?? 0) >= 4 ? 'mastered' : 'review',
     firstSeenAt: current.firstSeenAt ?? now.toISOString(),
     lastReviewedAt: now.toISOString(),

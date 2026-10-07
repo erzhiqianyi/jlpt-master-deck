@@ -788,6 +788,7 @@ export default function App() {
 
   function answerQuestion(question: Question, selected: string) {
     const correct = selected === question.answer;
+    const answerEventId=crypto.randomUUID();
     const now = new Date();
     const attempt = withPracticeName(currentAttemptFor(activeAttempt, attemptHistory, activeView, selectedDeck, questions, now));
     const previous = answers[question.id]?.attemptId === attempt.id ? answers[question.id] : undefined;
@@ -810,7 +811,7 @@ export default function App() {
     const nextAttemptHistory = upsertAttemptHistory(attemptHistory, nextAttempt);
     const nextAnswers = {
       ...answers,
-      [question.id]: { selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
+      [question.id]: { eventId:answerEventId,itemId:question.itemId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,selected, correct, startedAt, answeredAt: now.toISOString(), elapsedMs, attemptId: nextAttempt.id },
     };
     if (effectiveFeedbackMode === 'batch') {
       setAnswers(nextAnswers);
@@ -858,7 +859,7 @@ export default function App() {
       apiRequest<StudyState>('/api/answers', {
         method: 'POST',
         token: authToken,
-        body: { questionId: question.id, itemId: question.itemId, selected, correct, answerRecord: nextAnswers[question.id], progressEntry: nextProgress[question.itemId], attemptHistory: nextHistory, activeAttempt: nextActiveAttempt },
+        body: { answerEventId,kind:question.questionTypeId??question.kind,canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,source:'web',questionId: question.id, itemId: question.itemId, selected, correct, answerRecord: nextAnswers[question.id], progressEntry: nextProgress[question.itemId], attemptHistory: nextHistory, activeAttempt: nextActiveAttempt },
       }).then(applyStudyState).catch((error) => setAuthError(error instanceof Error ? error.message : 'Failed to save answer'));
     }
   }
@@ -1644,8 +1645,8 @@ export default function App() {
     else nextDate.setDate(nextDate.getDate() + intervals[rating]);
     const nextEntry: ProgressEntry = {
       ...current,
-      correct: current.correct + (rating === 'forgot' ? 0 : 1),
-      wrong: current.wrong + (rating === 'forgot' ? 1 : 0),
+      correct: current.correct,
+      wrong: current.wrong,
       status: rating === 'forgot' ? 'learning' : (current.reviewCount ?? 0) >= 4 ? 'mastered' : 'review',
       firstSeenAt: current.firstSeenAt ?? now.toISOString(),
       lastReviewedAt: now.toISOString(),

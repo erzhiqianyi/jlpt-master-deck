@@ -91,13 +91,13 @@ test('reading passage collapse and header Back preserve the selected answer with
 test('listening shadowing and scoped Back retain partial question answers', async () => {
   let records = 0;
   await render('listening', { activeQuestionId: listening.id, onRecordPractice: async () => { records++; } });
-  await click(document.querySelectorAll('input[type="radio"]')[1]);
+  await click(document.querySelectorAll('.question-renderer .study-answer-option')[1]);
   await click(button('进入跟读练习'));
   assert.equal(document.getElementById('local-page-title').textContent, 'Shadowing practice');
   assert.equal(document.querySelector('.listening-detail').hidden, true);
   await click(button('Header back'));
   assert.equal(document.querySelector('.listening-detail').hidden, false);
-  assert.equal(document.querySelectorAll('input[type="radio"]')[1].checked, true);
+  assert.equal(document.querySelectorAll('.question-renderer .study-answer-option')[1].getAttribute('aria-pressed'), 'true');
   assert.equal(records, 0);
   assert.equal(requests.some(request => request.method !== 'GET'), false, 'opening shadowing makes no recording or history writes');
 });

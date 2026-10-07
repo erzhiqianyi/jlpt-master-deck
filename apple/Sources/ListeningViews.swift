@@ -4,6 +4,9 @@ import Combine
 
 struct ListeningEnvelope: Decodable { let questions: [ListeningItem] }
 struct ListeningItem: Codable, Identifiable {
+    var canonicalQuestionId: String?
+    var questionRevision: Int?
+    var materialRefs: [BankVersionReference]?
     let id: String; let title: String; let question: String; let explanation: String
     let questionTypeId: String; let choices: [String]; let answerIndex: Int
     var japaneseAnnotations: [JapaneseAnnotation]?

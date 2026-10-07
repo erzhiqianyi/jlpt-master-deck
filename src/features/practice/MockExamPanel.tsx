@@ -1,4 +1,5 @@
-import { QuestionOptions } from '../../components/QuestionOptions';
+import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
+import { QuestionRenderer } from '../../components/QuestionRenderer';
 import { JapaneseText } from '../../components/JapaneseText';
 import './practice-layout.css';
 import { emptyLegacyMockState, legacyMockRevision, legacyMockStorageKey, readLegacyMockState, type SavedExamState } from './legacyMockState';
@@ -348,12 +349,15 @@ function MockExamContent({ examId, userId, locale, onBack }: MockExamPanelProps)
               <button type="button" aria-keyshortcuts="F" aria-pressed={flaggedSet.has(currentQuestion.id)} onClick={() => toggleFlag(currentQuestion.id)} className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold ${flaggedSet.has(currentQuestion.id) ? 'border-[#e5bd52] bg-[#fff7d9] text-[#775516]' : 'border-[#d4ddd6] text-[#65706a]'}`}><Flag size={16} />{flaggedSet.has(currentQuestion.id) ? t.unflag : t.flag}</button>
             </div>
             <div className="p-4 md:p-7">
-              {currentQuestion.audioUrl ? <audio ref={audioRef} key={currentQuestion.id} aria-keyshortcuts="Space" className="w-full" controls preload="metadata" src={currentQuestion.audioUrl} /> : null}
-              {currentQuestion.passage ? <div className="mb-6 whitespace-pre-wrap rounded-md border border-[#e1e7df] bg-[#fafbf8] p-4 text-base leading-8 text-[#34423b] md:p-6">{<JapaneseText text={currentQuestion.passage} annotations={currentQuestion.japaneseAnnotations} />}</div> : null}
-              <h1 className="whitespace-pre-wrap text-lg font-bold leading-8 text-[#27312c]">{<JapaneseText text={currentQuestion.prompt} annotations={currentQuestion.japaneseAnnotations} />}</h1>
-              <div className="mt-6"><QuestionOptions choices={currentQuestion.choices} selected={saved.answers[currentQuestion.id]}
+              <QuestionRenderer questionId={currentQuestion.id} questionTypeId={currentQuestion.sectionId}
+                materials={<>
+                  {currentQuestion.audioUrl ? <QuestionAudioPlayer key={currentQuestion.id} audioRef={audioRef} src={currentQuestion.audioUrl} /> : null}
+                  {currentQuestion.passage ? <div className="whitespace-pre-wrap rounded-md border border-[#e1e7df] bg-[#fafbf8] p-4 text-base leading-8 md:p-6"><JapaneseText text={currentQuestion.passage} annotations={currentQuestion.japaneseAnnotations} /></div> : null}
+                </>}
+                prompt={<JapaneseText text={currentQuestion.prompt} annotations={currentQuestion.japaneseAnnotations} />}
+                choices={currentQuestion.choices} selected={saved.answers[currentQuestion.id]}
                 onSelect={choiceIndex => answer(currentQuestion.id, choiceIndex)}
-                renderText={choice => <JapaneseText text={choice} annotations={currentQuestion.japaneseAnnotations} />} /></div>
+                renderText={choice => <JapaneseText text={choice} annotations={currentQuestion.japaneseAnnotations} />} />
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-[#e1e7df] px-4 py-4 md:px-6">
               <button type="button" aria-keyshortcuts="ArrowLeft" disabled={saved.currentIndex === 0} onClick={() => moveTo(saved.currentIndex - 1)} className="inline-flex h-10 items-center gap-2 rounded-md border border-[#cbd6ce] bg-white px-4 text-sm font-bold text-[#46514c] disabled:opacity-40"><ChevronLeft size={17} />{t.prev}</button>

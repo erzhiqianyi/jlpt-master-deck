@@ -25,6 +25,11 @@ export function ensureCardReviewSchema(db) {
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL, item_id TEXT NOT NULL,
     PRIMARY KEY(user_id,event_id)
   ); CREATE INDEX IF NOT EXISTS card_reviews_user_time ON card_reviews(user_id,reviewed_at);`);
+  // Existing replay events retain their legacy count contribution. New events
+  // affect SRS only, so upgrading cannot silently recalculate old totals.
+  if (!db.prepare('PRAGMA table_info(card_reviews)').all().some(c=>c.name==='count_semantics')) {
+    db.exec("ALTER TABLE card_reviews ADD COLUMN count_semantics TEXT NOT NULL DEFAULT 'legacy_mixed'");
+  }
 }
 export function insertCardReview(db, userId, { eventId, itemId, rating, reviewedAt, source = 'app' }) {
   if (!CARD_RATINGS.includes(rating) || !eventId || !itemId || !Number.isFinite(Date.parse(reviewedAt))) throw new Error('Invalid card review event');
@@ -34,7 +39,7 @@ export function insertCardReview(db, userId, { eventId, itemId, rating, reviewed
     if (existing.item_id !== itemId || existing.rating !== rating || existing.reviewed_at !== time) throw new Error('Card review event ID conflicts with saved event');
     return false;
   }
-  db.prepare('INSERT INTO card_reviews(user_id,event_id,item_id,rating,reviewed_at,source) VALUES(?,?,?,?,?,?)').run(userId,eventId,itemId,rating,time,source);
+  db.prepare("INSERT INTO card_reviews(user_id,event_id,item_id,rating,reviewed_at,source,count_semantics) VALUES(?,?,?,?,?,?,'subjective_only')").run(userId,eventId,itemId,rating,time,source);
   return true;
 }
 export function listCardReviews(db, userId, { start, end } = {}) {
@@ -62,6 +67,14 @@ function midnight(day, timeZone) {
   }
   return new Date(candidate).toISOString();
 }
+export function calendarDayWindow(day,timeZone='Asia/Tokyo') {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)||new Date(`${day}T00:00:00Z`).toISOString().slice(0,10)!==day) throw new Error('Invalid calendar date');
+  new Intl.DateTimeFormat('en',{timeZone}).format();
+  const following=new Date(Date.parse(`${day}T00:00:00Z`)+86400000).toISOString().slice(0,10);
+  const start=midnight(day,timeZone),end=midnight(following,timeZone);
+  if (Date.parse(end)<=Date.parse(start)) throw new Error('Calendar date has no positive time window');
+  return {kind:'calendar_day',date:day,timeZone,start,end};
+}
 export function practiceSourceWindow(settings, { start, end, now = new Date() } = {}) {
   if (start || end) {
     if (!start || !end || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end)) || Date.parse(start)>=Date.parse(end)) throw new Error('Provide a valid start and end (exclusive)');
@@ -81,10 +94,10 @@ export function mergedCardProgress(db, userId, itemId, eventId, current = {}) {
     .run(userId, itemId, JSON.stringify(current));
   db.prepare('INSERT INTO card_review_sync_events(user_id,event_id,item_id) VALUES(?,?,?)').run(userId,eventId,itemId);
   const baseline = JSON.parse(db.prepare('SELECT progress_json FROM card_review_sync_baselines WHERE user_id=? AND item_id=?').get(userId,itemId).progress_json);
-  const events = db.prepare(`SELECT r.event_id,r.rating,r.reviewed_at FROM card_reviews r
+  const events = db.prepare(`SELECT r.event_id,r.rating,r.reviewed_at,r.count_semantics FROM card_reviews r
     JOIN card_review_sync_events e ON e.user_id=r.user_id AND e.event_id=r.event_id
     WHERE r.user_id=? AND e.item_id=? ORDER BY r.reviewed_at,r.event_id`).all(userId,itemId);
-  let result = { ...baseline };
+  let result = { ...baseline,correct:baseline.correct??0,wrong:baseline.wrong??0 };
   const intervals = { forgot:0, hard:1, remembered:3, easy:7 };
   const deltas = { forgot:-0.2, hard:-0.05, remembered:0.05, easy:0.15 };
   // Close reviews do not erase a recent lapse, regardless of arrival order.
@@ -92,8 +105,10 @@ export function mergedCardProgress(db, userId, itemId, eventId, current = {}) {
   let scheduleRating;
   for (const event of events) {
     const previousCount = result.reviewCount ?? 0;
-    result.correct = (result.correct ?? 0) + (event.rating === 'forgot' ? 0 : 1);
-    result.wrong = (result.wrong ?? 0) + (event.rating === 'forgot' ? 1 : 0);
+    if (event.count_semantics==='legacy_mixed') {
+      result.correct = (result.correct ?? 0) + (event.rating === 'forgot' ? 0 : 1);
+      result.wrong = (result.wrong ?? 0) + (event.rating === 'forgot' ? 1 : 0);
+    }
     result.reviewCount = previousCount + 1;
     result.ease = Math.max(1.3, Math.min(3, (result.ease ?? 2.5) + deltas[event.rating]));
     if (!result.firstSeenAt || Date.parse(event.reviewed_at) < Date.parse(result.firstSeenAt)) result.firstSeenAt = event.reviewed_at;

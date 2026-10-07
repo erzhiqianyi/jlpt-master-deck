@@ -1,5 +1,6 @@
 import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
 import { ensureQuestionBankSchema, archiveDraftQuestions } from './question-bank.mjs';
+import {ensureLearningEventSchema,recordLearningEvent,validateFrozenAnswer,recordAnswerSnapshot} from './learning-events.mjs';
 import { resolveLegacyAnswer, questionStrategy } from '../src/domain/questionContract.mjs';
 import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { normalizeJapaneseAnnotations, normalizeJapaneseDisplay } from './japanese-annotations.mjs';
@@ -334,6 +335,7 @@ END;
     ensureReferenceSchema(db);
     ensureTtsSchema(db);
     ensureCardReviewSchema(db);
+    ensureLearningEventSchema(db);
     ensureDailySummarySchema(db);
     ensureQuestionBankSchema(db);
     ensureBankMaterialSchema(db);
@@ -1539,10 +1541,14 @@ export function getStudyState(userId) {
   const answerRows = getDb().prepare('SELECT question_id, selected, correct, answered_at FROM answers WHERE user_id = ?').all(userId);
   const progressRows = getDb().prepare('SELECT item_id, progress_json FROM progress WHERE user_id = ?').all(userId);
   const practice = getPracticeState(userId);
+  const eventMetadata=getDb().prepare("SELECT event_id,payload_json FROM learning_events WHERE owner=? AND question_id=? AND event_type='AnswerSubmitted' AND julianday(occurred_at)=julianday(?) ORDER BY received_at DESC LIMIT 1");
   return {
     cardReviews: listCardReviews(getDb(), userId),
     settings: normalizeSettings(JSON.parse(settingsRow.settings_json)),
-    answers: Object.fromEntries(answerRows.map((row) => [row.question_id, { selected: row.selected, correct: Boolean(row.correct), answeredAt: row.answered_at }])),
+    answers: Object.fromEntries(answerRows.map((row) => {
+      const event=eventMetadata.get(userId,row.question_id,row.answered_at);const payload=event?JSON.parse(event.payload_json):null;
+      return [row.question_id,{selected:row.selected,correct:Boolean(row.correct),answeredAt:row.answered_at,...(event?{eventId:event.event_id,itemId:payload.itemId,...(payload.questionRef?{canonicalQuestionId:payload.questionRef.id,questionRevision:payload.questionRef.revision}:{})}:{})}];
+    })),
     progress: Object.fromEntries(progressRows.map((row) => [row.item_id, JSON.parse(row.progress_json)])),
     practiceCompletionCounts: Object.fromEntries(getDb().prepare('SELECT practice_id, completed_count FROM practice_completion_stats WHERE user_id = ?').all(userId).map((row) => [row.practice_id, row.completed_count])),
     attemptHistory: practice.attemptHistory,
@@ -1684,6 +1690,11 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
   const canonical = value => JSON.stringify(stable(value));
   // History can expand as other devices sync. It is not part of answer identity.
   const identity = { itemId: input.itemId, questionId: input.questionId, selected: input.selected, correct: input.correct, time, before, target };
+  if (input.canonicalQuestionId != null) {
+    identity.canonicalQuestionId = input.canonicalQuestionId;
+    identity.questionRevision = input.questionRevision;
+  }
+  if (input.kind != null) identity.kind = input.kind;
   const hash = createHash('sha256').update(canonical(identity)).digest('hex');
   const database = getDb();
   database.exec(`CREATE TABLE IF NOT EXISTS answer_replay_receipts (
@@ -1698,6 +1709,7 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
       if (existing.payload_hash !== hash) throw new Error('Answer replay event ID conflicts with saved event');
       outcome = 'duplicate'; return;
     }
+    const frozen=validateFrozenAnswer(database,userId,input);
     const knownItem = loadReviewData(userId).items.some(item => item.id === input.itemId)
       || listReadingQuestions(userId).some(item => item.id === input.itemId)
       || listListeningQuestions(userId).some(item => item.id === input.itemId)
@@ -1740,6 +1752,7 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
       upsertPracticeState(userId,[...history.values()].sort((a,b) => (b.completedAt ?? b.startedAt).localeCompare(a.completedAt ?? a.startedAt)),undefined,new Date().toISOString());
     }
     outcome = decision === 'already_counted' ? 'already_counted' : 'accepted';
+    recordLearningEvent(database,userId,{eventId,type:'AnswerSubmitted',occurredAt:time,payload:{questionId:input.questionId,itemId:input.itemId,selected:input.selected,correct:input.correct,kind:frozen?.questionTypeId??input.kind??'unknown',...(input.canonicalQuestionId?{questionRef:{id:input.canonicalQuestionId,revision:input.questionRevision}}:{}),source:'replay',countOutcome:outcome}});
     database.prepare('INSERT INTO answer_replay_receipts VALUES(?,?,?,?,?,?)')
       .run(userId,eventId,hash,JSON.stringify({before,input,legacy,decision}),outcome,new Date().toISOString());
   });
@@ -1748,7 +1761,7 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
     answers:state.answers[input.questionId] ? {[input.questionId]:state.answers[input.questionId]} : {}, attemptHistory:state.attemptHistory } };
 }
 
-export function saveAnswer(userId, { questionId, itemId, selected, correct, progressEntry, attemptHistory, activeAttempt, reviewEventId, reviewedAt, source }) {
+export function saveAnswer(userId, { questionId, itemId, selected, correct, progressEntry, attemptHistory, activeAttempt, reviewEventId, reviewedAt, source,answerEventId,canonicalQuestionId,questionRevision,kind }) {
   if (!questionId || !itemId || typeof selected !== 'string' || typeof correct !== 'boolean' || !progressEntry) {
     throw new Error('Invalid answer payload');
   }
@@ -1757,8 +1770,13 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
     return;
   }
   const now = new Date().toISOString();
+  const occurredAt=progressEntry.lastReviewedAt??now;
+  const eventId=answerEventId??`answer:${createHash('sha256').update(JSON.stringify([questionId,itemId,selected,occurredAt])).digest('hex')}`;
   const database = getDb();
   transaction(database, () => {
+    const frozen=validateFrozenAnswer(database,userId,{canonicalQuestionId,questionRevision,selected,correct});
+    if(!recordLearningEvent(database,userId,{eventId,type:'AnswerSubmitted',occurredAt,payload:{questionId,itemId,selected,correct,kind:frozen?.questionTypeId??kind??'unknown',source:source??'legacy-answer',...(canonicalQuestionId?{questionRef:{id:canonicalQuestionId,revision:questionRevision}}:{})}}))return;
+    if(answerEventId) progressEntry=progressAfterAnswer(getStudyState(userId).progress[itemId],correct,new Date(occurredAt));
     database
       .prepare(`
         INSERT INTO answers (user_id, question_id, item_id, selected, correct, answered_at)
@@ -1768,7 +1786,7 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
           correct = excluded.correct,
           answered_at = excluded.answered_at
       `)
-      .run(userId, questionId, itemId, selected, correct ? 1 : 0, now);
+      .run(userId, questionId, itemId, selected, correct ? 1 : 0, new Date(occurredAt).toISOString());
     database
       .prepare(`
         INSERT INTO progress (user_id, item_id, progress_json, updated_at)
@@ -1780,10 +1798,10 @@ export function saveAnswer(userId, { questionId, itemId, selected, correct, prog
       .run(userId, itemId, JSON.stringify(progressEntry), now);
     database.prepare('DELETE FROM card_review_sync_baselines WHERE user_id=? AND item_id=?').run(userId,itemId);
     database.prepare('DELETE FROM card_review_sync_events WHERE user_id=? AND item_id=?').run(userId,itemId);
+    if (Array.isArray(attemptHistory) || activeAttempt !== undefined) {
+      savePracticeState(userId, { attemptHistory, activeAttempt });
+    }
   });
-  if (Array.isArray(attemptHistory) || activeAttempt !== undefined) {
-    savePracticeState(userId, { attemptHistory, activeAttempt });
-  }
 }
 
 export function saveCardReview(userId, itemId, rating, progressEntry, { eventId, reviewedAt, source = 'app' } = {}) {
@@ -1793,6 +1811,7 @@ export function saveCardReview(userId, itemId, rating, progressEntry, { eventId,
   const id = eventId ?? `card:${itemId}:${time}:${rating}`;
   transaction(getDb(), () => {
     if (insertCardReview(getDb(), userId, { eventId: id, itemId, rating, reviewedAt: time, source })) {
+      recordLearningEvent(getDb(),userId,{eventId:id,type:'MemoryRated',occurredAt:time,payload:{itemId,rating,source}});
       const current = getStudyState(userId).progress[itemId];
       saveProgressEntry(userId, itemId, mergedCardProgress(getDb(), userId, itemId, id, current));
     }
@@ -1853,7 +1872,8 @@ export function savePracticeState(userId, { answers, progress, answerItemIds, at
       `);
       for (const [questionId, answer] of Object.entries(answers)) {
         if (questionId.startsWith('memory-card:')) continue;
-        const itemId = answerItemIds?.[questionId] ?? String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
+        const itemId = answerItemIds?.[questionId] ??answer.itemId?? String(questionId).replace(/-(grammar|moji-goi|meaning|kana-to-kanji|kanji-to-kana|name-reading).*$/, '');
+        if(answer.eventId&&String(answer.selected??'').trim())recordAnswerSnapshot(database,userId,{eventId:answer.eventId,occurredAt:answer.answeredAt??now,payload:{questionId,itemId,selected:String(answer.selected),correct:Boolean(answer.correct),kind:answer.kind??'unknown',source:'web',...(answer.canonicalQuestionId?{questionRef:{id:answer.canonicalQuestionId,revision:answer.questionRevision}}:{})}});
         insert.run(userId, questionId, itemId, String(answer.selected ?? ''), answer.correct ? 1 : 0, answer.answeredAt ?? now);
       }
     }
@@ -1882,7 +1902,7 @@ export function buildStudyRecord(userId) {
     data_generated_at: data.generated_at,
     data_source: 'backend',
     storage: 'sqlite',
-    progress_counts_semantics: 'Legacy progress correct/wrong mixes objective answers and subjective card ratings; use answers or attempt_history for objective accuracy, and card_reviews for self-assessments.',
+    progress_counts_semantics: 'Legacy progress correct/wrong may include historical ratings, which are preserved. New ratings only advance SRS; use answers or attempt_history for objective accuracy, and card_reviews for self-assessments.',
     summary: {
       items: data.items.length,
       answered,
@@ -2835,6 +2855,8 @@ export function submitPracticeAnswer(userId, { practiceId, questionId, selected 
     }
     const attemptHistory = [attempt, ...state.attemptHistory.filter((entry) => entry.id !== attempt.id)].slice(0, 50);
     saveAnswer(userId, {
+      answerEventId:`mcp:${createHash('sha256').update(JSON.stringify([attempt.id,questionId])).digest('hex')}`,
+      canonicalQuestionId:question.canonicalQuestionId,questionRevision:question.questionRevision,kind:question.questionTypeId??question.kind,source:'mcp',
       questionId,
       itemId: question.itemId,
       selected: choice,

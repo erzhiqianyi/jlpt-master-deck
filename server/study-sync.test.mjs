@@ -95,3 +95,20 @@ test('HTTP sync is authenticated and card upload acknowledges only the changed c
   const settings=await request('/api/study-state/settings','GET');
   assert.equal(settings.status,200); assert.deepEqual(settings.body.progress,{});
 });
+
+test('canonical versions sync with immutable revision keys, survive source changes and never cross owners', async () => {
+ const { saveMaterial, persistLibraryQuestion }=await import('./bank-materials.mjs');
+ const db=s.getDb();
+ const material=saveMaterial(db,alice.id,'article:offline',{type:'article',blocks:[{text:'旧本文'}]});
+ const q=persistLibraryQuestion(db,alice.id,{kind:'reading',id:'offline',questionId:'offline'},{choices:['A','B'],answerIndex:0,prompt:'問い'},{materialRefs:[material]});
+ const first=collect(alice.id,null,1);
+ const old=first.changes.find(c=>c.collection==='questionVersions'&&c.id===JSON.stringify([q.id,q.revision]));
+ assert.deepEqual(old.value.payload.materialRefs,[material]);
+ assert.ok(first.changes.some(c=>c.collection==='materialVersions'&&c.id===JSON.stringify([material.id,material.revision])));
+ const nextMaterial=saveMaterial(db,alice.id,material.id,{type:'article',blocks:[{text:'新本文'}]});
+ const nextQuestion=persistLibraryQuestion(db,alice.id,{kind:'reading',id:'offline',questionId:'offline'},{choices:['A','B'],answerIndex:1,prompt:'問い'},{materialRefs:[nextMaterial]});
+ const changed=collect(alice.id,first.cursor,1);
+ assert.ok(changed.changes.some(c=>c.collection==='questionVersions'&&c.id===JSON.stringify([q.id,nextQuestion.revision])));
+ assert.ok(!changed.changes.some(c=>c.collection==='questionVersions'&&c.id===old.id));
+ assert.ok(!collect(bob.id,null).changes.some(c=>c.value?.id===q.id||c.value?.id===material.id));
+});

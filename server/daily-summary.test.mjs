@@ -15,6 +15,7 @@ const { generateDailySummaryContext, getDailySummary, listDailySummaries, upsert
 const owner = createUser('summary-owner', 'test-password');
 const other = createUser('summary-other', 'test-password');
 const db = getDb();
+const {recordLearningEvent}=await import('./learning-events.mjs');
 const date = '2026-09-27';
 const payload = {
   date, total_questions: 2, correct_count: 1, incorrect_count: 1, accuracy: 0.5,
@@ -80,4 +81,37 @@ test('MCP tools read, write and expose bounded summaries to plan generation', as
   for (const bad of [{ date: '2026-13-01' }, { accuracy: -1 }, { total_questions: 3 }]) {
     await assert.rejects(() => call('upsert_daily_summary', { ...payload, ...bad }));
   }
+});
+
+test('calendar days use the account zone and saved summaries retain that zone after preference changes', async () => {
+ const storage=await import('./storage.mjs');const {calendarDayWindow}=await import('./card-review-history.mjs');
+ const user=createUser('zone-owner','password');storage.saveSettings(user.id,{dailyPracticeSources:{timeZone:'UTC'}});
+ const day='2026-10-04';
+ for(const [id,time] of [['previous','2026-10-03T23:59:59Z'],['inside','2026-10-04T23:59:59Z'],['next','2026-10-05T00:00:00Z']]) {
+  db.prepare('INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)').run(user.id,id,'i','A',1,time);
+ }
+ const context=generateDailySummaryContext(db,user.id,day);
+ assert.equal(context.overallStats.totalQuestions,1);assert.equal(context.window.timeZone,'UTC');assert.equal(context.window.kind,'calendar_day');
+ const input={...payload,date:day,total_questions:1,correct_count:1,incorrect_count:0,accuracy:1,stats:{byKind:[{kind:'grammar',total:1,correct:1,incorrect:0,accuracy:1}],uniqueItems:1},wrong_questions:[]};
+ const saved=upsertDailySummary(db,user.id,input);assert.equal(saved.timeZone,'UTC');
+ storage.saveSettings(user.id,{dailyPracticeSources:{timeZone:'Asia/Tokyo'}});
+ assert.equal(getDailySummary(db,user.id,day).timeZone,'UTC');assert.equal(generateDailySummaryContext(db,user.id,day).window.timeZone,'UTC');
+ assert.throws(()=>upsertDailySummary(db,user.id,{...input,time_zone:'Asia/Tokyo'}),/time zone conflicts/);
+ assert.equal(Date.parse(calendarDayWindow('2026-03-08','America/New_York').end)-Date.parse(calendarDayWindow('2026-03-08','America/New_York').start),23*3600000);
+ assert.equal(Date.parse(calendarDayWindow('2026-11-01','America/New_York').end)-Date.parse(calendarDayWindow('2026-11-01','America/New_York').start),25*3600000);
+});
+
+test('daily projection counts retakes once per event, keeps unmatched history, and excludes subjective/unanswered activity',()=>{
+ const user=createUser('events-summary-owner','password');const day='2026-10-06';
+ const insert=db.prepare('INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)');
+ insert.run(user.id,'Q1','I1','B',1,'2026-10-06T02:00:00Z');
+ insert.run(user.id,'historical','I2','A',1,'2026-10-06T03:00:00Z');
+ insert.run(user.id,'unanswered','I2','',0,'2026-10-06T04:00:00Z');
+ const submit=(eventId,time,selected,correct)=>recordLearningEvent(db,user.id,{eventId,type:'AnswerSubmitted',occurredAt:time,payload:{questionId:'Q1',itemId:'I1',kind:'grammar-form',selected,correct}});
+ submit('first','2026-10-06T01:00:00Z','A',false);submit('second','2026-10-06T02:00:00Z','B',true);submit('second','2026-10-06T02:00:00Z','B',true);
+ recordLearningEvent(db,user.id,{eventId:'forgot',type:'MemoryRated',occurredAt:'2026-10-06T05:00:00Z',payload:{itemId:'I1',rating:'forgot'}});
+ const context=generateDailySummaryContext(db,user.id,day);
+ assert.deepEqual(context.overallStats,{totalQuestions:3,correctCount:2,incorrectCount:1,accuracy:2/3,uniqueItems:2});
+ assert.equal(context.statsByKind.find(row=>row.kind==='grammar-form').total,2);
+ assert.equal(context.wrongAnswers[0].questionId,'Q1');
 });

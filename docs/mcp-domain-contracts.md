@@ -16,9 +16,9 @@
 |删除关系与资产独立|partial：删除reading/listening旧库条目时canonical退役且保留版本；历史音频引用阻止清理bytes。旧delete_reading_question对现库删除仍不可恢复，不能承诺恢复功能。通用unlink/restore及资产回收工具proposal。|
 |练习draft/approved/published独立|implemented：publish_draft_as_daily_practice保持已有approved/archived门禁；保存未审草稿只归档unscored，不自动ready。普通generate_daily_practice是既有独立直接生成入口，不伪装成走草稿审批。|
 |返回真实ID/version/state|partial：原库ID保留，接入入口追加canonicalQuestionId/questionRevision/materialRefs；所有入口统一state封装proposal。|
-|结构硬校验与内容审查|implemented部分Zod字段/答案/引用约束；语义审查不由schema通过代替。完整type-specific校验与reviewStatus事件proposal。|
+|结构硬校验与内容审查|partial：23型validateQuestionPayload校验目标span、组句全排列/★、文章空位、检索条件、不同材料引用及选项数；canonical新作者validationMode=strict才启用，旧档案兼容读取不自动升级。strictExamEligible同时要求approved，结构通过不代替语义审查。统一审核写事件proposal。|
 |错误fieldpath+code+可恢复建议|partial：现有Zod校验提供path；现有错误/HTTP状态兼容保留。统一required/not_applicable/revision_conflict/duplicate/permission及建议封装proposal。|
-|registry schema版本发现/刷新|partial：canonical payload schemaVersion=1。MCP注册表发现端点和版本协商proposal；现有tool JSON schema由真实工具导出。|
+|registry schema版本发现/刷新|implemented发现：get_question_registry返回schemaVersion=1、23型level/alias/字段审查/解析步骤/技巧/知识关联指导，真实MCP入口已测。客户端版本协商仍proposal。|
 
 ## 目标返回与错误契约（proposal）
 

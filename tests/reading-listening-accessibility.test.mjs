@@ -70,7 +70,8 @@ test('listening group details show distinct question stems on both mobile and de
   for (const mobile of [true, false]) {
     const html = renderListening({ mobile });
     assert.match(html, /Which train should the speaker take\?/);
-    assert.equal((html.match(/type="radio"/g) ?? []).length, 2);
+    assert.equal((html.match(/data-answer-state="unanswered"/g) ?? []).length, 2);
+    assert.equal((html.match(/aria-pressed="false"/g) ?? []).length, 2);
     assert.doesNotMatch(html, /Private answer explanation/);
     assert.match(html, /listening-workspace/);
   }

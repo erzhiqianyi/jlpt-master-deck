@@ -109,8 +109,8 @@ test('card progress merges independent events, retries and late arrivals over a 
   const a=s.getStudyState(alice.id).progress['merge-a'];
   assert.deepEqual(a,s.getStudyState(alice.id).progress['merge-b']);
   assert.equal(a.reviewCount,13);
-  assert.equal(a.correct,10);
-  assert.equal(a.wrong,3);
+  assert.equal(a.correct,8);
+  assert.equal(a.wrong,2);
   assert.equal(a.intervalDays,0);
   assert.equal(a.status,'learning');
   assert.equal(a.nextReviewAt,'2026-10-06T01:11:00.000Z');
@@ -131,7 +131,7 @@ test('objective answers remain intact after a subsequent card review', () => {
   const objective = s.getStudyState(alice.id).progress[id];
   save(id,'easy','2026-10-09T01:00:00Z','after-objective');
   const after = s.getStudyState(alice.id).progress[id];
-  assert.equal(after.correct,objective.correct+1);
+  assert.equal(after.correct,objective.correct);
   assert.equal(after.wrong,objective.wrong);
   assert.equal(after.reviewCount,objective.reviewCount+1);
   assert.equal(s.getStudyState(alice.id).answers['objective-q'].correct,true);

@@ -6,7 +6,7 @@ import ImageIO
 struct PendingAnswer: Codable, Identifiable {
     let id: UUID
     let before: ProgressEntry
-    let input: AnswerInput
+    var input: AnswerInput
     var historyOnly: Bool? = nil
     // Optional for backwards-compatible decoding of existing on-device queues.
     var needsSyncReview: Bool? = nil
@@ -33,6 +33,10 @@ struct LocalStudyResponse: Codable {
 }
 
 struct LocalStudyData: Codable {
+    // Optional dictionaries decode old snapshots. Immutable versions are keyed
+    // by [id,revision], and are saved with the sync cursor in the same file.
+    var bankVersions: [String: [String: BankCachedVersion]]?
+    var bankQuestionStates: [String: BankQuestionState]?
     var wordbooks: [NativeWordbook]?
     var items: [StudyItem] = []
     var state = StudyState()
@@ -185,6 +189,7 @@ extension LocalStudyData {
             var operation = PendingAnswer(id: eventID, before: before,
                 input: .init(questionId: question.id, itemId: question.itemId, selected: answer.selected, correct: answer.correct,
                              progressEntry: progress, attemptHistory: index == additions.count - 1 ? [attempt] : nil, syncEventId: eventID.uuidString))
+            operation.input.canonicalQuestionId = question.canonicalQuestionId; operation.input.questionRevision = question.questionRevision; operation.input.kind = question.questionTypeId ?? question.kind
             if next.pending.contains(where: { $0.input.itemId == question.itemId && $0.needsSyncReview == true }) { operation.needsSyncReview = true }
             next.pending.append(operation)
             next.state.progress[question.itemId] = progress
@@ -296,6 +301,26 @@ extension LocalStudyData {
         }
         for change in changes {
             switch change.collection {
+            case "questionVersions", "materialVersions", "materialGroupVersions":
+                var records = bankVersions ?? [:]
+                var collection = records[change.collection] ?? [:]
+                if change.deleted == true { collection.removeValue(forKey: change.id) }
+                else {
+                    let value: BankCachedVersion = try decode(change)
+                    guard value.schemaVersion == 1, value.revision > 0, !value.id.isEmpty,
+                          change.id == value.versionKey else { throw APIError.invalidResponse }
+                    collection[change.id] = value
+                }
+                records[change.collection] = collection; bankVersions = records
+            case "questionStates":
+                var states = bankQuestionStates ?? [:]
+                if change.deleted == true { states.removeValue(forKey: change.id) }
+                else {
+                    let value: BankQuestionState = try decode(change)
+                    guard value.id == change.id else { throw APIError.invalidResponse }
+                    states[change.id] = value
+                }
+                bankQuestionStates = states
             case "wordbooks":
                 var values = wordbooks ?? []; try update(&values, change); wordbooks = values
             case "items": try update(&items,change)
@@ -328,5 +353,43 @@ extension LocalStudyData {
         packs.sort { $0.date > $1.date }
         state.cardReviews?.sort { $0.reviewedAt < $1.reviewedAt }
         state.attemptHistory?.sort { ($0.completedAt ?? $0.startedAt) > ($1.completedAt ?? $1.startedAt) }
+    }
+}
+
+
+struct BankVersionReference: Codable, Equatable {
+    var id: String
+    var revision: Int
+    var versionKey: String { "[\(Self.jsonString(id)),\(revision)]" }
+    private static func jsonString(_ value: String) -> String {
+        // JSONEncoder defaults to escaping slash; the server's JSON.stringify
+        // does not, so match its canonical dictionary key spelling.
+        let encoder = JSONEncoder(); encoder.outputFormatting = .withoutEscapingSlashes
+        return String(data: (try? encoder.encode(value)) ?? Data(), encoding: .utf8) ?? ""
+    }
+}
+struct BankCachedVersion: Codable, Equatable {
+    var id: String
+    var revision: Int
+    var schemaVersion: Int
+    var payload: SettingValue
+    var versionKey: String { BankVersionReference(id: id, revision: revision).versionKey }
+}
+struct BankQuestionState: Codable, Equatable {
+    var id: String
+    var latestRevision: Int
+    var status: String
+}
+extension LocalStudyData {
+    func bankVersion(collection: String, ref: BankVersionReference) -> BankCachedVersion? {
+        bankVersions?[collection]?[ref.versionKey]
+    }
+    func frozenQuestion(_ question: NativeQuestion) -> BankCachedVersion? {
+        guard let id=question.canonicalQuestionId, let revision=question.questionRevision else { return nil }
+        return bankVersion(collection: "questionVersions", ref: .init(id:id,revision:revision))
+    }
+    func frozenMaterials(_ refs: [BankVersionReference]) -> [BankCachedVersion]? {
+        let records=refs.compactMap { bankVersion(collection:"materialVersions",ref:$0) }
+        return records.count == refs.count ? records : nil
     }
 }

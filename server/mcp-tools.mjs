@@ -1,4 +1,6 @@
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
+import {questionStrategies} from '../src/domain/questionContract.mjs';
+import {questionSpecifications,questionRegistrySchemaVersion} from '../src/domain/questionPayload.mjs';
 import { examContentFields, listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { currentPlatform } from './platform.mjs';
 import { practiceExplanationPatchSchema, practiceQuestionPatchSchema } from './practice-explanation-schema.mjs';
@@ -208,6 +210,10 @@ const listeningUpdateFields = {
 const listeningUpdateDescription = "Partially update an owned listening question's title, type, question, choices, per-choice translations and explanations, answer or overall explanation, or move it to a 1-based libraryNumber. Omitted fields are preserved. Moving a question shifts intervening numbers without overwriting another question. Audio is unchanged. A missing or unowned id is an error.";
 
 export const tools = [
+  tool('get_question_registry','Read the versioned 23-type registry before authoring. Includes official level applicability, supplementary flags, required-content guidance, explanation steps, tips and knowledge topics. Schema success does not imply semantic approval; existing tool schemas still govern each write.',{},ro,async(_args,ctx)=>{
+    uid(ctx);
+    return text({schemaVersion:questionRegistrySchemaVersion,types:Object.values(questionStrategies).map(({id,module,applicableLevels,supplementary,aliases})=>({id,module,applicableLevels,supplementary,aliases,...questionSpecifications[id]}))});
+  }),
   tool('list_mock_exams', 'List your user-designed exams and their sessions. Available on local and hosted backends. No fixed topic, schedule or question count.',
     {}, ro, async (_args, ctx) => text({ exams: listMockExams(getDb(), uid(ctx)) })),
   tool('get_mock_exam', 'Read a complete owned exam before editing, including revision, sessions, questions, sources and explanations.',

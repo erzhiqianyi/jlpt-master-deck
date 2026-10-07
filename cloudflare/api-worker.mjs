@@ -1,5 +1,6 @@
 import { ensureBankMaterialSchema } from '../server/bank-materials.mjs';
 import { ensureQuestionBankSchema } from '../server/question-bank.mjs';
+import {ensureLearningEventSchema} from '../server/learning-events.mjs';
 import { ensureCacheSchema, cleanupTtsCache } from '../server/tts/cache.mjs';
 import { DurableObject } from 'cloudflare:workers';
 import { withPlatform } from '../server/platform.mjs';
@@ -52,6 +53,7 @@ export class JlptDatabase extends DurableObject {
           this.db.exec('INSERT INTO cloud_schema_version(version) VALUES(7)');
         }
         ensureCardReviewSchema(this.db);
+        ensureLearningEventSchema(this.db);
         ensureDailySummarySchema(this.db);
         ensureQuestionBankSchema(this.db);
         ensureBankMaterialSchema(this.db);

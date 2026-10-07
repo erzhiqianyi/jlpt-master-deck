@@ -1,3 +1,5 @@
+import { QuestionAudioPlayer } from '../../components/QuestionAudioPlayer';
+import { QuestionRenderer } from '../../components/QuestionRenderer';
 import { AnswerCelebration } from '../../components/StudyCompanion';
 import { formatListDate } from '../../components/LearningListMetadata';
 import { RecordReference } from '../../components/RecordReference';
@@ -583,23 +585,12 @@ function ListeningPracticeQuestion({ item, labels, token, locale, onRecordPracti
       <div className="mt-5">
         {audioUrl ? <AudioPlayer src={audioUrl} labels={labels} /> : <p className="text-sm text-[#74646b]">{audioError || 'Loading audio...'}</p>}
       </div>
-      {hasDistinctListeningQuestion(item) ? <p className="mt-6 whitespace-pre-wrap text-lg font-bold leading-8 text-[#3d3036]">{item.question}</p> : null}
-      {isFreeResponse(item) ? <textarea value={freeResponse} onChange={(event) => { setFreeResponse(event.target.value); setRevealed(false); setAnswerNotice(''); }} placeholder="写下你的回答" className="mt-4 min-h-24 w-full rounded-md border border-[#f0d4dd] bg-white p-3 text-base leading-6" /> : null}
-      {!isFreeResponse(item) ? <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {item.choices.map((choice, index) => {
-          const resultClass = revealed
-            ? index === item.answerIndex ? 'border-[#65a37c] !bg-[#f0fff5]' : selected === index ? 'border-[#d95f8a] !bg-[#fff0f5]' : 'border-[#f0d4dd] !bg-white'
-            : selected === index ? 'border-[#d95f8a] !bg-[#fff0f5]' : 'border-[#f0d4dd] !bg-white hover:!bg-[#fff7fb]';
-          return (
-            <button key={index} type="button" onClick={() => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} className={`cute-choice flex min-h-14 items-center gap-3 border px-4 py-3 text-left text-base font-bold ${resultClass}`}>
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">{index + 1}</span>
-              <span className="min-w-0 break-words">{choice}</span>
-              {revealed && item.choiceDetails?.[index]?.translation ? <span className="mt-1 block text-sm font-normal text-[#68716b]">{item.choiceDetails[index].translation}</span> : null}
-              {revealed && item.choiceDetails?.[index]?.explanation ? <span className="mt-2 block border-t border-current/10 pt-2 text-sm font-normal leading-5 text-[#4f5b55]">{item.choiceDetails[index].explanation}</span> : null}
-            </button>
-          );
-        })}
-      </div> : null}
+      <QuestionRenderer questionId={item.id} questionTypeId={item.questionTypeId}
+        prompt={hasDistinctListeningQuestion(item)?item.question:null}
+        choices={item.choices} selected={selected} answerIndex={item.answerIndex} reveal={revealed}
+        onSelect={index=>{setSelected(index);setRevealed(false);setAnswerNotice('');}}
+        freeResponse={isFreeResponse(item)?{value:freeResponse,label:'写下你的回答',onChange:value=>{setFreeResponse(value);setRevealed(false);setAnswerNotice('');}}:undefined}
+        renderText={choice=><>{choice}{revealed&&item.choiceDetails?.[item.choices.indexOf(choice)]?.translation?<span className="mt-1 block text-sm">{item.choiceDetails[item.choices.indexOf(choice)].translation}</span>:null}{revealed&&item.choiceDetails?.[item.choices.indexOf(choice)]?.explanation?<span className="mt-2 block text-sm">{item.choiceDetails[item.choices.indexOf(choice)].explanation}</span>:null}</>} />
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#f0d4dd] pt-4">
         <button type="button" disabled={savingPractice} onClick={() => void confirmPractice()} className="cute-button-primary h-10 rounded-full px-4 text-sm font-bold text-white">
           {labels.listeningShowAnswer}
@@ -808,24 +799,12 @@ function ListeningQuestionItem({ item, labels, locale, onUpdate, onDelete, detai
       </div>
       {editing ? <ListeningQuestionEditor key={item.id} item={item} labels={labels} onUpdate={onUpdate} onCancel={() => onEditingChange(false)} onSaved={() => onEditingChange(false)} /> : null}
       {!editing ? <>
-      {hasDistinctListeningQuestion(item) ? <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7">{item.question}</p> : null}
-      {isFreeResponse(item) ? <textarea value={freeResponse} onChange={(event) => onAnswerChange({ ...answer, freeResponse: event.target.value })} placeholder="写下你的回答" className="mt-3 min-h-24 w-full rounded-md border border-[#d8e0d7] bg-white p-3 text-sm leading-6" /> : null}
-      {!isFreeResponse(item) ? <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {item.choices.map((choice, index) => {
-          const resultClass = revealed
-            ? index === item.answerIndex ? 'border-[#6f947c] !bg-[#edf5ee]' : selected === index ? 'border-[#c9907d] !bg-[#fbf1ed]' : 'border-[#d8e0d7] !bg-white'
-            : selected === index ? 'border-[#31564c] !bg-[#edf3ef]' : 'border-[#d8e0d7] !bg-white';
-          return (
-            <label key={index} className={`study-answer-option flex min-h-12 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm ${resultClass}`}>
-              <input type="radio" name={`listening-${item.id}`} checked={selected === index} onChange={() => onAnswerChange({ ...answer, selected: index })} />
-              <span className="min-w-0">{index + 1}. {choice}
-                {revealed && item.choiceDetails?.[index]?.translation ? <span className="mt-1 block font-normal text-[#68716b]">{item.choiceDetails[index].translation}</span> : null}
-                {revealed && item.choiceDetails?.[index]?.explanation ? <span className="mt-2 block border-t border-current/10 pt-2 font-normal leading-5 text-[#4f5b55]">{item.choiceDetails[index].explanation}</span> : null}
-              </span>
-            </label>
-          );
-        })}
-      </div> : null}
+      <QuestionRenderer questionId={item.id} questionTypeId={item.questionTypeId}
+        prompt={hasDistinctListeningQuestion(item)?item.question:null}
+        choices={item.choices} selected={selected} answerIndex={item.answerIndex} reveal={revealed}
+        onSelect={index=>onAnswerChange({...answer,selected:index})}
+        freeResponse={isFreeResponse(item)?{value:freeResponse,label:'写下你的回答',onChange:value=>onAnswerChange({...answer,freeResponse:value})}:undefined}
+        renderText={choice=><>{choice}{revealed&&item.choiceDetails?.[item.choices.indexOf(choice)]?.translation?<span className="mt-1 block text-sm">{item.choiceDetails[item.choices.indexOf(choice)].translation}</span>:null}{revealed&&item.choiceDetails?.[item.choices.indexOf(choice)]?.explanation?<span className="mt-2 block text-sm">{item.choiceDetails[item.choices.indexOf(choice)].explanation}</span>:null}</>} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <AnswerCelebration correct={revealed && !isFreeResponse(item) && selected !== null && selected === item.answerIndex} />
         {revealed && (isFreeResponse(item) ? freeResponse.trim() : selected !== null) ? <p role="status" className={`text-sm font-semibold ${isFreeResponse(item) || selected === item.answerIndex ? 'text-[#356146]' : 'text-[#8a493c]'}`}>{isFreeResponse(item) ? '已记录自答，请对照解析复盘' : selected === item.answerIndex ? labels.listeningCorrect : labels.listeningWrong}</p> : null}
@@ -1208,7 +1187,6 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
   );
 }
 
-const AUDIO_PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 function UploadedAudioPreview({ file, labels }: { file: File; labels: Record<string, string> }) {
   const [previewUrl, setPreviewUrl] = useState('');
@@ -1229,38 +1207,8 @@ function UploadedAudioPreview({ file, labels }: { file: File; labels: Record<str
   );
 }
 
-function AudioPlayer({ src, labels }: { src: string; labels: Record<string, string> }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [playbackRate, setPlaybackRate] = useState(1);
-
-  function updatePlaybackRate(rate: number) {
-    setPlaybackRate(rate);
-    if (audioRef.current) audioRef.current.playbackRate = rate;
-  }
-
-  return (
-    <div className="grid min-w-0 gap-3">
-      <audio
-        ref={audioRef}
-        controls
-        preload="metadata"
-        src={src}
-        onLoadedMetadata={() => updatePlaybackRate(playbackRate)}
-        className="cute-audio-player w-full"
-      />
-      <label className="flex items-center gap-2 text-sm font-semibold text-[#46514c]">
-        <span className="whitespace-nowrap">{labels.listeningPlaybackRate}</span>
-        <select
-          value={playbackRate}
-          onChange={(event) => updatePlaybackRate(Number(event.target.value))}
-          aria-label={labels.listeningPlaybackRate}
-          className="h-10 rounded-md border border-[#d8bdc8] bg-white px-2 font-bold text-[#8f365b]"
-        >
-          {AUDIO_PLAYBACK_RATES.map((rate) => <option key={rate} value={rate}>{rate}×</option>)}
-        </select>
-      </label>
-    </div>
-  );
+function AudioPlayer({src,labels}:{src:string;labels:Record<string,string>}) {
+ return <QuestionAudioPlayer src={src} playLabel={labels.play??'播放'} pauseLabel={labels.pause??'暂停'} seekLabel={labels.listeningPlaybackProgress??'播放进度'} />;
 }
 
 function fileToBase64(file: File) {

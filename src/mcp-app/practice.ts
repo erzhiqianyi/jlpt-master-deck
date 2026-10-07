@@ -1,3 +1,7 @@
+import { createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { QuestionRenderer } from '../components/QuestionRenderer';
+import { QuestionPrompt } from '../components/QuestionPrompt';
 // MCP App view for `start_topic_practice` / `get_practice_session`. Runs inside the chat host's
 // iframe: receives the session from the tool result, then answers questions by calling
 // `submit_practice_answer` on the same server with the same grant. Built to a single IIFE by
@@ -46,6 +50,7 @@ let session: Session | null = null;
 let index = 0;
 let busy = false;
 let error = '';
+let questionRoot: Root | null = null;
 
 app.ontoolresult = (result) => {
   const data = result.structuredContent as Session | undefined;
@@ -144,6 +149,7 @@ async function askAgent() {
 }
 
 function render() {
+  questionRoot?.unmount(); questionRoot = null;
   root.replaceChildren(session ? (index >= session.questions.length ? summaryView(session) : questionView(session, session.questions[index])) : emptyView());
 }
 
@@ -153,29 +159,22 @@ function emptyView() {
 
 function questionView(current: Session, question: SessionQuestion) {
   const answered = question.answered;
-  const analysis = new Map((question.choiceAnalysis ?? []).map((entry) => [entry.choice, entry.explanation]));
+  const surface = document.createElement('div');
+  questionRoot = createRoot(surface);
+  questionRoot.render(createElement(QuestionRenderer, {
+    questionId:question.id, questionTypeId:question.kind, instruction:question.instruction,
+    prompt:createElement(QuestionPrompt,{text:question.prompt,target:question.promptTarget}),
+    choices:question.choices,selected:question.choices.indexOf(question.selected??''),
+    answerIndex:answered?question.choices.indexOf(question.answer??''):undefined,
+    reveal:answered,disabled:answered||busy,onSelect:(position:number)=>void choose(question.choices[position]),
+    renderText:(choice:string)=>createElement('span',null,choice,answered?createElement('span',{className:'why'},question.choiceAnalysis?.find(entry=>entry.choice===choice)?.explanation):null),
+  }));
   return el('div', { class: 'card' }, [
     header(current),
     el('span', { class: 'kind' }, [question.title || question.kind]),
     question.reference ? el('p', { class: 'meta' }, [question.reference]) : null,
-    question.instruction ? el('p', { class: 'instruction' }, [question.instruction]) : null,
-    el('p', { class: 'prompt' }, promptNodes(question)),
+    surface,
     answered && question.translationZh ? el('p', { class: 'translation' }, [question.translationZh]) : null,
-    el('ul', { class: 'choices' }, question.choices.map((choice, position) => {
-      const classes = ['choice'];
-      if (answered && choice === question.answer) classes.push('correct');
-      else if (answered && choice === question.selected) classes.push('wrong');
-      const why = answered ? analysis.get(choice) : '';
-      return el('li', {}, [el('button', {
-        class: classes.join(' '),
-        type: 'button',
-        disabled: answered || busy ? 'disabled' : null,
-        onclick: () => choose(choice),
-      }, [
-        el('span', { class: 'n' }, [String.fromCharCode(65 + position)]),
-        el('span', {}, [choice, why ? el('span', { class: 'why' }, [why]) : null]),
-      ])]);
-    })),
     answered ? el('p', { class: `verdict ${question.correct ? 'ok' : 'bad'}` }, [question.correct ? '答对了' : `答错了 · 正确答案：${question.answer}`]) : null,
     answered && question.correctReason ? el('p', { class: 'reason' }, [question.correctReason]) : null,
     answered && question.memoryPoint && question.memoryPoint !== question.correctReason ? el('p', { class: 'memory' }, [question.memoryPoint]) : null,
@@ -223,14 +222,6 @@ function header(current: Session) {
 
 function stat(value: string, label: string) {
   return el('div', { class: 'stat' }, [el('b', {}, [value]), el('span', {}, [label])]);
-}
-
-/** Underline the target expression inside the prompt when the sentence contains it. */
-function promptNodes(question: SessionQuestion): (Node | string | null)[] {
-  const target = question.promptTarget?.trim();
-  if (!target || !question.prompt.includes(target) || question.prompt === target) return [question.prompt];
-  const [before, ...rest] = question.prompt.split(target);
-  return [before, el('mark', {}, [target]), rest.join(target)];
 }
 
 function el(tag: string, attrs: Record<string, string | null | (() => void)> = {}, children: (Node | string | null | undefined)[] = []) {

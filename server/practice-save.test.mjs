@@ -7,7 +7,25 @@ const dir = mkdtempSync(join(tmpdir(), 'jlpt-practice-save-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
-const { createUser, savePracticeState, getStudyState, getDb } = await import('./storage.mjs');
+const { createUser, savePracticeState, saveAnswer,getStudyState, getDb } = await import('./storage.mjs');
+test('live answers merge stale counters, retry once, validate frozen versions, and preserve old answer after editing',async()=>{
+ const {persistLibraryQuestion}=await import('./bank-materials.mjs');const {learningEventsInWindow}=await import('./learning-events.mjs');
+ const user=createUser('frozen-events-owner','password');const other=createUser('frozen-events-other','password');const db=getDb();
+ const source={kind:'practice',id:'P1',questionId:'Q1'};
+ const original={id:'Q1',kind:'grammar',prompt:'元の問題',choices:['A','B','C','D'],answerIndex:0};
+ const ref=persistLibraryQuestion(db,user.id,source,original);
+ persistLibraryQuestion(db,user.id,source,{...original,prompt:'新しい問題',answerIndex:1});
+ const input={questionId:'Q1',itemId:'I1',selected:'A',correct:true,progressEntry:{correct:99,wrong:99,lastReviewedAt:'2026-10-07T01:00:00Z'},answerEventId:'E1',canonicalQuestionId:ref.id,questionRevision:ref.revision};
+ saveAnswer(user.id,input);saveAnswer(user.id,input);
+ assert.equal(getStudyState(user.id).progress.I1.correct,1);assert.equal(getStudyState(user.id).progress.I1.wrong,0);
+ saveAnswer(user.id,{...input,answerEventId:'E2',progressEntry:{...input.progressEntry,lastReviewedAt:'2026-10-07T02:00:00Z'}});
+ assert.equal(getStudyState(user.id).progress.I1.correct,2);assert.equal(learningEventsInWindow(db,user.id).length,2);
+ assert.throws(()=>saveAnswer(user.id,{...input,answerEventId:'bad',correct:false}),/frozen/);
+ assert.throws(()=>saveAnswer(other.id,input),/Owned/);
+ const state=getStudyState(user.id);assert.equal(state.answers.Q1.eventId,'E2');assert.equal(state.answers.Q1.questionRevision,ref.revision);
+ savePracticeState(user.id,{answers:state.answers,answerItemIds:{Q1:'I1'}});
+ assert.equal(learningEventsInWindow(db,user.id).length,2);
+});
 test('saves a completed review and progress together, and retry does not double counts', () => {
   const user = createUser('review-test', 'test-password');
   const payload = {

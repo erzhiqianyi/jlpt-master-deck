@@ -38,6 +38,21 @@ export function studySyncRecords(userId) {
   for (const [id,value] of Object.entries(progress)) add('progress',id,value);
   for (const [id,value] of Object.entries(answers)) add('answers',id,value);
   array('cardReviews',cardReviews ?? [],'eventId'); array('attemptHistory',attemptHistory ?? []);
+  // Version keys are separate records: later edits never overwrite an offline
+  // practice's frozen question/material revision. Pages remain owner-scoped.
+  const db=getDb();
+  for (const [collection,table,idColumn] of [
+    ['questionVersions','bank_question_versions','question_id'],
+    ['materialVersions','bank_material_versions','material_id'],
+    ['materialGroupVersions','bank_material_group_versions','group_id'],
+  ]) {
+    for (const row of db.prepare(`SELECT ${idColumn} AS id,revision,payload_json FROM ${table} WHERE owner=? ORDER BY ${idColumn},revision`).all(userId)) {
+      add(collection,JSON.stringify([row.id,row.revision]),{id:row.id,revision:row.revision,schemaVersion:1,payload:JSON.parse(row.payload_json)});
+    }
+  }
+  for (const row of db.prepare('SELECT id,latest_revision,status FROM bank_questions WHERE owner=? ORDER BY id').all(userId)) {
+    add('questionStates',row.id,{id:row.id,latestRevision:row.latest_revision,status:row.status});
+  }
   return records;
 }
 
@@ -92,7 +107,7 @@ export function studySyncStatus(userId) {
   return { counts: {
     vocabulary:items.filter(i => !grammar(i)).length, grammar:items.filter(grammar).length,
     reading:values('reading').length, listening:values('listening').length, packs:values('packs').length,
-    questions:new Set(values('packs').flatMap(p => p.questions ?? []).map(q => q.id)).size,
+    questions:new Set(values('packs').flatMap(p => p.questions ?? []).map(q => q.canonicalQuestionId??q.id)).size,
     drafts:values('drafts').length, tasks:values('planTasks').length, days:values('planDays').length,
     progress:values('progress').length, answers:values('answers').length, captures:values('captures').length,
     discovery:values('shares').length, vocabularyImages:items.filter(i => !grammar(i) && i.images?.length).length,

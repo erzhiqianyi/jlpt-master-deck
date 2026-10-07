@@ -1,3 +1,4 @@
+import { QuestionRenderer } from '../../components/QuestionRenderer';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
 import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
@@ -211,18 +212,14 @@ export function PracticeReviewPanel({
           }} aria-label={`${copy.list} ${activeRow.index + 1}`}>
           <div className="practice-review-detail-nav"><button type="button" className="practice-text-action" onClick={showResults}><ChevronLeft size={18} aria-hidden="true" />{copy.returnResults}</button><span>{reviewPosition + 1} / {rows.length} · {copy.list} {activeRow.index + 1}</span></div>
           <div className="practice-result-filters" role="group" aria-label={copy.list}>{([['wrong', copy.wrong, model.wrong + model.unanswered], ['all', copy.all, model.rows.length], ['unanswered', copy.unanswered, model.unanswered]] as const).map(([value, title, count]) => <button type="button" key={value} aria-pressed={filter === value} disabled={!count} onClick={() => startReview(value)}>{title} <span>{count}</span></button>)}</div>
-          {activeQuestion.instruction ? <p className="practice-question-instruction">{activeQuestion.instruction}</p> : null}
-          <p className="practice-review-prompt"><QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} /></p>
           {attempt ? <p className="practice-historical-version" role="note">{copy.currentVersion}</p> : null}
-          <div className="practice-review-options">
-            {activeQuestion.choices.map((choice, index) => {
-              const correct = choice === activeQuestion.answer;
-              const selected = choice === activeAnswer?.selected;
-              return <div key={`${index}-${choice}`} data-answer-state={correct ? 'correct' : selected ? 'incorrect-selected' : 'answered-muted'} className="practice-review-option">
-                <span>{index + 1}</span><span>{choice}</span>{correct ? <small>{attempt ? copy.currentAnswer : labels.rightAnswer}</small> : selected ? <small>{labels.yourAnswer}</small> : null}
-              </div>;
-            })}
-          </div>
+          <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+            instruction={activeQuestion.instruction} promptClassName="practice-review-prompt"
+            prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={locale} />}
+            choices={activeQuestion.choices} selected={activeQuestion.choices.indexOf(activeAnswer?.selected??'')}
+            answerIndex={activeQuestion.choices.indexOf(activeQuestion.answer)} reveal disabled onSelect={()=>{}}
+            optionClassName="practice-review-option"
+            renderText={choice=><>{choice}{choice===activeQuestion.answer?<small className="ml-3">{attempt?copy.currentAnswer:labels.rightAnswer}</small>:choice===activeAnswer?.selected?<small className="ml-3">{labels.yourAnswer}</small>:null}</>} />
           {!activeAnswer ? <p className="practice-unanswered-explanation">{copy.unansweredBody}</p> : null}
           <AnswerPanel question={activeQuestion} answer={activeAnswer} historical={Boolean(attempt)} items={items} showRuby={showRuby} labels={labels} locale={locale} />
           <div className="practice-question-reference">{!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={locale} /> : null}<QuestionReferenceBadge question={activeQuestion} token={token} locale={locale} /></div>
@@ -553,68 +550,15 @@ export function PracticePanel({
       </aside>
       <div className="practice-content-column">
       <div className="practice-question-section">
-        <div className="mt-4">
-          {activeQuestion?.instruction ? (
-            <p className="mt-3 text-sm leading-6 text-[#74646b]">{activeQuestion.instruction}</p>
-          ) : null}
-          <p className={`${activeQuestion?.instruction ? 'mt-4' : 'mt-3'} break-words text-lg leading-8 text-[#3d3036]`}>
-            {activeQuestion ? <QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} /> : loading ? null : labels.noQuestionBody}
-          </p>
-        </div>
-
-        {activeQuestion ? (
-          <>
-            {activeQuestion ? (
-              <div className="practice-answer-choices mt-5 grid gap-3">
-                {activeQuestion.choices.map((choice, choiceIndex) => {
-                  const answered = answers[activeQuestion.id];
-                  const isSelected = answered?.selected === choice;
-                  const isAnswer = choice === activeQuestion.answer;
-                  const shouldReveal = feedbackMode === 'immediate' || (feedbackMode === 'batch' && complete && analysisStatus === 'completed');
-                  const answerState = !answered
-                    ? 'unanswered'
-                    : shouldReveal
-                      ? isAnswer
-                        ? 'correct'
-                        : isSelected
-                          ? 'incorrect-selected'
-                          : 'answered-muted'
-                      : isSelected
-                        ? 'selected-batch'
-                        : 'unanswered';
-                  const color = !answered
-                    ? 'border-[#f0d4dd] bg-white hover:bg-[#fff7fb]'
-                    : shouldReveal
-                      ? isAnswer
-                        ? 'border-[#65a37c] bg-[#f0fff5]'
-                        : isSelected
-                          ? 'border-[#d95f8a] bg-[#fff0f5]'
-                          : 'border-[#f0d4dd] bg-[#fffafc] opacity-70'
-                      : isSelected
-                        ? 'border-[#d95f8a] bg-[#fff0f5]'
-                        : 'border-[#f0d4dd] bg-white';
-                  return (
-                    <button
-                      type="button"
-                      key={choice}
-                      disabled={feedbackMode === 'immediate' && Boolean(answered)}
-                      aria-keyshortcuts={String(choiceIndex + 1)}
-                      aria-pressed={isSelected}
-                      data-answer-state={answerState}
-                      onClick={() => chooseAnswer(activeQuestion, choice)}
-                      className={`cute-choice flex min-h-14 min-w-0 items-start gap-3 border px-4 py-3 text-left text-base font-bold break-words disabled:cursor-default ${color}`}
-                    >
-                      <span aria-hidden="true" className="journal-number flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs">
-                        {choiceIndex + 1}
-                      </span>
-                      <span className="min-w-0 pt-0.5">{choice}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </>
-        ) : null}
+        {activeQuestion ? <QuestionRenderer questionId={activeQuestion.id} questionTypeId={activeQuestion.questionTypeId??activeQuestion.kind}
+          instruction={activeQuestion.instruction}
+          prompt={<QuestionPrompt text={activeQuestion.prompt} target={activeQuestion.promptTarget} locale={settings.locale} />}
+          choices={activeQuestion.choices} selected={activeQuestion.choices.indexOf(answers[activeQuestion.id]?.selected??'')}
+          answerIndex={activeQuestion.choices.indexOf(activeQuestion.answer)}
+          reveal={Boolean(answers[activeQuestion.id]) && (feedbackMode==='immediate'||(feedbackMode==='batch'&&complete&&analysisStatus==='completed'))}
+          disabled={feedbackMode==='immediate'&&Boolean(answers[activeQuestion.id])}
+          onSelect={index=>chooseAnswer(activeQuestion,activeQuestion.choices[index])} optionClassName="cute-choice" /> :
+          <p className="mt-3 text-lg leading-8">{loading?null:labels.noQuestionBody}</p>}
         {activeQuestion ? <div className="practice-question-reference">
           {!practiceReference ? <RecordReference reference={activeQuestion.practiceReference} locale={settings.locale} /> : null}
           <QuestionReferenceBadge question={activeQuestion} token={token} locale={settings.locale} />

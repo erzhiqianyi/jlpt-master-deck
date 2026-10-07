@@ -1,3 +1,5 @@
+import { QuestionRenderer } from '../../components/QuestionRenderer';
+import { QuestionOptions } from '../../components/QuestionOptions';
 import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
 import { formatListDate } from '../../components/LearningListMetadata';
@@ -366,9 +368,13 @@ function ReadingQuestionItem({ item, number, previouslyAnswered, revealed, setRe
       </div>
       {onDelete ? <RecordReference reference={item.reference} locale={locale} /> : null}
       {onDelete && (item.tags ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <span key={tag} className="text-xs text-[#68716b]">#{tag}</span>)}</div> : null}
-      <p className="reading-question-stem whitespace-pre-wrap"><ReadingText text={item.question} /></p>
       {segmented ? <p className="mt-3 text-xs text-[#68716b]">{locale === 'ja' ? '単語を押すと検索、番号を押すと解答を選択できます。' : locale === 'en' ? 'Click a word to look it up; click a number to select your answer.' : '点击词语查词，点击编号选择答案。'}</p> : null}
-      <ReadingChoiceGrid item={item} segmented={segmented} selected={selected} revealed={revealed} onSelect={(index) => { setSelected(index); setRevealed(false); setAnswerNotice(''); }} />
+      <QuestionRenderer questionId={item.id} questionTypeId={item.questionTypeId??'reading-basic-training'}
+        prompt={<ReadingText text={item.question} />} promptClassName="reading-question-stem"
+        choices={item.choices} selected={selected} answerIndex={item.answerIndex} reveal={revealed}
+        optionPresentation="reading" interactiveText={segmented}
+        onSelect={index=>{setSelected(index);setRevealed(false);setAnswerNotice('');}}
+        renderText={(choice,index)=><ReadingText lookup={segmented} text={choice} source={`阅读 ${item.reference??item.id} · ${item.title} · 選択肢 ${index+1}`} />} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {previouslyAnswered && !revealed ? <button type="button" className="reading-view-answer" disabled={saving} onClick={() => { setSelected(null); setAnswerNotice(''); setRevealed(true); }}>{locale === 'ja' ? '解答を見る' : locale === 'en' ? 'View answer' : '查看答案'}</button> : null}
         <button type="button" disabled={saving} onClick={async () => {
@@ -402,32 +408,8 @@ function QuestionAction({ label, title, children, onClick, disabled }: { label: 
   );
 }
 
-export function ReadingChoiceGrid({ item, segmented, selected, revealed, onSelect }: { item: ReadingQuestion; segmented: boolean; selected: number | null; revealed: boolean; onSelect: (index: number) => void }) {
-  return (
-    <div className="reading-choices mt-4">
-      {item.choices.map((choice, index) => {
-        const answerState = revealed
-          ? index === item.answerIndex ? 'correct' : selected === index ? 'incorrect' : 'idle'
-          : selected === index ? 'selected' : 'idle';
-        if (segmented) {
-          return (
-            <div key={index} data-answer-state={answerState} className="reading-choice">
-              <button type="button" aria-label={`${index + 1}. ${choice}`} aria-pressed={selected === index} onClick={() => onSelect(index)} className="reading-choice-number shrink-0">
-                {index + 1}
-              </button>
-              <span lang="ja" className="reading-segmented min-w-0 whitespace-pre-wrap break-words">
-                <ReadingText lookup text={choice} source={`阅读 ${item.reference ?? item.id} · ${item.title} · 選択肢 ${index + 1}`} />
-              </span>
-            </div>
-          );
-        }
-        return (
-          <button key={index} type="button" aria-pressed={selected === index} data-answer-state={answerState} onClick={() => onSelect(index)} className="reading-choice">
-            <span className="reading-choice-number">{index + 1}</span>
-            <span className="min-w-0 break-words"><ReadingText text={choice} /></span>
-          </button>
-        );
-      })}
-    </div>
-  );
+export function ReadingChoiceGrid({item,segmented,selected,revealed,onSelect}:{item:ReadingQuestion;segmented:boolean;selected:number|null;revealed:boolean;onSelect:(index:number)=>void}) {
+ return <QuestionOptions choices={item.choices} selected={selected} answerIndex={item.answerIndex} reveal={revealed}
+   onSelect={onSelect} presentation="reading" interactiveText={segmented}
+   renderText={(choice,index)=><ReadingText lookup={segmented} text={choice} source={`阅读 ${item.reference??item.id} · ${item.title} · 選択肢 ${index+1}`} />} />;
 }

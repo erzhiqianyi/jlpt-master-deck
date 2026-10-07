@@ -1,6 +1,6 @@
 # JLPT Master Deck 整体架构
 
-2026-10-07；本文对应本地domain/unified-question-bank分支，不代表部署状态。原始方向：[统一题库方案](unified-question-bank-design.md)。领域边界：[领域模型](domain-model.md)；详细契约：[知识点](knowledge-content-contracts.md)、[23题型](question-type-specifications.md)、[MCP](mcp-domain-contracts.md)、[UI入口/状态矩阵](question-experience-matrix.md)。
+2026-10-07；本文对应本地domain/unified-question-bank分支，不代表部署状态。原始方向：[统一题库方案](unified-question-bank-design.md)。领域边界：[领域模型](domain-model.md)；详细契约：[知识点](knowledge-content-contracts.md)、[23题型](question-type-specifications.md)、[MCP](mcp-domain-contracts.md)、[迁移计划](data-migration-plan.md)、[UI入口/状态矩阵](question-experience-matrix.md)。
 
 ![入口、共享用例、六领域与实际存储](diagrams/architecture-layers.svg)
 

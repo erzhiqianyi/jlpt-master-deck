@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { adaptQuestionSource, saveQuestionSource } from './question-bank.mjs';
+import { validateQuestionPayload,questionRegistrySchemaVersion } from '../src/domain/questionPayload.mjs';
 const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,stable(value[key])])) : value;
 const fingerprint = payload => createHash('sha256').update(JSON.stringify(stable(payload))).digest('hex');
@@ -45,6 +46,8 @@ export function saveMaterialGroup(db,owner,id,payload) {
 export function persistLibraryQuestion(db,owner,source,question,{materialRefs=[],knowledgeIds=[],groupId=null,status='ready',unscored=false}={}) {
  ownerRequired(owner);
  for (const ref of materialRefs) if (!readMaterialVersion(db,owner,ref)) throw new Error('Owned material revision required');
+ const validation=validateQuestionPayload({...question,materialRefs},{strict:question.validationMode==='strict',materialPayloads:materialRefs.map(ref=>readMaterialVersion(db,owner,ref))});
+ if(question.validationMode==='strict'&&!validation.valid) throw Object.assign(new Error('Question payload failed type-specific validation'),{code:'question_validation_failed',issues:validation.errors});
  const content={...question};
  for (const key of ['canonicalQuestionId','questionRevision','materialRefs','materialGroupId','reference','audioReference','createdAt','libraryNumber']) delete content[key];
  let adapted;
@@ -59,7 +62,7 @@ export function persistLibraryQuestion(db,owner,source,question,{materialRefs=[]
   if (!owned) throw new Error('Owned canonical revision required');
   adapted.id=question.canonicalQuestionId;
  }
- adapted.payload={...adapted.payload,materialRefs,knowledgeIds,materialGroupId:groupId};
+ adapted.payload={...adapted.payload,materialRefs,knowledgeIds,materialGroupId:groupId,registrySchemaVersion:questionRegistrySchemaVersion,strictExamEligible:question.validationMode==='strict'&&status==='ready'&&validation.strictExamEligible};
  adapted.fingerprint=fingerprint(adapted.payload);
  return saveQuestionSource(db,adapted);
 }

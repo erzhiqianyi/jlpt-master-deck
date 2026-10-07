@@ -60,12 +60,12 @@ test('rating saves the review interval, removes a card from due, and keeps owner
   const saved = rateReviewCard(alice.id, 'a1', 'remembered', now);
   assert.equal(saved.progress.nextReviewAt, '2026-10-03T06:00:00.000Z');
   assert.equal(saved.progress.reviewCount, 1);
-  assert.equal(saved.progress.correct, 1);
+  assert.equal(saved.progress.correct, 0);
   assert.equal(getAiLearningHome(alice.id, now).due.total, 1);
   assert.equal(getAiLearningHome(alice.id, now).reviewed_today, 1);
   assert.throws(() => rateReviewCard(bob.id, 'a2', 'easy', now), /not found/);
   assert.throws(() => rateReviewCard(alice.id, 'a2', 'unrated', now), /Invalid card rating/);
   const forgot = rateReviewCard(alice.id, 'a2', 'forgot', now);
   assert.equal(forgot.progress.nextReviewAt, '2026-09-30T06:10:00.000Z');
-  assert.equal(forgot.progress.wrong, 1);
+  assert.equal(forgot.progress.wrong, 0);
 });

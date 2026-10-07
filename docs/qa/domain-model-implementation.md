@@ -52,3 +52,17 @@ item seeds、daily/topic、mock创建/更新、市场词条与练习导入接can
 - 首次全回归450/453：索引新增字段揭示一处真实qtype元数据不一致，已修；两项索引断言扩大到全部元数据一致性；Cloudflare R2删除断言改为历史保留bytes且旧题路由404。最终全量覆盖修正。
 
 剩余范围按architecture与MCP契约标记继续：完整历史反填、所有剩余写入口；canonical增量同步与Apple离线消费；全QuestionRenderer/全型真实fixture与各入口状态；客观作答与自评事件/统计日期投影；分享版本和权限恢复；全并发/幂等/结构化错误。整体目标尚未完成，不能作为生产迁移发布。
+
+## 第三阶段进行中：真实呈现、同步、事件与影子迁移
+
+最新origin/main `56be34f`已本地合并为`1905174`，保留其iOS反馈与活用解码修复。Web词汇练习/回看、阅读、听力、模拟卷及MCP practice现使用同一QuestionRenderer/QuestionOptions；录音播放、模拟卷音频使用QuestionAudioPlayer（按钮与可拖动进度）。权限、计时、提交和导航仍由容器负责。23种结构/状态测试覆盖共用框架，尚不等于完整语义fixture或真实浏览器截图，也不等于原生UI全部统一。
+
+23型specifications已接真实get_question_registry；严格作者模式验证目标span、组句排列/★、检索条件、文章空位、不同材料revision、选项数和解析。旧档案读取保持兼容，不自动提升正式试卷资格。
+
+同步分页加入不可变question/material/group revisions和questionStates，owner隔离；iOS校验key/schema、保存版本缓存，AppStore同步/恢复/保存/登出均接这些字段。原生练习与回看按冻结revision读取已有缓存，原生待提交事件携带canonical/revision/type。旧payload或缺版本仍走兼容快照；离线素材/历史AU读取尚不完整。
+
+AnswerSubmitted与MemoryRated追加事件ledger；Web单题/MCP/native replay/新批量snapshot接入稳定事件ID、冲突拒绝、冻结版本校验。新SRS自评不再增加客观correct/wrong，历史legacy_mixed贡献保留。日总结实际消费事件、同题重答计数、旧快照只补缺事件历史；未选不算错；按账号或已保存总结的IANA时区计算自然日，DST 23/25小时已测。旧全量progress快照协议仍存在，不能声称所有旧客户端并发写已迁移。
+
+影子迁移CLI默认只读，显式源/新目标SQLite backup；逐批checkpoint和逐行savepoint、旧表内容hash核对。已覆盖owned/user seeds、草稿、日练、mock、reading、AU/LS；全局无owner词条和孤立LS报告拒绝，数字answer歧义不猜。源码和旧学习表不改；只在合成测试库执行，未运行真实用户迁移。完整生产灰度/回滚、媒体恢复与全历史映射仍待实施。
+
+阶段中验证：全量469/469通过，包含冻结版本作答、旧题改答案后原答案保持、稳定ID重试、多个陈旧计数客户端合并、外owner拒绝及日总结事件投影；tsc、lint、Web+3 MCP构建、Cloud API bundle通过。最新本机Xcode单元65/65通过，含原生冻结版本实际消费、版本作答payload和旧缓存兼容。正在运行四条已有demo UI验收；尚不能宣称UI完成。本机新建独立iPhone17/iOS26.5模拟器，测试使用ignored非生产配置，未配置真实Firebase。

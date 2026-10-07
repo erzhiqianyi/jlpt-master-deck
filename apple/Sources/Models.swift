@@ -122,6 +122,7 @@ struct DailySummary: Codable, Identifiable {
 }
 struct QuestionEnvelope: Decodable { let questions: [ReadingQuestion] }
 struct ReadingQuestion: Codable, Identifiable {
+    var presentation: NativeQuestionPresentation?
     var canonicalQuestionId: String?
     var questionRevision: Int?
     var questionTypeId: String?
@@ -312,6 +313,7 @@ struct NativeAttempt: Codable, Identifiable, Equatable {
     var analysisCompletedAt: String?
     struct AttemptAnswer: Codable, Equatable {
         let questionId: String; let itemId: String; let kind: String; let selected: String; let correct: Bool
+        var assemblyOrder: [String]? = nil
         var startedAt: String?; let answeredAt: String; let elapsedMs: Int
     }
     struct Summary: Codable, Equatable { let total: Int; let correct: Int; let wrong: Int; let accuracy: Double; let elapsedMs: Int }

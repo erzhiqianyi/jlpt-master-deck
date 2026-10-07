@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A202610070000000000000021 /* native-visual-expression.wav in Resources */ = {isa = PBXBuildFile; fileRef = A202610070000000000000022 /* native-visual-expression.wav */; };
+		A202610070000000000000011 /* QuestionPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A202610070000000000000012 /* QuestionPresentation.swift */; };
 		B202610070000000000000003 = {isa = PBXBuildFile; fileRef = A202610070000000000000003; };
 		B202610070000000000000002 = {isa = PBXBuildFile; fileRef = A202610070000000000000002; };
 		B202610070000000000000001 = {isa = PBXBuildFile; fileRef = A202610070000000000000001; };
@@ -60,6 +62,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A202610070000000000000022 /* native-visual-expression.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = "native-visual-expression.wav"; path = "../Fixtures/native-visual-expression.wav"; sourceTree = "<group>"; };
+		A202610070000000000000012 /* QuestionPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionPresentation.swift; sourceTree = "<group>"; };
 		A202610070000000000000003 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-visual-quick.wav"; path = "../Fixtures/native-visual-quick.wav"; sourceTree = "<group>"; };
 		A202610070000000000000002 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-visual-narrative.wav"; path = "../Fixtures/native-visual-narrative.wav"; sourceTree = "<group>"; };
 		A202610070000000000000001 = {isa = PBXFileReference; lastKnownFileType = file; name = "native-question-visual.json"; path = "../Fixtures/native-question-visual.json"; sourceTree = "<group>"; };
@@ -169,6 +173,8 @@
 				96DCA0FBBC78C2BC5CE7746F /* LoginView.swift */,
 				01C35E320050E130919BB380 /* Models.swift */,
 				86EB041AD44AA21857F254F0 /* NativePractice.swift */,
+				A202610070000000000000012 /* QuestionPresentation.swift */,
+				A202610070000000000000022 /* native-visual-expression.wav */,
 				C363CA3B219A0FFBD6D023CB /* StudyViews.swift */,
 				0081F089492841CD7A2AF1A6 /* SupportingViews.swift */,
 				EF9C6932FCBFA6E158266D95 /* Theme.swift */,
@@ -349,6 +355,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A202610070000000000000021 /* native-visual-expression.wav in Resources */,
 				B202610070000000000000003,
 				B202610070000000000000002,
 				B202610070000000000000001,
@@ -383,6 +390,7 @@
 				EA2D1C34B90D1DAE4AB7B165 /* LoginView.swift in Sources */,
 				5AE28FBA99D2952947FF11A2 /* Models.swift in Sources */,
 				C540AEBD7F182F2ED63AC3E0 /* NativePractice.swift in Sources */,
+				A202610070000000000000011 /* QuestionPresentation.swift in Sources */,
 				E239F3B5159F1B61092D80C6 /* StudyViews.swift in Sources */,
 				D21B0BE04E849FD17ABFE242 /* SupportingViews.swift in Sources */,
 				C3B95992D273051CE1451F32 /* Theme.swift in Sources */,

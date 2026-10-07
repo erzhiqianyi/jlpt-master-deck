@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 const text = (max) => z.string().trim().max(max);
 export const readingFields = {
+  materialRefs: z.array(z.object({id: text(200).min(1),revision:z.number().int().positive()})).min(1).max(20).optional(),
+  taskConditions: z.array(text(1000).min(1)).max(30).optional(),
   questionTypeId: z.enum(['reading-short','reading-mid','reading-long','reading-integrated','reading-thematic','reading-information','reading-basic-training']).optional(),
   level: z.enum(['N1','N2','N3','N4','N5']).nullable().optional(),
   materialRef: z.object({id: text(200).min(1),revision:z.number().int().positive()}).nullable().optional(),

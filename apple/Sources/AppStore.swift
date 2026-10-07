@@ -725,10 +725,15 @@ final class AppStore {
         #endif
         #if DEBUG
         if let fixtureID=NativeVisualFixtures.requestedID {
-            if let fixture=try? NativeVisualFixtures.load().fixtures.first(where:{$0.id==fixtureID}),fixture.surface=="quiz",let q=try? fixture.decoded(NativeQuestion.self),let id=q.canonicalQuestionId {
-                let options=q.choices.enumerated().map { number,text in SettingValue.object(["id":.string("option-\(number)"),"text":.string(text)]) }
-                let record=BankCachedVersion(id:id,revision:1,schemaVersion:1,payload:.object(["schemaVersion":.number(1),"questionTypeId":.string(fixtureID),"legacy":fixture.question ?? .null,"options":.array(options),"answer":.object(["type":.string("option"),"optionId":.string("option-0")])]))
+            if let fixture=try? NativeVisualFixtures.load().fixtures.first(where:{$0.id==fixtureID}), case .object(let fields) = fixture.question, case .string(let id) = fields["canonicalQuestionId"] {
+                let q = try? fixture.decoded(NativeQuestion.self)
+                let choices = q?.choices ?? []
+                let options=choices.enumerated().map { number,text in SettingValue.object(["id":.string("option-\(number)"),"text":.string(text)]) }
+                let correct = q.flatMap { $0.choices.firstIndex(of: $0.answer) } ?? 0
+                let record=BankCachedVersion(id:id,revision:1,schemaVersion:1,payload:fixture.bankPayload ?? .object(["schemaVersion":.number(1),"questionTypeId":.string(fixtureID),"legacy":fixture.question ?? .null,"options":.array(options),"answer":.object(["type":.string("option"),"optionId":.string("option-\(correct)")])]))
                 bankVersions=["questionVersions":[record.versionKey:record]]
+                for record in fixture.questionVersions ?? [] { bankVersions?["questionVersions"]?[record.versionKey] = record }
+                bankVersions?["materialVersions"] = Dictionary((fixture.materialVersions ?? []).map { ($0.versionKey, $0) }, uniquingKeysWith: { first, _ in first })
             }
             UserDefaults.standard.removeObject(forKey:"listening-draft-v1:demo:visual-\(fixtureID)")
             state.settings=(state.settings ?? [:]).merging(["practiceNavigation":.string("manual")]) { _,new in new }

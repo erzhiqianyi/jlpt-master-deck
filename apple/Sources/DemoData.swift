@@ -125,6 +125,10 @@ struct NativeVisualFixtures: Decodable {
     struct Entry:Decodable {
         let id:String;let surface:String;var blockedReason:String?
         var question:SettingValue?
+        var bankPayload:SettingValue?
+        var materialVersions:[BankCachedVersion]?
+        var questionVersions:[BankCachedVersion]?
+        var relatedQuestions:[NativeQuestion]?
         func staleQuizSource() -> NativeQuestion? {
             guard case .object(var fields)=question else { return nil }
             fields["prompt"] = .string("当前源文本（不应显示）")
@@ -146,7 +150,7 @@ struct NativeVisualFixtureView:View {
     @ViewBuilder var body:some View {
         if let fixture=try? NativeVisualFixtures.load().fixtures.first(where:{$0.id==id}) {
             if fixture.surface=="quiz",let q=try? fixture.decoded(NativeQuestion.self) {
-                NativeQuizView(round:NativeRound(title:q.title,questions:[fixture.staleQuizSource() ?? q],view:"vocabulary"))
+                NativeQuizView(round:NativeRound(title:q.title,questions:[fixture.staleQuizSource() ?? q] + (fixture.relatedQuestions ?? []),view:"vocabulary"))
             } else if fixture.surface=="reading",let q=try? fixture.decoded(ReadingQuestion.self) {
                 NavigationStack { ReadingPracticeView(question:q) }
             } else if fixture.surface=="listening",let q=try? fixture.decoded(ListeningItem.self) {

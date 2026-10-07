@@ -1103,8 +1103,8 @@ final class NativeVisualFixtureContractTests:XCTestCase {
     func testFixturesDeclareRealNativeCapabilitiesAndValidContent() throws {
         let data=try NativeVisualFixtures.load()
         XCTAssertEqual(data.fixtures.count,23);XCTAssertEqual(Set(data.fixtures.map(\.id)).count,23)
-        XCTAssertEqual(data.fixtures.filter { $0.surface != "unsupported" }.count,18)
-        XCTAssertEqual(Set(data.fixtures.filter { $0.surface=="unsupported" }.map(\.id)),Set(["grammar-composition","grammar-text","reading-integrated","reading-information","listening-expression"]))
+        XCTAssertEqual(data.fixtures.filter { $0.surface != "unsupported" }.count,23)
+        XCTAssertTrue(data.fixtures.allSatisfy { $0.bankPayload != nil })
         for fixture in data.fixtures {
             if fixture.surface=="quiz" { let q=try fixture.decoded(NativeQuestion.self);XCTAssertTrue(q.isUsable);XCTAssertEqual(q.questionTypeId,fixture.id);XCTAssertGreaterThan(q.correctReason?.count ?? 0,200) }
             if fixture.surface=="reading" { let q=try fixture.decoded(ReadingQuestion.self);XCTAssertEqual(q.questionTypeId,fixture.id);XCTAssertTrue(q.choices.indices.contains(q.answerIndex));if fixture.id=="reading-long" { XCTAssertGreaterThan(q.passage.count,500) } }
@@ -1112,10 +1112,92 @@ final class NativeVisualFixtureContractTests:XCTestCase {
         }
     }
     func testLocalJapaneseAudioResourcesArePlayable() throws {
-        for name in ["native-visual-narrative","native-visual-quick"] {
+        for name in ["native-visual-narrative","native-visual-quick","native-visual-expression"] {
             let url=try XCTUnwrap(Bundle.main.url(forResource:name,withExtension:"wav"))
             let bytes=try Data(contentsOf:url);XCTAssertEqual(String(data:bytes.prefix(4),encoding:.utf8),"RIFF")
             let player=try AVAudioPlayer(data:bytes);XCTAssertGreaterThan(player.duration,1)
         }
+    }
+}
+
+final class TypedQuestionPresentationTests: XCTestCase {
+    private func fixture(_ id: String) throws -> (NativeVisualFixtures.Entry, NativeQuestionPresentation) {
+        let entry = try XCTUnwrap(NativeVisualFixtures.load().fixtures.first { $0.id == id })
+        let value = try XCTUnwrap(entry.bankPayload)
+        let payload = try JSONDecoder().decode(NativeQuestionPayload.self, from: JSONEncoder().encode(value))
+        return (entry, .init(payload: payload, materials: entry.materialVersions ?? []))
+    }
+    func testEveryRegistryTypeDecodesCanonicalSchemaAndFiveStructuralTypesHaveMaterials() throws {
+        let ids = try NativeVisualFixtures.load().fixtures.map(\.id)
+        XCTAssertEqual(Set(ids), NativeQuestionPayload.types)
+        for id in ids { let (_, p) = try fixture(id); XCTAssertTrue(p.payload.valid, id); XCTAssertFalse(p.missingMaterial, id) }
+        let (_, integrated) = try fixture("reading-integrated")
+        XCTAssertEqual(integrated.materials.count, 2)
+        let (_, info) = try fixture("reading-information")
+        XCTAssertEqual(info.payload.legacy.taskConditions?.count, 3)
+        XCTAssertEqual(info.materials.compactMap { info.material(.init(id: $0.id, revision: $0.revision)) }.first?.rows?.count, 4)
+    }
+    func testAssemblyRequiresEveryFragmentOnceAndReturnsStarOptionWithoutChangingLegacyAnswer() throws {
+        let (_, p) = try fixture("grammar-composition")
+        XCTAssertNil(p.payload.selectedOption(order: ["option-0"]))
+        XCTAssertNil(p.payload.selectedOption(order: ["option-0","option-0","option-2","option-3"]))
+        XCTAssertEqual(p.payload.selectedOption(order: ["option-0","option-1","option-2","option-3"]), 2)
+        XCTAssertEqual(p.payload.options?[2].text, "会った")
+        XCTAssertEqual(p.payload.selectedOption(order: ["option-0","option-2","option-1","option-3"]), 1)
+    }
+    @MainActor func testFrozenPresentationAndMaterialSnapshotsSurviveSourceEditsAndAttemptRoundTrip() throws {
+        let (entry, p) = try fixture("reading-integrated")
+        let source = try entry.decoded(ReadingQuestion.self)
+        let store = AppStore(); store.startDemo()
+        let ref = BankVersionReference(id: try XCTUnwrap(source.canonicalQuestionId), revision: 1)
+        store.bankVersions = ["questionVersions": [ref.versionKey: .init(id: ref.id, revision: 1, schemaVersion: 1, payload: try XCTUnwrap(entry.bankPayload))], "materialVersions": Dictionary(p.materials.map { ($0.versionKey, $0) }, uniquingKeysWith: { first, _ in first })]
+        let frozen = store.resolvedReadingQuestion(source)
+        store.bankVersions = nil
+        XCTAssertEqual(store.resolvedReadingQuestion(frozen).presentation, p)
+        let attempt = DedicatedAttempts.reading(frozen, sessionID: "typed", selection: 0)
+        let roundTrip = try JSONDecoder().decode(NativeAttempt.self, from: JSONEncoder().encode(attempt))
+        XCTAssertEqual(roundTrip.questionManifest?.first?.snapshot?.presentation, p)
+        XCTAssertEqual(roundTrip.answers.first?.selected, "本を借りること")
+        XCTAssertTrue(roundTrip.answers.first?.correct == true)
+    }
+    func testMultiBlankSharesOneArticleAndKeepsIndependentCanonicalQuestionIDs() throws {
+        let (entry, first) = try fixture("grammar-text")
+        let secondRecord = try XCTUnwrap(entry.questionVersions?.first)
+        let second = try JSONDecoder().decode(NativeQuestionPayload.self, from: JSONEncoder().encode(secondRecord.payload))
+        XCTAssertEqual(first.payload.materialRefs, second.materialRefs)
+        XCTAssertEqual(first.payload.legacy.blankId, "【1】")
+        XCTAssertEqual(second.legacy.blankId, "【2】")
+        XCTAssertNotEqual(entry.relatedQuestions?.first?.canonicalQuestionId, "visual-bank-grammar-text")
+        XCTAssertEqual(second.answerIndex, 0)
+    }
+    func testImageOptionsResolveOwnedFrozenImageBytesAndMissingMaterialBlocksSubmission() throws {
+        let (_, p) = try fixture("listening-expression")
+        XCTAssertEqual(p.payload.legacy.optionMaterials?.count, 3)
+        for binding in p.payload.legacy.optionMaterials ?? [] {
+            let image = try XCTUnwrap(p.material(binding.materialRef)); let url = try XCTUnwrap(image.url)
+            let data = try XCTUnwrap(Data(base64Encoded: String(url.split(separator: ",", maxSplits: 1)[1])))
+            XCTAssertNotNil(UIImage(data: data)); XCTAssertFalse((image.alt ?? "").isEmpty)
+        }
+        var missing = p; missing.materials.removeLast(); XCTAssertTrue(missing.missingMaterial)
+    }
+    func testAudioPolicyAndPermissionDoNotRevealBeforePlaybackOrUnauthorizedReview() throws {
+        let (_, p) = try fixture("listening-outline")
+        XCTAssertFalse(p.payload.visibleAfterAudio(false, question: true))
+        XCTAssertFalse(p.payload.visibleAfterAudio(false, question: false))
+        XCTAssertTrue(p.payload.visibleAfterAudio(true, question: true))
+        XCTAssertFalse(NativeQuestionPresentation.revealAllowed(requested: true, permitted: false))
+        XCTAssertTrue(NativeQuestionPresentation.revealAllowed(requested: true, permitted: true))
+    }
+    func testTargetSpanMarksSecondOccurrenceWithUTF16OffsetsAndPreservesRedTokenStyle() throws {
+        let (_, p) = try fixture("vocabulary-kanji-reading")
+        let span = try XCTUnwrap(p.payload.legacy.targetSpan); let range = try XCTUnwrap(span.range(in: p.payload.prompt))
+        XCTAssertGreaterThan(range.location, 0)
+        let tokens = [JapaneseAnnotation.Token(surface: p.payload.prompt, pos: "noun")]
+        var display = JapaneseDisplay(); display.segmented = true; display.styles["noun"] = .init(mode: "text", color: "#FF0000")
+        let value = JapaneseAttributed.make(tokens: tokens, display: display, ruby: false, font: .systemFont(ofSize: 18), color: .black, targetRange: range)
+        XCTAssertNil(value.attribute(.underlineStyle, at: 0, effectiveRange: nil))
+        XCTAssertNotNil(value.attribute(.underlineStyle, at: range.location, effectiveRange: nil))
+        XCTAssertEqual(value.attribute(.foregroundColor, at: range.location, effectiveRange: nil) as? UIColor, UIColor.red)
+        XCTAssertNil(NativeTargetSpan(start: 1, end: 2, text: "x").range(in: "😀x"))
     }
 }

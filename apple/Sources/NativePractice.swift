@@ -18,6 +18,7 @@ struct PracticeEntry: Identifiable {
     ]
 }
 struct NativeQuestion: Codable, Identifiable, Equatable {
+    var presentation: NativeQuestionPresentation?
     var canonicalQuestionId: String?
     var questionRevision: Int?
     var questionTypeId: String?
@@ -167,9 +168,10 @@ struct NativePracticeScreen: View {
     func start(_ pack: NativePack, title: String) { round = NativeRound(title: title, questions: pack.questions.filter(\.isUsable), view: "daily-practice", practiceId: pack.id) }
 
 }
-struct NativeRound: Identifiable { let id = UUID(); let title: String; let questions: [NativeQuestion]; var view = "mixed"; var practiceId: String?; var resumeSavedAnswers = false }
+struct NativeRound: Identifiable { let id = UUID(); let title: String; var questions: [NativeQuestion]; var view = "mixed"; var practiceId: String?; var resumeSavedAnswers = false }
 // Local drafts are separate from submitted answers and isolated by account and practice.
 struct NativePracticeCheckpoint: Codable {
+    var assemblyOrders: [String: [String]]? = nil
     var questionIDs: [String]
     var questions: [NativeQuestion]? = nil
     var index: Int
@@ -236,7 +238,7 @@ private struct NativePracticeAdvance: Equatable {
 }
 
 struct NativeQuizView: View {
-    let round: NativeRound
+    @State var round: NativeRound
     var savesProgress = true
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -246,6 +248,7 @@ struct NativeQuizView: View {
     @State private var restored = false
     @State private var resumedAttemptID: String?
     @State private var selections: [String: String] = [:]
+    @State private var assemblyOrders: [String: [String]] = [:]
     @State private var attemptAnswers: [NativeAttempt.AttemptAnswer] = []
     @State private var saving = false
     @State private var showingQuestionList = false
@@ -407,6 +410,14 @@ struct NativeQuizView: View {
     private func questionCard(_ question: NativeQuestion) -> some View {
         let answer = recorded(question)
         return VStack(alignment: .leading, spacing: 20) {
+            if let presentation = question.presentation {
+                NativeTypedQuestionRenderer(presentation: presentation, selected: question.choices.firstIndex(of: selections[question.id] ?? ""), revealed: answer != nil && !batchFeedback, optionIdentifier: "quiz.choice", initialOrder: assemblyOrders[question.id] ?? [], onOrderChange: { order in assemblyOrders[question.id] = order; saveCheckpoint() }) { index, order in
+                    guard question.choices.indices.contains(index) else { return }
+                    if let order { assemblyOrders[question.id] = order }
+                    select(question.choices[index], for: question)
+                }
+                if let answer, !batchFeedback { Label(answer.correct ? "回答正确" : "回答错误", systemImage: answer.correct ? "checkmark.circle.fill" : "xmark.circle.fill").foregroundStyle(DeckTheme.accent) }
+            } else {
             if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
             ForEach(question.taskConditions ?? [], id: \.self) { JapaneseText(text: $0, japanese: true).font(.subheadline) }
             JapaneseText(text: question.prompt, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? [], fontSize: 22 * store.textScale, weight: .semibold, target: question.readingTarget).lineSpacing(8).textSelection(.enabled)
@@ -422,6 +433,7 @@ struct NativeQuizView: View {
             }
             if let answer, !batchFeedback {
                 NativePracticeFeedback(question: question, selected: answer.selected, sourceItem: store.items.first { $0.id == question.itemId }, pending: savesProgress && store.pendingCount > 0)
+            }
             }
         }.environment(\.japaneseStudyHintsEnabled, answer != nil && !batchFeedback)
             .environment(\.japaneseExplanationMode, answer != nil && !batchFeedback)
@@ -512,6 +524,7 @@ struct NativeQuizView: View {
         reviewOnlyMistakes = true
         reviewIndex = 0
         selections = [:]
+        assemblyOrders = [:]
         attemptAnswers = []
         elapsed = [:]
         failure = nil
@@ -578,6 +591,9 @@ struct NativeQuizView: View {
     private func reviewCard(_ question: NativeQuestion, number: Int) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("原题第 \(number) 题").font(.subheadline.bold()).foregroundStyle(DeckTheme.muted)
+            if let presentation = question.presentation {
+                NativeTypedQuestionRenderer(presentation: presentation, selected: question.choices.firstIndex(of: recorded(question)?.selected ?? ""), revealed: true, disabled: true, initialOrder: recorded(question)?.assemblyOrder ?? []) { _, _ in }
+            } else {
             JapaneseText(text: question.instruction?.isEmpty == false ? question.instruction! : question.title, japanese: true, weight: .semibold)
             if let context = question.context, !context.isEmpty, context != question.prompt { JapaneseText(text: context, japanese: true, allowsRuby: true, annotations: question.japaneseAnnotations ?? []).lineSpacing(7) }
             ForEach(question.taskConditions ?? [], id: \.self) { JapaneseText(text: $0, japanese: true).font(.subheadline) }
@@ -587,6 +603,7 @@ struct NativeQuizView: View {
                                   correct: choice == question.answer, annotations: question.japaneseAnnotations ?? [])
             }
             NativePracticeFeedback(question: question, selected: recorded(question)?.selected ?? "", sourceItem: store.items.first { $0.id == question.itemId }, pending: recorded(question) != nil && savesProgress && store.pendingCount > 0)
+            }
         }.environment(\.japaneseStudyHintsEnabled, true)
             .environment(\.japaneseExplanationMode, true)
     }
@@ -596,10 +613,12 @@ struct NativeQuizView: View {
            let draft = NativePracticeDraftWriter.read(key: key),
            draft.questionIDs == round.questions.map(\.id), round.questions.indices.contains(draft.index) {
             index = draft.index; selections = draft.selections; attemptAnswers = draft.answers
+            assemblyOrders = draft.assemblyOrders ?? [:]
             resumedAttemptID = draft.attemptID; attemptStarted = draft.started
             elapsed = draft.elapsed; questionStarted = .now
             return
         }
+        round.questions = round.questions.map { store.resolvedBankQuestion($0) }
         guard savesProgress, round.practiceId != nil else { return }
         let existing = (store.state.attemptHistory ?? []).first {
             $0.practiceId == round.practiceId && (round.resumeSavedAnswers || $0.completedAt == nil)
@@ -625,7 +644,7 @@ struct NativeQuizView: View {
         guard restored, let key = checkpointKey else { return }
         if finished { NativePracticeDraftWriter.write(nil, key: key); return }
         guard !round.questions.isEmpty else { return }
-        let draft = NativePracticeCheckpoint(questionIDs: round.questions.map(\.id), questions: round.questions, index: index,
+        let draft = NativePracticeCheckpoint(assemblyOrders: assemblyOrders, questionIDs: round.questions.map(\.id), questions: round.questions, index: index,
                                  selections: selections, answers: attemptAnswers,
                                  attemptID: resumedAttemptID ?? "native-\(round.id.uuidString)",
                                  started: attemptStarted, elapsed: elapsed, batchFeedback: batchFeedback)
@@ -641,7 +660,7 @@ struct NativeQuizView: View {
     }
     private func answer(_ question: NativeQuestion, selected: String, now: Date) -> NativeAttempt.AttemptAnswer {
         let activeMs = self.question?.id == question.id ? max(0, Int(now.timeIntervalSince(questionStarted) * 1000)) : 0
-        return .init(questionId: question.id, itemId: question.itemId, kind: question.kind, selected: selected, correct: selected == question.answer,
+        return .init(questionId: question.id, itemId: question.itemId, kind: question.questionTypeId ?? question.kind, selected: selected, correct: selected == question.answer, assemblyOrder: assemblyOrders[question.id],
                      startedAt: attemptStarted.ISO8601Format(), answeredAt: now.ISO8601Format(), elapsedMs: (elapsed[question.id] ?? 0) + activeMs)
     }
     private func attempt(_ answers: [NativeAttempt.AttemptAnswer], now: Date, submitted: Bool = false) -> NativeAttempt {
@@ -692,6 +711,7 @@ struct NativeQuizView: View {
 
 extension AppStore {
     func resolvedBankQuestion(_ question: NativeQuestion) -> NativeQuestion {
+        if question.presentation != nil { return question }
         guard let id = question.canonicalQuestionId, let revision = question.questionRevision,
               let cached = bankVersions?["questionVersions"]?[BankVersionReference(id: id, revision: revision).versionKey],
               case .object(let payload) = cached.payload, case .object(let legacy) = payload["legacy"],
@@ -709,7 +729,9 @@ extension AppStore {
             }
             guard let correct else { return question }
             fields["choices"] = texts; fields["answer"] = correct
-            return try JSONDecoder().decode(NativeQuestion.self, from: JSONSerialization.data(withJSONObject: fields))
+            var result = try JSONDecoder().decode(NativeQuestion.self, from: JSONSerialization.data(withJSONObject: fields))
+            result.presentation = questionPresentation(id: question.canonicalQuestionId, revision: question.questionRevision, frozen: question.presentation)
+            return result
         } catch { return question }
     }
     func submitNativeQuestion(_ question: NativeQuestion, selected: String, attempt: NativeAttempt? = nil) async throws {
@@ -1219,11 +1241,11 @@ struct NativeTopicConfirmationView: View {
 // Dedicated reading/listening surfaces use the same attempt and frozen question contract.
 enum DedicatedAttempts {
     static func reading(_ source:ReadingQuestion,sessionID:String,selection:Int? = nil,now:Date = .now) -> NativeAttempt {
-        let q=NativeQuestion(canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"reading",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.passage,correctReason:source.explanation)
+        let q=NativeQuestion(presentation:source.presentation,canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"reading",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.passage,correctReason:source.explanation)
         return make(id:"reading:\(sessionID)",practiceID:source.id,view:"reading",title:source.title,questions:[q],selected:selection.flatMap { q.choices.indices.contains($0) ? [q.id:q.choices[$0]] : nil } ?? [:],written:[:],submitted:selection != nil,now:now)
     }
     static func listening(_ group:ListeningGroup,sessionID:String,selected:[String:Int] = [:],written:[String:String] = [:],submitted:Bool = false,now:Date = .now) -> NativeAttempt {
-        let questions=group.questions.map { source in NativeQuestion(canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"listening",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.transcript,correctReason:source.explanation) }
+        let questions=group.questions.map { source in NativeQuestion(presentation:source.presentation,canonicalQuestionId:source.canonicalQuestionId,questionRevision:source.questionRevision,questionTypeId:source.questionTypeId,materialRefs:source.materialRefs,id:source.id,itemId:source.id,kind:"listening",title:source.title,prompt:source.question,choices:source.choices,answer:source.choices.indices.contains(source.answerIndex) ? source.choices[source.answerIndex] : "",japaneseAnnotations:source.japaneseAnnotations,context:source.transcript,correctReason:source.explanation) }
         let choices=Dictionary(group.questions.compactMap { q -> (String,String)? in guard let index=selected[q.id],q.choices.indices.contains(index) else { return nil };return (q.id,q.choices[index]) },uniquingKeysWith:{ first,_ in first })
         return make(id:"listening:\(sessionID)",practiceID:"listening-audio:\(group.id)",view:"listening",title:group.title,questions:questions,selected:choices,written:written,submitted:submitted,now:now)
     }

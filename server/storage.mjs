@@ -1054,7 +1054,7 @@ export function createListeningQuestion(userId, payload) {
         ...(payload.transcriptTranslation !== undefined ? { transcriptTranslation } : {}),
       });
     }
-    persistListeningBank(userId,existing.audioAssetId);
+    persistListeningBank(userId,existing.audioAssetId,{questionId:existing.id,patch:payload});
     });
     return listeningQuestionForUser(userId, existing.id);
   }
@@ -1099,7 +1099,7 @@ export function createListeningQuestion(userId, payload) {
         database.prepare('UPDATE listening_audio_assets SET transcript = ?, transcript_translation = ? WHERE user_id = ? AND id = ?')
           .run(payload.transcript === undefined ? prior.transcript : transcript, payload.transcriptTranslation === undefined ? prior.transcript_translation : transcriptTranslation, userId, assetId);
       }
-      persistListeningBank(userId,assetId);
+      persistListeningBank(userId,assetId,{questionId:id,patch:payload});
     });
   } catch (error) {
     if (!existingAsset && existsSync(audioPath)) unlinkSync(audioPath);
@@ -1284,7 +1284,7 @@ export function updateListeningQuestion(userId, id, payload) {
     reorderListeningQuestion(userId, id, payload.libraryNumber);
   }
 
-    persistListeningBank(userId,current.audioAssetId);
+    persistListeningBank(userId,current.audioAssetId,{questionId:id,patch:payload});
   });
   return listeningQuestionForUser(userId, id);
 }
@@ -1436,6 +1436,17 @@ export function saveListeningRecordingAnalysis(userId, id, payload) {
 }
 
 function persistReadingBank(userId,id,value) {
+  for (const ref of value.materialRefs ?? []) {
+    const material = readMaterialVersion(getDb(),userId,ref);
+    if (!material || !['article','table'].includes(material.type)) throw new Error('Owned article/table revision required');
+  }
+  if(value.materialRefs?.length && (value.materialRefs.length>1 || value.materialRefs.some(ref=>readMaterialVersion(getDb(),userId,ref)?.type==='table'))) {
+    const refs=value.materialRefs;
+    for(const ref of refs) { const material=readMaterialVersion(getDb(),userId,ref);if(!material||!["article","table"].includes(material.type))throw new Error("Owned article/table revision required"); }
+    if(value.questionTypeId==="reading-integrated"&&refs.length<2)throw new Error("Integrated reading requires two article revisions");
+    const groupId="reading:"+refs.map(ref=>`${ref.id}@${ref.revision}`).join("|");
+    const questionRef=persistLibraryQuestion(getDb(),userId,{kind:"reading",id,questionId:id},value,{materialRefs:refs,groupId});refreshReadingGroups(userId);return questionRef;
+  }
   let materialRef = value.materialRef;
   if (materialRef) {
     const material = readMaterialVersion(getDb(),userId,materialRef);
@@ -1464,13 +1475,18 @@ function refreshReadingGroups(userId) {
   for (const [id,group] of groups) saveMaterialGroup(getDb(),userId,id,group);
 }
 
-export function persistListeningBank(userId,assetId) {
+export function persistListeningBank(userId,assetId,{questionId,patch={}}={}) {
   const asset=getDb().prepare('SELECT * FROM listening_audio_assets WHERE user_id=? AND id=?').get(userId,assetId);
   if (!asset) return;
   const materialRef=saveMaterial(getDb(),userId,`audio:${assetId}`,{type:'audio',audioAssetId:assetId,fileName:asset.file_name,mime:asset.mime,sha256:asset.sha256,transcript:asset.transcript,transcriptTranslation:asset.transcript_translation});
   const groupId=`audio:${assetId}`;
   const questions=listListeningQuestions(userId).filter(q=>q.audioAssetId===assetId);
-  const refs=questions.map(q=>persistLibraryQuestion(getDb(),userId,{kind:'listening',id:q.id,questionId:q.id},q,{materialRefs:[materialRef],groupId,unscored:q.answerIndex===-1}));
+  const refs=questions.map(q=>{
+    const fields=q.id===questionId?Object.fromEntries(['materialRefs','optionMaterials','presentationPolicy','taskConditions'].filter(key=>patch[key]!==undefined).map(key=>[key,patch[key]])):{};
+    const content={...q,...fields};
+    const extra=(content.materialRefs??[]).filter(ref=>{const material=readMaterialVersion(getDb(),userId,ref);if(!material)throw new Error('Owned material revision required');return material.type!=='audio';});
+    return persistLibraryQuestion(getDb(),userId,{kind:'listening',id:q.id,questionId:q.id},content,{materialRefs:[materialRef,...extra],groupId,unscored:q.answerIndex===-1});
+  });
   saveMaterialGroup(getDb(),userId,groupId,{materialRefs:[materialRef],questionRefs:refs,extraction:'whole-group'});
 }
 

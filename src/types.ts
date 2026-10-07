@@ -53,6 +53,7 @@ export type CustomQuestionTypeTip = {
 };
 
 export type AttemptAnswer = {
+  assemblyOrder?: string[];
   questionId: string;
   itemId: string;
   kind: QuestionKind;

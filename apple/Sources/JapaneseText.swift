@@ -206,6 +206,7 @@ struct JapaneseText: View {
     var weight: UIFont.Weight = .regular
     var color: UIColor = UIColor(red: 0.188, green: 0.188, blue: 0.176, alpha: 1)
     var target: String? = nil
+    var targetRange: NSRange? = nil
     var displayOverride: JapaneseDisplay? = nil
     var rubyOverride: Bool? = nil
     var body: some View {
@@ -218,7 +219,7 @@ struct JapaneseText: View {
             ? JapaneseAnalysis.tokens(text, japanese: japanese, annotations: sourceAnnotations, items: dictionary, terms: terms + (item?.ruby_terms ?? []))
             : [.init(surface: text)]
         CoreJapaneseText(attributed: JapaneseAttributed.make(tokens: tokens, display: display, ruby: ruby,
-            font: .systemFont(ofSize: fontSize ?? scaledSize, weight: weight), color: color, target: target, alignment: alignment), source: text, onLookup: lookupEnabled ? { word in
+            font: .systemFont(ofSize: fontSize ?? scaledSize, weight: weight), color: color, target: target, targetRange: targetRange, alignment: alignment), source: text, onLookup: lookupEnabled ? { word in
                 lookupSelection = JapaneseLookupSelection(word: word, context: "复习卡片 · \(item?.original ?? "日语内容")\n\(text)")
             } : nil)
             .accessibilityLabel(text)
@@ -240,8 +241,9 @@ enum JapaneseAttributed {
         return (NSRange(location: (prefix as NSString).length, length: (base as NSString).length), kana)
     }
 
-    static func make(tokens: [JapaneseAnnotation.Token], display: JapaneseDisplay, ruby: Bool, font: UIFont, color: UIColor, target: String? = nil, alignment: NSTextAlignment = .left) -> NSAttributedString {
+    static func make(tokens: [JapaneseAnnotation.Token], display: JapaneseDisplay, ruby: Bool, font: UIFont, color: UIColor, target: String? = nil, targetRange: NSRange? = nil, alignment: NSTextAlignment = .left) -> NSAttributedString {
         let value = NSMutableAttributedString(string: "")
+        var sourceOffset = 0
         for (index, token) in tokens.enumerated() {
             let word = NSMutableAttributedString(string: token.surface, attributes: [.font: font, .foregroundColor: color])
             let range = NSRange(location: 0, length: word.length)
@@ -262,6 +264,11 @@ enum JapaneseAttributed {
                      kCTForegroundColorAttributeName: color.cgColor] as CFDictionary)
                 word.addAttribute(NSAttributedString.Key(kCTRubyAnnotationAttributeName as String), value: aligned, range: rubyRange.range)
             }
+            if let targetRange {
+                let intersection = NSIntersectionRange(targetRange, NSRange(location: sourceOffset, length: word.length))
+                if intersection.length > 0 { word.addAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue, .underlineColor: UIColor.systemRed], range: NSRange(location: intersection.location - sourceOffset, length: intersection.length)) }
+            }
+            sourceOffset += word.length
             value.append(word)
             if display.segmented, index + 1 < tokens.count, token.surface.last?.isWhitespace == false,
                tokens[index + 1].surface.first?.isWhitespace == false,
@@ -273,7 +280,7 @@ enum JapaneseAttributed {
                 }
             }
         }
-        if let target, !target.isEmpty {
+        if targetRange == nil, let target, !target.isEmpty {
             // Target marking in a reading question remains visible even with vocabulary styling enabled.
             let range = (value.string as NSString).range(of: target)
             if range.location != NSNotFound { value.addAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue, .underlineColor: UIColor.systemRed], range: range) }

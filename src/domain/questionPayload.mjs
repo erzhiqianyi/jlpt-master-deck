@@ -2,6 +2,22 @@ import {questionStrategy,resolveLegacyAnswer} from './questionContract.mjs';
 import specifications from '../data/questionSpecifications.json' with {type:'json'};
 export const questionRegistrySchemaVersion=specifications.schemaVersion;
 export const questionSpecifications=Object.freeze(Object.fromEntries(specifications.types.map(spec=>[spec.id,Object.freeze(spec)])));
+// Versioned presentation fields are shared by native/Web/MCP; references still require ownership.
+export function validatePresentationMaterials(question, materials) {
+ const errors=[];
+ const tableValid=m=>Array.isArray(m.headers)&&m.headers.length>0&&m.headers.every(x=>typeof x==='string'&&x.trim())&&Array.isArray(m.rows)&&m.rows.length>0&&m.rows.every(row=>Array.isArray(row)&&row.length===m.headers.length&&row.every(x=>typeof x==='string'));
+ for(const [index,material] of materials.entries()) {
+  if(material?.type==='table'&&!tableValid(material)&&!(material.blocks??[]).some(block=>block.type==='table'&&tableValid(block)))errors.push(issue('invalid',['materials',index],'Preserve table headers and rectangular rows'));
+  if(material?.type==='image'&&(!material.alt?.trim()||typeof material.url!=='string'||!(/^(?:https:\/\/|data:image\/(?:png|jpeg|webp);base64,)/.test(material.url))))errors.push(issue('invalid',['materials',index],'Image requires an accessible image URL and alternative text'));
+ }
+ for(const [index,entry] of (question.optionMaterials??[]).entries()) {
+  const optionIds=(question.choices??[]).map((_,i)=>`option-${i}`);
+  const slot=(question.materialRefs??[]).findIndex(ref=>ref.id===entry.materialRef?.id&&ref.revision===entry.materialRef?.revision);
+  if(!optionIds.includes(entry.optionId)||slot<0||materials[slot]?.type!=='image')errors.push(issue('invalid',['optionMaterials',index],'Image option must reference a declared owned image material revision'));
+ }
+ for(const key of ['questionTiming','optionsTiming'])if(question.presentationPolicy?.[key]!==undefined&&!['beforeAudio','afterAudio'].includes(question.presentationPolicy[key]))errors.push(issue('invalid',['presentationPolicy',key],'Unknown audio presentation timing'));
+ return errors;
+}
 const issue=(code,fieldPath,message)=>({code,fieldPath,message});
 /** Strict authored-content validation is opt-in for new canonical authoring.
  * Legacy archival remains readable and never gets promoted merely by parsing. */
@@ -22,6 +38,7 @@ export function validateQuestionPayload(question,{strict=true,materialPayloads=[
   if(!Array.isArray(choices)||choices.length!==count||choices.some(c=>typeof c!=='string'||!c.trim())||new Set(choices).size!==choices.length)errors.push(issue('invalid',['choices'],`Provide ${count} distinct, non-empty choices`));
  }
  const materials=materialPayloads;
+ errors.push(...validatePresentationMaterials(question,materials));
  if(materials.length) {
   const refs=question.materialRefs;
   if(!Array.isArray(refs)||refs.length!==materials.length||refs.some(ref=>typeof ref?.id!=='string'||!ref.id||!Number.isSafeInteger(ref.revision)||ref.revision<1)||new Set(refs.map(ref=>JSON.stringify([ref.id,ref.revision]))).size!==refs.length)errors.push(issue('invalid',['materialRefs'],'Each material must have a distinct owned version reference'));

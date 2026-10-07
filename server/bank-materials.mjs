@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { adaptQuestionSource, saveQuestionSource } from './question-bank.mjs';
-import { validateQuestionPayload,questionRegistrySchemaVersion } from '../src/domain/questionPayload.mjs';
+import { validateQuestionPayload,validatePresentationMaterials,questionRegistrySchemaVersion } from '../src/domain/questionPayload.mjs';
 const stable = value => Array.isArray(value) ? value.map(stable) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,stable(value[key])])) : value;
 const fingerprint = payload => createHash('sha256').update(JSON.stringify(stable(payload))).digest('hex');
@@ -46,6 +46,10 @@ export function saveMaterialGroup(db,owner,id,payload) {
 export function persistLibraryQuestion(db,owner,source,question,{materialRefs=[],knowledgeIds=[],groupId=null,status='ready',unscored=false}={}) {
  ownerRequired(owner);
  for (const ref of materialRefs) if (!readMaterialVersion(db,owner,ref)) throw new Error('Owned material revision required');
+ if (question.optionMaterials || question.presentationPolicy || question.taskConditions) {
+  const issues=validatePresentationMaterials({...question,materialRefs},materialRefs.map(ref=>readMaterialVersion(db,owner,ref)));
+  if(issues.length)throw Object.assign(new Error('Invalid presentation material contract'),{issues});
+ }
  const validation=validateQuestionPayload({...question,materialRefs},{strict:question.validationMode==='strict',materialPayloads:materialRefs.map(ref=>readMaterialVersion(db,owner,ref))});
  if(question.validationMode==='strict'&&!validation.valid) throw Object.assign(new Error('Question payload failed type-specific validation'),{code:'question_validation_failed',issues:validation.errors});
  const content={...question};
@@ -72,7 +76,8 @@ export function questionBankMetadata(db,owner,source) {
  if (!row) return {};
  const payload=JSON.parse(row.payload_json);
  return {canonicalQuestionId:row.question_id,questionRevision:row.revision,...(payload.questionTypeId?{questionTypeId:payload.questionTypeId}:{}),materialRefs:payload.materialRefs??[],materialGroupId:payload.materialGroupId??null,
-  ...(source.kind==='reading'?{questionTypeId:payload.questionTypeId??'reading-basic-training',level:payload.legacy.level??null,materialRef:payload.materialRefs?.[0]??null}: {})};
+  ...Object.fromEntries(['optionMaterials','presentationPolicy','taskConditions','blankId','targetSpan','assembly'].filter(key=>payload.legacy[key]!==undefined).map(key=>[key,payload.legacy[key]])),
+  ...(source.kind==='reading'?{questionTypeId:payload.questionTypeId??'reading-basic-training',level:payload.legacy.level??null,materialRef:payload.materialRefs?.length===1?payload.materialRefs[0]:null}: {})};
 }
 export function bankAudioHasHistory(db,owner,assetId) {
  return !!db.prepare('SELECT revision FROM bank_material_versions WHERE owner=? AND audio_asset_id=? LIMIT 1').get(owner,assetId);

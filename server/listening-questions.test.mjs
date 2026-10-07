@@ -10,6 +10,7 @@ process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
 process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 const storage = await import('./storage.mjs');
+const { saveMaterial } = await import('./bank-materials.mjs');
 const { tools } = await import('./mcp-tools.mjs');
 const { createApiHandler } = await import('./api-handler.mjs');
 const alice = storage.createUser('listener', 'password-one');
@@ -34,6 +35,20 @@ const call = async (name, args, owner = alice) => {
 };
 
 after(() => { storage.getDb().close(); rmSync(dir, { recursive: true, force: true }); });
+
+test('MCP preserves owned expression images and outline timing without another audio upload', async () => {
+  const source = await call('create_listening_question',makeInput('typed-source'));
+  const image = saveMaterial(storage.getDb(),alice.id,'typed-image',{type:'image',url:'https://example.test/book.png',alt:'本'});
+  const optionMaterials = [{optionId:'option-0',materialRef:image}];
+  const presentationPolicy = {questionTiming:'afterAudio',optionsTiming:'afterAudio'};
+  const {audioFileName,audioMime,audioBase64,...metadata} = makeInput('typed-expression');
+  const saved = await call('create_listening_question',{...metadata,audioReference:source.audioReference,questionTypeId:'listening-expression',materialRefs:[image],optionMaterials,presentationPolicy});
+  assert.equal(saved.audioAssetId,source.audioAssetId); assert.deepEqual(saved.optionMaterials,optionMaterials);
+  const edited = await call('update_listening_question',{id:saved.id,explanation:'画像の意図を確認'});
+  assert.deepEqual(edited.optionMaterials,optionMaterials);assert.deepEqual(edited.presentationPolicy,presentationPolicy);
+  storage.updateListeningTranscript(alice.id,saved.id,{transcript:'共有音声の新しい文字起こし'});
+  assert.deepEqual(storage.listeningQuestionForUser(alice.id,saved.id).optionMaterials,optionMaterials);
+});
 
 test('MCP update_listening_question edits metadata without touching audio', async () => {
   const saved = await call('create_listening_question', makeInput(1));

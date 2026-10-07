@@ -183,7 +183,14 @@ const practiceFilters = {
   date: dateString.optional().describe('Practice date, default today in Asia/Tokyo.'),
 };
 
+const listeningPresentationFields = {
+  materialRefs: z.array(z.object({id:z.string().min(1),revision:z.number().int().positive()})).max(20).optional(),
+  optionMaterials: z.array(z.object({optionId:z.string().min(1),materialRef:z.object({id:z.string().min(1),revision:z.number().int().positive()})})).max(4).optional(),
+  presentationPolicy: z.object({questionTiming:z.enum(['beforeAudio','afterAudio']).optional(),optionsTiming:z.enum(['beforeAudio','afterAudio']).optional()}).optional(),
+  taskConditions: z.array(z.string().min(1)).max(30).optional(),
+};
 const listeningCreateFields = {
+  ...listeningPresentationFields,
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   title: z.string().optional(),
   questionTypeId: z.enum(['listening-task', 'listening-points', 'listening-outline', 'listening-expression', 'listening-quick', 'listening-integrated', 'listening-basic-training']).optional(),
@@ -200,6 +207,7 @@ const listeningCreateFields = {
   audioBase64: z.string().optional(),
 };
 const listeningUpdateFields = {
+  ...listeningPresentationFields,
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
   id: z.string().min(1),
   title: z.string().optional(),

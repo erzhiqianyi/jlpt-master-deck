@@ -16,6 +16,7 @@ legacy.exec(`CREATE TABLE reading_questions (id TEXT PRIMARY KEY, user_id INTEGE
 INSERT INTO reading_questions VALUES ('legacy', 1, '旧题', '本文', '問い', '["A","B","C","D"]', 1, '旧総解説', '2026-01-01');`);
 legacy.close();
 const storage = await import('./storage.mjs');
+const { saveMaterial } = await import('./bank-materials.mjs');
 const { tools } = await import('./mcp-tools.mjs');
 const { createApiHandler } = await import('./api-handler.mjs');
 const alice = storage.createUser('reader', 'password-one');
@@ -27,6 +28,18 @@ const call = async (name, args, owner = alice) => {
   return JSON.parse((await tool.handler(z.object(tool.inputSchema).parse(args), { ownerId: String(owner.id) })).content[0].text);
 };
 after(() => { storage.getDb().close(); rmSync(dir, { recursive: true, force: true }); });
+
+test('MCP preserves integrated articles and information table conditions across edits', async () => {
+  const refs = ['A','B'].map(id => saveMaterial(storage.getDb(),alice.id,`typed-${id}`,{type:'article',blocks:[{id,type:'paragraph',text:`本文${id}`}]}));
+  const integrated = await call('create_reading_question',{...input,questionTypeId:'reading-integrated',materialRefs:refs});
+  assert.deepEqual(integrated.materialRefs,refs);
+  assert.deepEqual((await call('update_reading_question',{id:integrated.id,explanation:'改訂解説'})).materialRefs,refs);
+  const table = saveMaterial(storage.getDb(),alice.id,'typed-table',{type:'table',headers:['時間','料金'],rows:[['9時','800円']]});
+  const info = await call('create_reading_question',{...input,questionTypeId:'reading-information',materialRefs:[table],taskConditions:['9時に行く','1000円以内']});
+  const edited = await call('update_reading_question',{id:info.id,explanation:'条件を照合する'});
+  assert.deepEqual(edited.materialRefs,[table]); assert.deepEqual(edited.taskConditions,info.taskConditions);
+  assert.throws(()=>storage.createReadingQuestion(bob.id,{...input,materialRefs:refs}),/Owned/);
+});
 
 test('legacy schema migrates in place and explanation remains editable', () => {
   const old = storage.readingQuestionForUser(alice.id, 'legacy');

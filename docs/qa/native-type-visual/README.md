@@ -1,5 +1,7 @@
 # 原生逐型视觉证据（兼容呈现范围）
 
+> 本页是提交 `7afecab` 的历史文本兼容截图基线，fixture SHA以 evidence.json 为准。后续已实施共享typed renderer及五类结构化调用，见 [第一阶段记录](../native-typed-renderer-stage1.md)；以下“尚未实现”描述仅针对该历史截图版本。新renderer仍需第二阶段真实手机/iPad截图验收，本页135张PNG不能替代。
+
 本轮使用真实 `NativeQuizView`、`ReadingPracticeView`、`ListeningDetailView`，通过 DEBUG fixture 入口启动；并非替代页面或概念图。23个类型均列在原始 fixture 中，其中18个能进入现有文本兼容呈现，5个结构化功能缺失。**18类文本页面有截图，不等于18类完整正式payload验收通过，更不是23类通过。**
 
 原创 QA 内容位于 `apple/Fixtures/native-question-visual.json`；长正文/解析使用重复段落做滚动压力测试，不能作为正式日语题目质量或跨段推理认证。两段音频使用本机 Kyoko 日语语音合成，PCM WAV 16kHz；实际由 AVAudioPlayer 播放。无生产题目、用户作答或生产网络参与。

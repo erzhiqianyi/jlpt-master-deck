@@ -276,12 +276,18 @@ struct ReadingPracticeView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                if geometry.size.width >= 760 {
+                if let presentation = store.questionPresentation(id: question.canonicalQuestionId, revision: question.questionRevision, frozen: question.presentation) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        NativeTypedQuestionRenderer(presentation: presentation, selected: selected, revealed: submitted, disabled: store.isSaving, optionIdentifier: "reading.choice") { index, _ in selected = index }
+                        if submitted && !viewingAnswer { Label(selected == question.answerIndex ? "回答正确" : "再看一下原文", systemImage: selected == question.answerIndex ? "checkmark.circle.fill" : "info.circle").foregroundStyle(DeckTheme.green) }
+                        if let error { Text(error).foregroundStyle(.red) }
+                    }.frame(maxWidth: 1120).padding(16).frame(maxWidth: .infinity)
+                } else if geometry.size.width >= 760 {
                     HStack(alignment: .top, spacing: 28) { passage.frame(maxWidth: .infinity); Rectangle().fill(DeckTheme.line).frame(width: 1); answers.frame(maxWidth: .infinity) }.frame(maxWidth: 1120).modifier(StudyPagePadding()).frame(maxWidth: .infinity)
                 } else { VStack(alignment: .leading, spacing: 20) { passage; Divider(); answers }.padding(.horizontal, 16).padding(.vertical, 12) }
             }
         }.background(DeckTheme.paper).navigationTitle("阅读练习")
-        .onAppear { do { try store.presentDedicatedAttempt(DedicatedAttempts.reading(question,sessionID:sessionID)) } catch { self.error=error.localizedDescription } }
+        .onAppear { question = store.resolvedReadingQuestion(question); do { try store.presentDedicatedAttempt(DedicatedAttempts.reading(question,sessionID:sessionID)) } catch { self.error=error.localizedDescription } }
         .onDisappear { store.speechPlayer.stop() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !submitted {

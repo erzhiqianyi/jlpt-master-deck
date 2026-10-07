@@ -2,8 +2,14 @@ import SwiftUI
 import AVFoundation
 import Combine
 
+private final class ListeningAudioCompletion: NSObject, AVAudioPlayerDelegate {
+    var finished = false
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { finished = flag }
+}
+
 struct ListeningEnvelope: Decodable { let questions: [ListeningItem] }
 struct ListeningItem: Codable, Identifiable {
+    var presentation: NativeQuestionPresentation?
     var canonicalQuestionId: String?
     var questionRevision: Int?
     var materialRefs: [BankVersionReference]?
@@ -99,6 +105,7 @@ struct ListeningLibraryView: View {
 
 }
 struct ListeningDraft: Codable {
+    var audioCompleted: Bool? = nil
     var questionSnapshots: [ListeningItem]?
     var questionIDs: [String]
     var currentQuestion: Int
@@ -120,6 +127,8 @@ struct ListeningDetailView: View {
     @State private var loading = false
     @State private var playing = false
     @State private var audioTime = 0.0
+    @State private var audioCompleted = false
+    @State private var audioCompletion = ListeningAudioCompletion()
     @State private var duration = 0.0
     @State private var seeking = false
     @State private var draftStorageKey: String?
@@ -179,6 +188,7 @@ struct ListeningDetailView: View {
         .sheet(isPresented: $showingCard) { answerCard }
         .onAppear {
             visible = true
+            group = ListeningGroup(id: group.id, questions: group.questions.map { store.resolvedListeningItem($0) })
             if draftStorageKey == nil { draftStorageKey = draftKey }
             restoreDraft()
             saveDraft()
@@ -186,7 +196,7 @@ struct ListeningDetailView: View {
         }
         .onDisappear { visible = false; if !revealed { saveDraft() }; player?.stop(); playing = false }
         .onReceive(ticker) { _ in
-            if let player { if !seeking { audioTime = player.currentTime }; duration = player.duration; playing = player.isPlaying }
+            if let player { if !seeking { audioTime = player.currentTime }; duration = player.duration; audioCompleted = audioCompleted || audioCompletion.finished; playing = player.isPlaying }
         }
         .onChange(of: scenePhase) { _, value in
             if value != .active && !revealed { player?.pause(); playing = false; saveDraft() }
@@ -242,6 +252,11 @@ struct ListeningDetailView: View {
 
     private func question(_ item: ListeningItem, number: Int) -> some View {
         VStack(alignment: .leading, spacing: 18) {
+            if let presentation = store.questionPresentation(id: item.canonicalQuestionId, revision: item.questionRevision, frozen: item.presentation) {
+                NativeTypedQuestionRenderer(presentation: presentation, selected: selected[item.id], revealed: revealed, disabled: saving, audioFinished: audioCompleted, optionIdentifier: "listening.choice.\(number)") { index, _ in selected[item.id] = index }
+                if !revealed && item.freeResponse { TextField("写下你的回答", text: Binding(get: { written[item.id] ?? "" }, set: { written[item.id] = $0 }), axis: .vertical).disabled(saving) }
+                if revealed, let transcript = item.transcript { Text("听力原文").font(.headline); JapaneseText(text: transcript, japanese: true).textSelection(.enabled) }
+            } else {
             HStack {
                 Text(item.question).font(.headline).lineSpacing(6)
                 Spacer(minLength: 12)
@@ -276,6 +291,7 @@ struct ListeningDetailView: View {
                     }.buttonStyle(.plain).disabled(saving)
                         .accessibilityIdentifier("listening.choice.\(number).\(index)")
                 }
+            }
             }
         }
     }
@@ -416,6 +432,7 @@ struct ListeningDetailView: View {
     private func pause() { player?.pause(); playing = false; saveDraft(); phase = .paused }
     private func exitOrPause() { if phase == .answering { pause() } else { dismiss() } }
     private func restart() {
+        audioCompleted = false; audioCompletion.finished = false
         player?.stop(); player?.currentTime = 0; audioTime = 0; playing = false
         selected = [:]; written = [:]; currentQuestion = 0; revealed = false
         sessionID = UUID().uuidString; reviewMistakes = false; phase = .answering
@@ -423,7 +440,7 @@ struct ListeningDetailView: View {
     }
     private func saveDraft() {
         guard !revealed, !group.questions.isEmpty else { return }
-        let draft = ListeningDraft(questionSnapshots:group.questions,questionIDs: group.questions.map(\.id), currentQuestion: currentQuestion,
+        let draft = ListeningDraft(audioCompleted: audioCompleted, questionSnapshots:group.questions,questionIDs: group.questions.map(\.id), currentQuestion: currentQuestion,
                                    selected: selected, written: written, audioTime: player?.currentTime ?? audioTime, sessionID: sessionID)
         if let data = try? JSONEncoder().encode(draft) { UserDefaults.standard.set(data, forKey: draftKey) }
     }
@@ -435,7 +452,7 @@ struct ListeningDetailView: View {
         if let snapshots = draft.questionSnapshots { group = ListeningGroup(id:group.id,questions:snapshots) }
         guard draft.questionIDs == group.questions.map(\.id) else { return }
         selected = draft.selected; written = draft.written; currentQuestion = draft.currentQuestion
-        audioTime = draft.audioTime; sessionID = draft.sessionID; phase = .resume
+        audioTime = draft.audioTime; audioCompleted = draft.audioCompleted ?? false; sessionID = draft.sessionID; phase = .resume
     }
     private func confirm() async {
         guard complete, !saving else { return }; saving = true; error = nil
@@ -453,7 +470,7 @@ struct ListeningDetailView: View {
         do {
             let data = try await store.audioData(for: item)
             guard visible, phase == .answering || phase == .review || phase == .resume else { return }
-            let audio = try AVAudioPlayer(data: data); audio.currentTime = audioTime
+            let audio = try AVAudioPlayer(data: data); audio.currentTime = audioTime; audio.delegate = audioCompletion
             duration = audio.duration; player = audio; playing = audio.play(); error = nil
         } catch { self.error = error.localizedDescription }
     }

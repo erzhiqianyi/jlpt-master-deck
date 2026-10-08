@@ -144,9 +144,11 @@ struct MemoryReviewView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    let items: [StudyItem]
-    @State private var index = 0
-    @State private var revealed = false
+    let session: ReviewSession
+    private var currentSession: ReviewSession { store.memoryReview ?? session }
+    private var items: [StudyItem] { currentSession.items }
+    private var index: Int { currentSession.index }
+    private var revealed: Bool { currentSession.revealed }
     @AppStorage("memorySpeechSide") private var speechSide = "right"
     @State private var error: String?
     private var activeFields: [String] { CardFields.selected(store.state.settings, back: revealed) }
@@ -183,7 +185,7 @@ struct MemoryReviewView: View {
                             }.padding(revealed ? 4 : sizeClass == .compact ? 18 : 24)
                                 .frame(maxWidth: .infinity, minHeight: revealed ? 0 : max(240, geometry.size.height - 32), alignment: revealed ? .topLeading : .center)
                                 .contentShape(Rectangle())
-                                .onTapGesture { if !revealed { revealed = true } }
+                                .onTapGesture { if !revealed && !store.isSaving { reveal() } }
                         }.scrollIndicators(.hidden)
                             .background(revealed ? .clear : DeckTheme.surface, in: RoundedRectangle(cornerRadius: 12))
                             .overlay { RoundedRectangle(cornerRadius: 12).stroke(revealed ? .clear : DeckTheme.line, lineWidth: 1) }
@@ -194,7 +196,8 @@ struct MemoryReviewView: View {
                             Image(systemName: "checkmark.circle").font(.system(size: 68, weight: .light)).foregroundStyle(DeckTheme.green)
                             Text("这一轮完成了").font(.largeTitle.bold())
                             Text("已复习 \(items.count) 项。\(store.isDemo ? "演示结果仅保留在本次体验中。" : "结果已保存。")").foregroundStyle(DeckTheme.muted)
-                            Button("回到今日学习") { dismiss() }.buttonStyle(PrimaryButton())
+                            Button("回到今日学习", action: exitReview).buttonStyle(PrimaryButton()).disabled(store.isSaving)
+                            if let error { Text(error).foregroundStyle(.red).font(.callout) }
                         }.frame(maxWidth: 760).modifier(StudyPagePadding()).frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }.frame(maxWidth: .infinity)
@@ -218,16 +221,21 @@ struct MemoryReviewView: View {
                                     }
                                 }
                             } else {
-                                Button("显示答案") { revealed = true }.buttonStyle(PrimaryButton()).accessibilityIdentifier("review.reveal")
+                                Button("显示答案", action: reveal).buttonStyle(PrimaryButton()).disabled(store.isSaving).accessibilityIdentifier("review.reveal")
                             }
                         }.frame(maxWidth: contentWidth).padding(.horizontal, 14).padding(.bottom, 8).frame(maxWidth: .infinity).background(DeckTheme.paper)
                     }
                 }
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { DeckDismissButton(kind: .back, label: "返回，退出本轮复习", disabled: store.isSaving, identifier: "review.back") }
-                    ToolbarItem(placement: .topBarTrailing) { Text("\(min(index + 1, items.count)) / \(items.count)").font(.subheadline.monospacedDigit()).foregroundStyle(DeckTheme.muted) }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(action: exitReview) {
+                            Label("返回，退出本轮复习", systemImage: "chevron.backward").labelStyle(.iconOnly)
+                                .font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
+                        }.disabled(store.isSaving).accessibilityIdentifier("review.back").keyboardShortcut(.cancelAction)
+                    }
+                    ToolbarItem(placement: .topBarTrailing) { Text("\(min(index + 1, items.count)) / \(items.count)").font(.subheadline.monospacedDigit()).foregroundStyle(DeckTheme.muted).accessibilityIdentifier("review.position") }
                 }
-        }.interactiveDismissDisabled(store.isSaving)
+        }.interactiveDismissDisabled()
         .task(id: "\(index)-\(revealed)") {
             guard index < items.count else { return }
             let configuration = store.speechConfiguration
@@ -237,7 +245,15 @@ struct MemoryReviewView: View {
         }.onDisappear { store.speechPlayer.stop() }
     }
     private func rate(_ item: StudyItem, _ rating: MemoryRating) async {
-        do { store.speechPlayer.stop(); try await store.rate(item, rating); index += 1; revealed = false; error = nil }
+        do { store.speechPlayer.stop(); try await store.rate(item, rating, reviewSessionID: session.id); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+    private func reveal() {
+        do { try store.revealMemoryReview(id: session.id); error = nil }
+        catch { self.error = error.localizedDescription }
+    }
+    private func exitReview() {
+        do { try store.endMemoryReview(id: session.id); dismiss() }
         catch { self.error = error.localizedDescription }
     }
 

@@ -235,6 +235,15 @@ final class StudyTests: XCTestCase {
         let file = try await cache.fileURL(userID: 21, request: request)
         XCTAssertFalse(file.path.contains("secret-token"))
         XCTAssertEqual(try Data(contentsOf: file), bytes)
+        let missing = try APIClient.itemImageRequest(["id": "missing-image"], token: "secret-token")
+        let missingRequests = await cache.missingRequests(userID: 21, requests: [request, missing])
+        XCTAssertEqual(missingRequests.map(\.url), [missing.url])
+        let otherAccountMissing = await cache.missingRequests(userID: 22, requests: [request])
+        XCTAssertEqual(otherAccountMissing.count, 1)
+        try Data().write(to: file)
+        let emptyFileMissing = await cache.missingRequests(userID: 21, requests: [request])
+        XCTAssertEqual(emptyFileMissing.count, 1)
+        try bytes.write(to: file)
         let offline = NativeImageCache(root: root, download: { _ in throw URLError(.notConnectedToInternet) })
         let restored = try await offline.bitmap(userID: 21, request: request)
         XCTAssertEqual(restored.image.size.width, 80)
@@ -937,6 +946,56 @@ final class LocalFirstNavigationTests: XCTestCase {
         XCTAssertEqual(navigation.bankModule, .reading)
         navigation.openModule(.grammar)
         XCTAssertEqual(navigation.bank, [.module(.grammar)])
+    }
+    func testCardReviewPositionSurvivesDiskRestoreAndCloudRefresh() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = LocalStudyFiles(root: root)
+        var review = ReviewSession(items: DemoData.items)
+        review.index = 1
+        review.revealed = true
+        var snapshot = LocalStudyData()
+        snapshot.memoryReview = review
+        try files.save(snapshot, userID: 1)
+        let restored = try XCTUnwrap(files.load(userID: 1)?.memoryReview)
+        XCTAssertEqual(restored.id, review.id)
+        XCTAssertEqual(restored.index, 1)
+        XCTAssertTrue(restored.revealed)
+        XCTAssertEqual(restored.items.map(\.id), review.items.map(\.id))
+        XCTAssertNil(try files.load(userID: 2), "Review sessions belong to one account")
+        let updated = LocalStudyData().preservingLocalWork(pending: [], responses: [:], syncedAt: .now, memoryReview: restored)
+        XCTAssertEqual(updated.memoryReview?.id, review.id)
+        XCTAssertEqual(updated.memoryReview?.index, 1)
+        XCTAssertEqual(updated.memoryReview?.revealed, true)
+    }
+    @MainActor func testRestoredAccountResumesReviewBeforeAnyNetworkRefresh() async throws {
+        var cached = LocalStudyData(items: DemoData.items, lastSync: .now)
+        cached.memoryReview = ReviewSession(items: DemoData.items, index: 1, revealed: true)
+        let store = AppStore(readSavedSession: { Session(user: Account(id: -903, username: "Review restore"), token: "test") }, readLocalData: { _ in cached })
+        await store.restore()
+        XCTAssertEqual(store.memoryReview?.id, cached.memoryReview?.id)
+        XCTAssertEqual(store.memoryReview?.index, 1)
+        XCTAssertEqual(store.memoryReview?.revealed, true)
+        store.startDemo()
+        XCTAssertNil(store.memoryReview, "Switching accounts must clear the previous account's presentation")
+    }
+    @MainActor func testCardRatingAdvancesTheSessionOnlyOnceAndExplicitExitClearsIt() async throws {
+        let store = AppStore(); store.startDemo()
+        try store.startMemoryReview(items: DemoData.items)
+        let review = try XCTUnwrap(store.memoryReview)
+        let first = try XCTUnwrap(review.items.first)
+        try store.revealMemoryReview(id: review.id)
+        try await store.rate(first, .hard, reviewSessionID: review.id)
+        XCTAssertEqual(store.memoryReview?.index, 1)
+        XCTAssertEqual(store.memoryReview?.revealed, false)
+        do {
+            try await store.rate(first, .hard, reviewSessionID: review.id)
+            XCTFail("A repeated tap from the previous card cannot count twice")
+        } catch { }
+        XCTAssertEqual(store.memoryReview?.index, 1)
+        XCTAssertEqual(store.state.progress[first.id]?.reviewCount, 1)
+        try store.endMemoryReview(id: review.id)
+        XCTAssertNil(store.memoryReview)
     }
     func testTabPathsStayIndependentAcrossBackgroundRefreshGate() {
         var navigation = WorkspaceNavigation()

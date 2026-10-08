@@ -218,8 +218,10 @@ struct JapaneseText: View {
         let tokens: [JapaneseAnnotation.Token] = needsAnalysis
             ? JapaneseAnalysis.tokens(text, japanese: japanese, annotations: sourceAnnotations, items: dictionary, terms: terms + (item?.ruby_terms ?? []))
             : [.init(surface: text)]
+        // Explicit sizes are already scaled by their callers; default body text combines
+        // the system accessibility size with the saved reading multiplier.
         CoreJapaneseText(attributed: JapaneseAttributed.make(tokens: tokens, display: display, ruby: ruby,
-            font: .systemFont(ofSize: fontSize ?? scaledSize, weight: weight), color: color, target: target, targetRange: targetRange, alignment: alignment), source: text, onLookup: lookupEnabled ? { word in
+            font: .systemFont(ofSize: fontSize ?? (scaledSize * store.textScale), weight: weight), color: color, target: target, targetRange: targetRange, alignment: alignment), source: text, onLookup: lookupEnabled ? { word in
                 lookupSelection = JapaneseLookupSelection(word: word, context: "复习卡片 · \(item?.original ?? "日语内容")\n\(text)")
             } : nil)
             .accessibilityLabel(text)

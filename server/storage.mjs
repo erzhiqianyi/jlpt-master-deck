@@ -1705,6 +1705,14 @@ function saveStudyPlanDocument(userId, plan) {
   return { ...normalized, dailySummaries: buildDailySummaries(userId, normalized.tasks), updatedAt: now };
 }
 
+function ensureDeletedPracticeQuestions(database) {
+  database.exec(`CREATE TABLE IF NOT EXISTS deleted_practice_questions (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    practice_id TEXT NOT NULL, question_id TEXT NOT NULL, item_id TEXT NOT NULL,
+    PRIMARY KEY(user_id, practice_id, question_id)
+  )`);
+}
+
 // Stable replay identities replace client-side GET/compare/POST for native answers.
 // Old snapshots cannot prove whether a divergent cloud result already includes them.
 export function replayPendingAnswer(userId, { eventId, before, input, legacy = true, decision }) {
@@ -1729,6 +1737,7 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
   if (input.kind != null) identity.kind = input.kind;
   const hash = createHash('sha256').update(canonical(identity)).digest('hex');
   const database = getDb();
+  ensureDeletedPracticeQuestions(database);
   database.exec(`CREATE TABLE IF NOT EXISTS answer_replay_receipts (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_id TEXT NOT NULL, payload_hash TEXT NOT NULL, payload_json TEXT NOT NULL,
@@ -1746,7 +1755,15 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
       || listReadingQuestions(userId).some(item => item.id === input.itemId)
       || listListeningQuestions(userId).some(item => item.id === input.itemId)
       || listDailyPractices(userId).some(pack => (getDailyPractice(userId,pack.id)?.questions ?? []).some(question => question.itemId === input.itemId));
-    if (!knownItem) throw new Error('Study item not found');
+    const deletedQuestion = !database.prepare(`SELECT 1 FROM daily_practices d, json_each(d.practice_json, '$.questions') q
+      WHERE d.user_id=? AND json_extract(q.value, '$.id')=?`).get(userId,input.questionId)
+      && database.prepare('SELECT 1 FROM deleted_practice_questions WHERE user_id=? AND question_id=? AND item_id=?')
+        .get(userId,input.questionId,input.itemId);
+    // Older deletions predate the question tombstones but retain account-scoped progress.
+    // Keep the historical event without recreating its deleted content or practice session.
+    const historicalOnly = Boolean(deletedQuestion || (!knownItem
+      && database.prepare('SELECT 1 FROM progress WHERE user_id=? AND item_id=?').get(userId,input.itemId)));
+    if (!knownItem && !historicalOnly) throw new Error('Study item not found');
     const current = getStudyState(userId).progress[input.itemId] ?? { correct:0, wrong:0, status:'new' };
     const same = canonical(current) === canonical(before);
     if (legacy && !same && !decision) { outcome = 'needs_resolution'; return; }
@@ -1769,14 +1786,17 @@ export function replayPendingAnswer(userId, { eventId, before, input, legacy = t
       database.prepare('DELETE FROM card_review_sync_baselines WHERE user_id=? AND item_id=?').run(userId,input.itemId);
       database.prepare('DELETE FROM card_review_sync_events WHERE user_id=? AND item_id=?').run(userId,input.itemId);
     }
-    database.prepare(`INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)
+    if (!historicalOnly) database.prepare(`INSERT INTO answers(user_id,question_id,item_id,selected,correct,answered_at) VALUES(?,?,?,?,?,?)
       ON CONFLICT(user_id,question_id) DO UPDATE SET item_id=excluded.item_id,selected=excluded.selected,correct=excluded.correct,answered_at=excluded.answered_at,submission_state='submitted'
       WHERE julianday(excluded.answered_at)>=julianday(answers.answered_at)`)
       .run(userId,input.questionId,input.itemId,input.selected,input.correct ? 1 : 0,new Date(time).toISOString());
-    if (Array.isArray(input.attemptHistory)) {
+    if (!historicalOnly && Array.isArray(input.attemptHistory)) {
       const history = new Map(getPracticeState(userId).attemptHistory.map(attempt => [attempt.id,attempt]));
       for (const attempt of input.attemptHistory) {
         if (!attempt?.id) throw new Error('Invalid replay attempt');
+        if (attempt.practiceId
+            && database.prepare('SELECT 1 FROM deleted_practice_questions WHERE user_id=? AND practice_id=?').get(userId,attempt.practiceId)
+            && !getDailyPractice(userId,attempt.practiceId)) continue;
         const previous = history.get(attempt.id);
         if (previous?.completedAt) continue;
         history.set(attempt.id,attempt);
@@ -3195,9 +3215,14 @@ export function getDailyPractice(userId, id) {
 
 export function deleteDailyPractice(userId, id) {
   const database = getDb();
+  ensureDeletedPracticeQuestions(database);
   return transaction(database, () => {
     const practice = getDailyPractice(userId, id);
     if (!practice) return false;
+    for (const question of practice.questions) {
+      database.prepare('INSERT OR IGNORE INTO deleted_practice_questions VALUES(?,?,?,?)')
+        .run(userId,id,question.id,question.itemId);
+    }
     const questionIds = new Set(practice.questions.map((question) => question.id));
     const belongsToPractice = (attempt) => attempt?.practiceId === id || (
       !attempt?.practiceId && attempt?.view === 'daily-practice' && attempt.questionIds?.length > 0

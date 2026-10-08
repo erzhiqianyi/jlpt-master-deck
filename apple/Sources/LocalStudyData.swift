@@ -10,6 +10,7 @@ struct PendingAnswer: Codable, Identifiable {
     var historyOnly: Bool? = nil
     // Optional for backwards-compatible decoding of existing on-device queues.
     var needsSyncReview: Bool? = nil
+    var syncReviewReason: String? = nil
     var syncDecision: String? = nil
     var isCardReview: Bool { input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: input.selected) != nil }
     var canAutomaticallyUpload: Bool { needsSyncReview != true }
@@ -55,12 +56,14 @@ struct LocalStudyData: Codable {
     var uploadableCount: Int { pending.filter(\.canAutomaticallyUpload).count }
     var syncReviewCount: Int { pending.count - uploadableCount }
     var responses: [String: LocalStudyResponse]?
+    var memoryReview: ReviewSession?
 
     /// Downloaded content can advance independently of queued, unacknowledged answers.
-    func preservingLocalWork(pending: [PendingAnswer], responses: [String: LocalStudyResponse], syncedAt: Date) -> Self {
+    func preservingLocalWork(pending: [PendingAnswer], responses: [String: LocalStudyResponse], syncedAt: Date, memoryReview: ReviewSession? = nil) -> Self {
         var result = self
         result.pending = pending
         result.responses = responses
+        result.memoryReview = memoryReview
         result.lastSync = syncedAt
         for operation in pending {
             let input = operation.input
@@ -281,6 +284,13 @@ actor NativeImageCache {
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]) else { return false }
             return values.isRegularFile == true && (values.fileSize ?? 0) > 0
         }.count
+    }
+    func missingRequests(userID: Int, requests: [URLRequest]) -> [URLRequest] {
+        requests.filter { request in
+            guard let url = try? fileURL(userID: userID, request: request),
+                  let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]) else { return true }
+            return values.isRegularFile != true || (values.fileSize ?? 0) <= 0
+        }
     }
 }
 

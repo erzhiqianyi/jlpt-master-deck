@@ -20,11 +20,16 @@ enum WorkspaceSheet: Identifiable {
         }
     }
 }
-struct ReviewSession: Identifiable { let id = UUID(); let items: [StudyItem] }
+struct ReviewSession: Codable, Identifiable {
+    var id = UUID()
+    let items: [StudyItem]
+    var index = 0
+    var revealed = false
+}
 
 // Routes contain IDs only. They live for this account's workspace lifetime; answers
 // and detail scroll positions remain owned by the mounted destination views.
-// A cold launch restores the last module only, never an unfinished answer.
+// Card review is restored separately from the last module and navigation paths.
 enum WorkspaceRoute: Hashable {
     case module(Destination), item(String), reading(String), listening(String), discovery(String), myShares, settings
 }
@@ -58,7 +63,6 @@ struct WorkspaceView: View {
     }
     @State private var navigation = WorkspaceNavigation()
     @State private var sheet: WorkspaceSheet?
-    @State private var review: ReviewSession?
     @State private var query = ""
     @State private var companionPractice: PracticeEntry?
     @State private var foregroundGate = ForegroundRefreshGate()
@@ -127,7 +131,10 @@ struct WorkspaceView: View {
             switch value { case .capture(let context): CaptureView(initialContext: context); case .database: DatabaseCheckSheet() }
         }
         .fullScreenCover(item: $companionPractice) { entry in Group { if entry.id == "mock" { NativeMockExamView() } else { NativePracticeScreen(entry: entry) } } }
-        .fullScreenCover(item: $review) { session in MemoryReviewView(items: session.items) }
+        .fullScreenCover(item: Binding(get: { store.memoryReview }, set: { _ in
+            // Scene transitions must not discard the review. Its explicit exit action
+            // clears the account-scoped session only after saving that decision.
+        })) { session in MemoryReviewView(session: session) }
         .safeAreaInset(edge: .top, spacing: 0) {
             if store.isRestoringLocal {
                 HStack(spacing: 10) {
@@ -307,7 +314,10 @@ struct WorkspaceView: View {
             destination == .grammar ? item.isGrammar : destination == .vocabulary ? !item.isGrammar : true
         }
         if items.isEmpty { store.error = "本机暂无待复习词条。可以在题库中选择词条，或前往账户设置同步数据。" }
-        else { review = ReviewSession(items: items) }
+        else {
+            do { try store.startMemoryReview(items: items) }
+            catch { store.error = error.localizedDescription }
+        }
     }
 
 }

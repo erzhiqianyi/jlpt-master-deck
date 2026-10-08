@@ -31,6 +31,7 @@ final class AppStore {
     var bankQuestionStates: [String: BankQuestionState]?
     private(set) var responses: [String: LocalStudyResponse] = [:]
     private(set) var pending: [PendingAnswer] = []
+    private(set) var memoryReview: ReviewSession?
     private(set) var lastSync: Date?
     @ObservationIgnored private var syncCursor: String?
     private(set) var hasPracticeCache = false
@@ -187,7 +188,7 @@ final class AppStore {
                 }
             }
             guard expected == generation else { return nil }
-            let data = result.data.preservingLocalWork(pending: pending, responses: responses, syncedAt: .now)
+            let data = result.data.preservingLocalWork(pending: pending, responses: responses, syncedAt: .now, memoryReview: memoryReview)
             // Commit to disk before publishing the new timestamp or replacing the visible data.
             guard let userID = session?.user.id else { return nil }
             syncStage = "正在保存到本机…"
@@ -204,7 +205,7 @@ final class AppStore {
             lastSync = data.lastSync; syncCursor = data.syncCursor
             notice = result.uploadError.map { syncSummary + "\n" + $0 } ?? syncSummary
             error = nil
-            startImageDownload()
+            startImageDownload(onlyMissing: true)
             return result.data
         } catch {
             guard expected == generation else { return nil }
@@ -283,10 +284,41 @@ final class AppStore {
         state.settings = settings
         do { try persist() } catch { state.settings = previous; throw error }
     }
-    func rate(_ item: StudyItem, _ rating: MemoryRating) async throws {
+    func startMemoryReview(items: [StudyItem]) throws {
+        guard !items.isEmpty else { return }
+        try updateMemoryReview(ReviewSession(items: items))
+    }
+    func revealMemoryReview(id: UUID) throws {
+        guard var review = memoryReview, review.id == id, review.index < review.items.count else { return }
+        review.revealed = true
+        try updateMemoryReview(review)
+    }
+    func endMemoryReview(id: UUID) throws {
+        guard memoryReview?.id == id else { return }
+        try updateMemoryReview(nil)
+    }
+    private func updateMemoryReview(_ review: ReviewSession?) throws {
+        guard !isRestoringLocal, !isSaving, isSignedIn else { throw IdentityError.message("正在保存学习记录，请稍后重试。") }
+        let previous = memoryReview
+        memoryReview = review
+        do { try persist() } catch { memoryReview = previous; throw error }
+    }
+    func rate(_ item: StudyItem, _ rating: MemoryRating, reviewSessionID: UUID? = nil) async throws {
+        let previous = memoryReview
+        if let reviewSessionID {
+            guard var review = memoryReview, review.id == reviewSessionID,
+                  review.items.indices.contains(review.index), review.items[review.index].id == item.id,
+                  review.revealed else { throw IdentityError.message("复习状态已更新，请重新查看当前卡片。") }
+            review.index += 1
+            review.revealed = false
+            memoryReview = review
+        }
         let progress = (state.progress[item.id] ?? ProgressEntry()).rated(rating)
-        try saveAnswerLocally(questionID: "memory-card:\(item.id)", itemID: item.id,
-                              selected: rating.rawValue, correct: rating != .forgot, progress: progress)
+        do {
+            // Save the rating and the next-card position in the same atomic snapshot.
+            try saveAnswerLocally(questionID: "memory-card:\(item.id)", itemID: item.id,
+                                  selected: rating.rawValue, correct: rating != .forgot, progress: progress)
+        } catch { memoryReview = previous; throw error }
     }
     func answer(_ question: ReadingQuestion, selection: Int, sessionID: String) async throws {
         guard question.choices.indices.contains(selection) else { throw IdentityError.message("请选择有效选项。") }
@@ -400,9 +432,21 @@ final class AppStore {
                     let legacy: Bool; let decision: String?
                 }
                 struct Receipt: Decodable { let eventId: String; let outcome: String; let state: StudyState }
-                let receipt: Receipt = try await api.post("api/answers/replay", body: Replay(
-                    eventId: operation.input.syncEventId ?? operation.id.uuidString, before: operation.before,
-                    input: operation.input, legacy: operation.input.syncEventId == nil, decision: operation.syncDecision))
+                let receipt: Receipt
+                do {
+                    receipt = try await api.post("api/answers/replay", body: Replay(
+                        eventId: operation.input.syncEventId ?? operation.id.uuidString, before: operation.before,
+                        input: operation.input, legacy: operation.input.syncEventId == nil, decision: operation.syncDecision))
+                } catch APIError.http(let code, let message) where code == 400 && message == "Study item not found" {
+                    guard expected == generation else { return }
+                    let previousPending = pending
+                    for index in pending.indices where pending[index].input.itemId == operation.input.itemId && !pending[index].isCardReview && pending[index].historyOnly != true {
+                        pending[index].needsSyncReview = true
+                        pending[index].syncReviewReason = "云端找不到对应题目，可能已删除。本机记录已保留，其他记录继续同步。"
+                    }
+                    do { try persist() } catch { pending = previousPending; throw error }
+                    continue
+                }
                 guard expected == generation else { return }
                 guard receipt.eventId == (operation.input.syncEventId ?? operation.id.uuidString) else { throw APIError.invalidResponse }
                 if receipt.outcome == "needs_resolution" {
@@ -410,6 +454,7 @@ final class AppStore {
                     // Dependent operations must wait too; persist this once, across logins.
                     for index in pending.indices where pending[index].input.itemId == operation.input.itemId && !pending[index].isCardReview && pending[index].historyOnly != true {
                         pending[index].needsSyncReview = true
+                        pending[index].syncReviewReason = nil
                     }
                     do { try persist() } catch { pending = previousPending; throw error }
                     continue
@@ -443,6 +488,7 @@ final class AppStore {
               let index = pending.firstIndex(where: { $0.id == id && $0.needsSyncReview == true }) else { return }
         let previous = pending
         pending[index].needsSyncReview = false
+        pending[index].syncReviewReason = nil
         pending[index].syncDecision = decision
         do { try persist() }
         catch { pending = previous; notice = error.localizedDescription; return }
@@ -454,6 +500,7 @@ final class AppStore {
         let previous = pending
         for index in pending.indices where pending[index].needsSyncReview == true {
             pending[index].needsSyncReview = false
+            pending[index].syncReviewReason = nil
             pending[index].syncDecision = decision
         }
         // Save the whole decision before uploading; retries retain the same event IDs.
@@ -480,7 +527,7 @@ final class AppStore {
     private func snapshot() -> LocalStudyData {
         LocalStudyData(bankVersions: bankVersions, bankQuestionStates: bankQuestionStates, wordbooks: wordbooks, items: items, state: state, plan: plan, reading: reading, captures: captures,
                        packs: packs, drafts: drafts, listening: listening, shares: shares, pending: pending,
-                       lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses)
+                       lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses, memoryReview: memoryReview)
     }
     private func persist() throws {
         guard !isRestoringLocal else { throw IdentityError.message("本机记录仍在恢复，请稍后保存。") }
@@ -504,6 +551,7 @@ final class AppStore {
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             pending = data.pending; lastSync = data.lastSync; syncCursor = data.syncCursor; responses = data.responses ?? [:]
             bankVersions = data.bankVersions; bankQuestionStates = data.bankQuestionStates
+            memoryReview = data.memoryReview
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
             applyPending()
             Task { await self.updateImageCount() }
@@ -701,6 +749,7 @@ final class AppStore {
         wordbooks = []; items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
         packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil; syncCursor = nil
         bankVersions = nil; bankQuestionStates = nil
+        memoryReview = nil
         syncStage = nil
         hasPracticeCache = false; hasListeningCache = false
     }
@@ -772,28 +821,39 @@ extension AppStore {
         guard expected == generation else { return }
         downloadedImageCount = count
     }
-    func startImageDownload() {
+    func startImageDownload(onlyMissing: Bool = false) {
         guard !isDemo, let session, imageDownloadTask == nil else { return }
         let expected = generation
         let userID = session.user.id
         let images = offlineImages
         var seen = Set<String>()
         let requests = images.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }.filter { seen.insert($0.url!.absoluteString).inserted }
-        isDownloadingImages = true; imageDownloadFailures = images.count - images.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }.count
-        imageDownloadProgress = "0 / \(requests.count)"
         imageDownloadTask = Task { [weak self] in
             guard let self else { return }
             defer {
                 if expected == self.generation {
                     self.isDownloadingImages = false; self.imageDownloadTask = nil
                     let latest = Set(self.offlineImages.compactMap { try? APIClient.itemImageRequest($0, token: self.session?.token).url?.absoluteString })
-                    if !Task.isCancelled && latest != Set(requests.compactMap { $0.url?.absoluteString }) { self.startImageDownload() }
+                    if !Task.isCancelled && latest != Set(requests.compactMap { $0.url?.absoluteString }) { self.startImageDownload(onlyMissing: true) }
                 }
             }
+            // Automatic study sync should not read/decode every cached image or
+            // animate download progress when there is nothing to fetch.
+            let downloads = onlyMissing
+                ? await NativeImageCache.shared.missingRequests(userID: userID, requests: requests)
+                : requests
+            guard expected == self.generation, !Task.isCancelled else { return }
+            self.imageDownloadFailures = images.count - images.compactMap { try? APIClient.itemImageRequest($0, token: session.token) }.count
+            let cachedCount = await NativeImageCache.shared.count(userID: userID, requests: requests)
+            guard expected == self.generation, !Task.isCancelled else { return }
+            self.downloadedImageCount = cachedCount
+            guard !downloads.isEmpty else { self.imageDownloadProgress = ""; return }
+            self.isDownloadingImages = true
+            self.imageDownloadProgress = "0 / \(downloads.count)"
             var completed = 0
-            for offset in stride(from: 0, to: requests.count, by: 4) {
+            for offset in stride(from: 0, to: downloads.count, by: 4) {
                 guard !Task.isCancelled, expected == self.generation else { return }
-                let batch = Array(requests[offset..<min(offset + 4, requests.count)])
+                let batch = Array(downloads[offset..<min(offset + 4, downloads.count)])
                 await withTaskGroup(of: Bool.self) { group in
                     for request in batch { group.addTask {
                         do { _ = try await NativeImageCache.shared.data(userID: userID, request: request); return true }
@@ -803,7 +863,7 @@ extension AppStore {
                         guard expected == self.generation, !Task.isCancelled else { continue }
                         completed += 1
                         if !success { self.imageDownloadFailures += 1 }
-                        self.imageDownloadProgress = "\(completed) / \(requests.count)"
+                        self.imageDownloadProgress = "\(completed) / \(downloads.count)"
                     }
                 }
             }

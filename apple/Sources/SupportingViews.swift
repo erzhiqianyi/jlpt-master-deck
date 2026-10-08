@@ -493,6 +493,8 @@ struct CardSettingsView: View {
 struct ConfiguredCardView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(AppStore.self) private var store
+    @ScaledMetric(relativeTo: .headline) private var headingSize: CGFloat = 17
+    @ScaledMetric(relativeTo: .subheadline) private var metadataSize: CGFloat = 15
     let item: StudyItem
     let fields: [String]
     let revealed: Bool
@@ -527,11 +529,15 @@ struct ConfiguredCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             if let original = item.cardText("original", locale: locale), fields.contains("original") {
                 if revealed {
-                    HStack(spacing: 8) {
-                        if speechSide == "left" { speechControls }
+                    VStack(alignment: .leading, spacing: 8) {
                         headingWord(original)
-                        NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
-                        if speechSide != "left" { speechControls }
+                        HStack(spacing: 8) {
+                            if speechSide != "left" { Spacer(minLength: 0) }
+                            if speechSide == "left" { speechControls }
+                            NativeCopyButton(value: item.original, label: "复制单词", identifier: "review.copyWord")
+                            if speechSide != "left" { speechControls }
+                            if speechSide == "left" { Spacer(minLength: 0) }
+                        }
                     }
                 } else {
                     VStack(spacing: 12) {
@@ -562,7 +568,8 @@ struct ConfiguredCardView: View {
     }
     private func metadataEntry(_ field: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(item.cardText(field, locale: locale) ?? "").font(.subheadline.weight(.semibold))
+            Text(item.cardText(field, locale: locale) ?? "").font(.system(size: metadataSize * store.textScale, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .foregroundStyle(DeckTheme.green).background(DeckTheme.surface.opacity(0.85), in: Capsule())
         }
@@ -576,7 +583,7 @@ struct ConfiguredCardView: View {
                 } else if field == "examples", !item.reviewExamples.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Divider()
-                        Label("例句", systemImage: "quote.opening").font(.headline).foregroundStyle(DeckTheme.green)
+                        Label("例句", systemImage: "quote.opening").font(.system(size: headingSize * store.textScale, weight: .semibold)).foregroundStyle(DeckTheme.green)
                         ForEach(Array(item.reviewExamples.enumerated()), id: \.offset) { index, example in
                             NativeExampleCard(
                                 japanese: example.ja,
@@ -600,7 +607,7 @@ struct ConfiguredCardView: View {
                             if !["patterns", "meaning"].contains(field) {
                                 if field != "core_memory" { Divider() }
                                 Label(CardFields.label(field), systemImage: field == "core_memory" ? "sparkles" : field == "examples" ? "quote.opening" : "text.alignleft")
-                                    .font(.headline).foregroundStyle(field == "core_memory" ? Color.orange : DeckTheme.green)
+                                    .font(.system(size: headingSize * store.textScale, weight: .semibold)).foregroundStyle(field == "core_memory" ? Color.orange : DeckTheme.green)
                             }
                             JapaneseText(text: text, item: item, japanese: field == "meaning_ja", explanation: field != "patterns")
                                 .lineSpacing(6).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
@@ -614,6 +621,8 @@ struct ConfiguredCardView: View {
 
 /// Keep each sentence and its translation together without reserving text width for audio controls.
 struct NativeExampleCard: View {
+    @Environment(AppStore.self) private var store
+    @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 17
     let japanese: String
     var item: StudyItem? = nil
     let translation: String?
@@ -640,6 +649,7 @@ struct NativeExampleCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let translation, !translation.isEmpty {
                 Text(translation)
+                    .font(.system(size: bodySize * store.textScale))
                     .foregroundStyle(DeckTheme.muted)
                     .lineSpacing(3)
                     .textSelection(.enabled)

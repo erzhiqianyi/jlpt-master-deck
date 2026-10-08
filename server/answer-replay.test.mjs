@@ -72,6 +72,52 @@ test('receipt, progress and history roll back together on persistence failure', 
   assert.equal(s.getStudyState(alice.id).progress.rollback,undefined);
   assert.equal(s.getDb().prepare('SELECT count(*) AS n FROM answer_replay_receipts WHERE event_id=?').get('rollback').n,0);
 });
+function insertPractice(id, itemId) {
+  const practice = {id,date:'2026-10-07',title:'专项练习',questions:[{id:id+'-q01',itemId}]};
+  s.getDb().prepare('INSERT INTO daily_practices(id,user_id,practice_date,title,minutes,practice_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)')
+    .run(id,alice.id,practice.date,practice.title,5,JSON.stringify(practice),practice.date,practice.date);
+  return practice;
+}
+test('offline answers for deleted practices sync once without restoring deleted answers or sessions', () => {
+  const practice = insertPractice('deleted-pack','deleted-only-item');
+  assert.equal(s.deleteDailyPractice(alice.id,practice.id),true);
+  const input = event('deleted-answer','deleted-only-item',true,'2026-10-07T01:00:00Z');
+  input.input.questionId=practice.questions[0].id;
+  input.input.attemptHistory=[{id:'deleted-session',practiceId:practice.id,startedAt:'2026-10-07T01:00:00Z'}];
+  assert.equal(s.replayPendingAnswer(alice.id,input).outcome,'accepted');
+  assert.equal(s.replayPendingAnswer(alice.id,input).outcome,'duplicate');
+  assert.equal(s.getStudyState(alice.id).progress['deleted-only-item'].correct,1);
+  assert.equal(s.getStudyState(alice.id).answers[input.input.questionId],undefined);
+  assert.equal(s.getDailyPractice(alice.id,practice.id),null);
+  assert(!s.getStudyState(alice.id).attemptHistory.some(a=>a.id==='deleted-session'));
+  assert.throws(()=>s.replayPendingAnswer(bob.id,input),/not found/);
+  assert.equal(JSON.parse(s.getDb().prepare('SELECT payload_json FROM answer_replay_receipts WHERE user_id=? AND event_id=?')
+    .get(alice.id,input.eventId).payload_json).input.selected,'A');
+  const next = event('after-deletion','item',true,'2026-10-07T02:00:00Z');
+  next.input.attemptHistory=input.input.attemptHistory;
+  assert.equal(s.replayPendingAnswer(alice.id,next).outcome,'accepted');
+  assert(!s.getStudyState(alice.id).attemptHistory.some(a=>a.id==='deleted-session'));
+});
+test('older deletions use only the current account history, and unknown items still fail', () => {
+  s.saveProgressEntry(alice.id,'previously-deleted',empty);
+  const input=event('old-deletion','previously-deleted',false,'2026-10-07T01:00:00Z');
+  assert.equal(s.replayPendingAnswer(alice.id,input).outcome,'accepted');
+  assert.equal(s.getStudyState(alice.id).progress['previously-deleted'].wrong,1);
+  assert.equal(s.getStudyState(alice.id).answers[input.input.questionId],undefined);
+  assert.throws(()=>s.replayPendingAnswer(bob.id,input),/not found/);
+  assert.throws(()=>s.replayPendingAnswer(alice.id,event('unknown','never-owned',true,'2026-10-07T01:00:00Z')),/not found/);
+});
+test('deleting one shared set leaves answers for the surviving set uploadable', () => {
+  const first=insertPractice('shared-deleted','shared-item');
+  const second=insertPractice('shared-surviving','shared-item');
+  second.questions=first.questions;
+  s.getDb().prepare('UPDATE daily_practices SET practice_json=? WHERE id=?').run(JSON.stringify(second),second.id);
+  s.deleteDailyPractice(alice.id,first.id);
+  const input=event('shared-answer','shared-item',true,'2026-10-07T01:00:00Z');
+  input.input.questionId=first.questions[0].id;
+  assert.equal(s.replayPendingAnswer(alice.id,input).outcome,'accepted');
+  assert.equal(s.getStudyState(alice.id).answers[input.input.questionId].selected,'A');
+});
 test('authenticated replay API exposes a receipt and rejects missing authentication', async () => {
   const { createApiHandler } = await import('./api-handler.mjs');
   const { Readable } = await import('node:stream');

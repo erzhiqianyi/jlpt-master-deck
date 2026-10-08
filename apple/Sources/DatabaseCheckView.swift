@@ -204,6 +204,9 @@ struct SyncReviewView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(store.items.first { $0.id == operation.input.itemId }?.original ?? operation.input.itemId)
                             Text(operation.input.selected).font(.subheadline)
+                            if let reason = operation.syncReviewReason {
+                                Text(reason).font(.footnote).foregroundStyle(.secondary)
+                            }
                             if let time = operation.input.progressEntry.lastReviewedAt {
                                 Text(time).font(.caption).foregroundStyle(.secondary)
                             }

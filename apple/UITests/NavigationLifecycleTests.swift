@@ -270,6 +270,34 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.buttons["reading.speak"].exists, "Confirmed answers unlock reading speech")
         capture("reading-correct-feedback")
     }
+    func testCardReviewKeepsItsCurrentCardAndSideAcrossBackground() throws {
+        primary("学习")
+        let start = app.buttons["today.review"]
+        reveal(start); start.tap()
+        XCTAssertTrue(app.buttons["review.reveal"].waitForExistence(timeout: 5))
+        app.buttons["review.reveal"].tap()
+        XCTAssertTrue(app.buttons["review.hard"].waitForExistence(timeout: 5))
+        app.buttons["review.hard"].tap()
+        XCTAssertTrue(app.buttons["review.reveal"].waitForExistence(timeout: 5))
+        let position = app.staticTexts["review.position"].label
+        XCTAssertTrue(position.hasPrefix("2 /"))
+        app.buttons["review.reveal"].tap()
+        XCTAssertTrue(app.buttons["review.hard"].waitForExistence(timeout: 5))
+        capture("review-before-background")
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        app.activate()
+        XCTAssertTrue(app.buttons["review.hard"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["review.position"].label, position)
+        XCTAssertFalse(app.buttons["review.reveal"].exists)
+        capture("review-after-background")
+        app.buttons["review.back"].tap()
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        app.activate()
+        XCTAssertFalse(app.buttons["review.back"].exists, "An explicitly closed review must stay closed")
+    }
     func testReviewSpeechMovesWithinContentAndRemembersSide() throws {
         primary("学习")
         let start = app.buttons["today.review"]

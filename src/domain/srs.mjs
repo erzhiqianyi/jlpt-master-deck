@@ -15,12 +15,20 @@ export function nextStatus(correct, wrong, reviewCount) {
 }
 
 export function nextSchedule(current, correct, now) {
-  const previousEase = current.ease ?? 2.5;
-  const previousInterval = current.intervalDays ?? 0;
+  // Extra practice before the due date records an answer without graduating the schedule.
+  // Bound historical intervals before arithmetic, including already inflated cloud records.
+  const previousEase = Number.isFinite(current.ease) ? Math.max(1.3, Math.min(current.ease, 3.2)) : 2.5;
+  const rawInterval = current.intervalDays ?? 0;
+  const previousInterval = Number.isFinite(rawInterval) ? Math.max(0, Math.min(rawInterval, 365)) : 0;
+  const due = Date.parse(current.nextReviewAt);
+  const healthySchedule = Number.isFinite(due) && Number.isFinite(rawInterval)
+    && rawInterval >= 0 && rawInterval <= 365
+    && due <= now.getTime() + 365 * 86400000;
+  const early = correct && healthySchedule && due > now.getTime();
   const reviewCount = (current.reviewCount ?? 0) + 1;
-  const ease = correct ? Math.min(previousEase + 0.15, 3.2) : Math.max(previousEase - 0.2, 1.3);
-  const intervalDays = correct
-    ? nextCorrectInterval(reviewCount, previousInterval, ease)
+  const ease = early ? previousEase : correct ? Math.min(previousEase + 0.15, 3.2) : Math.max(previousEase - 0.2, 1.3);
+  const intervalDays = early ? previousInterval : correct
+    ? nextCorrectInterval(previousInterval, ease)
     : 1;
   return {
     firstSeenAt: current.firstSeenAt ?? now.toISOString(),
@@ -28,7 +36,7 @@ export function nextSchedule(current, correct, now) {
     reviewCount,
     ease,
     intervalDays,
-    nextReviewAt: addDays(now, intervalDays).toISOString(),
+    nextReviewAt: early ? new Date(due).toISOString() : addDays(now, intervalDays).toISOString(),
   };
 }
 
@@ -47,18 +55,12 @@ export function progressAfterAnswer(current, correct, now) {
   };
 }
 
-function nextCorrectInterval(reviewCount, previousInterval, ease) {
-  if (reviewCount <= 1) {
-    return 1;
-  }
-  if (reviewCount === 2) {
-    return 3;
-  }
-  return Math.max(4, Math.round(Math.max(previousInterval, 3) * ease));
+function nextCorrectInterval(previousInterval, ease) {
+  if (previousInterval === 0) return 1;
+  if (previousInterval <= 1) return 3;
+  return Math.min(365, Math.max(4, Math.round(Math.max(previousInterval, 3) * ease)));
 }
 
 function addDays(date, days) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
+  return new Date(date.getTime() + days * 86400000);
 }

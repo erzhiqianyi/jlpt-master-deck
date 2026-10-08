@@ -87,3 +87,17 @@ test('authenticated replay API exposes a receipt and rejects missing authenticat
   assert.equal((await request(token)).body.outcome,'accepted');
   assert.equal((await request(token)).body.outcome,'duplicate');
 });
+
+test('an old native pending payload replays against inflated cloud intervals and retries once', () => {
+  const before={correct:17,wrong:0,status:'mastered',reviewCount:17,ease:3.2,intervalDays:80714138,lastReviewedAt:'2026-10-08T01:10:48Z',nextReviewAt:'+223014-07-29T01:10:48.000Z'};
+  s.saveProgressEntry(alice.id,'item',before);
+  const payload={eventId:'overflow-native',legacy:false,before,input:{questionId:'overflow-q',itemId:'item',selected:'A',correct:true,
+    progressEntry:{...before,correct:18,reviewCount:18,lastReviewedAt:'2026-10-08T11:00:00Z',intervalDays:258285242,nextReviewAt:'invalid-native-date'}}};
+  const receipt=s.replayPendingAnswer(alice.id,payload);
+  assert.equal(receipt.outcome,'accepted');
+  assert.equal(receipt.state.progress.item.correct,18);
+  assert.equal(receipt.state.progress.item.intervalDays,365);
+  assert.equal(receipt.state.progress.item.nextReviewAt,'2027-10-08T11:00:00.000Z');
+  assert.equal(s.replayPendingAnswer(alice.id,payload).outcome,'duplicate');
+  assert.equal(s.getStudyState(alice.id).progress.item.correct,18);
+});

@@ -662,8 +662,8 @@ final class StudyTests: XCTestCase {
     func testPracticeSchedulingMatchesWebSequence() {
         let now = Date(timeIntervalSince1970: 1_791_000_000)
         let first = ProgressEntry().afterPractice(correct: true, now: now)
-        let second = first.afterPractice(correct: true, now: now)
-        let third = second.afterPractice(correct: true, now: now)
+        let second = first.afterPractice(correct: true, now: now.addingTimeInterval(86400))
+        let third = second.afterPractice(correct: true, now: now.addingTimeInterval(4 * 86400))
         XCTAssertEqual(first.intervalDays, 1)
         XCTAssertEqual(second.intervalDays, 3)
         XCTAssertEqual(third.intervalDays, 9)
@@ -672,6 +672,21 @@ final class StudyTests: XCTestCase {
         XCTAssertEqual(wrong.intervalDays, 1)
         XCTAssertEqual(wrong.wrong, 1)
         XCTAssertEqual(wrong.firstSeenAt, first.firstSeenAt)
+    }
+    func testEarlyPracticeKeepsDueDateAndInflatedIntervalsRecover() {
+        let now = Date(timeIntervalSince1970: 1_791_000_000)
+        let first = ProgressEntry().afterPractice(correct: true, now: now)
+        var repeated = first
+        for _ in 0..<100 { repeated = repeated.afterPractice(correct: true, now: now) }
+        XCTAssertEqual(repeated.nextReviewAt, first.nextReviewAt)
+        XCTAssertEqual(repeated.intervalDays, 1)
+        XCTAssertEqual(repeated.correct, 101)
+        var inflated = repeated
+        inflated.intervalDays = 80_714_138
+        inflated.nextReviewAt = "+223014-07-29T01:10:48.000Z"
+        let repaired = inflated.afterPractice(correct: true, now: now)
+        XCTAssertEqual(repaired.intervalDays, 365)
+        XCTAssertNotNil(repaired.nextReviewAt.flatMap { StudyDates.parse($0) })
     }
     func testTopicClassificationMatchesExistingWebsite() {
         XCTAssertFalse(PracticeDraft(id: "daily", title: "2026-10-02 每日练习", status: "archived").isTopic)

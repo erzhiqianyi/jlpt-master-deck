@@ -747,11 +747,20 @@ extension ProgressEntry {
         var next = self
         next.correct += right ? 1 : 0; next.wrong += right ? 0 : 1
         let count = (reviewCount ?? 0) + 1
-        let nextEase = right ? min((ease ?? 2.5) + 0.15, 3.2) : max((ease ?? 2.5) - 0.2, 1.3)
-        let days = right ? (count == 1 ? 1 : count == 2 ? 3 : max(4, Int((Double(max(intervalDays ?? 0, 3)) * nextEase).rounded()))) : 1
+        let previousEase = max(1.3, min(ease?.isFinite == true ? ease! : 2.5, 3.2))
+        let rawDays = intervalDays ?? 0
+        let previousDays = max(0, min(rawDays, 365))
+        let due = nextReviewAt.flatMap { StudyDates.parse($0) }
+        let healthySchedule = rawDays >= 0 && rawDays <= 365 && due != nil
+            && due! <= now.addingTimeInterval(365 * 86400)
+        let early = right && healthySchedule && due! > now
+        let nextEase = early ? previousEase : right ? min(previousEase + 0.15, 3.2) : max(previousEase - 0.2, 1.3)
+        let days = early ? previousDays : right
+            ? (previousDays == 0 ? 1 : previousDays <= 1 ? 3 : min(365, max(4, Int((Double(max(previousDays, 3)) * nextEase).rounded()))))
+            : 1
         next.reviewCount = count; next.ease = nextEase; next.intervalDays = days
         next.firstSeenAt = firstSeenAt ?? now.ISO8601Format(); next.lastReviewedAt = now.ISO8601Format()
-        next.nextReviewAt = Calendar.current.date(byAdding: .day, value: days, to: now)!.ISO8601Format()
+        next.nextReviewAt = (early ? due! : now.addingTimeInterval(Double(days) * 86400)).ISO8601Format()
         next.status = next.correct >= 4 && next.wrong <= 1 && count >= 4 ? "mastered" : next.correct >= 2 ? "review" : "learning"
         return next
     }

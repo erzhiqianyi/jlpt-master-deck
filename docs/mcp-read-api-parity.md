@@ -40,6 +40,8 @@
 | `/study-plan` | `get_study_plan` |
 | `/study-record` | `get_study_record` |
 | `/captures` | `list_learning_captures` |
+| `/captures/count?status=inbox&category=word` | `count_learning_captures`；服务端精确计数，默认 inbox |
+| `/captures/page?status=inbox&category=word&limit=20&includeTotal=true` | `list_learning_captures_page`；客户端指定每页 1～50 条，稳定游标，不因 processed 跳项 |
 | `/analysis/weak-points` | `analyze_weak_points` |
 | `/listening-questions` | `list_listening_questions` |
 | `/listening-questions/:id/audio` | `get_listening_audio({ question_id })`，需单独授权 `audio:read`；返回 MCP 音频内容，不是公开 URL |
@@ -72,6 +74,6 @@
 - `/me` 对应 HTTP MCP 内置 `get_connection_info` 的授权账号信息。`/auth/config`、`/auth/firebase/status`、`/agents`、`/health` 是登录／连接管理和诊断接口，不是学习数据；本次未新增其 MCP 镜像。stdio 没有 HTTP 服务内置的 `get_connection_info`。
 - 所有个人数据操作从授权上下文获取 userId；市场公开分享沿用网页可见性规则。本次不扩展写入／删除权限。
 
-验证：`server/mcp-read-parity.test.mjs` 对照阅读详情及新增查询的 API/MCP 返回值，并覆盖阅读长文分段、账户隔离、修改后的游标失效和本地／云端环境边界；原有 MCP OAuth、schema 序列化和阅读 CRUD 回归测试继续适用。
+验证：`server/mcp-read-parity.test.mjs` 对照阅读详情及新增查询的 API/MCP 返回值，并覆盖阅读长文分段、账户隔离、修改后的游标失效和本地／云端环境边界；`server/capture-pagination.test.mjs` 对照队列 count/page 的 API/MCP 返回，验证同时间戳、processed 后续页、输入限制及 SQL 有界读取；`cloudflare/capture-pagination.test.mjs` 使用真实 Miniflare DO SQLite 验证同一协议、MCP 发现和重启续页。原有 MCP OAuth、schema 序列化和阅读 CRUD 回归测试继续适用。详见 [队列协议](mcp-capture-queue.md)。
 
 2026-09-30 音频读取扩展验证：本地听力题和 MCP OAuth 测试通过，Cloudflare R2/MCP 运行时测试通过；云端 API Worker 已部署。已有 ChatGPT 授权仍需重新同意新增的可选 `audio:read` 权限，才能在该连接中发现并调用 `get_listening_audio`。

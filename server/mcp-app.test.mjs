@@ -134,6 +134,12 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const list = await rpcResult(await rpc(issued.access_token, 'tools/list', {}, 2));
   const names = list.result.tools.map((tool) => tool.name);
   assert.ok(names.includes('list_learning_captures'));
+  assert.ok(names.includes('count_learning_captures'));
+  const capturePageTool = list.result.tools.find(tool => tool.name === 'list_learning_captures_page');
+  assert.equal(capturePageTool.inputSchema.properties.limit.type, 'integer');
+  assert.equal(capturePageTool.inputSchema.properties.limit.minimum, 1);
+  assert.equal(capturePageTool.inputSchema.properties.limit.maximum, 50);
+  assert.equal(capturePageTool.annotations.readOnlyHint, true);
   assert.ok(names.includes('get_review_data'));
   assert.ok(names.includes('update_review_pack_draft'));
   assert.ok(!names.includes('upsert_review_item'), 'library:write was not granted');
@@ -155,6 +161,16 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const called = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'list_learning_captures', arguments: { status: 'inbox' } }, 3));
   const captures = JSON.parse(called.result.content[0].text);
   assert.deepEqual(captures.map((capture) => capture.body), ['面目躍如']);
+  const countResult = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'count_learning_captures', arguments: {} }));
+  assert.equal(countResult.result.structuredContent.total, 1);
+  const pageResult = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'list_learning_captures_page', arguments: { limit: 1, includeTotal: true } }));
+  assert.equal(pageResult.result.structuredContent.page.limit, 1);
+  assert.equal(pageResult.result.structuredContent.total, 1);
+  assert.deepEqual(pageResult.result.structuredContent.captures.map(c => c.body), ['面目躍如']);
+  for (const limit of [0, 1.5, 51, '5']) {
+    const invalidPage = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'list_learning_captures_page', arguments: { limit } }));
+    assert.ok(invalidPage.error || invalidPage.result?.isError);
+  }
   assert.ok(events.some((event) => event.type === 'tool' && event.tool === 'list_learning_captures' && event.ownerId === String(user.id) && event.ok));
 
   // MCP App: the practice tools point at the ui:// resource, the resource is listed and readable,

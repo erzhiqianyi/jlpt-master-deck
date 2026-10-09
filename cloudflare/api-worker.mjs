@@ -1,4 +1,5 @@
 import { ensureBankMaterialSchema } from '../server/bank-materials.mjs';
+import { ensureCapturePaginationSchema } from '../server/capture-pagination.mjs';
 import { ensureQuestionBankSchema } from '../server/question-bank.mjs';
 import {ensureLearningEventSchema} from '../server/learning-events.mjs';
 import { ensureCacheSchema, cleanupTtsCache } from '../server/tts/cache.mjs';
@@ -46,6 +47,7 @@ export class JlptDatabase extends DurableObject {
           this.db.prepare('INSERT INTO cloud_schema_version(version) VALUES(1)').run();
         }
         migrateCloudSchemaV2(this.db);
+        ensureCapturePaginationSchema(this.db);
         migrateCloudSchemaV3(this.db);
         migrateCloudSchemaV4(this.db);
         migrateCloudSchemaV6(this.db);

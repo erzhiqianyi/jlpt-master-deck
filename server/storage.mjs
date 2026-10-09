@@ -1,4 +1,5 @@
 import {preserveAttemptManifest,manifestForQuestions} from './attempt-manifest.mjs';
+import { capturePaginationLimits, ensureCapturePaginationSchema, captureOwner, parseCaptureCount, parseCapturePage, captureFilters, captureWhere, readCaptureCursor, issueCaptureCursor } from './capture-pagination.mjs';
 import { ensureBankMaterialSchema, saveMaterial, readMaterialVersion, saveMaterialGroup, persistLibraryQuestion, questionBankMetadata, bankAudioHasHistory, retireLibraryQuestion, persistItemSeeds, attachPracticeReferences } from './bank-materials.mjs';
 import { presentationView } from './presentation-view.mjs';
 import { ensureQuestionBankSchema, archiveDraftQuestions } from './question-bank.mjs';
@@ -318,6 +319,7 @@ END;
     ensureListeningLibraryNumbers();
     ensureColumn('learning_captures', 'target_deck', 'TEXT');
     ensureColumn('learning_captures', 'target_wordbook_id', 'TEXT');
+    ensureCapturePaginationSchema(db);
     ensureColumn('reading_questions', 'tags_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'explanation_nodes_json', "TEXT NOT NULL DEFAULT '[]'");
     ensureColumn('reading_questions', 'translation_lines_json', "TEXT NOT NULL DEFAULT '[]'");
@@ -2143,6 +2145,39 @@ export function listLearningCaptures(userId, status) {
     ? getDb().prepare('SELECT * FROM learning_captures WHERE user_id = ? AND status = ? ORDER BY created_at DESC').all(userId, normalizedStatus)
     : getDb().prepare('SELECT * FROM learning_captures WHERE user_id = ? ORDER BY created_at DESC').all(userId);
   return rows.map(learningCaptureFromRow);
+}
+
+export function countLearningCaptures(userId, input = {}) {
+  const owner = captureOwner(userId);
+  const filters = captureFilters(parseCaptureCount(input));
+  return { total: captureCount(getDb(), owner, filters), filters };
+}
+
+function captureCount(db, owner, filters) {
+  const where = captureWhere(owner, filters);
+  return Number(db.prepare(`SELECT COUNT(*) AS total FROM learning_captures WHERE ${where.sql}`).get(...where.values).total);
+}
+
+export function listLearningCapturesPage(userId, input = {}) {
+  const owner = captureOwner(userId);
+  const options = parseCapturePage(input);
+  const db = getDb();
+  return transaction(db, () => {
+    const cursor = options.cursor ? readCaptureCursor(db, options.cursor, owner, options) : null;
+    const filters = cursor?.filters ?? captureFilters(options);
+    const limit = options.limit ?? capturePaginationLimits.defaultLimit;
+    const where = captureWhere(owner, filters, cursor);
+    // SQL itself is bounded. The extra row only determines hasMore, and is never mapped.
+    const rows = db.prepare(`SELECT * FROM learning_captures WHERE ${where.sql} ORDER BY created_at DESC, id DESC LIMIT ?`).all(...where.values, limit + 1);
+    const hasMore = rows.length > limit;
+    const emitted = rows.slice(0, limit);
+    return {
+      captures: emitted.map(learningCaptureFromRow),
+      page: { limit, returned: emitted.length, hasMore, nextCursor: hasMore ? issueCaptureCursor(db, owner, filters, emitted.at(-1)) : null },
+      total: options.includeTotal ? captureCount(db, owner, filters) : null,
+      filters,
+    };
+  });
 }
 
 export function updateLearningCaptureStatus(userId, id, status) {

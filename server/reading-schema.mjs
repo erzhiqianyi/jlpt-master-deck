@@ -1,4 +1,4 @@
-import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
+import { isKanaReading, japaneseAnnotationsSchema } from './japanese-annotations.mjs';
 import { z } from 'zod';
 
 const text = (max) => z.string().trim().max(max);
@@ -9,7 +9,9 @@ export const readingFields = {
   level: z.enum(['N1','N2','N3','N4','N5']).nullable().optional(),
   materialRef: z.object({id: text(200).min(1),revision:z.number().int().positive()}).nullable().optional(),
   japaneseAnnotations: japaneseAnnotationsSchema.optional(),
-  rubyTerms: z.array(z.object({ text: text(200).min(1), reading: text(400).min(1).regex(/^[\p{Script=Hiragana}\p{Script=Katakana}ー・\s]+$/u, 'Use kana for readings.') }).strict()).max(2000).optional()
+  rubyTerms: z.array(z.object({ text: text(200).min(1), reading: text(400).min(1)
+    .refine(isKanaReading, 'Use kana for readings.')
+    .describe('Kana-only reading; hiragana, katakana, ー, ・ and whitespace. Validated by the server.') }).strict()).max(2000).optional()
     .describe('Explicit contextual furigana for Japanese text in passage, question, choices and quoted evidence. Preserve original text. Longest matching text wins; use longer phrases to disambiguate readings. Omitted preserves existing annotations on update; [] clears them. Entire array is replaced.'),
   title: text(120).optional(),
   passage: text(8000).min(1),

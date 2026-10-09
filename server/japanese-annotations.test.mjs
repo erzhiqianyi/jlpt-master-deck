@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { z } from 'zod';
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
+import { readingFields } from './reading-schema.mjs';
 
 const directory = mkdtempSync(join(tmpdir(), 'jlpt-japanese-'));
 process.env.JLPT_DB_PATH = join(directory, 'study.sqlite');
@@ -23,6 +25,38 @@ test('annotations validate lossless Unicode text and reject malformed data', () 
   assert.throws(() => japaneseAnnotationsSchema.parse([{ ...annotations[0], text: text + '余分' }]));
   assert.throws(() => japaneseAnnotationsSchema.parse([{ text: '見る', tokens: [{ surface: '見る', reading: '错误', pos: 'verb' }] }]));
   assert.throws(() => japaneseAnnotationsSchema.parse([{ text: '見る', tokens: [{ surface: '見る', pos: 'guessed' }] }]));
+});
+
+test('MCP annotation schemas omit engine-specific regexes while preserving kana validation', () => {
+  const schema = z.toJSONSchema(japaneseAnnotationsSchema, { io: 'input' });
+  const readingSchema = schema.items.properties.tokens.items.properties.reading;
+  assert.equal(readingSchema.type, 'string');
+  assert.equal(readingSchema.minLength, 1);
+  assert.equal(readingSchema.maxLength, 1000);
+  assert.equal(readingSchema.pattern, undefined);
+  assert.match(readingSchema.description, /Kana-only/);
+
+  const withReading = (reading) => [{ text: '語', tokens: [{ surface: '語', reading }] }];
+  for (const reading of ['ひらがな', 'カタカナー・', 'ﾊﾝｶｸ', '𛀀𛀁', 'かな カナ\t\n', 'あ'.repeat(1000)]) {
+    assert.deepEqual(japaneseAnnotationsSchema.parse(withReading(reading)), withReading(reading));
+  }
+  for (const reading of ['', '漢字', 'romaji', '123', '<ruby>', 'かな漢字', 'あ'.repeat(1001)]) {
+    assert.throws(() => japaneseAnnotationsSchema.parse(withReading(reading)));
+  }
+});
+
+test('furigana schemas remain portable and still trim and validate kana readings', () => {
+  const schema = z.toJSONSchema(readingFields.rubyTerms, { io: 'input' });
+  assert.equal(schema.items.properties.reading.pattern, undefined);
+  assert.equal(schema.items.properties.reading.minLength, 1);
+  assert.equal(schema.items.properties.reading.maxLength, 400);
+  assert.deepEqual(readingFields.rubyTerms.parse([{ text: ' 語 ', reading: ' カナ・ー ' }]), [{ text: '語', reading: 'カナ・ー' }]);
+  for (const reading of ['ひらがな', 'ﾊﾝｶｸ', '𛀀𛀁', 'あ'.repeat(400)]) {
+    assert.equal(readingFields.rubyTerms.parse([{ text: '語', reading }])[0].reading, reading);
+  }
+  for (const reading of ['', '   ', '漢字', 'romaji', '123', 'かな漢字', 'あ'.repeat(401)]) {
+    assert.throws(() => readingFields.rubyTerms.parse([{ text: '語', reading }]));
+  }
 });
 
 test('reading annotations persist across edits, stay account scoped, and support explicit clearing', () => {

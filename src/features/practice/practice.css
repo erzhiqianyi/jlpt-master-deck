@@ -1,0 +1,63 @@
+/* 練習（v3）・記憶カード・統計。基本は ../library/library.css と ../question-bank/questionBank.css。 */
+.practice-resume { justify-self: start; min-height: 40px; padding: 0 14px; border-radius: var(--ui-radius); border: 1px solid var(--ledger-indigo); background: var(--ledger-indigo-soft); color: var(--ledger-indigo); font-weight: 700; cursor: pointer; }
+.practice-start { display: grid; gap: 10px; }
+.practice-start .library-button { justify-self: start; }
+.practice-count { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--ledger-muted); }
+.practice-count input { width: 72px; }
+.practice-toggles { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .9rem; }
+.practice-toggles label { display: flex; align-items: center; gap: 6px; }
+.practice-link { background: none; border: 0; padding: 0; color: var(--ledger-indigo); font-weight: 700; text-decoration: underline; cursor: pointer; }
+.practice-progress { display: flex; gap: 3px; }
+.practice-progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--ledger-line); }
+.practice-progress span[data-state='current'] { background: var(--ledger-indigo); }
+.practice-progress span[data-state='right'], .practice-progress span[data-state='answered'] { background: var(--ledger-green); }
+.practice-progress span[data-state='wrong'] { background: #c46a5a; }
+.practice-card { display: grid; gap: 12px; padding: 18px 20px; border: 1px solid var(--ledger-line); border-radius: var(--ui-radius); background: var(--ledger-surface); }
+.practice-instruction { margin: 0; font-size: .9rem; color: var(--ledger-muted); }
+.practice-material { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px dashed var(--ledger-line); }
+.practice-material h3 { margin: 0; font-size: 1rem; }
+.practice-options { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.practice-options button { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 10px 12px; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line);
+  background: var(--ledger-surface); color: inherit; font: inherit; font-size: 1.02rem; cursor: pointer; }
+.practice-options button:not(:disabled):hover { border-color: var(--ledger-indigo); background: var(--ledger-indigo-soft); }
+.practice-options button:disabled { cursor: default; opacity: 1; }
+.practice-options button[data-state='chosen'] { border-color: var(--ledger-indigo); }
+.practice-options button[data-state='correct'] { border-color: var(--ledger-green); background: var(--ledger-green-soft); }
+.practice-options button[data-state='wrong'] { border-color: #c46a5a; background: #fbeeea; }
+.practice-text-answer { display: grid; gap: 8px; }
+.practice-text-answer textarea { width: 100%; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line); padding: 8px 10px; font: inherit; }
+.practice-text-answer .library-button { justify-self: start; }
+.practice-result { display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--ui-radius); background: var(--ledger-paper); }
+.practice-result[data-correct='true'] > strong { color: var(--ledger-green); }
+.practice-result[data-correct='false'] > strong { color: #9b3b2c; }
+.practice-actions { justify-content: flex-end; }
+.practice-mistakes .bank-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; padding: 10px 14px; align-items: center; }
+
+.card-review { max-width: 720px; }
+.memory-card { display: grid; gap: 0; border: 1px solid var(--ledger-line); border-radius: calc(var(--ui-radius) * 1.5); background: var(--ledger-surface); min-height: 260px; overflow: hidden; }
+.memory-card-face { display: grid; gap: 12px; padding: 28px 24px; align-content: center; text-align: center; }
+.memory-card-back { border-top: 1px solid var(--ledger-line); background: var(--ledger-paper); text-align: left; }
+.memory-field p { margin: 0; line-height: 1.7; }
+.memory-field[data-front='true'] p { font-size: 2rem; font-weight: 700; }
+.memory-field-expression p { font-size: 1.6rem; font-weight: 700; }
+.memory-translation { display: block; font-size: .9rem; }
+.card-show { justify-self: center; min-width: 200px; }
+.card-ratings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.card-ratings button { min-height: 52px; display: grid; place-items: center; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line); background: var(--ledger-surface); font-weight: 700; cursor: pointer; }
+.card-ratings button small { font-weight: 500; color: var(--ledger-muted); font-size: .7rem; }
+.card-ratings [data-rating='forgot'] { color: #9b3b2c; }
+.card-ratings [data-rating='easy'] { color: var(--ledger-green); }
+
+.stats-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 0; }
+.stats-tiles div { padding: 14px 16px; border: 1px solid var(--ledger-line); border-radius: var(--ui-radius); background: var(--ledger-surface); }
+.stats-tiles dt { font-size: .8rem; color: var(--ledger-muted); }
+.stats-tiles dd { margin: 4px 0 0; font-size: 1.6rem; font-weight: 800; }
+.stats-bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+.stats-bars span { flex: 1; min-height: 2px; background: var(--ledger-indigo); border-radius: 2px 2px 0 0; opacity: .8; }
+
+@media (max-width: 640px) {
+  .card-ratings { grid-template-columns: repeat(2, 1fr); }
+  .practice-card { padding: 14px; }
+}
+.practice-recorder { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.practice-recorder button:not(.library-button) { min-height: 36px; padding: 0 12px; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line); background: var(--ledger-surface); cursor: pointer; }

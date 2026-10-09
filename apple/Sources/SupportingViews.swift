@@ -1111,17 +1111,24 @@ struct DisplayReadingSettingsView: View {
     @State private var japaneseDisplay = JapaneseDisplay()
     @State private var reviewKana = false
     @State private var explanationKana = false
+    @State private var showRomaji = true
+    @State private var explanationLanguage = "zh-Hans"
     @State private var saving = false
     @State private var message: String?
     @State private var loaded = false
     var body: some View {
         Form {
-            Section("应用语言") {
+            Section {
                 Picker("应用语言", selection: $language) {
                     Text("简体中文").tag("zh-CN")
                     Text("日本語").tag("ja")
                     Text("English").tag("en")
                 }.accessibilityIdentifier("settings.language")
+                Picker("释义与解析的语言", selection: $explanationLanguage) {
+                    ForEach(LanguageNames.explanationLanguages, id: \.code) { Text($0.name).tag($0.code) }
+                }.accessibilityIdentifier("settings.explanationLanguage")
+            } header: { Text("应用语言") } footer: {
+                Text("没有该语言的译文时，依次回退到其他语言显示。可以让你的 AI 通过 MCP 补齐译文。")
             }
             Section("字体大小") {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1145,6 +1152,7 @@ struct DisplayReadingSettingsView: View {
             Section {
                 Toggle("复习时显示假名", isOn: $reviewKana).accessibilityIdentifier("settings.reviewKana")
                 Toggle("解析中显示假名", isOn: $explanationKana).accessibilityIdentifier("settings.explanationKana")
+                Toggle("显示罗马音", isOn: $showRomaji).accessibilityIdentifier("settings.showRomaji")
                 JapaneseText(text: "見落とす", japanese: true, terms: [.init(text: "見落とす", reading: "みおとす")], fontSize: 24, displayOverride: japaneseDisplay, rubyOverride: reviewKana)
             } header: { Text("假名显示") } footer: {
                 Text("使用词条中保存的读音；读音题作答时不显示提示。")
@@ -1183,7 +1191,10 @@ struct DisplayReadingSettingsView: View {
                     saving = true; message = nil
                     Task {
                         do {
-                            try await store.saveSettings(["locale": .string(language), "fontScale": .number(fontScale), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana), "japaneseDisplay": japaneseDisplay.setting])
+                            let previousLanguage: String? = if case .string(let code) = store.state.settings?["explanationLanguage"] { code } else { nil }
+                            try await store.saveSettings(["locale": .string(language), "fontScale": .number(fontScale), "showReviewRuby": .bool(reviewKana), "showExplanationRuby": .bool(explanationKana), "showRomaji": .bool(showRomaji), "explanationLanguage": .string(explanationLanguage), "japaneseDisplay": japaneseDisplay.setting])
+                            // Meanings in the explanation language are chosen by the server: fetch them again.
+                            if previousLanguage != explanationLanguage { _ = await store.refresh() }
                             message = "已保存"
                         } catch { message = error.localizedDescription }
                         saving = false
@@ -1200,6 +1211,9 @@ struct DisplayReadingSettingsView: View {
                 japaneseDisplay = JapaneseDisplay(settings: store.state.settings)
                 reviewKana = store.displayFlag("showReviewRuby")
                 explanationKana = store.displayFlag("showExplanationRuby")
+                showRomaji = store.displayFlag("showRomaji")
+                if case .string(let code) = store.state.settings?["explanationLanguage"] { explanationLanguage = code }
+                else { explanationLanguage = ["ja": "ja", "en": "en"][store.appLanguage] ?? "zh-Hans" }
                 loaded = true
             }
     }

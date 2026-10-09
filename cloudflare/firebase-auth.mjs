@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { randomBytes } from 'node:crypto';
-import { getDb } from '../server/storage.mjs';
+import { getDb } from '../server/accounts.mjs';
+import { ensureUser } from '../server/v3/database.mjs';
 import { currentPlatform, transaction } from '../server/platform.mjs';
 
 const keys = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
@@ -20,6 +21,7 @@ export async function firebaseSession(idToken, existingUser = null) {
       const inserted = existingUser ? { lastInsertRowid: existingUser.id } : db.prepare('INSERT INTO users(username,password_hash,salt,created_at) VALUES(?,?,?,?)').run(`${String(payload.name || 'Google 用户').slice(0,40)} · ${randomBytes(4).toString('hex')}`, '', '', new Date().toISOString());
       identity = { user_id: Number(inserted.lastInsertRowid) };
       db.prepare('INSERT INTO firebase_identities(project_id,uid,user_id) VALUES(?,?,?)').run(projectId, payload.sub, identity.user_id);
+      ensureUser(db, { id: identity.user_id });
     }
     const token = randomBytes(32).toString('base64url'), now = new Date().toISOString();
     db.prepare('INSERT INTO sessions(token,user_id,created_at,last_seen_at) VALUES(?,?,?,?)').run(token,identity.user_id,now,now);

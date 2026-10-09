@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { currentPlatform } from '../platform.mjs';
-import { getDb, databasePath } from '../storage.mjs';
+import { getDb, databasePath } from '../accounts.mjs';
 import { ttsSecretKey } from './secret-key.mjs';
 
 const DAY = 86400000;

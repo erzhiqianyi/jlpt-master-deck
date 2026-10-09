@@ -167,16 +167,49 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["你的答案：そくてい"].firstMatch.waitForExistence(timeout: 5))
         capture("statistics-reference-attempt-detail")
     }
+    func testItemDetailShowsRomajiUntilTurnedOff() throws {
+        primary("题库")
+        app.buttons["nav.词汇"].tap()
+        app.buttons.containing(.staticText, identifier: "測定").firstMatch.tap()
+        let romaji = app.staticTexts["entry.romaji"]
+        XCTAssertTrue(romaji.waitForExistence(timeout: 5))
+        XCTAssertEqual(romaji.label, "sokutei")
+        capture("item-detail-romaji")
+        app.navigationBars.buttons.firstMatch.tap()
+        primary("学习")
+        app.buttons["workspace.account"].firstMatch.tap()
+        app.buttons["settings.display"].tap()
+        XCTAssertTrue(app.buttons["settings.explanationLanguage"].waitForExistence(timeout: 5))
+        let toggle = app.switches["settings.showRomaji"]
+        if !toggle.isHittable { app.swipeUp() }
+        toggle.switches.firstMatch.tap()
+        let save = app.buttons["settings.display.save"]
+        for _ in 0..<6 where !save.exists || !save.isHittable { app.swipeUp() }
+        save.tap()
+        XCTAssertTrue(app.staticTexts["已保存"].waitForExistence(timeout: 5))
+        capture("display-settings-romaji-off")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        primary("题库")
+        app.buttons["nav.词汇"].tap()
+        app.buttons.containing(.staticText, identifier: "測定").firstMatch.tap()
+        XCTAssertTrue(app.buttons["entry.practice"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["entry.romaji"].exists)
+    }
     func testDisplayPreferencesSaveAndSwitchLanguage() throws {
         primary("学习")
         app.buttons["workspace.account"].firstMatch.tap()
         app.buttons["settings.display"].tap()
         XCTAssertTrue(app.navigationBars["显示与阅读"].waitForExistence(timeout: 5))
-        app.segmentedControls["settings.fontSize"].buttons["大"].tap()
-        app.switches["settings.reviewKana"].tap()
+        app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.5)
         app.buttons["settings.language"].tap()
         app.buttons["English"].tap()
-        app.buttons["settings.display.save"].tap()
+        let reviewKana = app.switches["settings.reviewKana"]
+        for _ in 0..<3 where !reviewKana.isHittable { app.swipeUp() }
+        reviewKana.switches.firstMatch.tap()
+        let save = app.buttons["settings.display.save"]
+        for _ in 0..<6 where !save.exists || !save.isHittable { app.swipeUp() }
+        save.tap()
         XCTAssertTrue(app.navigationBars["Display & reading"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 5))
         capture("native-display-settings-english-large")
@@ -192,7 +225,7 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.buttons["ai.article.ai-vocabulary-notes"].waitForExistence(timeout: 5))
         capture("native-ai-community")
         app.buttons["ai.article.ai-vocabulary-notes"].tap()
-        XCTAssertTrue(app.navigationBars["文章详情"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["AI助手"].waitForExistence(timeout: 5))
         capture("native-ai-article")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["settings.ai.connections"].tap()
@@ -210,9 +243,12 @@ final class NavigationLifecycleTests: XCTestCase {
     }
 
     func testStatisticsMockExamAndCardSettingsPersist() throws {
-        primary("练习")
-        XCTAssertTrue(app.buttons["practice.mock"].waitForExistence(timeout: 5))
-        app.buttons["practice.mock"].tap()
+        // Independent practice entries live at the bottom of the learning home.
+        primary("学习")
+        let mock = app.buttons["practice.mock"]
+        XCTAssertTrue(mock.waitForExistence(timeout: 5))
+        reveal(mock)
+        mock.tap()
         XCTAssertTrue(app.staticTexts["登录后查看账户里的试卷和考试安排。"].waitForExistence(timeout: 5))
         app.buttons["practice.back"].tap()
         primary("统计")
@@ -304,21 +340,27 @@ final class NavigationLifecycleTests: XCTestCase {
         reveal(start); start.tap()
         let speech = app.buttons["review.speech"]
         XCTAssertTrue(speech.waitForExistence(timeout: 5))
-        app.buttons["review.speech-position"].tap()
-        app.buttons["放到右侧"].tap()
         let term = app.staticTexts["測定"].firstMatch
         XCTAssertTrue(term.exists)
+        // Phones keep the speech button on the right; the position menu only exists on wide layouts after revealing.
+        let compact = app.windows.firstMatch.frame.width < 700
         XCTAssertGreaterThan(speech.frame.minX, term.frame.minX)
-        app.buttons["review.speech-position"].tap()
-        app.buttons["放到左侧"].tap()
-        XCTAssertLessThan(speech.frame.minX, term.frame.minX)
-        capture("review-speech-left-inside-card")
         app.buttons["显示答案"].tap()
-        XCTAssertTrue(speech.exists)
+        XCTAssertTrue(speech.waitForExistence(timeout: 5))
+        let position = app.buttons["review.speech-position"]
+        if compact {
+            XCTAssertFalse(position.exists)
+            XCTAssertGreaterThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
+            capture("review-speech-right-inside-card")
+            return
+        }
+        position.tap(); app.buttons["放到左侧"].tap()
         XCTAssertLessThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
+        capture("review-speech-left-inside-card")
         app.terminate(); app.launch()
         primary("学习")
         reveal(start); start.tap()
+        app.buttons["显示答案"].tap()
         XCTAssertTrue(speech.waitForExistence(timeout: 5))
         XCTAssertLessThan(speech.frame.minX, app.staticTexts["測定"].firstMatch.frame.minX)
         app.buttons["review.speech-position"].tap()
@@ -429,7 +471,11 @@ final class NavigationLifecycleTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["已保存"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["settings.feedback"].tap()
-        XCTAssertTrue(app.segmentedControls["settings.practiceNavigation"].buttons["手动切换"].isSelected)
+        // The settings form is a lazy list: scroll until the control has been created.
+        let reopened = app.segmentedControls["settings.practiceNavigation"].buttons["手动切换"]
+        for _ in 0..<6 where !reopened.exists { app.swipeUp() }
+        XCTAssertTrue(reopened.waitForExistence(timeout: 5)); reveal(reopened)
+        XCTAssertTrue(reopened.isSelected)
         XCTAssertFalse(app.steppers["settings.practiceAutoAdvanceSeconds"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -648,7 +694,11 @@ final class NativeQuestionVisualTests: XCTestCase {
                 let option=app.buttons["reading.choice.\(choice)"].firstMatch;XCTAssertTrue(option.waitForExistence(timeout:10))
                 XCTAssertFalse(app.buttons["reading.speak"].exists);XCTAssertFalse(app.buttons["reading.confirm"].isEnabled)
                 capture(kind,choice==1 ? "article-unanswered" : "retry-unanswered")
-                reveal(option);capture(kind,"task-options");option.tap();app.buttons["reading.confirm"].tap()
+                reveal(option)
+                // The confirm button is pinned over the bottom of the list; keep the option clear of it.
+                let confirm=app.buttons["reading.confirm"]
+                for _ in 0..<3 where option.frame.maxY > confirm.frame.minY - 8 { app.swipeUp() }
+                capture(kind,"task-options");option.tap();XCTAssertTrue(confirm.isEnabled);confirm.tap()
                 let outcome=app.staticTexts[choice==0 ? "回答正确" : "再看一下原文"].firstMatch;XCTAssertTrue(outcome.waitForExistence(timeout:5));reveal(outcome)
                 capture(kind,choice==0 ? "correct" : "incorrect-explanation");app.swipeUp();capture(kind,"long-explanation")
             }

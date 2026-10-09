@@ -1,24 +1,30 @@
-import { normalizeVocabularyQuestionKinds } from '../../domain/vocabularyQuestionRules.mjs';
 import { SpeechPreferences } from './SpeechPreferences';
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
 import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { configurableMemoryCardFields, memoryCardFieldLabels, type MemoryCardField } from '../../domain/memoryCards';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createV3Client } from '../../v3/client';
+import { FONT_SCALES, fontSizeOf, type CardTemplate, type KnowledgeKind, type V3Settings, type V3SettingsPatch } from '../../v3/types';
 import { stopSpeech, speak, fetchTtsProviders, fetchTtsCredentials, saveTtsCredential, deleteTtsCredential, type TtsProviderDescriptor, type TtsCredentialStatus } from '../../lib/tts';
-import type { DisplaySettings, Locale } from '../../types';
+import type { Locale } from '../../types';
+
+// 与服务端 languages 表一致（语言自称）
+const EXPLANATION_LANGUAGES: Array<[string, string]> = [
+  ['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文'], ['en', 'English'], ['ja', '日本語'], ['ko', '한국어'], ['vi', 'Tiếng Việt'],
+  ['id', 'Bahasa Indonesia'], ['th', 'ไทย'], ['my', 'မြန်မာ'], ['ne', 'नेपाली'], ['es', 'Español'], ['fr', 'Français'],
+];
 
 type SettingsViewProps = {
   labels: Record<string, string>;
-  settings: DisplaySettings;
+  settings: V3Settings;
   username: string;
   authToken: string;
   activeSection?: string;
   onOpenSection?: (section: SettingsSectionId) => void;
   onSearch?: () => void;
   onLogout: () => void;
-  onUpdateSettings: (settings: DisplaySettings) => void;
+  onUpdateSettings: (patch: V3SettingsPatch) => void;
 };
 
 type SettingsSectionId = 'display' | 'practice' | 'memory' | 'pronunciation' | 'account';
@@ -144,14 +150,14 @@ const settingsPageCopy: Record<Locale, SettingsCopy> = {
 };
 
 export function SettingsView({ labels, settings, username, authToken, activeSection: activeSectionValue, onOpenSection: openSection, onLogout, onUpdateSettings, onSearch }: SettingsViewProps) {
-  const copy = settingsPageCopy[settings.locale];
+  const copy = settingsPageCopy[settings.uiLanguage];
   const activeSection = isSettingsSection(activeSectionValue) ? activeSectionValue : undefined;
   const onOpenSection = openSection ?? ((section: SettingsSectionId) => { window.location.hash = `#/settings/${section}`; });
 
   return (
     <section className="gentle-settings settings-template" aria-label={activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}>
       <h2 className="sr-only">{activeSection ? sectionTitle(activeSection, labels, copy, settings) : labels.settings}</h2>
-      {!activeSection ? <div className="settings-home-only"><SettingsProfileCard copy={copy} username={username} locale={settings.locale} /></div> : null}
+      {!activeSection ? <div className="settings-home-only"><SettingsProfileCard copy={copy} username={username} locale={settings.uiLanguage} /></div> : null}
       <div className="settings-mobile-detail settings-unified-content">
         {activeSection ? (
           <section id={`settings-${activeSection}`} className="settings-section-card settings-detail-card" aria-label={sectionTitle(activeSection, labels, copy, settings)}>
@@ -175,28 +181,24 @@ const memoryCardSettingsCopy: Record<Locale, {
   body: string;
   front: string;
   back: string;
-  exampleNote: string;
 }> = {
   'zh-CN': {
     title: '记忆卡内容',
-    body: '分别选择正面和背面显示的学习内容。当前卡片没有的字段会自动跳过。',
+    body: '按类别选择记忆卡模板，模板决定正面和背面显示的内容。当前卡片没有的字段会自动跳过。',
     front: '卡片正面',
     back: '卡片背面',
-    exampleNote: '单词和语法共用这一套字段；与原词相同的读音会自动隐藏。图片可在词条详情页上传。',
   },
   ja: {
     title: '記憶カードの内容',
-    body: '表面と裏面に表示する学習内容を個別に選択します。データがない項目は自動的に省略されます。',
+    body: '種類ごとに記憶カードのテンプレートを選びます。テンプレートが表面と裏面の内容を決めます。データがない項目は自動的に省略されます。',
     front: 'カード表面',
     back: 'カード裏面',
-    exampleNote: '単語と文法は同じ項目を共有します。原語と同じ読み方は自動的に省略されます。画像は項目の詳細ページで追加できます。',
   },
   en: {
     title: 'Memory card content',
-    body: 'Choose learning fields for the front and back independently. Missing fields are skipped automatically.',
+    body: 'Choose a memory card template for each kind; the template decides what the front and back show. Missing fields are skipped automatically.',
     front: 'Card front',
     back: 'Card back',
-    exampleNote: 'Vocabulary and grammar share these fields; a reading identical to the entry is hidden automatically. Add images on the entry detail page.',
   },
 };
 
@@ -204,10 +206,10 @@ function isSettingsSection(value: string | undefined): value is SettingsSectionI
   return value === 'display' || value === 'practice' || value === 'memory' || value === 'pronunciation' || value === 'account';
 }
 
-function sectionTitle(section: SettingsSectionId, labels: Record<string, string>, copy: SettingsCopy, settings: DisplaySettings) {
+function sectionTitle(section: SettingsSectionId, labels: Record<string, string>, copy: SettingsCopy, settings: V3Settings) {
   if (section === 'display') return copy.displayAndReading;
   if (section === 'practice') return copy.practiceExperience;
-  if (section === 'memory') return memoryCardSettingsCopy[settings.locale].title;
+  if (section === 'memory') return memoryCardSettingsCopy[settings.uiLanguage].title;
   if (section === 'pronunciation') return copy.pronunciation;
   return labels.account;
 }
@@ -231,15 +233,15 @@ function SettingsProfileCard({ copy, username, locale }: { copy: SettingsCopy; u
   );
 }
 
-function SettingsHome({ copy, labels, settings, onOpenSection, onSearch }: { copy: SettingsCopy; labels: Record<string, string>; settings: DisplaySettings; onOpenSection: (section: SettingsSectionId) => void; onSearch?: () => void }) {
-  const t = (zh: string, ja: string, en: string) => settings.locale === 'zh-CN' ? zh : settings.locale === 'ja' ? ja : en;
+function SettingsHome({ copy, labels, settings, onOpenSection, onSearch }: { copy: SettingsCopy; labels: Record<string, string>; settings: V3Settings; onOpenSection: (section: SettingsSectionId) => void; onSearch?: () => void }) {
+  const t = (zh: string, ja: string, en: string) => settings.uiLanguage === 'zh-CN' ? zh : settings.uiLanguage === 'ja' ? ja : en;
   return (
     <div className="settings-navigation">
       <section className="settings-nav-group" aria-label={t('学习偏好', '学習の設定', 'Learning preferences')}>
         <h3>{t('学习偏好', '学習の設定', 'Learning preferences')}</h3>
         <SettingsNavItem icon={<Settings2 size={22} />} title={copy.displayAndReading} subtitle={`${labels.language} · ${labels.fontSize} · ${copy.kanaDisplay}`} onClick={() => onOpenSection('display')} />
         <SettingsNavItem icon={<Sparkles size={22} />} title={copy.practiceExperience} subtitle={copy.feedbackTiming} onClick={() => onOpenSection('practice')} />
-        <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.locale].title} subtitle={`${memoryCardSettingsCopy[settings.locale].front} · ${memoryCardSettingsCopy[settings.locale].back}`} onClick={() => onOpenSection('memory')} />
+        <SettingsNavItem icon={<PanelTop size={22} />} title={memoryCardSettingsCopy[settings.uiLanguage].title} subtitle={`${memoryCardSettingsCopy[settings.uiLanguage].front} · ${memoryCardSettingsCopy[settings.uiLanguage].back}`} onClick={() => onOpenSection('memory')} />
         <SettingsNavItem icon={<Volume2 size={22} />} title={copy.pronunciation} subtitle={copy.pronunciationHint} onClick={() => onOpenSection('pronunciation')} />
       </section>
       <section className="settings-nav-group" aria-label={t('账户与帮助', 'アカウントとヘルプ', 'Account and help')}>
@@ -276,28 +278,37 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   section: SettingsSectionId;
   copy: SettingsCopy;
   labels: Record<string, string>;
-  settings: DisplaySettings;
+  settings: V3Settings;
   username: string;
   authToken: string;
-  onUpdateSettings: (settings: DisplaySettings) => void;
+  onUpdateSettings: (patch: V3SettingsPatch) => void;
 }) {
   if (section === 'display') {
     return (
       <>
         <SettingsRow title={labels.language}>
-          <LanguageSelect value={settings.locale} onChange={(locale) => onUpdateSettings({ ...settings, locale })} />
+          <LanguageSelect value={settings.uiLanguage} onChange={(locale) => onUpdateSettings({ uiLanguage: locale })} />
         </SettingsRow>
         <SettingsRow title={labels.fontSize}>
           <div className="grid max-w-xl grid-cols-3 gap-2" role="group" aria-label={labels.fontSize}>
-            <SegmentButton active={settings.fontSize === 'small'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'small' })}>{labels.fontSizeSmall}</SegmentButton>
-            <SegmentButton active={settings.fontSize === 'standard'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'standard' })}>{labels.fontSizeStandard}</SegmentButton>
-            <SegmentButton active={settings.fontSize === 'large'} onClick={() => onUpdateSettings({ ...settings, fontSize: 'large' })}>{labels.fontSizeLarge}</SegmentButton>
+            <SegmentButton active={fontSizeOf(settings.fontScale) === 'small'} onClick={() => onUpdateSettings({ fontScale: FONT_SCALES.small })}>{labels.fontSizeSmall}</SegmentButton>
+            <SegmentButton active={fontSizeOf(settings.fontScale) === 'standard'} onClick={() => onUpdateSettings({ fontScale: FONT_SCALES.standard })}>{labels.fontSizeStandard}</SegmentButton>
+            <SegmentButton active={fontSizeOf(settings.fontScale) === 'large'} onClick={() => onUpdateSettings({ fontScale: FONT_SCALES.large })}>{labels.fontSizeLarge}</SegmentButton>
           </div>
         </SettingsRow>
         <SettingsRow title={copy.kanaDisplay}>
           <div className="settings-toggle-list">
-            <Toggle checked={settings.showReviewRuby} label={labels.reviewRuby} onChange={(checked) => onUpdateSettings({ ...settings, showReviewRuby: checked })} />
-            <Toggle checked={settings.showExplanationRuby} label={labels.explanationRuby} onChange={(checked) => onUpdateSettings({ ...settings, showExplanationRuby: checked })} />
+            <Toggle checked={settings.showReviewRuby} label={labels.reviewRuby} onChange={(checked) => onUpdateSettings({ showReviewRuby: checked })} />
+            <Toggle checked={settings.showExplanationRuby} label={labels.explanationRuby} onChange={(checked) => onUpdateSettings({ showExplanationRuby: checked })} />
+            <Toggle checked={settings.showRomaji !== false} label={{ 'zh-CN': '读音旁显示罗马音', ja: '読みの横にローマ字を表示', en: 'Show romaji next to readings' }[settings.uiLanguage]} onChange={(checked) => onUpdateSettings({ showRomaji: checked })} />
+          </div>
+        </SettingsRow>
+        <SettingsRow title={{ 'zh-CN': '释义与解析的语言', ja: '意味・解説の言語', en: 'Language for meanings and explanations' }[settings.uiLanguage]}>
+          <div className="grid max-w-xl gap-2">
+            <select className="settings-select" value={settings.explanationLanguage} onChange={(event) => onUpdateSettings({ explanationLanguage: event.target.value })}>
+              {EXPLANATION_LANGUAGES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+            </select>
+            <p className="text-sm text-[#74646b]">{{ 'zh-CN': '没有该语言的译文时，依次回退到其他语言显示。可以让你的 AI 通过 MCP 补齐译文。', ja: '翻訳がない場合は他の言語で表示します。MCP 経由で AI に翻訳を補ってもらえます。', en: 'Missing translations fall back to another language. Your AI can fill them in through MCP.' }[settings.uiLanguage]}</p>
           </div>
         </SettingsRow>
       </>
@@ -306,50 +317,49 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   if (section === 'practice') {
     return (
       <>
-      <SettingsRow title={{ 'zh-CN': '单词添加规则', ja: '単語追加のルール', en: 'Vocabulary save rules' }[settings.locale]}>
+      <SettingsRow title={{ 'zh-CN': '单词添加规则', ja: '単語追加のルール', en: 'Vocabulary save rules' }[settings.uiLanguage]}>
         <fieldset className="grid gap-3">
-          <legend className="mb-3 text-sm">{{ 'zh-CN': '希望生成的 JLPT 語彙题型', ja: '生成する JLPT 語彙の問題形式', en: 'JLPT vocabulary question types to generate' }[settings.locale]}</legend>
+          <legend className="mb-3 text-sm">{{ 'zh-CN': '希望生成的 JLPT 語彙题型', ja: '生成する JLPT 語彙の問題形式', en: 'JLPT vocabulary question types to generate' }[settings.uiLanguage]}</legend>
           {([
-            ['kanji_to_kana', '漢字読み（汉字读音）'], ['kana_to_kanji', '表記（假名选汉字）'],
-            ['word_formation', '語形成（构词）'], ['moji_goi', '文脈規定（语境填空）'],
-            ['meaning', '言い換え類義（近义替换）'], ['usage', '用法（词语用法）'],
+            ['vocabulary-kanji-reading', '漢字読み（汉字读音）'], ['vocabulary-orthography', '表記（假名选汉字）'],
+            ['vocabulary-word-formation', '語形成（构词）'], ['vocabulary-context', '文脈規定（语境填空）'],
+            ['vocabulary-paraphrase', '言い換え類義（近义替换）'], ['vocabulary-usage', '用法（词语用法）'],
           ] as const).map(([kind, title]) => <label key={kind} className="flex min-h-11 items-center gap-3">
-            <input type="checkbox" checked={normalizeVocabularyQuestionKinds(settings).includes(kind)} onChange={(event) => {
-              const current = normalizeVocabularyQuestionKinds(settings) as NonNullable<DisplaySettings['jlptVocabularyQuestionKinds']>;
-              const selected = event.target.checked ? [...current, kind] : current.filter((entry) => entry !== kind);
-              onUpdateSettings({ ...settings, jlptVocabularyQuestionKinds: selected, requireJlptVocabularyQuestions: selected.length > 0 });
+            <input type="checkbox" checked={settings.questionKinds.includes(kind)} onChange={(event) => {
+              const selected = event.target.checked ? [...settings.questionKinds, kind] : settings.questionKinds.filter((entry) => entry !== kind);
+              onUpdateSettings({ questionKinds: selected });
             }} />
-            <span>{settings.locale === 'zh-CN' ? title : title.split('（')[0]}</span>
+            <span>{settings.uiLanguage === 'zh-CN' ? title : title.split('（')[0]}</span>
           </label>)}
         </fieldset>
-        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': 'MCP 添加或更新单词时，每个勾选题型至少须提供一道完整题目；全部不选则不校验。', ja: 'MCP で単語を保存する際、選択した形式ごとに完全な問題が1問以上必要です。未選択なら検証しません。', en: 'MCP word saves require at least one complete question for each selected type. Select none to skip validation.' }[settings.locale]}</p>
+        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': 'MCP 添加或更新单词时，每个勾选题型至少须提供一道完整题目；全部不选则不校验。', ja: 'MCP で単語を保存する際、選択した形式ごとに完全な問題が1問以上必要です。未選択なら検証しません。', en: 'MCP word saves require at least one complete question for each selected type. Select none to skip validation.' }[settings.uiLanguage]}</p>
       </SettingsRow>
       <DailyPracticeSourceSettings settings={settings} onChange={onUpdateSettings} />
       <SettingsRow title={copy.feedbackTiming}>
         <div className="settings-feedback-options" role="group" aria-label={copy.feedbackTiming}>
-          <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'immediate' })}>{labels.feedbackModeImmediate}</SegmentButton>
-          <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ ...settings, feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
+          <SegmentButton active={settings.feedbackMode === 'immediate'} onClick={() => onUpdateSettings({ feedbackMode: 'immediate' })}>{labels.feedbackModeImmediate}</SegmentButton>
+          <SegmentButton active={settings.feedbackMode === 'batch'} onClick={() => onUpdateSettings({ feedbackMode: 'batch' })}>{labels.feedbackModeBatch}</SegmentButton>
         </div>
       </SettingsRow>
-      <SettingsRow title={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.locale]}>
-        <div className="settings-feedback-options" role="group" aria-label={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.locale]}>
-          <SegmentButton active={settings.practiceNavigation !== 'manual'} onClick={() => onUpdateSettings({ ...settings, practiceNavigation: 'auto' })}>{{ 'zh-CN': '自动跳转', ja: '自動で移動', en: 'Automatic' }[settings.locale]}</SegmentButton>
-          <SegmentButton active={settings.practiceNavigation === 'manual'} onClick={() => onUpdateSettings({ ...settings, practiceNavigation: 'manual' })}>{{ 'zh-CN': '手动切换', ja: '手動で移動', en: 'Manual' }[settings.locale]}</SegmentButton>
+      <SettingsRow title={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.uiLanguage]}>
+        <div className="settings-feedback-options" role="group" aria-label={{ 'zh-CN': '答题后切换', ja: '解答後の移動', en: 'After selecting an answer' }[settings.uiLanguage]}>
+          <SegmentButton active={settings.practiceNavigation !== 'manual'} onClick={() => onUpdateSettings({ practiceNavigation: 'auto' })}>{{ 'zh-CN': '自动跳转', ja: '自動で移動', en: 'Automatic' }[settings.uiLanguage]}</SegmentButton>
+          <SegmentButton active={settings.practiceNavigation === 'manual'} onClick={() => onUpdateSettings({ practiceNavigation: 'manual' })}>{{ 'zh-CN': '手动切换', ja: '手動で移動', en: 'Manual' }[settings.uiLanguage]}</SegmentButton>
         </div>
         {settings.practiceNavigation !== 'manual' && <label className="flex min-h-11 items-center gap-3 mt-3">
-          <span>{{ 'zh-CN': '自动跳转等待（秒）', ja: '移動までの待ち時間（秒）', en: 'Delay before advancing (seconds)' }[settings.locale]}</span>
-          <input type="number" min={0} max={10} step={0.1} key={settings.practiceAutoAdvanceSeconds ?? 0.5} defaultValue={settings.practiceAutoAdvanceSeconds ?? 0.5} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} onBlur={(event) => {
+          <span>{{ 'zh-CN': '自动跳转等待（秒）', ja: '移動までの待ち時間（秒）', en: 'Delay before advancing (seconds)' }[settings.uiLanguage]}</span>
+          <input type="number" min={0} max={10} step={0.1} key={settings.autoAdvanceSeconds} defaultValue={settings.autoAdvanceSeconds} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} onBlur={(event) => {
             if (event.target.value === '' || !Number.isFinite(event.target.valueAsNumber)) return;
-            onUpdateSettings({ ...settings, practiceAutoAdvanceSeconds: Math.round(Math.max(0, Math.min(10, event.target.valueAsNumber)) * 10) / 10 });
+            onUpdateSettings({ autoAdvanceSeconds: Math.round(Math.max(0, Math.min(10, event.target.valueAsNumber)) * 10) / 10 });
           }} />
         </label>}
-        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '用于整组反馈模式。0 秒表示立即跳转；逐题反馈模式下，阅读解析后手动切换。', ja: 'まとめて答え合わせする場合に適用。0秒ならすぐ移動します。1問ずつ答え合わせする場合は、解説を読んで手動で移動します。', en: 'Applies when reviewing at the end. Set 0 for immediate navigation. With per-question feedback, advance manually after reading the explanation.' }[settings.locale]}</p>
+        <p className="text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '用于整组反馈模式。0 秒表示立即跳转；逐题反馈模式下，阅读解析后手动切换。', ja: 'まとめて答え合わせする場合に適用。0秒ならすぐ移動します。1問ずつ答え合わせする場合は、解説を読んで手動で移動します。', en: 'Applies when reviewing at the end. Set 0 for immediate navigation. With per-question feedback, advance manually after reading the explanation.' }[settings.uiLanguage]}</p>
       </SettingsRow>
       </>
     );
   }
   if (section === 'memory') {
-    return <MemoryCardFieldSettings settings={settings} onUpdateSettings={onUpdateSettings} />;
+    return <MemoryCardFieldSettings settings={settings} authToken={authToken} onUpdateSettings={onUpdateSettings} />;
   }
   if (section === 'pronunciation') {
     return <PronunciationSettings copy={copy} settings={settings} authToken={authToken} onUpdateSettings={onUpdateSettings} />;
@@ -367,54 +377,64 @@ function SettingsSectionContent({ section, copy, labels, settings, username, aut
   );
 }
 
-function MemoryCardFieldSettings({ settings, onUpdateSettings }: { settings: DisplaySettings; onUpdateSettings: (settings: DisplaySettings) => void }) {
-  const copy = memoryCardSettingsCopy[settings.locale];
-  const update = (side: 'front' | 'back', field: MemoryCardField) => {
-    const key = side === 'front' ? 'memoryCardFrontFields' : 'memoryCardBackFields';
-    const current = settings[key];
-    const selected = current.includes(field);
-    if (selected && current.length === 1) return;
-    const next = selected ? current.filter((item) => item !== field) : [...current, field];
-    onUpdateSettings({ ...settings, [key]: next });
+const TEMPLATE_FIELD_LABELS: Record<Locale, Record<string, string>> = {
+  'zh-CN': { expression: '词条', reading: '读音', romaji: '罗马音', meaning: '释义', meaning_ja: '日语释义', paraphrase: '言い換え', example: '例句', memory_point: '记忆要点', image: '记忆图', pattern: '句型', note: '补充' },
+  ja: { expression: '見出し語', reading: '読み', romaji: 'ローマ字', meaning: '意味', meaning_ja: '日本語の意味', paraphrase: '言い換え', example: '例文', memory_point: '覚え方', image: '記憶イメージ', pattern: '文型', note: '補足' },
+  en: { expression: 'Entry', reading: 'Reading', romaji: 'Romaji', meaning: 'Meaning', meaning_ja: 'Japanese definition', paraphrase: 'Paraphrase', example: 'Example', memory_point: 'Memory point', image: 'Memory image', pattern: 'Pattern', note: 'Note' },
+};
+const TEMPLATE_KIND_LABELS: Record<Locale, Record<KnowledgeKind, string>> = {
+  'zh-CN': { word: '单词', grammar: '语法', name: '人名' }, ja: { word: '単語', grammar: '文法', name: '人名' }, en: { word: 'Words', grammar: 'Grammar', name: 'Names' },
+};
+
+/** 記憶カードは種類（単語・文法・人名）ごとに模板を選ぶ。保存先は v3。 */
+function MemoryCardFieldSettings({ settings, authToken, onUpdateSettings }: { settings: V3Settings; authToken?: string; onUpdateSettings: (patch: V3SettingsPatch) => void }) {
+  const copy = memoryCardSettingsCopy[settings.uiLanguage];
+  const client = useMemo(() => (authToken ? createV3Client(authToken) : null), [authToken]);
+  const [templates, setTemplates] = useState<CardTemplate[]>([]);
+  const [chosen, setChosen] = useState<Record<KnowledgeKind, string | null> | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!client) return;
+    Promise.all([client.cardTemplates(), client.settings()])
+      .then(([list, current]) => { setTemplates(list); setChosen(current.cardTemplates); })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+  }, [client]);
+  const choose = (kind: KnowledgeKind, code: string) => {
+    if (!client) return;
+    setChosen((current) => (current ? { ...current, [kind]: code } : current));
+    client.updateSettings({ cardTemplates: { [kind]: code } })
+      .then((next) => { setChosen(next.cardTemplates); onUpdateSettings({ cardTemplates: next.cardTemplates }); })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   };
+  const fieldText = (fields: CardTemplate['front']) => fields.map((f) => TEMPLATE_FIELD_LABELS[settings.uiLanguage][f.field] ?? f.field).join(' · ');
   return (
     <div className="grid gap-4">
       <p className="m-0 text-sm leading-6 text-[#68716b]">{copy.body}</p>
-      <Toggle checked={settings.memoryCardWordSpacing} label={{ 'zh-CN': '日语分词显示', 'zh-TW': '日語分詞顯示', ja: '日本語を単語ごとに表示', en: 'Space Japanese words' }[settings.locale]} onChange={(checked) => onUpdateSettings({ ...settings, memoryCardWordSpacing: checked })} />
-      <p className="m-0 text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '在日语词语之间留出间隔，方便点词查询和选词。', 'zh-TW': '在日語詞語之間留出間隔，方便點詞查詢和選詞。', ja: '単語の間に余白を入れ、選択や辞書検索をしやすくします。', en: 'Add space between Japanese words for easier selection and lookup.' }[settings.locale]}</p>
-      {(['front', 'back'] as const).map((side) => {
-        const selected = side === 'front' ? settings.memoryCardFrontFields : settings.memoryCardBackFields;
-        return (
-          <details key={side} className="gentle-details"><summary>{side === 'front' ? copy.front : copy.back} · {selected.length}</summary><fieldset className="pb-4">
-            <legend className="px-1 text-sm font-semibold text-[#46514c]">{side === 'front' ? copy.front : copy.back}</legend>
-            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {configurableMemoryCardFields.map((field) => {
-                const active = selected.includes(field);
-                const lastSelected = active && selected.length === 1;
-                return (
-                  <button
-                    key={field}
-                    type="button"
-                    aria-pressed={active}
-                    disabled={lastSelected}
-                    onClick={() => update(side, field)}
-                    className={`min-h-11 rounded-md border px-2 py-2 text-left text-xs font-semibold disabled:cursor-not-allowed ${active ? 'border-[#24473f] bg-[#eef3ed] text-[#24473f]' : 'border-[#e1ddd5] bg-white text-[#68716b] hover:bg-[#f7f5ef]'}`}
-                  >
-                    <span aria-hidden="true" className="mr-1">{active ? '✓' : '○'}</span>{memoryCardFieldLabels[settings.locale][field]}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset></details>
-        );
-      })}
-      <p className="m-0 text-xs leading-5 text-[#7d837e]">{copy.exampleNote}</p>
+      <Toggle checked={settings.cardWordSpacing} label={{ 'zh-CN': '日语分词显示', 'zh-TW': '日語分詞顯示', ja: '日本語を単語ごとに表示', en: 'Space Japanese words' }[settings.uiLanguage]} onChange={(checked) => onUpdateSettings({ cardWordSpacing: checked })} />
+      <p className="m-0 text-xs leading-5 text-[#7d837e]">{{ 'zh-CN': '在日语词语之间留出间隔，方便点词查询和选词。', 'zh-TW': '在日語詞語之間留出間隔，方便點詞查詢和選詞。', ja: '単語の間に余白を入れ、選択や辞書検索をしやすくします。', en: 'Add space between Japanese words for easier selection and lookup.' }[settings.uiLanguage]}</p>
+      {error ? <p className="m-0 text-sm font-semibold text-[#8f3d2e]">{error}</p> : null}
+      {(['word', 'grammar', 'name'] as const).map((kind) => (
+        <fieldset key={kind} className="grid gap-2">
+          <legend className="px-1 text-sm font-semibold text-[#46514c]">{TEMPLATE_KIND_LABELS[settings.uiLanguage][kind]}</legend>
+          {templates.filter((t) => t.kind === kind).map((template) => {
+            const active = chosen?.[kind] === template.code;
+            return (
+              <button key={template.code} type="button" aria-pressed={active} onClick={() => choose(kind, template.code)}
+                className={`grid gap-1 rounded-md border px-3 py-2 text-left ${active ? 'border-[#24473f] bg-[#eef3ed] text-[#24473f]' : 'border-[#e1ddd5] bg-white text-[#46514c] hover:bg-[#f7f5ef]'}`}>
+                <span className="text-sm font-bold"><span aria-hidden="true" className="mr-1">{active ? '✓' : '○'}</span>{template.name?.text ?? template.code}</span>
+                {template.description ? <span className="text-xs leading-5 text-[#68716b]">{template.description.text}</span> : null}
+                <span className="text-xs leading-5 text-[#7d837e]">{copy.front}：{fieldText(template.front)}　{copy.back}：{fieldText(template.back)}</span>
+              </button>
+            );
+          })}
+        </fieldset>
+      ))}
     </div>
   );
 }
 
 function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: {
-  copy: SettingsCopy; settings: DisplaySettings; authToken: string; onUpdateSettings: (settings: DisplaySettings) => void;
+  copy: SettingsCopy; settings: V3Settings; authToken: string; onUpdateSettings: (patch: V3SettingsPatch) => void;
 }) {
   const confirm = useConfirmation();
   const actionPending = useRef(false);
@@ -463,7 +483,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
         setCredentials(result.credentials);
         setDrafts((current) => ({ ...current, [provider.id]: {} }));
       }
-      await speak(testText, { provider: provider.id, token: authToken, ...settings.speech?.voices?.[provider.id], rate: settings.speech?.rate });
+      await speak(testText, { provider: provider.id, token: authToken, ...settings.speech.voices[provider.id], rate: settings.speech.rate });
       setTestSuccess(true);
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) setError(copy.pronunciationTestFailed + (err instanceof Error ? err.message : String(err)));
@@ -477,7 +497,7 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
     actionPending.current = true;
     setBusyProvider(provider.id); setError(''); setTestSuccess(false);
     try {
-      if (!(await confirm({ title: copy.pronunciationClearTitle, description: `${provider.name}: ${copy.pronunciationClearBody}`, confirmLabel: copy.pronunciationClear, cancelLabel: { 'zh-CN': '取消', ja: 'キャンセル', en: 'Cancel' }[settings.locale], danger: true }))) return;
+      if (!(await confirm({ title: copy.pronunciationClearTitle, description: `${provider.name}: ${copy.pronunciationClearBody}`, confirmLabel: copy.pronunciationClear, cancelLabel: { 'zh-CN': '取消', ja: 'キャンセル', en: 'Cancel' }[settings.uiLanguage], danger: true }))) return;
       const result = await deleteTtsCredential(authToken, provider.id);
       setCredentials(result.credentials);
       setDrafts((current) => ({ ...current, [provider.id]: {} }));
@@ -491,20 +511,20 @@ function PronunciationSettings({ copy, settings, authToken, onUpdateSettings }: 
         <select
           aria-label={copy.pronunciationProvider}
           disabled={busyProvider !== null}
-          value={settings.ttsProvider}
-          onChange={(event) => { setError(''); setTestSuccess(false); onUpdateSettings({ ...settings, ttsProvider: event.target.value as DisplaySettings['ttsProvider'] }); }}
+          value={settings.speech.provider}
+          onChange={(event) => { setError(''); setTestSuccess(false); onUpdateSettings({ speech: { provider: event.target.value } }); }}
           className="h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3 text-sm font-semibold text-[#574f48]"
         >
           <option value="browser">{copy.pronunciationBrowser}</option>
-          {settings.ttsProvider !== 'browser' && !providers.some((provider) => provider.id === settings.ttsProvider) ? <option value={settings.ttsProvider}>{settings.ttsProvider}</option> : null}
+          {settings.speech.provider !== 'browser' && !providers.some((provider) => provider.id === settings.speech.provider) ? <option value={settings.speech.provider}>{settings.speech.provider}</option> : null}
           {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name}</option>)}
         </select>
       </SettingsRow>
-      <SpeechPreferences settings={settings} token={authToken} provider={providers.find((entry) => entry.id === settings.ttsProvider)} credentialVersion={statusFor(settings.ttsProvider)?.updatedAt} onChange={(next) => { stopSpeech(); setTestSuccess(false); onUpdateSettings(next); }} />
-      <label className="grid gap-2 py-3">{settings.locale === 'ja' ? '試聴テキスト' : settings.locale === 'en' ? 'Test text' : '试听文本'}<textarea className="rounded-md border border-[#c8d1c8] p-3" value={testText} maxLength={2000} disabled={testing} onChange={(event) => { setTestText(event.target.value); setTestSuccess(false); }} /></label>
-      {testing && <button type="button" className="min-h-10 px-3 underline" onClick={stopSpeech}>{settings.locale === 'ja' ? '停止' : settings.locale === 'en' ? 'Stop' : '停止播放'}</button>}
-      {settings.ttsProvider === 'browser' && <button type="button" disabled={testing || !testText.trim()} onClick={async () => { setTesting(true); setError(''); setTestSuccess(false); try { await speak(testText, { provider: 'browser', token: authToken, ...settings.speech?.voices?.browser, rate: settings.speech?.rate }); setTestSuccess(true); } catch (cause) { if (!(cause instanceof DOMException && cause.name === 'AbortError')) setError(String(cause)); } finally { setTesting(false); } }} className="min-h-11 rounded-md border px-3">{testing ? copy.pronunciationTesting : copy.pronunciationTest}</button>}
-      {providers.filter((provider) => provider.id === settings.ttsProvider).map((provider) => {
+      <SpeechPreferences settings={settings} token={authToken} provider={providers.find((entry) => entry.id === settings.speech.provider)} credentialVersion={statusFor(settings.speech.provider)?.updatedAt} onChange={(next) => { stopSpeech(); setTestSuccess(false); onUpdateSettings(next); }} />
+      <label className="grid gap-2 py-3">{settings.uiLanguage === 'ja' ? '試聴テキスト' : settings.uiLanguage === 'en' ? 'Test text' : '试听文本'}<textarea className="rounded-md border border-[#c8d1c8] p-3" value={testText} maxLength={2000} disabled={testing} onChange={(event) => { setTestText(event.target.value); setTestSuccess(false); }} /></label>
+      {testing && <button type="button" className="min-h-10 px-3 underline" onClick={stopSpeech}>{settings.uiLanguage === 'ja' ? '停止' : settings.uiLanguage === 'en' ? 'Stop' : '停止播放'}</button>}
+      {settings.speech.provider === 'browser' && <button type="button" disabled={testing || !testText.trim()} onClick={async () => { setTesting(true); setError(''); setTestSuccess(false); try { await speak(testText, { provider: 'browser', token: authToken, ...settings.speech?.voices?.browser, rate: settings.speech?.rate }); setTestSuccess(true); } catch (cause) { if (!(cause instanceof DOMException && cause.name === 'AbortError')) setError(String(cause)); } finally { setTesting(false); } }} className="min-h-11 rounded-md border px-3">{testing ? copy.pronunciationTesting : copy.pronunciationTest}</button>}
+      {providers.filter((provider) => provider.id === settings.speech.provider).map((provider) => {
         const status = statusFor(provider.id);
         const draft = drafts[provider.id] ?? {};
         const hasDraft = Object.values(draft).some((value) => value.trim());
@@ -586,15 +606,16 @@ function SegmentButton({ active, children, onClick }: { active: boolean; childre
   );
 }
 
-function DailyPracticeSourceSettings({ settings, onChange }: { settings: DisplaySettings; onChange: (value: DisplaySettings) => void }) {
-  const value = settings.dailyPracticeSources ?? { answers: true, cardReviews: true, ratings: ['forgot', 'hard'], window: 'previous_day', hours: 24, timeZone: 'Asia/Tokyo', runAt: '07:00' };
-  const update = (patch: Partial<NonNullable<DisplaySettings['dailyPracticeSources']>>) => onChange({ ...settings, dailyPracticeSources: { ...value, ...patch } as NonNullable<DisplaySettings['dailyPracticeSources']> });
-  const copy = settings.locale === 'ja' ? ['毎日の練習のデータ源', '解答履歴', 'カード復習', '前日', '直近の時間', '時間数', 'タイムゾーン', 'AI 実行時刻', '自分の AI クライアントで時刻とタイムゾーンを設定してください。MCP は設定とデータを提供します。カード復習は既存の問題のみ使い、問題のないカードは省きます。', '忘れた', '難しい', '覚えている', '簡単'] : settings.locale === 'en' ? ['Daily practice sources', 'Answer history', 'Card reviews', 'Previous day', 'Recent hours', 'Hours', 'Time zone', 'AI run time', 'Configure scheduling in your own AI client using this time and zone. MCP supplies preferences and data. Card reviews reuse existing questions and skip cards without questions.', 'Forgot', 'Hard', 'Remembered', 'Easy'] : ['每日练习的数据来源', '答题记录', '卡片复习记录', '前一天', '过去若干小时', '小时数', '时区', 'AI 执行时间', '请在自己的 AI 客户端按此时间和时区配置定时任务。MCP 提供设置与数据。卡片复习只复用自带题目，没有题库的卡片跳过。', '忘记', '困难', '记得', '轻松'];
+function DailyPracticeSourceSettings({ settings, onChange }: { settings: V3Settings; onChange: (patch: V3SettingsPatch) => void }) {
+  const source = settings.dailySource;
+  const value = { ...source, window: source.window ?? 'previous_day', hours: source.hours ?? 24, timeZone: source.timeZone ?? 'Asia/Tokyo', runAt: source.runAt ?? '07:00' };
+  const update = (patch: V3SettingsPatch['dailySource']) => onChange({ dailySource: patch });
+  const copy = settings.uiLanguage === 'ja' ? ['毎日の練習のデータ源', '解答履歴', 'カード復習', '前日', '直近の時間', '時間数', 'タイムゾーン', 'AI 実行時刻', '自分の AI クライアントで時刻とタイムゾーンを設定してください。MCP は設定とデータを提供します。カード復習は既存の問題のみ使い、問題のないカードは省きます。', '忘れた', '難しい', '覚えている', '簡単'] : settings.uiLanguage === 'en' ? ['Daily practice sources', 'Answer history', 'Card reviews', 'Previous day', 'Recent hours', 'Hours', 'Time zone', 'AI run time', 'Configure scheduling in your own AI client using this time and zone. MCP supplies preferences and data. Card reviews reuse existing questions and skip cards without questions.', 'Forgot', 'Hard', 'Remembered', 'Easy'] : ['每日练习的数据来源', '答题记录', '卡片复习记录', '前一天', '过去若干小时', '小时数', '时区', 'AI 执行时间', '请在自己的 AI 客户端按此时间和时区配置定时任务。MCP 提供设置与数据。卡片复习只复用自带题目，没有题库的卡片跳过。', '忘记', '困难', '记得', '轻松'];
   return <SettingsRow title={copy[0]}><div className="grid gap-3">
     <Toggle label={copy[1]} checked={value.answers} onChange={answers => update({ answers })} />
     <Toggle label={copy[2]} checked={value.cardReviews} onChange={cardReviews => update({ cardReviews })} />
-    <div className="grid grid-cols-2 gap-3">{(['forgot','hard','remembered','easy'] as const).map((rating,i) => <label key={rating} className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!value.cardReviews} checked={value.ratings.includes(rating)} onChange={e => update({ ratings: e.target.checked ? [...value.ratings, rating] as NonNullable<DisplaySettings['dailyPracticeSources']>['ratings'] : value.ratings.filter(r => r !== rating) as NonNullable<DisplaySettings['dailyPracticeSources']>['ratings'] })} /> {copy[i+9]}</label>)}</div>
-    <select className="min-h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3" aria-label={copy[0]} value={value.window} onChange={e => update({ window: e.target.value as 'previous_day' | 'last_hours' })}><option value="previous_day">{copy[3]}</option><option value="last_hours">{copy[4]}</option></select>
+    <div className="grid grid-cols-2 gap-3">{(['forgot','hard','remembered','easy'] as const).map((rating,i) => <label key={rating} className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!value.cardReviews} checked={value.ratings.includes(rating)} onChange={e => update({ ratings: e.target.checked ? [...value.ratings, rating] : value.ratings.filter(r => r !== rating) })} /> {copy[i+9]}</label>)}</div>
+    <select className="min-h-11 max-w-full rounded-md border border-[#c8bcae] bg-white px-3" aria-label={copy[0]} value={value.window} onChange={e => update({ window: e.target.value })}><option value="previous_day">{copy[3]}</option><option value="last_hours">{copy[4]}</option></select>
     {value.window === 'last_hours' && <label>{copy[5]} <input className="min-h-11 w-24 rounded-md border border-[#c8bcae] bg-white px-3" type="number" min={1} max={720} value={value.hours} onChange={e => update({ hours: Math.max(1, Math.min(720, Number(e.target.value) || 24)) })} /></label>}
     <label>{copy[6]} <select className="min-h-11 w-full max-w-full rounded-md border border-[#c8bcae] bg-white px-3" value={value.timeZone} onChange={e => update({ timeZone: e.target.value })}>{[...new Set([value.timeZone, 'Asia/Tokyo', ...Intl.supportedValuesOf('timeZone')])].map(zone => <option key={zone}>{zone}</option>)}</select></label>
     <label>{copy[7]} <input className="min-h-11 rounded-md border border-[#c8bcae] bg-white px-3" type="time" value={value.runAt} onChange={e => update({ runAt: e.target.value })} /></label>

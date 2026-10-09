@@ -1,0 +1,2582 @@
+{
+  "多语言": {
+    "en": "Multilingual",
+    "ja": "多言語"
+  },
+  "支持的语言": {
+    "en": "Supported languages",
+    "ja": "サポートする言語"
+  },
+  "语言代码（BCP 47）：ja、zh-Hans、en、zh-Hant、ko、vi、id、th、my、ne、es、fr": {
+    "en": "Language code (BCP 47): ja, zh-Hans, en, zh-Hant, ko, vi, id, th, my, ne, es, fr",
+    "ja": "言語コード（BCP 47）：ja、zh-Hans、en、zh-Hant、ko、vi、id、th、my、ne、es、fr"
+  },
+  "ja、zh-Hans、en、zh-Hant、ko、vi、id、th、my、ne、es、fr": {
+    "en": "ja, zh-Hans, en, zh-Hant, ko, vi, id, th, my, ne, es, fr",
+    "ja": "ja、zh-Hans、en、zh-Hant、ko、vi、id、th、my、ne、es、fr"
+  },
+  "用该语言自己写的名称：简体中文、English": {
+    "en": "Name written in the language itself: 简体中文, English",
+    "ja": "その言語自身での名称：简体中文、English"
+  },
+  "简体中文、English": {
+    "en": "简体中文, English",
+    "ja": "简体中文、English"
+  },
+  "缺少该语言文字时先找哪种语言；为空则直接回退到 zh-Hans": {
+    "en": "Language to try first when text in this language is missing; when empty, fall back directly to zh-Hans",
+    "ja": "この言語の文字がないときに先に探す言語。空なら zh-Hans に直接フォールバック"
+  },
+  "zh-Hant → zh-Hans；ko → en": {
+    "en": "zh-Hant → zh-Hans; ko → en",
+    "ja": "zh-Hant → zh-Hans、ko → en"
+  },
+  "是否在设置里提供": {
+    "en": "Whether it is offered in settings",
+    "ja": "設定画面で選択肢に出すか"
+  },
+  "设置页中的排列顺序": {
+    "en": "Display order in settings",
+    "ja": "設定画面での並び順"
+  },
+  "可翻译字段登记表：哪张表的哪个字段的文字按语言存放在 content_translations": {
+    "en": "Registry of translatable fields: which field of which table stores its text per language in content_translations",
+    "ja": "翻訳可能フィールドの登録表：どのテーブルのどのフィールドの文字を言語別に content_translations に保存するか"
+  },
+  "文字所属的业务表：knowledge_points": {
+    "en": "Business table that owns the text: knowledge_points",
+    "ja": "文字が属する業務テーブル：knowledge_points"
+  },
+  "knowledge_points、meaning": {
+    "en": "knowledge_points, meaning",
+    "ja": "knowledge_points、meaning"
+  },
+  "字段名：meaning": {
+    "en": "Field name: meaning",
+    "ja": "フィールド名：meaning"
+  },
+  "字段含义：释义": {
+    "en": "What the field means: meaning",
+    "ja": "フィールドの意味：語義"
+  },
+  "释义（ja 为日语释义）": {
+    "en": "Meaning (ja is the Japanese definition)",
+    "ja": "語義（ja は日本語の語義）"
+  },
+  "是否允许日语行（如日语释义）；说明性文字一般不需要日语": {
+    "en": "Whether a Japanese row is allowed (e.g. Japanese definition); explanatory text usually needs no Japanese",
+    "ja": "日本語の行を許可するか（日本語の語義など）。説明文には通常日本語は不要"
+  },
+  "是否显示给学习者；为 0 的不列入 AI 待翻译清单": {
+    "en": "Whether it is shown to learners; fields with 0 are excluded from the AI translation to-do list",
+    "ja": "学習者に表示するか。0 のものは AI の翻訳待ちリストに含めない"
+  },
+  "所有说明性文字：一个字段的每种语言一行": {
+    "en": "All explanatory text: one row per language of each field",
+    "ja": "すべての説明文：1 フィールドの言語ごとに 1 行"
+  },
+  "文字属于哪张表": {
+    "en": "Table the text belongs to",
+    "ja": "文字が属するテーブル"
+  },
+  "knowledge_points、347": {
+    "en": "knowledge_points, 347",
+    "ja": "knowledge_points、347"
+  },
+  "文字属于该表的哪一行（rid）": {
+    "en": "Row of that table the text belongs to (rid)",
+    "ja": "そのテーブルのどの行に属するか（rid）"
+  },
+  "属于该行的哪个字段（须在 `translatable_fields` 登记）": {
+    "en": "Field of that row (must be registered in `translatable_fields`)",
+    "ja": "その行のどのフィールドか（`translatable_fields` に登録が必要）"
+  },
+  "这一行文字的语言（FK → `languages.code`）": {
+    "en": "Language of this row of text (FK → `languages.code`)",
+    "ja": "この行の文字の言語（FK → `languages.code`）"
+  },
+  "zh-Hans、en、ja": {
+    "en": "zh-Hans, en, ja",
+    "ja": "zh-Hans、en、ja"
+  },
+  "文字内容，不能为空": {
+    "en": "Text content, must not be empty",
+    "ja": "文字の内容。空にできない"
+  },
+  "概观、概览": {
+    "en": "概观、概览 (Chinese text)",
+    "ja": "概观、概览（中国語の文字）"
+  },
+  "来源：从旧数据迁移 / 用户编辑 / AI 写入": {
+    "en": "Origin: migrated from legacy data / edited by the user / written by AI",
+    "ja": "出所：旧データから移行 / ユーザーが編集 / AI が書き込み"
+  },
+  "migrated 从旧数据迁移 / manual 用户编辑 / ai AI 写入": {
+    "en": "migrated (from legacy data) / manual (edited by the user) / ai (written by AI)",
+    "ja": "migrated 旧データから移行 / manual ユーザーが編集 / ai AI が書き込み"
+  },
+  "是否已核对；AI 写入的默认未核对": {
+    "en": "Whether it has been checked; AI-written text defaults to unchecked",
+    "ja": "確認済みか。AI が書いたものは既定で未確認"
+  },
+  "AI 写入的默认 0": {
+    "en": "AI-written text defaults to 0",
+    "ja": "AI が書いたものは既定で 0"
+  },
+  "按需注音（Anki 写法：漢字[かな]）。定位方式与译文相同；日语原文列用 language = 'ja'": {
+    "en": "On-demand furigana (Anki syntax: 漢字[かな]). Located the same way as translations; Japanese source columns use language = 'ja'",
+    "ja": "オンデマンドのふりがな（Anki 記法：漢字[かな]）。位置の指定は翻訳と同じ。日本語原文の列は language = 'ja'"
+  },
+  "注音加在哪张表": {
+    "en": "Table the furigana is added to",
+    "ja": "ふりがなを付けるテーブル"
+  },
+  "knowledge_examples、758、sentence、ja": {
+    "en": "knowledge_examples, 758, sentence, ja",
+    "ja": "knowledge_examples、758、sentence、ja"
+  },
+  "哪一行": {
+    "en": "Which row",
+    "ja": "どの行か"
+  },
+  "哪个字段（日语原文列，或可翻译字段）": {
+    "en": "Which field (a Japanese source column or a translatable field)",
+    "ja": "どのフィールドか（日本語原文の列、または翻訳可能フィールド）"
+  },
+  "该段文字的语言": {
+    "en": "Language of that text",
+    "ja": "その文字の言語"
+  },
+  "带注音的文字，Anki 写法：汉字后跟 [读音]，汉字前紧接其他字符时用空格划定范围": {
+    "en": "Text with furigana, Anki syntax: [reading] after the kanji; a space marks where the kanji starts when other characters precede it",
+    "ja": "ふりがな付きの文字（Anki 記法）：漢字の後に [読み]。漢字の前に別の文字が続くときは空白で範囲を区切る"
+  },
+  "日本経済[にほんけいざい]の 歴史[れきし]を…": {
+    "en": "日本経済[にほんけいざい]の 歴史[れきし]を…",
+    "ja": "日本経済[にほんけいざい]の 歴史[れきし]を…"
+  },
+  "谁加的注音": {
+    "en": "Who added the furigana",
+    "ja": "ふりがなを付けたのは誰か"
+  },
+  "编号与文件": {
+    "en": "Codes and files",
+    "ja": "番号とファイル"
+  },
+  "业务编号计数：每个用户每种前缀各自递增，删除后编号不复用": {
+    "en": "Business code counters: each user and prefix counts up separately; codes are never reused after deletion",
+    "ja": "業務番号のカウンター：ユーザーごと・接頭辞ごとに採番し、削除後も番号は再利用しない"
+  },
+  "1、W": {
+    "en": "1, W",
+    "ja": "1、W"
+  },
+  "W、G、N、WB、QV、QG、QR、QL、MT、DP、TP、MX、AT、DR、DC、TK、RC、IN": {
+    "en": "W, G, N, WB, QV, QG, QR, QL, MT, DP, TP, MX, AT, DR, DC, TK, RC, IN",
+    "ja": "W、G、N、WB、QV、QG、QR、QL、MT、DP、TP、MX、AT、DR、DC、TK、RC、IN"
+  },
+  "下一个可用序号；编号删除后不复用": {
+    "en": "Next available number; numbers are not reused after deletion",
+    "ja": "次に使う番号。削除後も番号は再利用しない"
+  },
+  "图片与音频文件": {
+    "en": "Image and audio files",
+    "ja": "画像と音声ファイル"
+  },
+  "文件类别": {
+    "en": "File category",
+    "ja": "ファイルの種類"
+  },
+  "来自哪张旧表": {
+    "en": "Which legacy table it came from",
+    "ja": "どの旧テーブルから来たか"
+  },
+  "上传时的原始文件名": {
+    "en": "Original file name at upload",
+    "ja": "アップロード時の元のファイル名"
+  },
+  "文件类型：audio/mpeg、image/png": {
+    "en": "File type: audio/mpeg, image/png",
+    "ja": "ファイル形式：audio/mpeg、image/png"
+  },
+  "audio/mpeg、image/png": {
+    "en": "audio/mpeg, image/png",
+    "ja": "audio/mpeg、image/png"
+  },
+  "字节数": {
+    "en": "Size in bytes",
+    "ja": "バイト数"
+  },
+  "内容哈希，用于去重和校验": {
+    "en": "Content hash, used for de-duplication and verification",
+    "ja": "内容のハッシュ。重複排除と検証に使う"
+  },
+  "文件在存储里的路径（本地目录或 R2 键）": {
+    "en": "Path of the file in storage (local directory or R2 key)",
+    "ja": "ストレージ内のファイルのパス（ローカルディレクトリまたは R2 のキー）"
+  },
+  "`item_images.image_path`、`listening_audio_assets.audio_path`": {
+    "en": "`item_images.image_path`, `listening_audio_assets.audio_path`",
+    "ja": "`item_images.image_path`、`listening_audio_assets.audio_path`"
+  },
+  "设置": {
+    "en": "Settings",
+    "ja": "設定"
+  },
+  "显示与练习设置（一用户一行）": {
+    "en": "Display and practice settings (one row per user)",
+    "ja": "表示と練習の設定（1 ユーザー 1 行）"
+  },
+  "界面语言": {
+    "en": "Interface language",
+    "ja": "インターフェースの言語"
+  },
+  "释义与解析的语言": {
+    "en": "Language for meanings and explanations",
+    "ja": "語義と解説の言語"
+  },
+  "12 种语言之一；未设时按界面语言推断后写入": {
+    "en": "One of the 12 languages; when unset, inferred from the interface language and written",
+    "ja": "12 言語のいずれか。未設定ならインターフェースの言語から推定して書き込む"
+  },
+  "字体缩放倍数": {
+    "en": "Font scale factor",
+    "ja": "文字サイズの倍率"
+  },
+  "`settings_json.fontScale`；只有旧档位 `fontSize` 时换算": {
+    "en": "`settings_json.fontScale`; converted from the legacy step `fontSize` when only that exists",
+    "ja": "`settings_json.fontScale`。旧来の段階値 `fontSize` しかない場合は換算"
+  },
+  "0.8–2.0（1）": {
+    "en": "0.8–2.0 (1)",
+    "ja": "0.8–2.0（1）"
+  },
+  "每题显示对错 / 整组做完再显示": {
+    "en": "Show right/wrong after each question / after finishing the whole set",
+    "ja": "1 問ごとに正誤を表示 / セット全体を終えてから表示"
+  },
+  "immediate 每题答完显示 / batch 整组做完再显示（immediate）": {
+    "en": "immediate (after each question) / batch (after the whole set) (immediate)",
+    "ja": "immediate 1 問ごとに表示 / batch セット全体を終えてから表示（immediate）"
+  },
+  "答完自动 / 手动进入下一题": {
+    "en": "Move to the next question automatically / manually after answering",
+    "ja": "解答後に自動 / 手動で次の問題へ"
+  },
+  "auto 自动 / manual 手动（auto）": {
+    "en": "auto / manual (auto)",
+    "ja": "auto 自動 / manual 手動（auto）"
+  },
+  "自动跳转前等待的秒数": {
+    "en": "Seconds to wait before moving on automatically",
+    "ja": "自動で進むまでの待ち秒数"
+  },
+  "0–10，一位小数": {
+    "en": "0–10, one decimal place",
+    "ja": "0–10、小数第 1 位まで"
+  },
+  "复习卡片上显示假名注音": {
+    "en": "Show kana readings on review cards",
+    "ja": "復習カードに読み仮名を表示"
+  },
+  "是 / 否（是）": {
+    "en": "yes / no (yes)",
+    "ja": "はい / いいえ（はい）"
+  },
+  "解析文字里显示假名注音": {
+    "en": "Show kana readings in explanation text",
+    "ja": "解説文に読み仮名を表示"
+  },
+  "读音旁显示罗马音": {
+    "en": "Show romaji next to the reading",
+    "ja": "読みの横にローマ字を表示"
+  },
+  "记忆卡上日语按词加间隔": {
+    "en": "Space Japanese by word on memory cards",
+    "ja": "暗記カードの日本語を単語ごとに区切る"
+  },
+  "日语分词与词性着色": {
+    "en": "Japanese word segmentation and part-of-speech coloring",
+    "ja": "日本語の分かち書きと品詞の色分け"
+  },
+  "是 / 否": {
+    "en": "yes / no",
+    "ja": "はい / いいえ"
+  },
+  "每日练习是否取材于最近的作答错题": {
+    "en": "Whether daily practice draws on recent wrong answers",
+    "ja": "デイリー練習の素材に最近の誤答を使うか"
+  },
+  "每日练习是否取材于最近的卡片自评": {
+    "en": "Whether daily practice draws on recent card self-ratings",
+    "ja": "デイリー練習の素材に最近のカード自己評価を使うか"
+  },
+  "取材的时间范围方式（实现阶段核对取值）": {
+    "en": "How the source time window is defined (values checked during implementation)",
+    "ja": "素材を取る期間の指定方法（値は実装時に確認）"
+  },
+  "实现阶段核对取值": {
+    "en": "Values checked during implementation",
+    "ja": "値は実装時に確認"
+  },
+  "按小时取材时的小时数": {
+    "en": "Number of hours when sourcing by hours",
+    "ja": "時間単位で素材を取るときの時間数"
+  },
+  "判断“今天”用的时区：Asia/Tokyo": {
+    "en": "Time zone used to decide \"today\": Asia/Tokyo",
+    "ja": "「今日」を判断するタイムゾーン：Asia/Tokyo"
+  },
+  "每天自动生成练习的时间：07:00": {
+    "en": "Time of day to generate practice automatically: 07:00",
+    "ja": "毎日練習を自動生成する時刻：07:00"
+  },
+  "用户为每个类别选用的记忆卡模板（没有选时用该类别的默认模板）": {
+    "en": "Memory card template chosen by the user for each category (the category's default template when none is chosen)",
+    "ja": "ユーザーがカテゴリごとに選んだ暗記カードのテンプレート（未選択ならそのカテゴリの既定テンプレート）"
+  },
+  "知识点大类": {
+    "en": "Knowledge point category",
+    "ja": "知識項目の大分類"
+  },
+  "选用的模板": {
+    "en": "Chosen template",
+    "ja": "選んだテンプレート"
+  },
+  "旧 `memoryCardFrontFields` / `memoryCardBackFields`（逐字段设置）不迁移；迁移后各类别使用默认模板": {
+    "en": "Legacy `memoryCardFrontFields` / `memoryCardBackFields` (per-field settings) are not migrated; each category uses its default template after migration",
+    "ja": "旧 `memoryCardFrontFields` / `memoryCardBackFields`（フィールドごとの設定）は移行しない。移行後は各カテゴリの既定テンプレートを使う"
+  },
+  "录入单词时必须附带的题型；为空表示不要求": {
+    "en": "Question types that must accompany a new word; empty means no requirement",
+    "ja": "単語を登録するときに必ず付ける問題形式。空なら要求しない"
+  },
+  "官方题型 ID：vocabulary-kanji-reading …": {
+    "en": "Official question type ID: vocabulary-kanji-reading …",
+    "ja": "公式問題形式 ID：vocabulary-kanji-reading …"
+  },
+  "`settings_json.jlptVocabularyQuestionKinds[]` 换算为官方题型": {
+    "en": "`settings_json.jlptVocabularyQuestionKinds[]` converted to official question types",
+    "ja": "`settings_json.jlptVocabularyQuestionKinds[]` を公式問題形式に換算"
+  },
+  "卡片自评中哪些评分会被选进每日练习": {
+    "en": "Which card self-ratings are picked for daily practice",
+    "ja": "カードの自己評価のうち、どれをデイリー練習に選ぶか"
+  },
+  "分词显示时各词性的标记方式": {
+    "en": "How each part of speech is marked in segmented display",
+    "ja": "分かち書き表示での品詞ごとの表示方法"
+  },
+  "着色的词性大类": {
+    "en": "Part-of-speech group to color",
+    "ja": "色分けする品詞のグループ"
+  },
+  "`settings_json.japaneseDisplay.styles` 的键": {
+    "en": "Keys of `settings_json.japaneseDisplay.styles`",
+    "ja": "`settings_json.japaneseDisplay.styles` のキー"
+  },
+  "不标记 / 彩色下划线 / 文字颜色": {
+    "en": "none / colored underline / text color",
+    "ja": "表示しない / 色付き下線 / 文字色"
+  },
+  "`settings_json.japaneseDisplay.styles.<词性>.mode`": {
+    "en": "`settings_json.japaneseDisplay.styles.<part of speech>.mode`",
+    "ja": "`settings_json.japaneseDisplay.styles.<品詞>.mode`"
+  },
+  "颜色：#326B9C": {
+    "en": "Color: #326B9C",
+    "ja": "色：#326B9C"
+  },
+  "`settings_json.japaneseDisplay.styles.<词性>.color`": {
+    "en": "`settings_json.japaneseDisplay.styles.<part of speech>.color`",
+    "ja": "`settings_json.japaneseDisplay.styles.<品詞>.color`"
+  },
+  "用户对官方题型写的答题提示": {
+    "en": "User's answering tips for an official question type",
+    "ja": "公式問題形式に対するユーザーの解答のコツ"
+  },
+  "官方题型 ID": {
+    "en": "Official question type ID",
+    "ja": "公式問題形式 ID"
+  },
+  "`settings_json.questionTypeTips` 的键": {
+    "en": "Keys of `settings_json.questionTypeTips`",
+    "ja": "`settings_json.questionTypeTips` のキー"
+  },
+  "提示内容": {
+    "en": "Tip content",
+    "ja": "コツの内容"
+  },
+  "`settings_json.questionTypeTips` 的值": {
+    "en": "Values of `settings_json.questionTypeTips`",
+    "ja": "`settings_json.questionTypeTips` の値"
+  },
+  "用户自建的题型提示": {
+    "en": "Question-type tips created by the user",
+    "ja": "ユーザーが作成した問題形式のコツ"
+  },
+  "所属模块：vocabulary / grammar / reading / listening": {
+    "en": "Module: vocabulary / grammar / reading / listening",
+    "ja": "所属モジュール：vocabulary / grammar / reading / listening"
+  },
+  "提示标题": {
+    "en": "Tip title",
+    "ja": "コツのタイトル"
+  },
+  "适用场景说明": {
+    "en": "When it applies",
+    "ja": "適用場面の説明"
+  },
+  "朗读设置（一用户一行）": {
+    "en": "Speech settings (one row per user)",
+    "ja": "読み上げ設定（1 ユーザー 1 行）"
+  },
+  "语音服务：browser（浏览器 / 系统语音）或已注册的服务 ID": {
+    "en": "Speech service: browser (browser / system voice) or a registered service ID",
+    "ja": "音声サービス：browser（ブラウザ / システムの音声）または登録済みサービスの ID"
+  },
+  "browser（浏览器 / 系统自带语音）或已注册的服务 ID（browser）": {
+    "en": "browser (browser / built-in system voice) or a registered service ID (browser)",
+    "ja": "browser（ブラウザ / システム内蔵の音声）または登録済みサービスの ID（browser）"
+  },
+  "语速": {
+    "en": "Speech rate",
+    "ja": "話す速さ"
+  },
+  "0.5–1.5（1）": {
+    "en": "0.5–1.5 (1)",
+    "ja": "0.5–1.5（1）"
+  },
+  "记忆卡自动朗读：不读 / 显示正面时 / 翻到背面时": {
+    "en": "Auto-read on memory cards: off / when the front is shown / when flipped to the back",
+    "ja": "暗記カードの自動読み上げ：読まない / 表を表示したとき / 裏返したとき"
+  },
+  "off 不朗读 / front 显示正面时 / back 翻到背面时（off）": {
+    "en": "off / front (when the front is shown) / back (when flipped to the back) (off)",
+    "ja": "off 読まない / front 表を表示したとき / back 裏返したとき（off）"
+  },
+  "打开语法详情时自动朗读": {
+    "en": "Read aloud automatically when opening grammar details",
+    "ja": "文法の詳細を開いたときに自動で読み上げる"
+  },
+  "是 / 否（否）": {
+    "en": "yes / no (no)",
+    "ja": "はい / いいえ（いいえ）"
+  },
+  "自动朗读时连同例句一起读": {
+    "en": "Include example sentences when auto-reading",
+    "ja": "自動読み上げで例文も読む"
+  },
+  "每个语音服务选用的声音": {
+    "en": "Voice chosen for each speech service",
+    "ja": "音声サービスごとに選んだ声"
+  },
+  "语音服务 ID": {
+    "en": "Speech service ID",
+    "ja": "音声サービス ID"
+  },
+  "`settings_json.speech.voices` 的键": {
+    "en": "Keys of `settings_json.speech.voices`",
+    "ja": "`settings_json.speech.voices` のキー"
+  },
+  "选用的声音": {
+    "en": "Chosen voice",
+    "ja": "選んだ声"
+  },
+  "说话风格（服务支持时）": {
+    "en": "Speaking style (when supported by the service)",
+    "ja": "話し方のスタイル（サービスが対応している場合）"
+  },
+  "角色（服务支持时）": {
+    "en": "Role (when supported by the service)",
+    "ja": "役柄（サービスが対応している場合）"
+  },
+  "单词本与知识点": {
+    "en": "Wordbooks and knowledge points",
+    "ja": "単語帳と知識項目"
+  },
+  "单词本：只属于一个用户；一本里可以同时放单词、语法、名字": {
+    "en": "Wordbook: belongs to one user only; a book can hold words, grammar and names together",
+    "ja": "単語帳：1 人のユーザーだけに属する。1 冊に単語・文法・名前を混在できる"
+  },
+  "新生成": {
+    "en": "Generated",
+    "ja": "新規生成"
+  },
+  "所属用户（FK → `users`）；单词本只属于一个用户，其他用户看不到": {
+    "en": "Owning user (FK → `users`); a wordbook belongs to one user and is invisible to others",
+    "ja": "所有ユーザー（FK → `users`）。単語帳は 1 人のユーザーだけに属し、他のユーザーからは見えない"
+  },
+  "`wordbooks.user_id`；内置词库迁移出的单词本属于挂了条目的那个用户": {
+    "en": "`wordbooks.user_id`; wordbooks created from built-in decks belong to the user whose items were in them",
+    "ja": "`wordbooks.user_id`。組み込み単語帳から移行した単語帳は、項目が入っていたユーザーに属する"
+  },
+  "单词本编号，按用户各自从 WB1 开始编": {
+    "en": "Wordbook code, numbered from WB1 per user",
+    "ja": "単語帳の番号。ユーザーごとに WB1 から採番"
+  },
+  "单词本名称：N1 文法、IT词汇": {
+    "en": "Wordbook name: N1 文法, IT词汇",
+    "ja": "単語帳の名前：N1 文法、IT词汇"
+  },
+  "`wordbooks.title`；用户改过名的取 `wordbook_title_overrides.title`": {
+    "en": "`wordbooks.title`; the user's renamed title from `wordbook_title_overrides.title` when present",
+    "ja": "`wordbooks.title`。ユーザーが名前を変えた場合は `wordbook_title_overrides.title`"
+  },
+  "N1 文法、IT词汇": {
+    "en": "N1 文法, IT词汇",
+    "ja": "N1 文法、IT词汇"
+  },
+  "`wordbooks.created_at`、`updated_at`": {
+    "en": "`wordbooks.created_at`, `updated_at`",
+    "ja": "`wordbooks.created_at`、`updated_at`"
+  },
+  "知识点：单词、词组、表达、语法、口语音变规则、专有名词": {
+    "en": "Knowledge points: words, phrases, expressions, grammar, colloquial sound-change rules, proper names",
+    "ja": "知識項目：単語、連語、表現、文法、話し言葉の音変化ルール、固有名詞"
+  },
+  "编号：word → W、grammar → G、name → N": {
+    "en": "Code: word → W, grammar → G, name → N",
+    "ja": "番号：word → W、grammar → G、name → N"
+  },
+  "W5、G3、N1": {
+    "en": "W5, G3, N1",
+    "ja": "W5、G3、N1"
+  },
+  "所属单词本（必填；单词本有知识点时不能删除）": {
+    "en": "Owning wordbook (required; a wordbook cannot be deleted while it has knowledge points)",
+    "ja": "所属する単語帳（必須。知識項目がある単語帳は削除できない）"
+  },
+  "`item_json.wordbook_id`；为空时归入按旧 `deck` 迁移出的单词本": {
+    "en": "`item_json.wordbook_id`; when empty, assigned to the wordbook migrated from the legacy `deck`",
+    "ja": "`item_json.wordbook_id`。空の場合は旧 `deck` から移行した単語帳に入れる"
+  },
+  "大类：单词类（含词组、惯用表达）/ 语法类（含口语音变规则）/ 名字（地名、人名等专有名词）": {
+    "en": "Category: words (including phrases and idioms) / grammar (including colloquial sound-change rules) / names (proper nouns such as places and people)",
+    "ja": "大分類：単語類（連語・慣用表現を含む）/ 文法類（話し言葉の音変化ルールを含む）/ 名前（地名・人名などの固有名詞）"
+  },
+  "`item_json.type`：vocabulary、phrase、expression、phrase_set → word；grammar、listening_rule → grammar；proper_name → name（与旧 `deck` 无关：“生活日语”里借用 name_reading 词库的普通词汇归为 word）。细分类型转为标签": {
+    "en": "`item_json.type`: vocabulary, phrase, expression, phrase_set → word; grammar, listening_rule → grammar; proper_name → name (independent of the legacy `deck`: ordinary words that borrowed the name_reading deck in \"生活日语\" become word). Finer types become tags",
+    "ja": "`item_json.type`：vocabulary、phrase、expression、phrase_set → word、grammar、listening_rule → grammar、proper_name → name（旧 `deck` とは無関係：「生活日语」で name_reading 単語帳を借りていた一般語は word）。細かい種類はタグに変換"
+  },
+  "word 单词类 / grammar 语法类 / name 名字": {
+    "en": "word (words) / grammar / name",
+    "ja": "word 単語類 / grammar 文法類 / name 名前"
+  },
+  "知识点本身的日语写法：单词的汉字或假名写法、语法的句型": {
+    "en": "The knowledge point itself in Japanese: the kanji or kana spelling of a word, or the pattern of a grammar point",
+    "ja": "知識項目そのものの日本語表記：単語の漢字・仮名表記、文法の文型"
+  },
+  "概観、～を皮切りに": {
+    "en": "概観, ～を皮切りに",
+    "ja": "概観、～を皮切りに"
+  },
+  "假名读音：がいかん": {
+    "en": "Kana reading: がいかん",
+    "ja": "仮名の読み：がいかん"
+  },
+  "由读音自动生成的罗马音（修订赫本式，长音按输入法写法）；读音含汉字时为空": {
+    "en": "Romaji generated from the reading (modified Hepburn, long vowels as typed); empty when the reading contains kanji",
+    "ja": "読みから自動生成したローマ字（修正ヘボン式、長音は入力方式の書き方）。読みに漢字を含む場合は空"
+  },
+  "迁移时生成": {
+    "en": "Generated during migration",
+    "ja": "移行時に生成"
+  },
+  "gaikan、toukyou": {
+    "en": "gaikan, toukyou",
+    "ja": "gaikan、toukyou"
+  },
+  "罗马音搜索键：小写、去空格、合并长音，tokyo / toukyou / tōkyō 都能匹配": {
+    "en": "Romaji search key: lowercase, no spaces, long vowels merged, so tokyo / toukyou / tōkyō all match",
+    "ja": "ローマ字検索キー：小文字化、空白除去、長音をまとめるので tokyo / toukyou / tōkyō のどれでも一致"
+  },
+  "gaikan、tokyo": {
+    "en": "gaikan, tokyo",
+    "ja": "gaikan、tokyo"
+  },
+  "词性，固定枚举，按日本語教育的分法；动词的活用分组直接包含在词性里。语法条目和口语音变规则为空": {
+    "en": "Part of speech, fixed enum following Japanese-language-education categories; verb conjugation groups are part of it. Empty for grammar items and sound-change rules",
+    "ja": "品詞。日本語教育の分類による固定の列挙値で、動詞の活用グループを含む。文法項目と音変化ルールは空"
+  },
+  "从 `item_json.part_of_speech` 与 `item_json.inflection_class` 换算，见“词性换算”": {
+    "en": "Converted from `item_json.part_of_speech` and `item_json.inflection_class`; see \"Part-of-speech conversion\"",
+    "ja": "`item_json.part_of_speech` と `item_json.inflection_class` から換算。「品詞の換算」を参照"
+  },
+  "verb_1、verb_2、verb_3_suru、verb_3_kuru、i_adjective、na_adjective、noun …，完整列表见下方“词性”": {
+    "en": "verb_1, verb_2, verb_3_suru, verb_3_kuru, i_adjective, na_adjective, noun …; full list under \"Parts of speech\" below",
+    "ja": "verb_1、verb_2、verb_3_suru、verb_3_kuru、i_adjective、na_adjective、noun …。全一覧は下の「品詞」"
+  },
+  "动词的自他，固定枚举；非动词为空": {
+    "en": "Verb transitivity, fixed enum; empty for non-verbs",
+    "ja": "動詞の自他。固定の列挙値で、動詞以外は空"
+  },
+  "从 `part_of_speech` 中的 他動詞 / 自動詞": {
+    "en": "From 他動詞 / 自動詞 in `part_of_speech`",
+    "ja": "`part_of_speech` 中の 他動詞 / 自動詞 から"
+  },
+  "transitive 他動詞 / intransitive 自動詞 / both 自他両用": {
+    "en": "transitive 他動詞 / intransitive 自動詞 / both 自他両用",
+    "ja": "transitive 他動詞 / intransitive 自動詞 / both 自他両用"
+  },
+  "名词能否加する作动词（「規制」→「規制する」）。词条按名詞记录，变形按Ⅲグループ（する）生成": {
+    "en": "Whether the noun can take する to form a verb (「規制」→「規制する」). Recorded as a noun; forms are generated as group III (する)",
+    "ja": "名詞に「する」を付けて動詞にできるか（「規制」→「規制する」）。名詞として記録し、活用はⅢグループ（する）で生成"
+  },
+  "`part_of_speech` 含 サ変，或 `inflection_class` 为 suru 且原文不以する结尾": {
+    "en": "`part_of_speech` contains サ変, or `inflection_class` is suru and the entry does not end with する",
+    "ja": "`part_of_speech` に サ変 を含む、または `inflection_class` が suru で原文が する で終わらない"
+  },
+  "辞书形：規制する": {
+    "en": "Dictionary form: 規制する",
+    "ja": "辞書形：規制する"
+  },
+  "規制 → 規制する": {
+    "en": "規制 → 規制する",
+    "ja": "規制 → 規制する"
+  },
+  "等级范围的起点（较低的等级）": {
+    "en": "Start of the level range (the lower level)",
+    "ja": "レベル範囲の始まり（低いほうのレベル）"
+  },
+  "拆分 `item_json.jlpt_level`：N1 → N1/N1，N2-N1 → N2/N1，“N2関連”→ N2/N2；“非JLPT核心词”“生活词汇”转为标签": {
+    "en": "Split from `item_json.jlpt_level`: N1 → N1/N1, N2-N1 → N2/N1, \"N2関連\" → N2/N2; \"非JLPT核心词\" and \"生活词汇\" become tags",
+    "ja": "`item_json.jlpt_level` を分割：N1 → N1/N1、N2-N1 → N2/N1、「N2関連」→ N2/N2。「非JLPT核心词」「生活词汇」はタグに変換"
+  },
+  "N2-N1 → min N2、max N1": {
+    "en": "N2-N1 → min N2, max N1",
+    "ja": "N2-N1 → min N2、max N1"
+  },
+  "等级范围的终点（较高的等级）；单一等级时与起点相同": {
+    "en": "End of the level range (the higher level); same as the start for a single level",
+    "ja": "レベル範囲の終わり（高いほうのレベル）。単一レベルなら始まりと同じ"
+  },
+  "语体，固定枚举，用于筛选；语体的文字说明在 `knowledge_notes`": {
+    "en": "Register, fixed enum used for filtering; the register explanation text is in `knowledge_notes`",
+    "ja": "文体。絞り込みに使う固定の列挙値で、文体の説明文は `knowledge_notes` にある"
+  },
+  "written 书面 / spoken 口语 / formal 正式 / both 通用": {
+    "en": "written / spoken / formal / both (general)",
+    "ja": "written 書き言葉 / spoken 話し言葉 / formal 改まった / both 汎用"
+  },
+  "简短的日语换说，一两个词；出「言い換え類義」题时作为正确选项，必须与日语释义不同。日语原文，不翻译": {
+    "en": "Short Japanese paraphrase of a word or two; the correct option in 「言い換え類義」 questions and must differ from the Japanese definition. Japanese source text, not translated",
+    "ja": "1～2 語の短い日本語の言い換え。「言い換え類義」問題の正解選択肢になり、日本語の語義と異なる必要がある。日本語の原文で翻訳しない"
+  },
+  "学习者遇到这个词的日语原句（读过的文章、听到的句子）": {
+    "en": "The Japanese sentence where the learner met this word (a text read, a sentence heard)",
+    "ja": "学習者がこの語に出会った日本語の原文（読んだ文章、聞いた文）"
+  },
+  "`item_json.source.sentence` 中真正是句子的值；书名章节类的值改存 `knowledge_sources`，见下": {
+    "en": "Values of `item_json.source.sentence` that are actual sentences; book and chapter values go to `knowledge_sources` instead (see below)",
+    "ja": "`item_json.source.sentence` のうち実際に文であるもの。書名・章の値は `knowledge_sources` に保存（下記参照）"
+  },
+  "しかし東京では、岸壁という形で海に近づけるのは…": {
+    "en": "しかし東京では、岸壁という形で海に近づけるのは…",
+    "ja": "しかし東京では、岸壁という形で海に近づけるのは…"
+  },
+  "内部记录：这个知识点由什么资料、哪次对话整理而来。不翻译，不在学习页面显示": {
+    "en": "Internal note: which material or conversation this knowledge point was compiled from. Not translated, not shown on study pages",
+    "ja": "内部メモ：この知識項目をどの資料・どの会話から整理したか。翻訳せず、学習画面には表示しない"
+  },
+  "ユーザー提供の教材写真から例文と練習問題を整理": {
+    "en": "ユーザー提供の教材写真から例文と練習問題を整理",
+    "ja": "ユーザー提供の教材写真から例文と練習問題を整理"
+  },
+  "由收集箱的哪条记录整理而来": {
+    "en": "Which inbox capture it was compiled from",
+    "ja": "受信箱のどの記録から整理したか"
+  },
+  "从市场导入的知识点所对应的分享；自己录入的为空": {
+    "en": "Shared item this knowledge point was imported from in the market; empty for the user's own entries",
+    "ja": "マーケットから取り込んだ知識項目の元の共有。自分で登録したものは空"
+  },
+  "来自 `user_review_items` 的条目": {
+    "en": "Items from `user_review_items`",
+    "ja": "`user_review_items` から来た項目"
+  },
+  "录入时间": {
+    "en": "Time of entry",
+    "ja": "登録日時"
+  },
+  "`item_json.input_at`；没有时用 `captured_on` 日期": {
+    "en": "`item_json.input_at`; the `captured_on` date when missing",
+    "ja": "`item_json.input_at`。ない場合は `captured_on` の日付"
+  },
+  "详细讲解": {
+    "en": "Detailed explanation",
+    "ja": "詳しい解説"
+  },
+  "例句": {
+    "en": "Example sentences",
+    "ja": "例文"
+  },
+  "日语例句": {
+    "en": "Japanese example sentence",
+    "ja": "日本語の例文"
+  },
+  "日本経済の歴史を概観する。": {
+    "en": "日本経済の歴史を概観する。",
+    "ja": "日本経済の歴史を概観する。"
+  },
+  "整句读音": {
+    "en": "Reading of the whole sentence",
+    "ja": "文全体の読み"
+  },
+  "口语说法": {
+    "en": "Colloquial version",
+    "ja": "話し言葉の言い方"
+  },
+  "句中目标词的读音（活用后读音可能不同）": {
+    "en": "Reading of the target word in the sentence (may differ after conjugation)",
+    "ja": "文中の対象語の読み（活用によって読みが変わることがある）"
+  },
+  "例句译文": {
+    "en": "Example translation",
+    "ja": "例文の訳"
+  },
+  "口语说法译文": {
+    "en": "Translation of the colloquial version",
+    "ja": "話し言葉の言い方の訳"
+  },
+  "例句分析": {
+    "en": "Example analysis",
+    "ja": "例文の分析"
+  },
+  "例句形态分析": {
+    "en": "Morphological analysis of the example",
+    "ja": "例文の形態分析"
+  },
+  "记忆要点": {
+    "en": "Memory points",
+    "ja": "覚えるポイント"
+  },
+  "句型与搭配": {
+    "en": "Patterns and collocations",
+    "ja": "文型とコロケーション"
+  },
+  "句型或搭配（日语）：Vた＋とたん": {
+    "en": "Pattern or collocation (Japanese): Vた＋とたん",
+    "ja": "文型またはコロケーション（日本語）：Vた＋とたん"
+  },
+  "例句（日语）": {
+    "en": "Example sentence (Japanese)",
+    "ja": "例文（日本語）"
+  },
+  "句型接续说明": {
+    "en": "Connection rule of the pattern",
+    "ja": "文型の接続の説明"
+  },
+  "句型含义": {
+    "en": "Meaning of the pattern",
+    "ja": "文型の意味"
+  },
+  "句型例句译文": {
+    "en": "Translation of the pattern's example",
+    "ja": "文型の例文の訳"
+  },
+  "补充说明：标题 + 内容的列表（语体、考试提示、要点等），前端按数组逐条渲染": {
+    "en": "Supplementary notes: a list of title + body items (register, exam tips, key points …), rendered item by item on the client",
+    "ja": "補足説明：タイトル＋本文のリスト（文体、試験のヒント、要点など）。フロントエンドは配列として 1 件ずつ表示"
+  },
+  "语体 / 考试提示 / 要点 / 其他": {
+    "en": "register / exam tip / key point / other",
+    "ja": "文体 / 試験のヒント / 要点 / その他"
+  },
+  "`points[]` → key_point；`register.note_zh` → register；`register.exam_tip_zh` → exam_tip": {
+    "en": "`points[]` → key_point; `register.note_zh` → register; `register.exam_tip_zh` → exam_tip",
+    "ja": "`points[]` → key_point、`register.note_zh` → register、`register.exam_tip_zh` → exam_tip"
+  },
+  "补充说明标题": {
+    "en": "Supplementary note title",
+    "ja": "補足説明のタイトル"
+  },
+  "补充说明内容": {
+    "en": "Supplementary note body",
+    "ja": "補足説明の本文"
+  },
+  "近义辨析": {
+    "en": "Synonym comparisons",
+    "ja": "類義語の比較"
+  },
+  "比较对象（日语）：開講": {
+    "en": "Item compared with (Japanese): 開講",
+    "ja": "比較対象（日本語）：開講"
+  },
+  "開講": {
+    "en": "開講",
+    "ja": "開講"
+  },
+  "一般近义词 / 日常说法替换": {
+    "en": "general synonym / everyday alternative",
+    "ja": "一般的な類義語 / 日常的な言い換え"
+  },
+  "`item_json.comparisons[]`.kind（空 → synonym）": {
+    "en": "`item_json.comparisons[]`.kind (empty → synonym)",
+    "ja": "`item_json.comparisons[]`.kind（空 → synonym）"
+  },
+  "近义辨析的区别说明": {
+    "en": "Explanation of the difference",
+    "ja": "違いの説明"
+  },
+  "其他写法": {
+    "en": "Alternative spellings",
+    "ja": "別の表記"
+  },
+  "其他写法：捕える": {
+    "en": "Alternative spelling: 捕える",
+    "ja": "別の表記：捕える"
+  },
+  "相关词": {
+    "en": "Related words",
+    "ja": "関連語"
+  },
+  "出处：辞典词条、官方网页、教材章节": {
+    "en": "Sources: dictionary entries, official web pages, textbook chapters",
+    "ja": "出典：辞書の項目、公式ウェブページ、教材の章"
+  },
+  "出处名称：小学館 デジタル大辞泉、実力養成編 第1部 第2課": {
+    "en": "Source name: 小学館 デジタル大辞泉, 実力養成編 第1部 第2課",
+    "ja": "出典名：小学館 デジタル大辞泉、実力養成編 第1部 第2課"
+  },
+  "`item_json.reference_sources[]`.title；`source.sentence` 中书名章节类的值": {
+    "en": "`item_json.reference_sources[]`.title; book and chapter values of `source.sentence`",
+    "ja": "`item_json.reference_sources[]`.title、`source.sentence` のうち書名・章の値"
+  },
+  "链接；教材没有链接时为空": {
+    "en": "Link; empty for textbooks without one",
+    "ja": "リンク。リンクのない教材は空"
+  },
+  "记忆图片：每个知识点每种语言一行（图片里画有该语言的释义与例句译文）": {
+    "en": "Memory images: one row per knowledge point per language (the image contains that language's meaning and example translation)",
+    "ja": "記憶用画像：知識項目ごと・言語ごとに 1 行（画像にはその言語の語義と例文訳が描かれる）"
+  },
+  "所属知识点": {
+    "en": "Owning knowledge point",
+    "ja": "所属する知識項目"
+  },
+  "图片里文字（释义、例句译文）的语言": {
+    "en": "Language of the text in the image (meaning, example translation)",
+    "ja": "画像内の文字（語義、例文訳）の言語"
+  },
+  "旧数据都是中文，记为 zh-Hans": {
+    "en": "All legacy data is Chinese, recorded as zh-Hans",
+    "ja": "旧データはすべて中国語で、zh-Hans として記録"
+  },
+  "zh-Hans、en": {
+    "en": "zh-Hans, en",
+    "ja": "zh-Hans、en"
+  },
+  "画面构思：用什么场景帮助记忆": {
+    "en": "Visual concept: which scene helps remember it",
+    "ja": "画面の構想：どんな場面で覚えやすくするか"
+  },
+  "生成图片用的提示词（按该语言写）": {
+    "en": "Prompt used to generate the image (written for that language)",
+    "ja": "画像生成に使うプロンプト（その言語向けに書く）"
+  },
+  "Japanese vocabulary mnemonic illustration for 規制…": {
+    "en": "Japanese vocabulary mnemonic illustration for 規制…",
+    "ja": "Japanese vocabulary mnemonic illustration for 規制…"
+  },
+  "待生成 / 提示词就绪 / 已生成 / 已核对可用": {
+    "en": "pending / prompt ready / generated / checked and usable",
+    "ja": "生成待ち / プロンプト準備済み / 生成済み / 確認済みで使用可"
+  },
+  "`mnemonic_image.status`（prompt_synced → prompt_ready；只有图片没有提示词的记为 approved）": {
+    "en": "`mnemonic_image.status` (prompt_synced → prompt_ready; items with an image but no prompt become approved)",
+    "ja": "`mnemonic_image.status`（prompt_synced → prompt_ready。プロンプトがなく画像だけあるものは approved）"
+  },
+  "pending 待生成 / prompt_ready 提示词已就绪 / generated 已生成 / approved 已核对可用": {
+    "en": "pending / prompt_ready (prompt ready) / generated / approved (checked and usable)",
+    "ja": "pending 生成待ち / prompt_ready プロンプト準備済み / generated 生成済み / approved 確認済みで使用可"
+  },
+  "上传的图片文件": {
+    "en": "Uploaded image file",
+    "ja": "アップロードした画像ファイル"
+  },
+  "外部图片地址（没有上传文件时）": {
+    "en": "External image URL (when no file was uploaded)",
+    "ja": "外部画像の URL（ファイルをアップロードしていない場合）"
+  },
+  "图片说明（与图片同语言）": {
+    "en": "Image caption (same language as the image)",
+    "ja": "画像の説明（画像と同じ言語）"
+  },
+  "标签": {
+    "en": "Tags",
+    "ja": "タグ"
+  },
+  "标签：外来語、地名、生活词汇": {
+    "en": "Tag: 外来語, 地名, 生活词汇",
+    "ja": "タグ：外来語、地名、生活词汇"
+  },
+  "`item_json.tags[]`；`jlpt_level` 中的非等级值；`part_of_speech` 中的补充说明": {
+    "en": "`item_json.tags[]`; non-level values of `jlpt_level`; supplementary notes in `part_of_speech`",
+    "ja": "`item_json.tags[]`、`jlpt_level` のうちレベル以外の値、`part_of_speech` 中の補足情報"
+  },
+  "适合出的题型": {
+    "en": "Question types suited to it",
+    "ja": "出題に向いた問題形式"
+  },
+  "`item_json.question_kinds[]` 换算为官方题型": {
+    "en": "`item_json.question_kinds[]` converted to official question types",
+    "ja": "`item_json.question_kinds[]` を公式問題形式に換算"
+  },
+  "各题型的干扰选项": {
+    "en": "Distractor options per question type",
+    "ja": "問題形式ごとの誤答選択肢"
+  },
+  "`item_json.question_distractors` 的键（题型）换算为官方题型": {
+    "en": "Keys (question types) of `item_json.question_distractors` converted to official question types",
+    "ja": "`item_json.question_distractors` のキー（問題形式）を公式問題形式に換算"
+  },
+  "`item_json.question_distractors{题型: [选项]}`": {
+    "en": "`item_json.question_distractors{question type: [options]}`",
+    "ja": "`item_json.question_distractors{問題形式: [選択肢]}`"
+  },
+  "干扰选项文字": {
+    "en": "Distractor option text",
+    "ja": "誤答選択肢の文字"
+  },
+  "`item_json.question_distractors{题型: [选项]}` 的选项": {
+    "en": "Options in `item_json.question_distractors{question type: [options]}`",
+    "ja": "`item_json.question_distractors{問題形式: [選択肢]}` の選択肢"
+  },
+  "来源草稿": {
+    "en": "Source drafts",
+    "ja": "元になった下書き"
+  },
+  "知识点与题目的关联（多对多；删除知识点不删除题目）": {
+    "en": "Links between knowledge points and questions (many-to-many; deleting a knowledge point does not delete questions)",
+    "ja": "知識項目と問題の関連（多対多。知識項目を削除しても問題は削除しない）"
+  },
+  "`item_json.practice_questions[]` 迁入题库后的题目；题目的 `itemId`": {
+    "en": "Questions from `item_json.practice_questions[]` after migration into the bank; the question's `itemId`",
+    "ja": "`item_json.practice_questions[]` を問題バンクに移行した問題、問題の `itemId`"
+  },
+  "考查对象 / 前置知识 / 对比项": {
+    "en": "tested item / prerequisite / contrast",
+    "ja": "出題対象 / 前提知識 / 比較対象"
+  },
+  "旧数据只有 `itemId` 一种关联，迁移时都记为 target": {
+    "en": "Legacy data has only the `itemId` link, recorded as target during migration",
+    "ja": "旧データには `itemId` の関連しかないため、移行時はすべて target とする"
+  },
+  "`item_json.practice_questions[]` 迁入题库后建立关联；题目的 `itemId`": {
+    "en": "Links created after migrating `item_json.practice_questions[]` into the bank; the question's `itemId`",
+    "ja": "`item_json.practice_questions[]` を問題バンクに移行してから関連を作成、問題の `itemId`"
+  },
+  "单词本统计（实时计算，不存计数）": {
+    "en": "Wordbook statistics (computed on demand, no stored counts)",
+    "ja": "単語帳の統計（その場で計算し、件数は保存しない）"
+  },
+  "知识点总数": {
+    "en": "Total knowledge points",
+    "ja": "知識項目の総数"
+  },
+  "单词类": {
+    "en": "Words",
+    "ja": "単語類"
+  },
+  "语法类": {
+    "en": "Grammar",
+    "ja": "文法類"
+  },
+  "名字": {
+    "en": "Names",
+    "ja": "名前"
+  },
+  "到期待复习": {
+    "en": "Due for review",
+    "ja": "復習期限が来たもの"
+  },
+  "还没开始学": {
+    "en": "Not started yet",
+    "ja": "まだ学習していないもの"
+  },
+  "已掌握": {
+    "en": "Mastered",
+    "ja": "習得済み"
+  },
+  "记忆卡模板（全局共用；用户只选模板，不逐个配置字段）": {
+    "en": "Memory card templates (global, shared; users choose a template instead of configuring fields)",
+    "ja": "暗記カードのテンプレート（全体共通。ユーザーはテンプレートを選ぶだけで、フィールドを個別に設定しない）"
+  },
+  "记忆卡模板": {
+    "en": "Memory card templates",
+    "ja": "暗記カードのテンプレート"
+  },
+  "模板编号：word_standard、grammar_example …": {
+    "en": "Template code: word_standard, grammar_example …",
+    "ja": "テンプレートの番号：word_standard、grammar_example …"
+  },
+  "适用的知识点大类": {
+    "en": "Knowledge point category it applies to",
+    "ja": "対象とする知識項目の大分類"
+  },
+  "是否该类别的默认模板": {
+    "en": "Whether it is the default template of the category",
+    "ja": "そのカテゴリの既定テンプレートか"
+  },
+  "显示顺序": {
+    "en": "Display order",
+    "ja": "表示順"
+  },
+  "记忆卡模板名称": {
+    "en": "Memory card template name",
+    "ja": "暗記カードのテンプレート名"
+  },
+  "记忆卡模板说明": {
+    "en": "Memory card template description",
+    "ja": "暗記カードのテンプレートの説明"
+  },
+  "模板在正面、背面显示的内容": {
+    "en": "Content shown on the front and back of a template",
+    "ja": "テンプレートの表と裏に表示する内容"
+  },
+  "正面 / 背面": {
+    "en": "front / back",
+    "ja": "表 / 裏"
+  },
+  "显示的内容：写法 / 读音 / 罗马音 / 释义（说明语言）/ 日语释义 / 换说 / 例句 / 句型 / 记忆要点 / 补充说明 / 近义辨析 / 变形 / 记忆图片 / 等级 / 词性 / 标签": {
+    "en": "Content shown: spelling / reading / romaji / meaning (explanation language) / Japanese definition / paraphrase / example / pattern / memory point / supplementary note / synonym comparison / conjugation / memory image / level / part of speech / tags",
+    "ja": "表示する内容：表記 / 読み / ローマ字 / 語義（説明言語）/ 日本語の語義 / 言い換え / 例文 / 文型 / 覚えるポイント / 補足説明 / 類義語の比較 / 活用 / 記憶用画像 / レベル / 品詞 / タグ"
+  },
+  "列表类内容最多显示几条（例句、记忆要点等）；为空表示全部": {
+    "en": "Maximum number of items shown for list content (examples, memory points …); empty means all",
+    "ja": "リスト型の内容（例文、覚えるポイントなど）の最大表示件数。空ならすべて"
+  },
+  "例句、句型是否同时显示译文": {
+    "en": "Whether examples and patterns are shown with their translations",
+    "ja": "例文と文型に訳も表示するか"
+  },
+  "日语活用规则库（全局共用，不属于任何用户）": {
+    "en": "Japanese conjugation rule base (global, shared; owned by no user)",
+    "ja": "日本語の活用ルール集（全体共通。どのユーザーにも属さない）"
+  },
+  "变形种类": {
+    "en": "Conjugation forms",
+    "ja": "活用形の種類"
+  },
+  "dictionary、polite、negative、past、te、potential、passive、causative、 causative_passive、volitional、conditional_ba、conditional_tara、imperative、prohibitive、 adverbial、attributive": {
+    "en": "dictionary, polite, negative, past, te, potential, passive, causative, causative_passive, volitional, conditional_ba, conditional_tara, imperative, prohibitive, adverbial, attributive",
+    "ja": "dictionary、polite、negative、past、te、potential、passive、causative、causative_passive、volitional、conditional_ba、conditional_tara、imperative、prohibitive、adverbial、attributive"
+  },
+  "日本語教育里的名称：ます形、ない形、て形、た形、可能形 …": {
+    "en": "Name used in Japanese-language education: ます形, ない形, て形, た形, 可能形 …",
+    "ja": "日本語教育での名称：ます形、ない形、て形、た形、可能形 …"
+  },
+  "适用于动词 / 形容词 / 两者": {
+    "en": "Applies to verbs / adjectives / both",
+    "ja": "動詞 / 形容詞 / 両方 に適用"
+  },
+  "变形的用法说明": {
+    "en": "How the form is used",
+    "ja": "その活用形の使い方の説明"
+  },
+  "变形规则：按“词性 + 辞书形词尾 + 变形种类”查出替换方式。 生成时取匹配到的最长词尾，例外动词因此只是词尾更长的规则：   verb_1 + く + te → いて（書く → 書いて）；verb_1 + 行く + te → 行って；verb_1 + いく + te → いって   verb_1 + ある + negative → ない；verb_1 + いらっしゃる + polite → いらっしゃいます；i_adjective + いい + past → よかった": {
+    "en": "Conjugation rules: look up the replacement by \"part of speech + dictionary-form ending + form\". Generation uses the longest matching ending, so exceptional verbs are just rules with longer endings: verb_1 + く + te → いて (書く → 書いて); verb_1 + 行く + te → 行って; verb_1 + いく + te → いって; verb_1 + ある + negative → ない; verb_1 + いらっしゃる + polite → いらっしゃいます; i_adjective + いい + past → よかった",
+    "ja": "活用ルール：「品詞＋辞書形の語尾＋活用形」で置き換え方を引く。生成時は一致する最長の語尾を使うので、例外動詞は語尾が長いルールにすぎない：verb_1 + く + te → いて（書く → 書いて）、verb_1 + 行く + te → 行って、verb_1 + いく + te → いって、verb_1 + ある + negative → ない、verb_1 + いらっしゃる + polite → いらっしゃいます、i_adjective + いい + past → よかった"
+  },
+  "适用的词性": {
+    "en": "Part of speech it applies to",
+    "ja": "対象の品詞"
+  },
+  "辞书形词尾（与写法和读音的结尾比对）：く、ぐ、る、する、くる、い、行く、ある …": {
+    "en": "Dictionary-form ending (compared with the end of both spelling and reading): く, ぐ, る, する, くる, い, 行く, ある …",
+    "ja": "辞書形の語尾（表記と読みの末尾の両方と照合）：く、ぐ、る、する、くる、い、行く、ある …"
+  },
+  "去掉词尾后接上的部分：いて、って、ない、よかった": {
+    "en": "Text appended after removing the ending: いて, って, ない, よかった",
+    "ja": "語尾を取った後に付ける部分：いて、って、ない、よかった"
+  },
+  "是否例外（行く、ある、敬语动词、問う、いい …）": {
+    "en": "Whether it is an exception (行く, ある, honorific verbs, 問う, いい …)",
+    "ja": "例外かどうか（行く、ある、敬語動詞、問う、いい …）"
+  },
+  "变形步骤说明": {
+    "en": "Explanation of the conjugation step",
+    "ja": "活用の手順の説明"
+  },
+  "题库": {
+    "en": "Question bank",
+    "ja": "問題バンク"
+  },
+  "题型（全局，与 src/domain/questionContract.mjs 一致）": {
+    "en": "Question types (global, consistent with src/domain/questionContract.mjs)",
+    "ja": "問題形式（全体共通。src/domain/questionContract.mjs と一致）"
+  },
+  "题型 ID：vocabulary-kanji-reading、grammar-composition、reading-integrated …": {
+    "en": "Question type ID: vocabulary-kanji-reading, grammar-composition, reading-integrated …",
+    "ja": "問題形式 ID：vocabulary-kanji-reading、grammar-composition、reading-integrated …"
+  },
+  "所属模块": {
+    "en": "Module",
+    "ja": "所属モジュール"
+  },
+  "日语名称：漢字読み、文の組み立て、統合理解": {
+    "en": "Japanese name: 漢字読み, 文の組み立て, 統合理解",
+    "ja": "日本語名：漢字読み、文の組み立て、統合理解"
+  },
+  "1 = JLPT 正式题型；0 = 基础训练（不计入正式卷覆盖）": {
+    "en": "1 = official JLPT question type; 0 = basic training (not counted toward official paper coverage)",
+    "ja": "1 = JLPT の公式問題形式、0 = 基礎トレーニング（公式試験のカバー率に含めない）"
+  },
+  "这类题用哪种标记（question_marks）：下划线 / 括号空位 / ★空位排列 / 文章中的编号空位 / 不标；用于录入校验": {
+    "en": "Which marks this type uses (question_marks): underline / bracket blank / ★ ordering slots / numbered blank in a passage / none; used for input validation",
+    "ja": "この形式で使うマーク（question_marks）：下線 / 括弧の空欄 / ★の並べ替え空欄 / 文章中の番号付き空欄 / なし。入力時の検証に使う"
+  },
+  "选项形式：文字 / 文字或图片 / 只有音频 / 同组内混合（統合理解：前两问音频、第三问文字）/ 没有选项": {
+    "en": "Option form: text / text or image / audio only / mixed within a group (統合理解: audio for the first two questions, text for the third) / no options",
+    "ja": "選択肢の形式：文字 / 文字または画像 / 音声のみ / グループ内で混在（統合理解：最初の 2 問は音声、3 問目は文字）/ 選択肢なし"
+  },
+  "题组需要的素材：无 / 一篇文章 / A、B 两篇 / 公告或表格 / 音频 / 音频加场景图": {
+    "en": "Materials the group needs: none / one passage / two passages A and B / notice or table / audio / audio with a scene image",
+    "ja": "問題グループに必要な素材：なし / 文章 1 つ / A・B の 2 つの文章 / お知らせや表 / 音声 / 音声と場面の絵"
+  },
+  "抽题时是否必须整组抽取（一篇多问、统合理解等为 1）": {
+    "en": "Whether the whole group must be drawn together (1 for multi-question passages, 統合理解, etc.)",
+    "ja": "出題時にグループ全体をまとめて抜き出す必要があるか（1 文章複数問、統合理解などは 1）"
+  },
+  "作答方式：选择（有正确选项）/ 输入文字（听写，与参考答案比对）/ 录音（跟读，不判对错）/ 不作答或自由回答（不计分）": {
+    "en": "Answer mode: choice (has a correct option) / text input (dictation, compared with the reference answer) / recording (shadowing, not graded) / no answer or free response (not scored)",
+    "ja": "解答方式：選択（正解の選択肢あり）/ 文字入力（ディクテーション、参照解答と比較）/ 録音（シャドーイング、正誤判定なし）/ 解答なしまたは自由回答（採点しない）"
+  },
+  "显示顺序（按 JLPT 试卷顺序）": {
+    "en": "Display order (following the JLPT paper order)",
+    "ja": "表示順（JLPT の試験の順序に従う）"
+  },
+  "题型任务说明：这类题问什么": {
+    "en": "Task description of the question type: what it asks",
+    "ja": "問題形式の課題の説明：何を問うか"
+  },
+  "题型答题技巧": {
+    "en": "Answering tips for the question type",
+    "ja": "問題形式の解答のコツ"
+  },
+  "题型适用的等级": {
+    "en": "Levels the question type applies to",
+    "ja": "問題形式が対象とするレベル"
+  },
+  "题型的校验规则（每个题型每条规则一行）。服务器写入、MCP、Web 表单、iOS（经服务器校验接口）都用这一份规则， 由 src/domain 中同一个校验程序执行。": {
+    "en": "Validation rules per question type (one row per rule per type). Server writes, MCP, the web form and iOS (via the server validation endpoint) all use these rules, executed by the same validator in src/domain.",
+    "ja": "問題形式ごとの検証ルール（形式ごと・ルールごとに 1 行）。サーバーの書き込み、MCP、Web のフォーム、iOS（サーバーの検証 API 経由）がすべてこのルールを使い、src/domain の同じ検証プログラムで実行する。"
+  },
+  "规则：题干 / 选项 / 正确选项 / 参考答案 / 标记 / 素材 / 正确依据 / 选项理由 / 证据 / 以及自动检查项（干扰项是另一读音、读音题选项形式、干扰项在知识点里、选项长短不均、选项重复、考查对象不唯一）": {
+    "en": "Rule: prompt / options / correct option / reference answer / marks / materials / correct basis / option reasoning / evidence / and automatic checks (distractor is another reading, option form of reading questions, distractor appears in knowledge points, uneven option length, duplicate options, target not unique)",
+    "ja": "ルール：問題文 / 選択肢 / 正解の選択肢 / 参照解答 / マーク / 素材 / 正解の根拠 / 選択肢の理由 / 根拠箇所 / および自動チェック項目（誤答が別の読みになっている、読み問題の選択肢の形式、誤答が知識項目にある、選択肢の長さの偏り、選択肢の重複、出題対象が一意でない）"
+  },
+  "必填（不满足则拒绝写入）/ 可选 / 禁止 / 只警告（写入审查发现）": {
+    "en": "required (writes are rejected otherwise) / optional / forbidden / warn only (recorded as review findings)",
+    "ja": "必須（満たさなければ書き込みを拒否）/ 任意 / 禁止 / 警告のみ（レビューの指摘として記録）"
+  },
+  "数量类规则的数值：选项个数": {
+    "en": "Value for count rules: number of options",
+    "ja": "数量ルールの値：選択肢の数"
+  },
+  "素材：文章、公告或表格、图片、音频；可被多个题组共用（直接修改，不分版本）": {
+    "en": "Materials: passages, notices or tables, images, audio; can be shared by several groups (edited directly, no versions)",
+    "ja": "素材：文章、お知らせや表、画像、音声。複数の問題グループで共有できる（直接修正し、版は持たない）"
+  },
+  "素材编号：MT3": {
+    "en": "Material code: MT3",
+    "ja": "素材の番号：MT3"
+  },
+  "文章 / 公告或表格 / 图片 / 音频": {
+    "en": "passage / notice or table / image / audio",
+    "ja": "文章 / お知らせや表 / 画像 / 音声"
+  },
+  "文章、公告的日语原文（公告里的表格用 Markdown 表格书写）；文章の文法 的空位写作（１）（２）…": {
+    "en": "Japanese text of a passage or notice (tables in notices are written as Markdown tables); blanks for 文章の文法 are written as （１）（２）…",
+    "ja": "文章・お知らせの日本語原文（お知らせ中の表は Markdown の表で書く）。文章の文法の空欄は（１）（２）…と書く"
+  },
+  "阅读题 `passage`": {
+    "en": "`passage` of reading questions",
+    "ja": "読解問題の `passage`"
+  },
+  "图片或音频文件": {
+    "en": "Image or audio file",
+    "ja": "画像または音声ファイル"
+  },
+  "听力题 `audio_asset_id`；图片题的图片": {
+    "en": "`audio_asset_id` of listening questions; the image of image questions",
+    "ja": "聴解問題の `audio_asset_id`、画像問題の画像"
+  },
+  "音频片段起点（毫秒）；整段为空": {
+    "en": "Start of the audio clip (ms); empty for the whole track",
+    "ja": "音声の切り出し開始位置（ミリ秒）。全体なら空"
+  },
+  "音频片段终点（毫秒）；整段为空": {
+    "en": "End of the audio clip (ms); empty for the whole track",
+    "ja": "音声の切り出し終了位置（ミリ秒）。全体なら空"
+  },
+  "听力原文（日语）": {
+    "en": "Listening script (Japanese)",
+    "ja": "聴解のスクリプト（日本語）"
+  },
+  "听力音频 `transcript`": {
+    "en": "`transcript` of listening audio",
+    "ja": "聴解音声の `transcript`"
+  },
+  "素材标题（阅读文章、听力音频的标题）": {
+    "en": "Material title (title of a reading passage or listening audio)",
+    "ja": "素材のタイトル（読解の文章、聴解の音声のタイトル）"
+  },
+  "文章或公告全文译文": {
+    "en": "Full translation of the passage or notice",
+    "ja": "文章またはお知らせの全文訳"
+  },
+  "听力原文译文": {
+    "en": "Translation of the listening script",
+    "ja": "聴解スクリプトの訳"
+  },
+  "文章概要": {
+    "en": "Passage summary",
+    "ja": "文章の要約"
+  },
+  "文章结构分析": {
+    "en": "Passage structure analysis",
+    "ja": "文章の構成分析"
+  },
+  "素材逐句（逐句对照译文）": {
+    "en": "Material sentences (sentence-by-sentence translation)",
+    "ja": "素材の文単位（1 文ずつの対訳）"
+  },
+  "原文一句": {
+    "en": "One sentence of the source",
+    "ja": "原文の 1 文"
+  },
+  "阅读题 `translation_lines_json[]`.ja": {
+    "en": "`translation_lines_json[]`.ja of reading questions",
+    "ja": "読解問題の `translation_lines_json[]`.ja"
+  },
+  "是否解题关键句": {
+    "en": "Whether it is a key sentence for solving",
+    "ja": "解答の鍵となる文か"
+  },
+  "句子出现在阅读题 `reading_analysis.keySentences[]` 中": {
+    "en": "The sentence appears in `reading_analysis.keySentences[]` of the reading question",
+    "ja": "その文が読解問題の `reading_analysis.keySentences[]` にある"
+  },
+  "逐句译文": {
+    "en": "Sentence translation",
+    "ja": "1 文ずつの訳"
+  },
+  "题组（大問）：同一题型、共用作答说明与素材的一组小题": {
+    "en": "Question group (大問): a set of questions of one type sharing instructions and materials",
+    "ja": "問題グループ（大問）：同じ問題形式で、指示文と素材を共有する小問のまとまり"
+  },
+  "题组编号：QS12": {
+    "en": "Group code: QS12",
+    "ja": "問題グループの番号：QS12"
+  },
+  "题型（决定模块、考点标法、选项形式）": {
+    "en": "Question type (decides module, marking, option form)",
+    "ja": "問題形式（モジュール、出題箇所の示し方、選択肢の形式を決める）"
+  },
+  "题目的 `questionTypeId`；缺失时由旧 `kind`（grammar、文法、kanji_to_kana、漢字読み …）换算": {
+    "en": "The question's `questionTypeId`; converted from the legacy `kind` (grammar, 文法, kanji_to_kana, 漢字読み …) when missing",
+    "ja": "問題の `questionTypeId`。ない場合は旧 `kind`（grammar、文法、kanji_to_kana、漢字読み …）から換算"
+  },
+  "vocabulary-kanji-reading、grammar-form、reading-short": {
+    "en": "vocabulary-kanji-reading, grammar-form, reading-short",
+    "ja": "vocabulary-kanji-reading、grammar-form、reading-short"
+  },
+  "草稿 / 待审查 / 需修改 / 可用 / 停用；AI 审查通过即为可用": {
+    "en": "draft / awaiting review / needs revision / ready / retired; passing AI review makes it ready",
+    "ja": "下書き / レビュー待ち / 要修正 / 使用可 / 停止。AI のレビューに通れば使用可"
+  },
+  "草稿里的题为 draft；练习中用过的为 ready（迁移后由 AI 补做一次审查，见迁移报告）": {
+    "en": "Questions in drafts are draft; questions used in practice are ready (the AI reviews them once after migration; see the migration report)",
+    "ja": "下書き内の問題は draft、練習で使われた問題は ready（移行後に AI がもう一度レビューする。移行レポート参照）"
+  },
+  "是否官方原题": {
+    "en": "Whether it is an official JLPT question",
+    "ja": "公式の過去問か"
+  },
+  "JLPT 等级，只允许核对过的值": {
+    "en": "JLPT level, checked values only",
+    "ja": "JLPT のレベル。確認済みの値のみ"
+  },
+  "旧数据大多为空": {
+    "en": "Mostly empty in legacy data",
+    "ja": "旧データでは大半が空"
+  },
+  "N1、空": {
+    "en": "N1, empty",
+    "ja": "N1、空"
+  },
+  "作答说明（日语）：＿＿＿の言葉の読み方として最もよいものを…": {
+    "en": "Instructions (Japanese): ＿＿＿の言葉の読み方として最もよいものを…",
+    "ja": "指示文（日本語）：＿＿＿の言葉の読み方として最もよいものを…"
+  },
+  "（　）に入る最もよいものを…": {
+    "en": "（　）に入る最もよいものを…",
+    "ja": "（　）に入る最もよいものを…"
+  },
+  "场景、角色、任务条件（日语）：男の人と女の人が話しています。…": {
+    "en": "Scene, roles, task conditions (Japanese): 男の人と女の人が話しています。…",
+    "ja": "場面、役割、課題の条件（日本語）：男の人と女の人が話しています。…"
+  },
+  "出题时是否打乱选项；选项互相引用、官方原题为 0": {
+    "en": "Whether options are shuffled when presented; 0 when options refer to each other or for official questions",
+    "ja": "出題時に選択肢をシャッフルするか。選択肢が互いを参照する場合や公式問題は 0"
+  },
+  "新设：选项文字引用其他选项（「1と2の両方」等）或官方原题为 0，其余为 1": {
+    "en": "New: 0 when an option refers to others (「1と2の両方」 etc.) or for official questions, otherwise 1",
+    "ja": "新設：選択肢が他の選択肢を参照する場合（「1と2の両方」など）や公式問題は 0、それ以外は 1"
+  },
+  "出处（书名、章节、网址等）": {
+    "en": "Source (book, chapter, URL, etc.)",
+    "ja": "出典（書名、章、URL など）"
+  },
+  "作答说明译文": {
+    "en": "Translation of the instructions",
+    "ja": "指示文の訳"
+  },
+  "场景说明译文": {
+    "en": "Translation of the scene description",
+    "ja": "場面説明の訳"
+  },
+  "题组使用的素材": {
+    "en": "Materials used by the group",
+    "ja": "問題グループが使う素材"
+  },
+  "素材（被题组使用时不能删除）": {
+    "en": "Material (cannot be deleted while used by a group)",
+    "ja": "素材（問題グループで使用中は削除不可）"
+  },
+  "在题组中的角色：主文 / 文章 A / 文章 B / 公告或表格 / 场景图 / 音频": {
+    "en": "Role in the group: main text / passage A / passage B / notice or table / scene image / audio",
+    "ja": "グループ内での役割：本文 / 文章 A / 文章 B / お知らせや表 / 場面の絵 / 音声"
+  },
+  "小题": {
+    "en": "Questions",
+    "ja": "小問"
+  },
+  "题目编号：QV / QG / QR / QL + 序号（按题型所属模块）": {
+    "en": "Question code: QV / QG / QR / QL + number (by the module of the question type)",
+    "ja": "問題の番号：QV / QG / QR / QL + 番号（問題形式のモジュールによる）"
+  },
+  "所属题组": {
+    "en": "Owning group",
+    "ja": "所属する問題グループ"
+  },
+  "迁移时按来源建题组：阅读、听力题按文章 / 音频分组，其他题一题一组": {
+    "en": "Groups are built by source during migration: reading and listening questions grouped by passage / audio, other questions one group each",
+    "ja": "移行時に出所ごとにグループを作る：読解・聴解は文章 / 音声ごとにまとめ、それ以外は 1 問 1 グループ"
+  },
+  "在题组中的顺序（問1、問2 …）": {
+    "en": "Order within the group (問1, 問2 …)",
+    "ja": "グループ内の順序（問1、問2 …）"
+  },
+  "题干（日语）；即時応答等只有音频的题为空": {
+    "en": "Prompt (Japanese); empty for audio-only questions such as 即時応答",
+    "ja": "問題文（日本語）。即時応答など音声だけの問題は空"
+  },
+  "`prompt`、`question`（旧写法）": {
+    "en": "`prompt`, `question` (legacy spelling)",
+    "ja": "`prompt`、`question`（旧来の書き方）"
+  },
+  "小题自己的音频或图片（如听力每题的提问音频）": {
+    "en": "The question's own audio or image (e.g. the question audio of each listening item)",
+    "ja": "小問自身の音声や画像（聴解の各問の質問音声など）"
+  },
+  "输入文字类题目（听写）的参考答案（日语）；其他作答方式为空": {
+    "en": "Reference answer (Japanese) for text-input questions (dictation); empty for other answer modes",
+    "ja": "文字入力の問題（ディクテーション）の参照解答（日本語）。ほかの解答方式では空"
+  },
+  "旧数据没有听写题，迁移时为空": {
+    "en": "Legacy data has no dictation questions; empty during migration",
+    "ja": "旧データにディクテーション問題はなく、移行時は空"
+  },
+  "题干译文": {
+    "en": "Translation of the prompt",
+    "ja": "問題文の訳"
+  },
+  "标记：题干或素材正文中需要标出的位置（所有题型统一）   漢字読み、表記、言い換え：target（下划线）；語形成、文脈規定、文法形式：blank（括号空位）；   文の組み立て：每个空位一条 slot，★空位为 star_slot；文章の文法：blank，标在素材正文里（material_rid 不为空）": {
+    "en": "Marks: positions to highlight in a prompt or material text (the same for all question types). 漢字読み, 表記, 言い換え: target (underline); 語形成, 文脈規定, 文法形式: blank (bracket blank); 文の組み立て: one slot per blank, the ★ blank is star_slot; 文章の文法: blank, placed in the material text (material_rid not empty)",
+    "ja": "マーク：問題文または素材本文で示す位置（全問題形式共通）。漢字読み・表記・言い換え：target（下線）、語形成・文脈規定・文法形式：blank（括弧の空欄）、文の組み立て：空欄ごとに slot を 1 件、★の空欄は star_slot、文章の文法：blank で素材本文に付ける（material_rid が空でない）"
+  },
+  "考查对象 / 括号空位 / 排列空位 / ★空位": {
+    "en": "tested item / bracket blank / ordering slot / ★ slot",
+    "ja": "出題対象 / 括弧の空欄 / 並べ替えの空欄 / ★の空欄"
+  },
+  "按题型换算：漢字読み、表記、言い換え → target；語形成、文脈規定、文法形式 → blank；文の組み立て → slot / star_slot；文章の文法 → blank（标在素材正文）": {
+    "en": "Converted by question type: 漢字読み, 表記, 言い換え → target; 語形成, 文脈規定, 文法形式 → blank; 文の組み立て → slot / star_slot; 文章の文法 → blank (in the material text)",
+    "ja": "問題形式ごとに換算：漢字読み・表記・言い換え → target、語形成・文脈規定・文法形式 → blank、文の組み立て → slot / star_slot、文章の文法 → blank（素材本文に付ける）"
+  },
+  "标记在哪份素材的正文里；为空表示在题干中": {
+    "en": "Which material's text the mark is in; empty means it is in the prompt",
+    "ja": "どの素材の本文にあるマークか。空なら問題文にある"
+  },
+  "文章の文法：题组的文章": {
+    "en": "文章の文法: the group's passage",
+    "ja": "文章の文法：グループの文章"
+  },
+  "迁移时在题干（或素材正文）中查找 `promptTarget` / 空位（　）/ ＿＿ 的位置；找不到或出现多次的写进迁移报告": {
+    "en": "During migration, the position of `promptTarget` / blank （　） / ＿＿ is searched in the prompt (or material text); not found or found more than once goes to the migration report",
+    "ja": "移行時に問題文（または素材本文）で `promptTarget` / 空欄（　）/ ＿＿ の位置を探す。見つからない、または複数ある場合は移行レポートに記載"
+  },
+  "终点（不含）": {
+    "en": "End (exclusive)",
+    "ja": "終了位置（その文字は含まない）"
+  },
+  "同上": {
+    "en": "Same as above",
+    "ja": "同上"
+  },
+  "显示的编号：（１）、★": {
+    "en": "Displayed label: （１）, ★",
+    "ja": "表示する番号：（１）、★"
+  },
+  "★、（１）等题干中的编号": {
+    "en": "Labels such as ★ and （１） in the prompt",
+    "ja": "問題文中の ★、（１）などの番号"
+  },
+  "选项：rid 是固定编号，正确答案标在选项上；前端可随机排列，作答只记选中的选项编号": {
+    "en": "Options: rid is a stable ID and the correct answer is marked on the option; clients may shuffle options, and an answer records only the chosen option ID",
+    "ja": "選択肢：rid は固定の番号で、正解は選択肢に印を付ける。フロントエンドは選択肢をランダムに並べてよく、解答では選んだ選択肢の番号だけを記録する"
+  },
+  "标准顺序（官方题目里的 1–4）；不打乱时按此显示": {
+    "en": "Canonical order (1–4 in the official question); used for display when not shuffled",
+    "ja": "標準の順序（公式問題の 1–4）。シャッフルしない場合はこの順に表示"
+  },
+  "`choices[]` 中的顺序": {
+    "en": "Order in `choices[]`",
+    "ja": "`choices[]` の中の順序"
+  },
+  "图片或音频选项的文件": {
+    "en": "File of an image or audio option",
+    "ja": "画像・音声の選択肢のファイル"
+  },
+  "旧数据没有图片、音频选项，迁移时为空": {
+    "en": "Legacy data has no image or audio options; empty during migration",
+    "ja": "旧データに画像・音声の選択肢はなく、移行時は空"
+  },
+  "是否正确答案": {
+    "en": "Whether it is the correct answer",
+    "ja": "正解かどうか"
+  },
+  "`answerIndex` 指向的选项；只有 `answer` 文字时按选项文字匹配；并べ替え题为★位置上的片段": {
+    "en": "The option `answerIndex` points to; matched by option text when only `answer` text exists; for 並べ替え questions, the fragment in the ★ position",
+    "ja": "`answerIndex` が指す選択肢。`answer` の文字しかない場合は選択肢の文字で照合。並べ替え問題は★の位置の断片"
+  },
+  "干扰类型（错误选项为什么容易被选）：与原文不符、语义相近、形式相近 …": {
+    "en": "Distractor type (why a wrong option is tempting): contradicts the text, similar meaning, similar form …",
+    "ja": "誤答の種類（誤った選択肢がなぜ選ばれやすいか）：本文と合わない、意味が近い、形が近い …"
+  },
+  "阅读题 `choice_explanations[].errorType`；其他题型旧数据没有，为空": {
+    "en": "`choice_explanations[].errorType` of reading questions; empty for other types (no legacy data)",
+    "ja": "読解問題の `choice_explanations[].errorType`。ほかの問題形式は旧データになく空"
+  },
+  "选项分析：这个选项为什么对或错": {
+    "en": "Option analysis: why this option is right or wrong",
+    "ja": "選択肢の分析：この選択肢がなぜ正しい / 誤りか"
+  },
+  "选项译文": {
+    "en": "Option translation",
+    "ja": "選択肢の訳"
+  },
+  "解析段落：每道题一个有序列表（所有题型统一），前端按数组逐条渲染": {
+    "en": "Explanation sections: an ordered list per question (the same for all question types), rendered item by item on the client",
+    "ja": "解説の段落：問題ごとの順序付きリスト（全問題形式共通）。フロントエンドは配列として 1 件ずつ表示"
+  },
+  "正确依据 / 解题步骤 / 完整答案（如排列题的完整句子）/ 技巧 / 学习目标": {
+    "en": "correct basis / solving step / full answer (e.g. the full sentence of an ordering question) / tip / learning objective",
+    "ja": "正解の根拠 / 解き方の手順 / 完全な答え（並べ替え問題の完成文など）/ コツ / 学習目標"
+  },
+  "`explanation` / `correctReason` → basis；`memoryPoint` → tip；`learningObjective` → objective；阅读 `explanation_nodes[]` → step；`full_order` → full_answer（正文为完整句子）": {
+    "en": "`explanation` / `correctReason` → basis; `memoryPoint` → tip; `learningObjective` → objective; reading `explanation_nodes[]` → step; `full_order` → full_answer (body is the full sentence)",
+    "ja": "`explanation` / `correctReason` → basis、`memoryPoint` → tip、`learningObjective` → objective、読解の `explanation_nodes[]` → step、`full_order` → full_answer（本文は完成文）"
+  },
+  "解析段落标题": {
+    "en": "Explanation section title",
+    "ja": "解説の段落のタイトル"
+  },
+  "解析段落内容": {
+    "en": "Explanation section body",
+    "ja": "解説の段落の本文"
+  },
+  "证据：答案依据在原文的哪里（所有题型统一）；可属于整道题，也可属于某个选项": {
+    "en": "Evidence: where in the source the answer is supported (the same for all question types); may belong to the whole question or to one option",
+    "ja": "根拠箇所：答えの根拠が原文のどこにあるか（全問題形式共通）。問題全体にも、特定の選択肢にも付けられる"
+  },
+  "针对哪个选项；为空表示针对整道题": {
+    "en": "Which option it is for; empty means the whole question",
+    "ja": "どの選択肢に対するものか。空なら問題全体"
+  },
+  "阅读题 `choice_explanations[]` 对应的选项": {
+    "en": "The option matching `choice_explanations[]` of the reading question",
+    "ja": "読解問題の `choice_explanations[]` に対応する選択肢"
+  },
+  "依据在哪份素材；为空表示在题干中": {
+    "en": "Which material the evidence is in; empty means the prompt",
+    "ja": "根拠がどの素材にあるか。空なら問題文"
+  },
+  "题干 / 素材正文 / 听力原文": {
+    "en": "prompt / material text / listening script",
+    "ja": "問題文 / 素材本文 / 聴解スクリプト"
+  },
+  "阅读题为 body；听力题为 transcript": {
+    "en": "body for reading questions; transcript for listening questions",
+    "ja": "読解問題は body、聴解問題は transcript"
+  },
+  "迁移时在素材正文中查找摘录的位置；找不到时为空": {
+    "en": "During migration, the quote's position is searched in the material text; empty when not found",
+    "ja": "移行時に素材本文で引用の位置を探す。見つからなければ空"
+  },
+  "原文摘录（日语）": {
+    "en": "Quote from the source (Japanese)",
+    "ja": "原文の引用（日本語）"
+  },
+  "阅读题 `choice_explanations[].evidence`": {
+    "en": "`choice_explanations[].evidence` of reading questions",
+    "ja": "読解問題の `choice_explanations[].evidence`"
+  },
+  "题目标签": {
+    "en": "Question tags",
+    "ja": "問題のタグ"
+  },
+  "阅读题 `tags_json[]`": {
+    "en": "`tags_json[]` of reading questions",
+    "ja": "読解問題の `tags_json[]`"
+  },
+  "题目审查记录：一次审查一行（自动检查、AI 审查、学习者报告问题都记在这里）": {
+    "en": "Question review log: one row per review (automatic checks, AI reviews and learner reports are all recorded here)",
+    "ja": "問題のレビュー記録：レビュー 1 回につき 1 行（自動チェック、AI のレビュー、学習者からの問題報告をすべて記録）"
+  },
+  "审查的题组（一篇文章的几道题一起审）": {
+    "en": "Group reviewed (the questions of one passage are reviewed together)",
+    "ja": "レビュー対象の問題グループ（1 つの文章の複数問はまとめてレビュー）"
+  },
+  "自动检查 / AI agent / 学习者": {
+    "en": "automatic check / AI agent / learner",
+    "ja": "自動チェック / AI エージェント / 学習者"
+  },
+  "新设；旧数据没有审查记录": {
+    "en": "New; legacy data has no review records",
+    "ja": "新設。旧データにレビュー記録はない"
+  },
+  "通过（题组变为可用）/ 需修改 / 不可用（停用）": {
+    "en": "pass (group becomes ready) / needs revision / reject (retired)",
+    "ja": "合格（グループは使用可になる）/ 要修正 / 不可（停止）"
+  },
+  "审查的 AI 是谁（MCP 客户端名称等），用于区分出题和审题的 agent": {
+    "en": "Which AI reviewed it (MCP client name, etc.), to tell the authoring agent from the reviewing agent",
+    "ja": "レビューした AI（MCP クライアント名など）。出題したエージェントとレビューしたエージェントを区別するため"
+  },
+  "审查结论说明": {
+    "en": "Explanation of the review verdict",
+    "ja": "レビュー結論の説明"
+  },
+  "审查发现的问题：可针对整个题组、某道小题或某个选项": {
+    "en": "Review findings: may concern the whole group, one question or one option",
+    "ja": "レビューでの指摘：問題グループ全体、特定の小問、特定の選択肢のいずれかに付ける"
+  },
+  "针对哪道小题；为空表示整个题组": {
+    "en": "Which question it concerns; empty means the whole group",
+    "ja": "どの小問に対するものか。空ならグループ全体"
+  },
+  "针对哪个选项": {
+    "en": "Which option it concerns",
+    "ja": "どの選択肢に対するものか"
+  },
+  "检查项：distractor_also_correct、distractor_too_weak、option_length_skew …（见设计文档）": {
+    "en": "Check: distractor_also_correct, distractor_too_weak, option_length_skew … (see the design document)",
+    "ja": "チェック項目：distractor_also_correct、distractor_too_weak、option_length_skew …（設計書を参照）"
+  },
+  "必须修改 / 建议修改 / 提示": {
+    "en": "must fix / should fix / note",
+    "ja": "修正必須 / 修正推奨 / 参考"
+  },
+  "修改后是否已解决": {
+    "en": "Whether it has been resolved after revision",
+    "ja": "修正後に解決したか"
+  },
+  "审查发现的问题与修改建议": {
+    "en": "Finding and suggested fix",
+    "ja": "指摘内容と修正の提案"
+  },
+  "练习、作答、复习": {
+    "en": "Practice, answers and review",
+    "ja": "練習、解答、復習"
+  },
+  "练习：每日练习、专项、综合、模拟考试": {
+    "en": "Practice sets: daily practice, topic, mixed, mock exams",
+    "ja": "練習：デイリー練習、テーマ別、総合、模擬試験"
+  },
+  "练习编号：DP3、TP2、MX1": {
+    "en": "Practice code: DP3, TP2, MX1",
+    "ja": "練習の番号：DP3、TP2、MX1"
+  },
+  "DP3、MX1": {
+    "en": "DP3, MX1",
+    "ja": "DP3、MX1"
+  },
+  "每日 / 专项 / 综合 / 模拟考试": {
+    "en": "daily / topic / mixed / mock exam",
+    "ja": "デイリー / テーマ別 / 総合 / 模擬試験"
+  },
+  "`daily_practices` 按来源区分；`mock_exams` 为 mock": {
+    "en": "`daily_practices` distinguished by source; `mock_exams` become mock",
+    "ja": "`daily_practices` は出所で区別、`mock_exams` は mock"
+  },
+  "daily 每日练习 / topic 专项 / mixed 综合 / mock 模拟考试": {
+    "en": "daily / topic / mixed / mock (mock exam)",
+    "ja": "daily デイリー練習 / topic テーマ別 / mixed 総合 / mock 模擬試験"
+  },
+  "练习日期": {
+    "en": "Practice date",
+    "ja": "練習日"
+  },
+  "同一天的第几版": {
+    "en": "Version number within the same day",
+    "ja": "同じ日の何版目か"
+  },
+  "建议用时（分钟）": {
+    "en": "Suggested time (minutes)",
+    "ja": "目安の時間（分）"
+  },
+  "出题方式：由确认的草稿整份发布 / AI 按主题出题 / 按作答历史针对性出题": {
+    "en": "How questions were chosen: published as a whole from an approved draft / AI by topic / targeted by answer history",
+    "ja": "出題方法：確認済みの下書きをまとめて公開 / AI がテーマ別に出題 / 解答履歴に基づいて出題"
+  },
+  "approved_draft_full_set 由确认的草稿整份发布 / agent_topic AI 按主题出题 / targeted_by_history 按作答历史针对性出题": {
+    "en": "approved_draft_full_set (published from an approved draft) / agent_topic (AI by topic) / targeted_by_history (targeted by answer history)",
+    "ja": "approved_draft_full_set 確認済みの下書きをまとめて公開 / agent_topic AI がテーマ別に出題 / targeted_by_history 解答履歴に基づいて出題"
+  },
+  "模拟考试的等级": {
+    "en": "Level of the mock exam",
+    "ja": "模擬試験のレベル"
+  },
+  "由哪份 AI 草稿发布而来": {
+    "en": "AI draft it was published from",
+    "ja": "どの AI の下書きから公開したか"
+  },
+  "AI 生成的时间": {
+    "en": "Time generated by AI",
+    "ja": "AI が生成した日時"
+  },
+  "练习标题": {
+    "en": "Practice title",
+    "ja": "練習のタイトル"
+  },
+  "练习说明": {
+    "en": "Practice description",
+    "ja": "練習の説明"
+  },
+  "免责说明": {
+    "en": "Disclaimer",
+    "ja": "免責事項"
+  },
+  "出题依据摘要": {
+    "en": "Summary of the basis for the questions",
+    "ja": "出題根拠の要約"
+  },
+  "练习分区（模拟考试的每一场也是一个分区）": {
+    "en": "Practice sections (each session of a mock exam is also a section)",
+    "ja": "練習のセクション（模擬試験の各回もセクション）"
+  },
+  "分区作答说明（日语）": {
+    "en": "Section instructions (Japanese)",
+    "ja": "セクションの指示文（日本語）"
+  },
+  "模拟考试该场的计划日期": {
+    "en": "Planned date of this mock exam session",
+    "ja": "模擬試験のその回の予定日"
+  },
+  "该场时限（分钟）": {
+    "en": "Time limit of the session (minutes)",
+    "ja": "その回の制限時間（分）"
+  },
+  "分区标题": {
+    "en": "Section title",
+    "ja": "セクションのタイトル"
+  },
+  "分区说明": {
+    "en": "Section description",
+    "ja": "セクションの説明"
+  },
+  "练习中的题目条目": {
+    "en": "Question entries in a practice set",
+    "ja": "練習に含まれる問題の項目"
+  },
+  "所在分区；不分区的练习为空": {
+    "en": "Section it is in; empty for practice without sections",
+    "ja": "所属するセクション。セクションのない練習では空"
+  },
+  "题目（题目被练习引用时不能删除）": {
+    "en": "Question (cannot be deleted while referenced by a practice set)",
+    "ja": "問題（練習から参照されている間は削除不可）"
+  },
+  "`practice_json.questions[]`、`sessions[].questions[]` 迁入题库后的题目": {
+    "en": "Questions from `practice_json.questions[]` and `sessions[].questions[]` after migration into the bank",
+    "ja": "`practice_json.questions[]`、`sessions[].questions[]` を問題バンクに移行した問題"
+  },
+  "专项练习的抽题条件": {
+    "en": "Draw conditions for topic practice",
+    "ja": "テーマ別練習の出題条件"
+  },
+  "限定单词本": {
+    "en": "Restrict to a wordbook",
+    "ja": "単語帳を限定"
+  },
+  "限定等级": {
+    "en": "Restrict to a level",
+    "ja": "レベルを限定"
+  },
+  "只抽到期复习的": {
+    "en": "Draw only items due for review",
+    "ja": "復習期限が来たものだけを出す"
+  },
+  "抽多少题": {
+    "en": "Number of questions to draw",
+    "ja": "出題数"
+  },
+  "限定的官方题型": {
+    "en": "Restricted official question types",
+    "ja": "限定する公式問題形式"
+  },
+  "`practice_json.filters.kinds[]` 换算为官方题型": {
+    "en": "`practice_json.filters.kinds[]` converted to official question types",
+    "ja": "`practice_json.filters.kinds[]` を公式問題形式に換算"
+  },
+  "限定的记忆状态": {
+    "en": "Restricted memory statuses",
+    "ja": "限定する記憶状態"
+  },
+  "练习记录（一次作答过程）": {
+    "en": "Practice attempts (one answering session)",
+    "ja": "練習記録（1 回の解答）"
+  },
+  "练习记录编号：AT12": {
+    "en": "Attempt code: AT12",
+    "ja": "練習記録の番号：AT12"
+  },
+  "做的是哪份练习；临时组卷的为空": {
+    "en": "Which practice set was taken; empty for ad hoc sets",
+    "ja": "どの練習を解いたか。その場で作った問題セットでは空"
+  },
+  "练习入口": {
+    "en": "Practice entry point",
+    "ja": "練習の入口"
+  },
+  "是否是进行中的练习（每用户最多一条）": {
+    "en": "Whether it is the practice in progress (at most one per user)",
+    "ja": "進行中の練習か（ユーザーごとに最大 1 件）"
+  },
+  "每用户最多一条": {
+    "en": "At most one per user",
+    "ja": "ユーザーごとに最大 1 件"
+  },
+  "`startedAt`、`completedAt`": {
+    "en": "`startedAt`, `completedAt`",
+    "ja": "`startedAt`、`completedAt`"
+  },
+  "AI 练习分析的状态": {
+    "en": "Status of the AI practice analysis",
+    "ja": "AI による練習分析の状態"
+  },
+  "idle 未分析 / running / completed": {
+    "en": "idle (not analyzed) / running / completed",
+    "ja": "idle 未分析 / running / completed"
+  },
+  "练习记录标题": {
+    "en": "Attempt title",
+    "ja": "練習記録のタイトル"
+  },
+  "练习中每道题的作答": {
+    "en": "Answer to each question in an attempt",
+    "ja": "練習中の各問題の解答"
+  },
+  "所属练习记录": {
+    "en": "Owning attempt",
+    "ja": "所属する練習記録"
+  },
+  "`questionIds[]` 的顺序": {
+    "en": "Order in `questionIds[]`",
+    "ja": "`questionIds[]` の順序"
+  },
+  "对应练习里的哪个条目": {
+    "en": "Which entry of the practice set it corresponds to",
+    "ja": "練習のどの項目に対応するか"
+  },
+  "题目；原题已删除或找不到时为空": {
+    "en": "Question; empty when the original was deleted or cannot be found",
+    "ja": "問題。元の問題が削除された、または見つからない場合は空"
+  },
+  "`questionManifest[]`、`questionIds[]` 经去重对照表换算": {
+    "en": "`questionManifest[]`, `questionIds[]` converted through the de-duplication mapping",
+    "ja": "`questionManifest[]`、`questionIds[]` を重複排除の対応表で換算"
+  },
+  "已作答 / 出示未答 / 原题已找不到": {
+    "en": "answered / shown but not answered / original not found",
+    "ja": "解答済み / 表示したが未解答 / 元の問題が見つからない"
+  },
+  "`questionManifest[].status`（线上 1,910 条为 missingOriginal）": {
+    "en": "`questionManifest[].status` (1,910 entries in production are missingOriginal)",
+    "ja": "`questionManifest[].status`（本番では 1,910 件が missingOriginal）"
+  },
+  "answered 已作答 / presented 出示未答 / missing_original 原题已找不到": {
+    "en": "answered / presented (shown but not answered) / missing_original (original not found)",
+    "ja": "answered 解答済み / presented 表示したが未解答 / missing_original 元の問題が見つからない"
+  },
+  "选中的选项（固定编号，与显示顺序无关）": {
+    "en": "Chosen option (stable ID, independent of display order)",
+    "ja": "選んだ選択肢（固定の番号で、表示順とは無関係）"
+  },
+  "`answers[].selected`（文字）按当时题目的选项文字匹配": {
+    "en": "`answers[].selected` (text) matched against the option text of the question at the time",
+    "ja": "`answers[].selected`（文字）を当時の問題の選択肢の文字と照合"
+  },
+  "作答时所选选项的文字（选项以后被修改或删除也能看到当时选了什么）": {
+    "en": "Text of the chosen option at answer time (still visible after the option is edited or deleted)",
+    "ja": "解答時に選んだ選択肢の文字（選択肢が後で修正・削除されても当時の選択がわかる）"
+  },
+  "作答时正确选项的文字": {
+    "en": "Text of the correct option at answer time",
+    "ja": "解答時の正解選択肢の文字"
+  },
+  "迁移时题目的正确选项文字": {
+    "en": "Correct option text of the question at migration",
+    "ja": "移行時点の問題の正解選択肢の文字"
+  },
+  "是否答对": {
+    "en": "Whether it was correct",
+    "ja": "正解だったか"
+  },
+  "`answers[].correct`（保留当时的判定，不重算）": {
+    "en": "`answers[].correct` (the judgment at the time is kept, not recomputed)",
+    "ja": "`answers[].correct`（当時の判定を保持し、再計算しない）"
+  },
+  "输入文字类题目（听写）用户输入的文字": {
+    "en": "Text typed by the user for text-input questions (dictation)",
+    "ja": "文字入力の問題（ディクテーション）でユーザーが入力した文字"
+  },
+  "旧数据没有输入文字类作答": {
+    "en": "Legacy data has no text-input answers",
+    "ja": "旧データに文字入力の解答はない"
+  },
+  "录音类题目（跟读）提交的录音": {
+    "en": "Recording submitted for recording questions (shadowing)",
+    "ja": "録音の問題（シャドーイング）で提出した録音"
+  },
+  "旧数据的跟读录音与作答记录没有关联，迁移时为空": {
+    "en": "Legacy shadowing recordings are not linked to answers; empty during migration",
+    "ja": "旧データのシャドーイング録音は解答記録と結び付いておらず、移行時は空"
+  },
+  "开始看题时间": {
+    "en": "Time the question was first shown",
+    "ja": "問題を見始めた日時"
+  },
+  "`answers[]` 同名字段": {
+    "en": "Same-named fields of `answers[]`",
+    "ja": "`answers[]` の同名フィールド"
+  },
+  "作答时间": {
+    "en": "Answer time",
+    "ja": "解答日時"
+  },
+  "用时（毫秒）": {
+    "en": "Time taken (ms)",
+    "ja": "所要時間（ミリ秒）"
+  },
+  "每个用户每道题的最新一次作答（错题本、“已答”状态）": {
+    "en": "Latest answer of each user to each question (mistake notebook, \"answered\" status)",
+    "ja": "ユーザーごと・問題ごとの最新の解答（間違いノート、「解答済み」の状態）"
+  },
+  "题目": {
+    "en": "Question",
+    "ja": "問題"
+  },
+  "`answers.question_id` 经对照表换算": {
+    "en": "`answers.question_id` converted through the mapping",
+    "ja": "`answers.question_id` を対応表で換算"
+  },
+  "最新一次选中的选项": {
+    "en": "Latest chosen option",
+    "ja": "最新の解答で選んだ選択肢"
+  },
+  "`answers.selected` 按题目选项文字匹配": {
+    "en": "`answers.selected` matched against the question's option text",
+    "ja": "`answers.selected` を問題の選択肢の文字と照合"
+  },
+  "最新一次所选选项的文字": {
+    "en": "Text of the latest chosen option",
+    "ja": "最新の解答で選んだ選択肢の文字"
+  },
+  "`answers.selected`、`correct`": {
+    "en": "`answers.selected`, `correct`",
+    "ja": "`answers.selected`、`correct`"
+  },
+  "已提交 / 未提交": {
+    "en": "submitted / not submitted",
+    "ja": "提出済み / 未提出"
+  },
+  "submitted 已提交 / draft 未提交（旧数据的 legacy_submitted 记为 submitted）": {
+    "en": "submitted / draft (not submitted) (legacy legacy_submitted is recorded as submitted)",
+    "ja": "submitted 提出済み / draft 未提出（旧データの legacy_submitted は submitted とする）"
+  },
+  "对应的作答事件": {
+    "en": "Corresponding answer event",
+    "ja": "対応する解答イベント"
+  },
+  "学习事件日志（多端同步去重：同一事件只计一次）": {
+    "en": "Learning event log (multi-device sync de-duplication: each event counts once)",
+    "ja": "学習イベントのログ（複数端末同期の重複排除：同じイベントは 1 回だけ数える）"
+  },
+  "客户端生成的事件 ID": {
+    "en": "Event ID generated by the client",
+    "ja": "クライアントが生成したイベント ID"
+  },
+  "作答 / 卡片自评": {
+    "en": "answer / card self-rating",
+    "ja": "解答 / カードの自己評価"
+  },
+  "AnswerSubmitted 作答 / MemoryRated 卡片自评": {
+    "en": "AnswerSubmitted (answer) / MemoryRated (card self-rating)",
+    "ja": "AnswerSubmitted 解答 / MemoryRated カードの自己評価"
+  },
+  "发生时间": {
+    "en": "Time it happened",
+    "ja": "発生日時"
+  },
+  "服务器收到时间": {
+    "en": "Time received by the server",
+    "ja": "サーバーが受け取った日時"
+  },
+  "事件内容哈希，用于识别重复提交": {
+    "en": "Hash of the event content, used to detect repeated submissions",
+    "ja": "イベント内容のハッシュ。重複送信の識別に使う"
+  },
+  "涉及的题目": {
+    "en": "Question involved",
+    "ja": "関係する問題"
+  },
+  "涉及的知识点": {
+    "en": "Knowledge point involved",
+    "ja": "関係する知識項目"
+  },
+  "选中的选项（作答事件）": {
+    "en": "Chosen option (answer events)",
+    "ja": "選んだ選択肢（解答イベント）"
+  },
+  "`payload_json.selected` 按题目选项文字匹配": {
+    "en": "`payload_json.selected` matched against the question's option text",
+    "ja": "`payload_json.selected` を問題の選択肢の文字と照合"
+  },
+  "所选选项的文字": {
+    "en": "Text of the chosen option",
+    "ja": "選んだ選択肢の文字"
+  },
+  "题型": {
+    "en": "Question type",
+    "ja": "問題形式"
+  },
+  "自评结果（自评事件）": {
+    "en": "Self-rating result (self-rating events)",
+    "ja": "自己評価の結果（自己評価イベント）"
+  },
+  "来自哪一端": {
+    "en": "Which client it came from",
+    "ja": "どの端末から来たか"
+  },
+  "是否计入统计（实现阶段核对取值）": {
+    "en": "Whether it counts toward statistics (values checked during implementation)",
+    "ja": "統計に数えるか（値は実装時に確認）"
+  },
+  "每个知识点的复习进度（间隔重复）": {
+    "en": "Review progress of each knowledge point (spaced repetition)",
+    "ja": "知識項目ごとの復習の進み具合（間隔反復）"
+  },
+  "知识点": {
+    "en": "Knowledge point",
+    "ja": "知識項目"
+  },
+  "学习中 / 复习中 / 已掌握": {
+    "en": "learning / reviewing / mastered",
+    "ja": "学習中 / 復習中 / 習得済み"
+  },
+  "learning 学习中 283 / review 复习中 199 / mastered 已掌握 56": {
+    "en": "learning 283 / review 199 / mastered 56",
+    "ja": "learning 学習中 283 / review 復習中 199 / mastered 習得済み 56"
+  },
+  "已复习次数": {
+    "en": "Number of reviews",
+    "ja": "復習した回数"
+  },
+  "难度系数，越大间隔增长越快": {
+    "en": "Ease factor; larger values grow the interval faster",
+    "ja": "難易度係数。大きいほど間隔が早く伸びる"
+  },
+  "当前复习间隔（天）": {
+    "en": "Current review interval (days)",
+    "ja": "現在の復習間隔（日）"
+  },
+  "下次复习时间": {
+    "en": "Next review time",
+    "ja": "次の復習日時"
+  },
+  "第一次学习时间": {
+    "en": "Time first studied",
+    "ja": "初めて学習した日時"
+  },
+  "同名字段": {
+    "en": "Same-named fields",
+    "ja": "同名フィールド"
+  },
+  "最近一次复习时间": {
+    "en": "Time last reviewed",
+    "ja": "最後に復習した日時"
+  },
+  "最近一次练到它的练习记录": {
+    "en": "Last attempt that practiced it",
+    "ja": "最後にこれを練習した練習記録"
+  },
+  "iOS 离线同步的共同基准（三方合并时判断服务器进度是否被别的设备改过）": {
+    "en": "Common baseline for iOS offline sync (used in three-way merges to tell whether another device changed the server progress)",
+    "ja": "iOS のオフライン同期の共通の基準（3 方向マージで、サーバーの進捗が別の端末で変更されたかを判断）"
+  },
+  "卡片自评记录": {
+    "en": "Card self-ratings",
+    "ja": "カードの自己評価の記録"
+  },
+  "客户端事件 ID，防止重复提交": {
+    "en": "Client event ID, prevents duplicate submissions",
+    "ja": "クライアントのイベント ID。重複送信を防ぐ"
+  },
+  "忘记 / 困难 / 记得 / 简单": {
+    "en": "forgot / hard / remembered / easy",
+    "ja": "忘れた / 難しい / 覚えていた / 簡単"
+  },
+  "forgot 忘记 / hard 困难 / remembered 记得 / easy 简单": {
+    "en": "forgot / hard / remembered / easy",
+    "ja": "forgot 忘れた / hard 難しい / remembered 覚えていた / easy 簡単"
+  },
+  "自评时间": {
+    "en": "Time of the self-rating",
+    "ja": "自己評価した日時"
+  },
+  "AI 草稿": {
+    "en": "AI drafts",
+    "ja": "AI の下書き"
+  },
+  "草稿编号：DR7": {
+    "en": "Draft code: DR7",
+    "ja": "下書きの番号：DR7"
+  },
+  "待确认 / 需修改 / 已确认 / 已归档": {
+    "en": "awaiting confirmation / needs revision / approved / archived",
+    "ja": "確認待ち / 要修正 / 確認済み / アーカイブ済み"
+  },
+  "draft 待确认 / needs_revision 需修改 / approved 已确认 / archived 已归档": {
+    "en": "draft (awaiting confirmation) / needs_revision / approved / archived",
+    "ja": "draft 確認待ち / needs_revision 要修正 / approved 確認済み / archived アーカイブ済み"
+  },
+  "草稿类型：每日复习包 / 语法练习": {
+    "en": "Draft type: daily review pack / grammar practice",
+    "ja": "下書きの種類：デイリー復習パック / 文法練習"
+  },
+  "daily_review_pack 每日复习包 / grammar_practice 语法练习": {
+    "en": "daily_review_pack (daily review pack) / grammar_practice (grammar practice)",
+    "ja": "daily_review_pack デイリー復習パック / grammar_practice 文法練習"
+  },
+  "出题方式": {
+    "en": "How questions were chosen",
+    "ja": "出題方法"
+  },
+  "targeted_by_history 按作答历史": {
+    "en": "targeted_by_history (by answer history)",
+    "ja": "targeted_by_history 解答履歴に基づく"
+  },
+  "目标等级": {
+    "en": "Target level",
+    "ja": "目標レベル"
+  },
+  "计划练习日期": {
+    "en": "Planned practice date",
+    "ja": "練習予定日"
+  },
+  "预计用时（分钟）": {
+    "en": "Estimated time (minutes)",
+    "ja": "見込み時間（分）"
+  },
+  "`content_json.estimated_minutes` / `minutes` 合并": {
+    "en": "`content_json.estimated_minutes` / `minutes` merged",
+    "ja": "`content_json.estimated_minutes` / `minutes` を統合"
+  },
+  "生成时间": {
+    "en": "Time generated",
+    "ja": "生成日時"
+  },
+  "草稿标题": {
+    "en": "Draft title",
+    "ja": "下書きのタイトル"
+  },
+  "草稿说明": {
+    "en": "Draft description",
+    "ja": "下書きの説明"
+  },
+  "下一步建议": {
+    "en": "Suggested next step",
+    "ja": "次のステップの提案"
+  },
+  "学习目标": {
+    "en": "Learning objective",
+    "ja": "学習目標"
+  },
+  "草稿分区标题": {
+    "en": "Draft section title",
+    "ja": "下書きのセクションのタイトル"
+  },
+  "草稿分区正文": {
+    "en": "Draft section body",
+    "ja": "下書きのセクションの本文"
+  },
+  "所在分区；不属于分区的为空": {
+    "en": "Section it is in; empty when not in a section",
+    "ja": "所属するセクション。セクションに属さない場合は空"
+  },
+  "分区题 / 小测 / 生成的练习题": {
+    "en": "section question / quiz / generated practice question",
+    "ja": "セクションの問題 / 小テスト / 生成した練習問題"
+  },
+  "`sections[].questions[]` → section；`quiz[]` → quiz；`generated_practice[]` → generated": {
+    "en": "`sections[].questions[]` → section; `quiz[]` → quiz; `generated_practice[]` → generated",
+    "ja": "`sections[].questions[]` → section、`quiz[]` → quiz、`generated_practice[]` → generated"
+  },
+  "题目（草稿删除时题目保留）": {
+    "en": "Question (kept when the draft is deleted)",
+    "ja": "問題（下書きを削除しても問題は残す）"
+  },
+  "草稿中的题目迁入题库后的题目": {
+    "en": "Questions from drafts after migration into the bank",
+    "ja": "下書き内の問題を問題バンクに移行した問題"
+  },
+  "批注编号：DC3（按用户编号）": {
+    "en": "Comment code: DC3 (numbered per user)",
+    "ja": "コメントの番号：DC3（ユーザーごとに採番）"
+  },
+  "批注内容（用户或 AI 写的原文，不翻译）": {
+    "en": "Comment text (written by the user or AI, not translated)",
+    "ja": "コメントの内容（ユーザーまたは AI が書いた原文で、翻訳しない）"
+  },
+  "学习计划": {
+    "en": "Study plans",
+    "ja": "学習計画"
+  },
+  "一用户一份": {
+    "en": "One per user",
+    "ja": "1 ユーザー 1 件"
+  },
+  "目标考试：JLPT 2026年12月": {
+    "en": "Target exam: JLPT 2026年12月",
+    "ja": "目標の試験：JLPT 2026年12月"
+  },
+  "JLPT 2026年12月": {
+    "en": "JLPT 2026年12月",
+    "ja": "JLPT 2026年12月"
+  },
+  "计划开始日期": {
+    "en": "Plan start date",
+    "ja": "計画の開始日"
+  },
+  "`profile.startDate`、`examDate`": {
+    "en": "`profile.startDate`, `examDate`",
+    "ja": "`profile.startDate`、`examDate`"
+  },
+  "考试日期": {
+    "en": "Exam date",
+    "ja": "試験日"
+  },
+  "每周学习天数": {
+    "en": "Study days per week",
+    "ja": "週あたりの学習日数"
+  },
+  "每天学习分钟数": {
+    "en": "Study minutes per day",
+    "ja": "1 日あたりの学習時間（分）"
+  },
+  "教材从哪里开始学（实现阶段核对取值）": {
+    "en": "Where to start in the materials (values checked during implementation)",
+    "ja": "教材をどこから始めるか（値は実装時に確認）"
+  },
+  "只有基本信息 / 已生成 / 需重新生成": {
+    "en": "profile only / generated / needs regenerating",
+    "ja": "基本情報のみ / 生成済み / 再生成が必要"
+  },
+  "profile_only 只有基本信息 / ready 已生成 / needs_refresh 需重新生成": {
+    "en": "profile_only (profile only) / ready (generated) / needs_refresh (needs regenerating)",
+    "ja": "profile_only 基本情報のみ / ready 生成済み / needs_refresh 再生成が必要"
+  },
+  "计划生成时间": {
+    "en": "Time the plan was generated",
+    "ja": "計画を生成した日時"
+  },
+  "固定日程说明": {
+    "en": "Fixed schedule notes",
+    "ja": "固定の日程の説明"
+  },
+  "补充需求": {
+    "en": "Additional needs",
+    "ja": "追加の要望"
+  },
+  "分阶段策略": {
+    "en": "Phase strategy",
+    "ja": "段階ごとの方針"
+  },
+  "教材学完后的策略": {
+    "en": "Strategy after finishing the materials",
+    "ja": "教材を終えた後の方針"
+  },
+  "教材所属模块": {
+    "en": "Module of the material",
+    "ja": "教材の所属モジュール"
+  },
+  "教材名": {
+    "en": "Material name",
+    "ja": "教材名"
+  },
+  "教材当前进度": {
+    "en": "Current position in the material",
+    "ja": "教材の現在の進み具合"
+  },
+  "任务编号：TK12": {
+    "en": "Task code: TK12",
+    "ja": "タスクの番号：TK12"
+  },
+  "日期": {
+    "en": "Date",
+    "ja": "日付"
+  },
+  "用时（分钟）": {
+    "en": "Time (minutes)",
+    "ja": "所要時間（分）"
+  },
+  "对应教材": {
+    "en": "Corresponding material",
+    "ja": "対応する教材"
+  },
+  "工作量类型（旧数据全为空，实现阶段确认是否保留）": {
+    "en": "Workload type (all empty in legacy data; keep or drop decided during implementation)",
+    "ja": "作業量の種類（旧データはすべて空。残すかどうかは実装時に決める）"
+  },
+  "待做 / 完成 / 跳过 / 错过": {
+    "en": "pending / completed / skipped / missed",
+    "ja": "未着手 / 完了 / スキップ / 未実施"
+  },
+  "任务标题": {
+    "en": "Task title",
+    "ja": "タスクのタイトル"
+  },
+  "任务说明": {
+    "en": "Task details",
+    "ja": "タスクの説明"
+  },
+  "任务出处": {
+    "en": "Task source",
+    "ja": "タスクの出典"
+  },
+  "阶段重点": {
+    "en": "Phase focus",
+    "ja": "段階の重点"
+  },
+  "阶段目标": {
+    "en": "Phase goal",
+    "ja": "段階の目標"
+  },
+  "阶段要点": {
+    "en": "Phase key points",
+    "ja": "段階の要点"
+  },
+  "每日总结": {
+    "en": "Daily summaries",
+    "ja": "日々のまとめ"
+  },
+  "总结的日期": {
+    "en": "Date summarized",
+    "ja": "まとめる日付"
+  },
+  "按哪个时区划分这一天": {
+    "en": "Time zone that defines the day",
+    "ja": "その日をどのタイムゾーンで区切るか"
+  },
+  "当天作答题数": {
+    "en": "Questions answered that day",
+    "ja": "その日に解答した問題数"
+  },
+  "同名列": {
+    "en": "Same-named column",
+    "ja": "同名の列"
+  },
+  "答对数": {
+    "en": "Correct answers",
+    "ja": "正解数"
+  },
+  "答错数": {
+    "en": "Wrong answers",
+    "ja": "不正解数"
+  },
+  "正确率": {
+    "en": "Accuracy",
+    "ja": "正答率"
+  },
+  "当天涉及的知识点数": {
+    "en": "Knowledge points involved that day",
+    "ja": "その日に関係した知識項目の数"
+  },
+  "每日总结正文": {
+    "en": "Daily summary text",
+    "ja": "日々のまとめの本文"
+  },
+  "`stats_json.byKind[]`.kind 换算为官方题型": {
+    "en": "`stats_json.byKind[]`.kind converted to official question types",
+    "ja": "`stats_json.byKind[]`.kind を公式問題形式に換算"
+  },
+  "优势 / 弱点": {
+    "en": "strength / weakness",
+    "ja": "強み / 弱み"
+  },
+  "`strengths_json[]` → strength；`weaknesses_json[]` → weakness": {
+    "en": "`strengths_json[]` → strength; `weaknesses_json[]` → weakness",
+    "ja": "`strengths_json[]` → strength、`weaknesses_json[]` → weakness"
+  },
+  "优势 / 弱点名称": {
+    "en": "Name of the strength / weakness",
+    "ja": "強み / 弱みの名前"
+  },
+  "优势 / 弱点说明": {
+    "en": "Explanation of the strength / weakness",
+    "ja": "強み / 弱みの説明"
+  },
+  "易混主题": {
+    "en": "Confusion topic",
+    "ja": "紛らわしいテーマ"
+  },
+  "作为证据的题目": {
+    "en": "Question serving as evidence",
+    "ja": "根拠となる問題"
+  },
+  "复习 / 练习 / 内容质量 / 优先级 / 卡片复习": {
+    "en": "review / practice / content quality / priority / card review",
+    "ja": "復習 / 練習 / 内容の品質 / 優先度 / カード復習"
+  },
+  "建议标题": {
+    "en": "Recommendation title",
+    "ja": "提案のタイトル"
+  },
+  "建议内容": {
+    "en": "Recommendation content",
+    "ja": "提案の内容"
+  },
+  "错题": {
+    "en": "Wrong answers",
+    "ja": "間違えた問題"
+  },
+  "相关知识点": {
+    "en": "Related knowledge point",
+    "ja": "関連する知識項目"
+  },
+  "所选答案": {
+    "en": "Chosen answer",
+    "ja": "選んだ答え"
+  },
+  "正确答案": {
+    "en": "Correct answer",
+    "ja": "正解"
+  },
+  "收集箱、跟读录音": {
+    "en": "Inbox and shadowing recordings",
+    "ja": "受信箱とシャドーイング録音"
+  },
+  "收集箱：学习中随手记下、待整理的内容": {
+    "en": "Inbox: things noted down while studying, waiting to be organized",
+    "ja": "受信箱：学習中にメモした、整理待ちの内容"
+  },
+  "编号：IN12": {
+    "en": "Code: IN12",
+    "ja": "番号：IN12"
+  },
+  "记下的内容：開校": {
+    "en": "Captured content: 開校",
+    "ja": "メモした内容：開校"
+  },
+  "開校": {
+    "en": "開校",
+    "ja": "開校"
+  },
+  "内容类别": {
+    "en": "Content category",
+    "ja": "内容の種類"
+  },
+  "word 单词 286 / grammar 语法 28 / sentence / listening / reading / unsure": {
+    "en": "word 286 / grammar 28 / sentence / listening / reading / unsure",
+    "ja": "word 単語 286 / grammar 文法 28 / sentence / listening / reading / unsure"
+  },
+  "出处或上下文": {
+    "en": "Source or context",
+    "ja": "出典や前後の文脈"
+  },
+  "点词查询\\n原文：…": {
+    "en": "点词查询\\n原文：… (word lookup with source text)",
+    "ja": "点词查询\\n原文：…（単語検索と原文）"
+  },
+  "整理后要放进哪个单词本": {
+    "en": "Wordbook it should go into after organizing",
+    "ja": "整理後にどの単語帳に入れるか"
+  },
+  "`target_wordbook_id`（旧 `target_deck` 换算为迁移出的单词本）": {
+    "en": "`target_wordbook_id` (legacy `target_deck` converted to the migrated wordbook)",
+    "ja": "`target_wordbook_id`（旧 `target_deck` は移行した単語帳に換算）"
+  },
+  "待处理 / 已整理 / 已归档": {
+    "en": "pending / organized / archived",
+    "ja": "未処理 / 整理済み / アーカイブ済み"
+  },
+  "inbox 待处理 185 / processed 已整理 128 / archived 已归档 1": {
+    "en": "inbox (pending) 185 / processed (organized) 128 / archived 1",
+    "ja": "inbox 未処理 185 / processed 整理済み 128 / archived アーカイブ済み 1"
+  },
+  "跟读录音": {
+    "en": "Shadowing recordings",
+    "ja": "シャドーイング録音"
+  },
+  "编号：RC1": {
+    "en": "Code: RC1",
+    "ja": "番号：RC1"
+  },
+  "跟读的听力题": {
+    "en": "Listening question shadowed",
+    "ja": "シャドーイングした聴解問題"
+  },
+  "录音文件": {
+    "en": "Recording file",
+    "ja": "録音ファイル"
+  },
+  "`audio_mime`、`audio_size`、`audio_path` 迁入 `media_files`": {
+    "en": "`audio_mime`, `audio_size`, `audio_path` moved into `media_files`",
+    "ja": "`audio_mime`、`audio_size`、`audio_path` は `media_files` に移す"
+  },
+  "待分析 / 分析中 / 完成 / 失败": {
+    "en": "pending / analyzing / completed / failed",
+    "ja": "分析待ち / 分析中 / 完了 / 失敗"
+  },
+  "pending 待分析 / analyzing 分析中 / completed 完成 / failed 失败": {
+    "en": "pending / analyzing / completed / failed",
+    "ja": "pending 分析待ち / analyzing 分析中 / completed 完了 / failed 失敗"
+  },
+  "识别出的日语": {
+    "en": "Recognized Japanese",
+    "ja": "認識された日本語"
+  },
+  "参考原文": {
+    "en": "Reference text",
+    "ja": "参照する原文"
+  },
+  "录音分析总结": {
+    "en": "Recording analysis summary",
+    "ja": "録音分析のまとめ"
+  },
+  "下一步练习建议": {
+    "en": "Suggested next practice",
+    "ja": "次の練習の提案"
+  },
+  "做得好的地方 / 需改进的地方": {
+    "en": "what went well / what to improve",
+    "ja": "よかった点 / 改善点"
+  },
+  "`analysis_json.strengths[]` → strength；`improvements[]` → improvement": {
+    "en": "`analysis_json.strengths[]` → strength; `improvements[]` → improvement",
+    "ja": "`analysis_json.strengths[]` → strength、`improvements[]` → improvement"
+  },
+  "录音反馈": {
+    "en": "Recording feedback",
+    "ja": "録音へのフィードバック"
+  },
+  "可翻译字段登记（与上面各表注释里的“译文字段”一一对应）": {
+    "en": "Translatable field registry (one-to-one with the \"translated fields\" in the table comments above)",
+    "ja": "翻訳可能フィールドの登録（上の各テーブルのコメントにある「翻訳フィールド」と 1 対 1 に対応）"
+  },
+  "删除业务行时清理它的译文与注音（译文按“表名 + rid”挂载，无法用外键级联）": {
+    "en": "Cleaning up translations and furigana when a business row is deleted (translations are attached by \"table name + rid\", so foreign keys cannot cascade)",
+    "ja": "業務行を削除したときに翻訳とふりがなを削除する（翻訳は「テーブル名＋rid」で紐付けており、外部キーで連動削除できない）"
+  },
+  "passage 文章 / notice 公告或表格 / image 图片 / audio 音频": {
+    "en": "passage / notice (notice or table) / image / audio",
+    "ja": "passage 文章 / notice お知らせや表 / image 画像 / audio 音声"
+  },
+  "数量类规则的数值：选项必须正好这么多个；为空表示至少 2 个": {
+    "en": "Value for count rules: options must be exactly this many; empty means at least 2",
+    "ja": "数量ルールの値：選択肢はちょうどこの数でなければならない。空なら 2 つ以上"
+  },
+  "选项文字（日语）；图片、音频选项可为空；即時応答等选项在题组音频里读出的，文字和文件都可为空": {
+    "en": "Option text (Japanese); may be empty for image or audio options; for types such as 即時応答 whose options are read out in the group audio, both text and file may be empty",
+    "ja": "選択肢の文字（日本語）。画像・音声の選択肢では空でもよい。即時応答など選択肢が題組の音声の中で読み上げられるものは、文字もファイルも空でよい"
+  },
+  "起点（UTF-16 位置，与 JavaScript 字符串下标相同，从 0 开始）": {
+    "en": "Start (UTF-16 offset, the same as a JavaScript string index, from 0)",
+    "ja": "開始位置（UTF-16 の位置。JavaScript の文字列の添字と同じ。0 始まり）"
+  },
+  "起点（UTF-16 位置，与 JavaScript 字符串下标相同）；只有摘录、未定位时为空": {
+    "en": "Start (UTF-16 offset, the same as a JavaScript string index); empty when only a quote exists without a location",
+    "ja": "開始位置（UTF-16 の位置。JavaScript の文字列の添字と同じ）。引用だけで位置が特定できない場合は空"
+  },
+  "市场（分享与导入）": {
+    "en": "Market (sharing and importing)",
+    "ja": "市場（共有と取り込み）"
+  },
+  "分享": {
+    "en": "Shares",
+    "ja": "共有"
+  },
+  "分享编号（UUID，对外链接用）": {
+    "en": "Share id (UUID, used in public links)",
+    "ja": "共有番号（UUID。公開リンクに使う）"
+  },
+  "来源：单词本编号（WB1）或练习编号（DP3）": {
+    "en": "Source: wordbook code (WB1) or practice code (DP3)",
+    "ja": "共有元：単語帳の番号（WB1）または練習の番号（DP3）"
+  },
+  "分享单词本 / 分享练习": {
+    "en": "Shared wordbook / shared practice",
+    "ja": "単語帳の共有 / 練習の共有"
+  },
+  "当前版本的分享包（v2 格式）及分享者文件编号": {
+    "en": "Package of the current version (v2 format) with the sharer's file ids",
+    "ja": "現在の版の共有パッケージ（v2 形式）と共有者のファイル番号"
+  },
+  "是否已撤回（撤回后不能再导入）": {
+    "en": "Whether withdrawn (a withdrawn share cannot be imported)",
+    "ja": "取り下げたか（取り下げた共有は取り込めない）"
+  },
+  "分享的各个版本": {
+    "en": "Versions of a share",
+    "ja": "共有の各版"
+  },
+  "版本号，从 1 开始": {
+    "en": "Revision number, from 1",
+    "ja": "版番号（1 から）"
+  },
+  "该版本的分享包": {
+    "en": "Package of this version",
+    "ja": "この版の共有パッケージ"
+  },
+  "分享包内容的哈希，识别重复导入": {
+    "en": "Hash of the package content, used to detect repeated imports",
+    "ja": "共有パッケージの内容のハッシュ。重複した取り込みの判定に使う"
+  },
+  "导入记录（同一版本只导入一次）": {
+    "en": "Import records (each version is imported once)",
+    "ja": "取り込みの記録（同じ版は一度だけ取り込む）"
+  },
+  "分享编号 + 内容哈希": {
+    "en": "Share id + content hash",
+    "ja": "共有番号 + 内容のハッシュ"
+  },
+  "导入结果：新建的单词本、知识点、题组、练习编号和跳过的题": {
+    "en": "Import result: codes of the created wordbook, knowledge points, question groups and practice, and skipped questions",
+    "ja": "取り込みの結果：作った単語帳・知識項目・題組・練習の番号と、飛ばした問題"
+  }
+}

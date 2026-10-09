@@ -1,5 +1,5 @@
 // OAuth 2.1-protected HTTP MCP server. Identity comes from the app's own session tokens
-// (`userForToken`), data isolation stays in storage.mjs; this module only bridges the two to
+// (`userForToken`), data isolation stays in the v3 repositories; this module only bridges the two to
 // @ninomae/mcp-app-server. Routes: <basePath>/mcp, <basePath>/mcp/schema, <basePath>/oauth/*,
 // plus /.well-known/oauth-* discovery documents.
 import { createMcpAppServer, sessionIdentity } from '@ninomae/mcp-app-server';
@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { currentPlatform } from './platform.mjs';
-import { getDb, userById, userForToken } from './storage.mjs';
+import { getDb, userById, userForToken } from './accounts.mjs';
 import { resources, scopes, tools } from './mcp-tools.mjs';
 
 export const MCP_BASE_PATH = '/api/jlpt';
@@ -22,14 +22,11 @@ export const HOSTED_EXCLUDED_TOOLS = new Set([
   'list_local_official_samples',
   'list_local_mock_exams',
   'get_local_mock_exam',
-  'export_review_data_backup',
-  'get_listening_recording_analysis_context',
 ]);
 
 export function availableTools() {
-  return currentPlatform()?.dataSource
-    ? tools.filter((tool) => !HOSTED_EXCLUDED_TOOLS.has(tool.name))
-    : tools;
+  if (!currentPlatform()?.dataSource) return tools;
+  return tools.filter((tool) => !HOSTED_EXCLUDED_TOOLS.has(tool.name));
 }
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');

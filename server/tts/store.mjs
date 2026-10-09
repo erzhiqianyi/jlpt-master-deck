@@ -1,4 +1,4 @@
-import { getDb } from '../storage.mjs';
+import { getDb } from '../accounts.mjs';
 import { encryptSecret, decryptSecret } from './crypto.mjs';
 import { ttsSecretKey } from './secret-key.mjs';
 import { providerIds } from './registry.mjs';

@@ -35,9 +35,9 @@ async function refreshAccount() {
   const ruleStatus = document.getElementById('vocabulary-rule-status') as HTMLElement;
   ruleStatus.textContent = '单词添加规则：请登录后查看';
   if (state.data.user) {
-    const rule = await sendMessage<{ jlptVocabularyQuestionKinds: string[] }>({ type: 'GET_STUDY_SETTINGS' });
+    const rule = await sendMessage<{ questionKinds: string[] }>({ type: 'GET_STUDY_SETTINGS' });
     ruleStatus.textContent = rule.ok
-      ? `单词添加规则：${rule.data.jlptVocabularyQuestionKinds.length ? `必须生成 ${rule.data.jlptVocabularyQuestionKinds.map(kind => ({ kanji_to_kana: '漢字読み', kana_to_kanji: '表記', word_formation: '語形成', moji_goi: '文脈規定', meaning: '言い換え類義', usage: '用法' }[kind] ?? kind)).join('、')}` : '不校验 JLPT 語彙题目'}`
+      ? `单词添加规则：${rule.data.questionKinds.length ? `必须生成 ${rule.data.questionKinds.map(kind => ({ 'vocabulary-kanji-reading': '漢字読み', 'vocabulary-orthography': '表記', 'vocabulary-word-formation': '語形成', 'vocabulary-context': '文脈規定', 'vocabulary-paraphrase': '言い換え類義', 'vocabulary-usage': '用法' }[kind] ?? kind)).join('、')}` : '不校验 JLPT 語彙题目'}`
       : `单词添加规则读取失败：${rule.error}`;
   }
   accountEl.innerHTML = state.data.user
@@ -71,14 +71,14 @@ async function refreshManualWordbooks() {
   if (!supportsWordbook) return;
   const options = wordbooksForCategory(await getWordbooks(), category);
   manualWordbook.innerHTML = options.length
-    ? options.map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.title)}</option>`).join('')
+    ? options.map((book) => `<option value="${escapeHtml(book.code)}">${escapeHtml(book.title)}</option>`).join('')
     : '<option value="">（无可用单词本）</option>';
 }
 
 function renderCapture(capture: LearningCapture): string {
   const created = capture.createdAt ? new Date(capture.createdAt).toLocaleString() : '';
   return `
-    <article class="capture-card" data-id="${escapeHtml(capture.id)}">
+    <article class="capture-card" data-code="${escapeHtml(capture.code)}">
       <p class="body">${escapeHtml(capture.body)}</p>
       ${capture.context ? `<p class="context">${escapeHtml(capture.context)}</p>` : ''}
       <p class="meta">${escapeHtml(capture.category)} · ${escapeHtml(created)}</p>
@@ -103,11 +103,11 @@ async function refreshList() {
   listEl.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach((button) => {
     button.addEventListener('click', async () => {
       const card = button.closest<HTMLElement>('.capture-card');
-      const id = card?.dataset.id;
+      const code = card?.dataset.code;
       const status = button.dataset.action as CaptureStatus;
-      if (!id) return;
+      if (!code) return;
       button.disabled = true;
-      const result = await sendMessage({ type: 'UPDATE_CAPTURE_STATUS', id, status });
+      const result = await sendMessage({ type: 'UPDATE_CAPTURE_STATUS', code, status });
       if (result.ok) await refreshList();
       else { button.disabled = false; alert(result.error); }
     });
@@ -151,7 +151,7 @@ manualForm.addEventListener('submit', async (event) => {
   if (!body) return;
   const category = manualCategory.value as CaptureCategory;
   const supportsWordbook = category === 'word' || category === 'grammar';
-  const wordbook = supportsWordbook ? (await getWordbooks()).find((book) => book.id === manualWordbook.value) : undefined;
+  const wordbook = supportsWordbook ? (await getWordbooks()).find((book) => book.code === manualWordbook.value) : undefined;
   manualFeedback.textContent = '正在加入…';
   manualFeedback.className = 'muted';
   const response = await sendMessage({
@@ -159,8 +159,7 @@ manualForm.addEventListener('submit', async (event) => {
     input: {
       body,
       category,
-      targetDeck: wordbook?.deck,
-      targetWordbookId: wordbook?.id,
+      wordbook: wordbook?.code,
       context: manualContext.value.trim() || undefined,
     },
   });

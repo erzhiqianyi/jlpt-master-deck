@@ -1,7 +1,7 @@
 import type { CaptureCategory, Wordbook } from './messages';
 
-// Word captures can target any non-grammar wordbook; grammar captures any grammar wordbook.
-// Mirrors the built-in/custom split in src/features/capture/CapturePanel.tsx.
+// One wordbook holds words, grammar and names, so word and grammar captures may target any wordbook;
+// other categories (sentences, listening, reading) have no target wordbook.
 export function wordbooksForCategory(wordbooks: Wordbook[], category: CaptureCategory): Wordbook[] {
-  return wordbooks.filter((book) => (category === 'grammar') === (book.deck === 'grammar_expression'));
+  return category === 'word' || category === 'grammar' ? wordbooks : [];
 }

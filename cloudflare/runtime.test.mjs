@@ -91,12 +91,8 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
 
     assert.ok(!(await json('/api/wordbooks','GET',undefined,'test-2')).wordbooks.some(x=>x.id===book.id));
     assert.equal((await request('/api/wordbooks/'+book.id,'PATCH',{title:'stolen'},'test-2')).status,404);
-    const reading = (await json('/api/reading-questions', 'POST', { passage: '素材が変わった。', question: '何が変わったか。', choices: ['素材', '場所', '人', '時間'], answerIndex: 0, explanation: '総解説', passageTranslation: '食材变了。', choiceExplanations: ['素材', '場所', '人', '時間'].map((text, i) => ({ text, translation: text, analysis: '分析', evidence: '素材が変わった。', errorType: i ? '无中生有' : '' })), readingAnalysis: { summary: '变化', structure: '说明', keySentences: ['素材が変わった。'] } })).question;
+    const reading = (await json('/__seed-reading', 'POST', { passage: '素材が変わった。', question: '何が変わったか。', choices: ['素材', '場所', '人', '時間'], answerIndex: 0, explanation: '総解説', passageTranslation: '食材变了。', choiceExplanations: ['素材', '場所', '人', '時間'].map((text, i) => ({ text, translation: text, analysis: '分析', evidence: '素材が変わった。', errorType: i ? '无中生有' : '' })), readingAnalysis: { summary: '变化', structure: '说明', keySentences: ['素材が変わった。'] } })).question;
     assert.equal((await json('/api/reading-questions/' + reading.id)).question.passageTranslation, '食材变了。');
-    const revisedReading = (await json('/api/reading-questions/' + reading.id, 'PATCH', { explanation: '更新总解析' })).question;
-    assert.equal(revisedReading.choiceExplanations.length, 4);
-    assert.equal(revisedReading.explanation, '更新总解析');
-    assert.equal((await request('/api/reading-questions/' + reading.id, 'PATCH', { explanation: 'stolen' }, 'test-2')).status, 404);
     assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
     const replay = {eventId:'cloud-answer-replay',legacy:false,before:{correct:0,wrong:0,status:'new'},
       input:{questionId:'memory-card:'+reading.id,itemId:reading.id,selected:'0',correct:true,
@@ -114,11 +110,11 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await json('/api/health')).databaseReady, true);
     assert.equal((await json('/api/mock-exams/' + mock.id)).exam.title, '変更');
     assert.equal((await json('/api/daily-summaries/2026-10-04')).cardReviews.ratings.hard, 1);
-    assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '更新总解析');
-    const failed=await mf.dispatchFetch(origin+'/api/listening-questions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
+    assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '総解説');
+    const failed=await mf.dispatchFetch(origin+'/__seed-listening',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
     assert.equal(failed.status,503);
     assert.equal((await json('/api/listening-questions')).questions.length,0,'failed R2 upload rolls back SQL');
-    const question=(await json('/api/listening-questions','POST',audioBody)).question;
+    const question=(await json('/__seed-listening','POST',audioBody)).question;
     const recording=(await json('/api/listening-questions/'+question.id+'/recordings','POST',{audioMime:'audio/wav',audioBase64:Buffer.from('learner-audio-bytes').toString('base64')})).recording;
     const audioPath='/api/listening-questions/'+question.id+'/audio';
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
@@ -156,94 +152,21 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     for (const tool of catalogue) {
       for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof tool.annotations?.[hint], 'boolean', `${tool.name}.${hint}`);
     }
-    assert.ok(catalogue.some(x=>x.name==='get_review_data'));
-    assert.ok(catalogue.some(x=>x.name==='get_ai_learning_home'));
-    assert.ok(catalogue.some(x=>x.name==='rate_review_card'));
-    assert.ok(catalogue.some(x=>x.name==='get_listening_audio'));
-    assert.ok(catalogue.some(x=>x.name==='get_listening_recording_audio'));
-    assert.ok(catalogue.some(x=>x.name==='get_listening_audio_download'));
-    assert.ok(catalogue.some(x=>x.name==='get_listening_recording_download'));
-    assert.ok(catalogue.some(x=>x.name==='list_pending_listening_recordings'));
-    assert.ok(catalogue.some(x=>x.name==='save_listening_recording_analysis'));
-    const home = await rpc('tools/call', { name: 'get_ai_learning_home', arguments: {} });
-    assert.ok(!home.isError, JSON.stringify(home));
-    assert.equal(typeof home.structuredContent.due.total, 'number');
+    // v3 のツールは Cloudflare に v3Db が入るまで（移行の第 5 段階）公開しない
+    // 学習データの MCP ツールはすべて v3。Cloudflare に v3Db が入るまで（第 5 段階）公開しない
+    assert.deepEqual(catalogue.map((tool) => tool.name), ['get_connection_info']);
     const homeView = await rpc('resources/read', { uri: 'ui://jlpt/ai-learning-home.html' });
     assert.match(homeView.contents[0].text, /get_ai_learning_home/);
-    const mcpAudio = await rpc('tools/call', { name:'get_listening_audio', arguments:{question_id:question.id} });
-    assert.equal(mcpAudio.content[0].type, 'audio');
-    assert.equal(mcpAudio.content[0].mimeType, 'audio/wav');
-    assert.equal(Buffer.from(mcpAudio.content[0].data, 'base64').toString(), 'test-audio-bytes');
-    const learnerAudio = await rpc('tools/call', { name:'get_listening_recording_audio', arguments:{recording_id:recording.id} });
-    assert.equal(Buffer.from(learnerAudio.content[0].data, 'base64').toString(), 'learner-audio-bytes');
-    const recordingDownload = await rpc('tools/call', { name:'get_listening_recording_download', arguments:{recording_id:recording.id} });
-    const downloadInfo = JSON.parse(recordingDownload.content[0].text);
-    assert.equal(downloadInfo.url,origin+recordingAudioPath);
-    assert.equal(downloadInfo.mimeType,'audio/wav');
-    assert.equal(downloadInfo.size,19);
-    assert.ok(!recordingDownload.content[0].text.includes(issued.access_token));
-    const referenceDownload = await rpc('tools/call', { name:'get_listening_audio_download', arguments:{question_id:question.id} });
-    assert.equal(JSON.parse(referenceDownload.content[0].text).url,origin+audioPath);
-    const pendingRecordings = await rpc('tools/call', { name:'list_pending_listening_recordings', arguments:{} });
-    assert.ok(JSON.parse(pendingRecordings.content[0].text).some(x=>x.id===recording.id));
-    await rpc('tools/call', { name:'save_listening_recording_analysis', arguments:{recording_id:recording.id,status:'completed',analysis:{summary:'発音を比較した。',transcript:'学習者の発話',referenceTranscript:'男：音声の原文。',nextPractice:'もう一度聞く。'}} });
-    assert.equal((await json('/api/listening-questions/'+question.id+'/recordings')).recordings[0].analysis.transcript, '学習者の発話');
     assert.equal((await request('/api/listening-recordings/'+recording.id,'DELETE')).status, 200);
     assert.equal((await request('/api/listening-recordings/'+recording.id+'/audio')).status, 404);
     assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
-    for (const name of ['get_daily_summary', 'generate_daily_summary_context', 'upsert_daily_summary']) assert.ok(catalogue.some(x=>x.name===name), name);
-    const emptySummary = await rpc('tools/call', { name: 'get_daily_summary', arguments: { date: '2026-09-27' } });
-    assert.equal(JSON.parse(emptySummary.content[0].text).status, 'not_found');
-    const summaryInput = { date:'2026-09-27', total_questions:1, correct_count:1, incorrect_count:0, accuracy:1,
-      stats:{byKind:[{kind:'grammar',total:1,correct:1,incorrect:0,accuracy:1}],uniqueItems:1},
-      strengths:[{label:'基础意义',detail:'一次正确'}], weaknesses:[], confusion_groups:[],
-      recommendations:[{type:'review',title:'复习',detail:'保持练习'}], wrong_questions:[], summary_zh:'基础意义稳定。' };
-    const savedSummary = await rpc('tools/call', { name:'upsert_daily_summary', arguments:summaryInput });
-    assert.ok(!savedSummary.isError, JSON.stringify(savedSummary));
-    assert.equal((await json('/api/daily-summaries/2026-09-27')).summary.summaryZh, summaryInput.summary_zh);
-    assert.equal((await json('/api/daily-summaries')).summaries.length, 1);
-    const readingCreateSchema = catalogue.find(x=>x.name==='create_reading_question').inputSchema;
-    for (const field of ['explanation', 'passageTranslation', 'choiceExplanations', 'readingAnalysis', 'explanationNodes']) {
-      assert.ok(readingCreateSchema.required.includes(field), field);
-    }
-    assert.ok(!(await rpc('tools/call',{name:'get_review_data',arguments:{}})).isError);
-    for (const name of ['jlpt_query','jlpt_aggregate']) {
-      const result=await rpc('tools/call',{name,arguments:{entity:'item',time:{mode:'all'}}});
-      assert.ok(!result.isError,JSON.stringify(result));
-    }
-    const readingToolResult = await rpc('tools/call', { name: 'get_reading_question', arguments: { id: reading.id } });
-    assert.ok(!readingToolResult.isError, JSON.stringify(readingToolResult));
-    assert.equal(JSON.parse(readingToolResult.content[0].text).choiceExplanations.length, 4);
-    const incompleteReadingUpdate = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, passageTranslation: '不应保存' } });
-    assert.ok(incompleteReadingUpdate.isError, JSON.stringify(incompleteReadingUpdate));
-    assert.equal((await json('/api/reading-questions/' + reading.id)).question.passageTranslation, '食材变了。');
-    const explanationNodes = [{ title: '解题思路与排除技巧', body: '定位主语素材，再排除地点、人物和时间。' }];
-    const readingUpdateResult = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, passageTranslation: '云端 MCP 更新译文', explanationNodes } });
-    assert.ok(!readingUpdateResult.isError, JSON.stringify(readingUpdateResult));
-    const rubyTerms = [{ text: '素材', reading: 'そざい' }];
-    const readingsUpdate = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, rubyTerms } });
-    assert.ok(!readingsUpdate.isError, JSON.stringify(readingsUpdate));
-    assert.deepEqual((await json('/api/reading-questions/' + reading.id)).question.rubyTerms, rubyTerms);
-    const readingMetadata = await rpc('tools/call', { name: 'jlpt_get', arguments: { entity: 'reading_question', id: reading.id, sections: ['metadata'] } });
-    assert.deepEqual(JSON.parse(readingMetadata.content[0].text).data.metadata.rubyTerms, rubyTerms);
-    const inventedEvidence = await rpc('tools/call', { name: 'update_reading_question', arguments: { id: reading.id, readingAnalysis: { ...reading.readingAnalysis, keySentences: ['本文にはない。'] } } });
-    assert.ok(inventedEvidence.isError, JSON.stringify(inventedEvidence));
-    const privateItem = { id:'cloud-private-item', deck:'grammar_expression', type:'grammar', original:'〜にほかならない', meaning_zh:'正是' };
-    const saved = await rpc('tools/call',{name:'upsert_review_item',arguments:{item:privateItem}});
-    assert.ok(!saved.isError,JSON.stringify(saved));
-    assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
-    assert.ok(!(await json('/api/review-data','GET',undefined,'test-2')).items.some(item=>item.id===privateItem.id));
-    assert.equal((await request('/api/review-items/'+privateItem.id,'PATCH',{tags:['stolen']},'test-2')).status,404);
     const resources=(await rpc('resources/list')).resources;
     assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
     await mf.dispose(); mf=new Miniflare(options);
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     const persistedReading = (await json('/api/reading-questions/' + reading.id)).question;
-    assert.equal(persistedReading.passageTranslation, '云端 MCP 更新译文');
-    assert.equal(persistedReading.explanation, '更新总解析');
+    assert.equal(persistedReading.passageTranslation, '食材变了。');
     assert.deepEqual(persistedReading.readingAnalysis, reading.readingAnalysis);
-    assert.deepEqual(persistedReading.explanationNodes, explanationNodes);
-    assert.deepEqual(persistedReading.rubyTerms, rubyTerms);
     assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
     const persistedShare = await json('/api/market/'+share.id,'GET',undefined,'test-2');
     assert.equal(persistedShare.createdAt,share.createdAt);
@@ -254,14 +177,13 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     await json('/api/market/'+share.id,'DELETE');
     assert.equal((await request('/api/market/import','POST',{shareId:share.id},'test-2')).status,404);
 
-    assert.ok((await json('/api/review-data')).items.some(item=>item.id===privateItem.id));
     assert.deepEqual((await json('/api/review-data','GET',undefined,'test-2')).items.map(item=>item.original),['共有']);
     assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
     assert.deepEqual(await json('/__tts-cache-alarm-recovery'), { failed: true, retrySoon: true });
     assert.deepEqual(await json('/__tts-cache-batches'), { first: 6, remaining: 0 });
     assert.deepEqual(await json('/__tts-cache-expire'), { remaining: 0, alarm: true });
     assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
-    await json('/api/listening-questions/'+question.id,'DELETE');
+    await json('/__delete-listening','POST',{id:question.id});
     assert.equal((await request(audioPath)).status,404);
     const frozenAudioRef=question.materialRefs[0];
     const frozenAudioPath=`/api/materials/${encodeURIComponent(frozenAudioRef.id)}/versions/${frozenAudioRef.revision}/audio`;
@@ -270,8 +192,6 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await request(frozenAudioPath,'GET',undefined,'')).status,401);
     assert.equal((await request(frozenAudioPath,'GET',undefined,studyOnly.access_token)).status,403);
     assert.equal(await (await request(frozenAudioPath,'GET',undefined,issued.access_token)).text(),'test-audio-bytes');
-    const frozenMcpAudio=await rpc('tools/call',{name:'get_material_audio',arguments:{material_id:frozenAudioRef.id,revision:frozenAudioRef.revision}});
-    assert.ok(!frozenMcpAudio.isError,JSON.stringify(frozenMcpAudio));assert.equal(Buffer.from(frozenMcpAudio.content[0].data,'base64').toString(),'test-audio-bytes');
     // Active question route is gone, but immutable material history still owns bytes.
     const media=await mf.getR2Bucket('MEDIA');
     const retained=(await media.list()).objects;
@@ -279,6 +199,5 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal(await (await media.get(retained[0].key)).text(),'test-audio-bytes');
     await media.delete(retained[0].key);
     assert.equal((await request(frozenAudioPath)).status,404);
-    const missingAudio=await rpc('tools/call',{name:'get_material_audio',arguments:{material_id:frozenAudioRef.id,revision:frozenAudioRef.revision}});assert.equal(missingAudio.isError,true);
   } finally {await mf.dispose();rmSync(dir,{recursive:true,force:true});}
 });

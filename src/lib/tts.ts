@@ -33,7 +33,7 @@ export type SpeechVoice = { id: string; name: string; styles: string[]; roles: s
 export function fetchSpeechVoices(token: string, provider: string) {
   return apiRequest<{ voices: SpeechVoice[] }>(`/api/tts/voices?provider=${encodeURIComponent(provider)}`, { token });
 }
-export type SpeechOptions = { provider: TtsProviderId; token: string; voice?: string; style?: string; role?: string; rate?: number; owner?: string; cacheScope?: string };
+export type SpeechOptions = { provider: TtsProviderId; token: string; voice?: string; style?: string | null; role?: string | null; rate?: number; owner?: string; cacheScope?: string };
 let controller: AbortController | null = null;
 let currentAudio: HTMLAudioElement | null = null;
 let state = { owner: '', status: 'idle' as 'idle' | 'loading' | 'playing' | 'paused' };

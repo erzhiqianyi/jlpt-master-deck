@@ -4,7 +4,7 @@ export const studyWriteVersion = () => writeVersion;
 export async function waitForStudyWrites() { while (pendingWrites.size) await Promise.all([...pendingWrites]); }
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(message: string, public readonly status: number, public readonly details?: unknown) {
     super(message);
     this.name = 'ApiError';
   }
@@ -30,7 +30,7 @@ export async function apiRequest<T = unknown>(
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new ApiError(typeof json.error === 'string' ? json.error : `Request failed: ${response.status}`, response.status);
+    throw new ApiError(typeof json.error === 'string' ? json.error : `Request failed: ${response.status}`, response.status, json.details);
   }
   return json as T;
   } finally {

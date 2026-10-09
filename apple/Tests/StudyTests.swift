@@ -643,6 +643,31 @@ final class StudyTests: XCTestCase {
         XCTAssertTrue(speech.grammarAuto); XCTAssertTrue(speech.includeExample)
         XCTAssertEqual(speech.rate, 1.25)
     }
+    func testSchemaV2ItemFieldsSyncAndPreferTheExplanationLanguage() throws {
+        // Payload shape returned by /api/sync after the schema v2 migration: code, romaji and localized texts.
+        let bytes = Data(#"{"changes":[{"collection":"items","id":"n1-概観","value":{"id":"n1-概観","deck":"n1_vocab","original":"概観","reading":"がいかん","meaning_zh":"概观","explanation_zh":"从整体上把握。","reference":"W5","romaji":"gaikan","localized":{"language":"en","meaning":{"text":"overview","language":"en","isFallback":false,"origin":"ai","verified":false},"explanation":{"text":"从整体上把握。","language":"zh-Hans","isFallback":true,"origin":"legacy","verified":true}}}}]}"#.utf8)
+        let page = try JSONDecoder().decode(StudySyncPage.self, from: bytes)
+        var data = LocalStudyData()
+        try data.applySync(try XCTUnwrap(page.changes))
+        let item = try XCTUnwrap(try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(data)).items.first)
+        XCTAssertEqual(item.copyIdentifier, "W5")
+        XCTAssertEqual(item.cardText("romaji", locale: "zh-CN"), "gaikan")
+        XCTAssertEqual(item.cardText("meaning", locale: "zh-CN"), "overview")
+        XCTAssertEqual(item.localized?.meaning?.note(requested: "en"), "AI 译文，未核对")
+        XCTAssertEqual(item.cardText("explanation", locale: "zh-CN"), "从整体上把握。")
+        XCTAssertEqual(item.localized?.explanation?.note(requested: "en"), "暂无English译文，显示简体中文")
+        let annotated = try JSONDecoder().decode(StudyItem.self, from: Data(#"{"id":"y","deck":"n1_vocab","original":"概観","ruby_annotations":{"日本経済の歴史を概観する。":"日本経済[にほんけいざい]の 歴史[れきし]を 概観[がいかん]する。"}}"#.utf8))
+        let annotation = try XCTUnwrap(annotated.aiRubyAnnotations.first)
+        XCTAssertTrue(annotation.isValid)
+        XCTAssertEqual(annotation.tokens.compactMap(\.reading), ["にほんけいざい", "れきし", "がいかん"])
+        let tokens = JapaneseAnalysis.tokens("日本経済の歴史を概観する。", japanese: true, annotations: annotated.aiRubyAnnotations, items: [], terms: [.init(text: "日本", reading: "にほん")])
+        XCTAssertEqual(tokens.first?.surface, "日本経済")
+        XCTAssertEqual(tokens.first?.reading, "にほんけいざい")
+        // Items synced before the migration have none of the new fields and keep working.
+        let legacy = try JSONDecoder().decode(StudyItem.self, from: Data(#"{"id":"x","deck":"n1_vocab","original":"概観","meaning_zh":"概观"}"#.utf8))
+        XCTAssertNil(legacy.cardText("romaji", locale: "zh-CN"))
+        XCTAssertEqual(legacy.cardText("meaning", locale: "zh-CN"), "概观")
+    }
     func testCardFieldDefaultsAndNormalizationMatchWeb() throws {
         XCTAssertEqual(CardFields.selected(nil, back: false), ["original"])
         XCTAssertEqual(CardFields.selected(nil, back: true), ["original", "reading", "images", "patterns", "meaning", "examples", "core_memory"])

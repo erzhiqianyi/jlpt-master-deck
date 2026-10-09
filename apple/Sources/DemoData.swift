@@ -2,7 +2,7 @@ import Foundation
 
 enum DemoData {
     static let items: [StudyItem] = [
-        .init(id: "demo-measure", deck: "n1_vocab", original: "測定", reading: "そくてい", meaning_zh: "测量；测定", core_memory: ["用仪器或方法，确定长度、温度、速度等。"], examples: [.init(ja: "温度を測定する。", zh: "测量温度。")]),
+        .init(id: "demo-measure", deck: "n1_vocab", original: "測定", reading: "そくてい", meaning_zh: "测量；测定", core_memory: ["用仪器或方法，确定长度、温度、速度等。"], examples: [.init(ja: "温度を測定する。", zh: "测量温度。")], romaji: "sokutei", ruby_annotations: ["温度を測定する。": "温度[おんど]を 測定[そくてい]する。"]),
         .init(id: "demo-grammar", deck: "grammar_expression", original: "もさることながら", meaning_zh: "……自不必说，……更是如此", explanation_zh: "承认前项，同时把重点放在后项。", examples: [.init(ja: "味もさることながら、見た目も美しい。", zh: "味道自不必说，外观也很漂亮。")], content_origin: "ai_generated", verification_status: "unverified"),
         .init(id: "demo-values", deck: "n1_vocab", original: "価値観", reading: "かちかん", meaning_zh: "价值观", examples: [.init(ja: "人によって価値観は異なる。", zh: "每个人的价值观都不同。")]),
         .init(id: "demo-continue", deck: "n1_vocab", original: "継続", reading: "けいぞく", meaning_zh: "持续；继续", examples: [.init(ja: "学習を継続する。", zh: "持续学习。")])

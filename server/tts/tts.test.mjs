@@ -6,12 +6,11 @@ import { join } from 'node:path';
 
 const dir = mkdtempSync(join(tmpdir(), 'jlpt-tts-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
-process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
 process.env.JLPT_TTS_SECRETS_KEY = 'test-secret-key';
-mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 
 const { encryptSecret, decryptSecret } = await import('./crypto.mjs');
-const storage = await import('../storage.mjs');
+const storage = await import('../accounts.mjs');
+const { updateSettings } = await import('../v3/repo/settings.mjs');
 const { createApiHandler } = await import('../api-handler.mjs');
 after(() => { storage.getDb().close(); rmSync(dir, { recursive: true, force: true }); });
 
@@ -112,8 +111,8 @@ test('Azure lists only Japanese voices and sends escaped voice/style/role SSML',
 
 test('speech preferences survive settings normalization', () => {
   const user = storage.createUser('speech-preferences', 'password-one');
-  const result = storage.saveSettings(user.id, { ttsProvider: 'azure', speech: {
-    voices: { azure: { voice: 'ja-JP-KeitaNeural', style: '', role: '' } }, rate: 0.8, cardAuto: 'back', grammarAuto: true, includeExample: true,
+  const result = updateSettings(storage.getDb(), user.id, { speech: {
+    provider: 'azure', voices: { azure: { voice: 'ja-JP-KeitaNeural', style: '', role: '' } }, rate: 0.8, cardAuto: 'back', grammarAuto: true, includeExample: true,
   } });
   assert.equal(result.speech.voices.azure.voice, 'ja-JP-KeitaNeural');
   assert.equal(result.speech.rate, 0.8);

@@ -16,7 +16,7 @@ type QuestionTypeGuideProps = {
   customTipEntries: CustomQuestionTypeTip[];
   section?: QuestionTypeSection;
   onOpen: (id: string) => void;
-  onCreateCustomTip: (input: { section: QuestionTypeSection; title: string; description: string; tip: string }) => string;
+  onCreateCustomTip: (input: { section: QuestionTypeSection; title: string; description: string; tip: string }) => Promise<string>;
 };
 
 export function QuestionTypeGuide({ labels, locale, customTips, customTipEntries, section, onOpen, onCreateCustomTip }: QuestionTypeGuideProps) {
@@ -29,7 +29,7 @@ export function QuestionTypeGuide({ labels, locale, customTips, customTipEntries
   const [draftTip, setDraftTip] = useState('');
   useAuthoringNavigation(adding ? labels.questionTypeAddCustom : null, () => setAdding(false), { kind: 'form', backLabel: labels.questionTypeCancel });
   const canSave = Boolean(draftTitle.trim() && draftTip.trim());
-  const inHeader = usePageHeaderActions(adding ? [{ key: 'custom-tip-save', label: labels.questionTypeSaveTip, disabled: !canSave, onClick: submitCustomTip }] : [], 10);
+  const inHeader = usePageHeaderActions(adding ? [{ key: 'custom-tip-save', label: labels.questionTypeSaveTip, disabled: !canSave, onClick: () => void submitCustomTip() }] : [], 10);
   const visibleTypes = useMemo(() => [
     ...officialN1QuestionTypes.filter((item) => item.section === selectedSection).map((item) => ({
       id: item.id, title: item.name[locale], subtitle: item.officialName,
@@ -40,15 +40,15 @@ export function QuestionTypeGuide({ labels, locale, customTips, customTipEntries
     })),
   ], [customTipEntries, customTips, labels, locale, selectedSection]);
 
-  function submitCustomTip() {
+  async function submitCustomTip() {
     if (!canSave) return;
-    const id = onCreateCustomTip({ section: selectedSection, title: draftTitle.trim(), description: draftDescription.trim(), tip: draftTip.trim() });
+    const id = await onCreateCustomTip({ section: selectedSection, title: draftTitle.trim(), description: draftDescription.trim(), tip: draftTip.trim() });
     setDraftTitle(''); setDraftDescription(''); setDraftTip('');
     setAdding(false);
     onOpen(id);
   }
 
-  if (adding) return <form className="question-type-form mx-auto grid max-w-3xl gap-6 py-5" onSubmit={(event) => { event.preventDefault(); submitCustomTip(); }}>
+  if (adding) return <form className="question-type-form mx-auto grid max-w-3xl gap-6 py-5" onSubmit={(event) => { event.preventDefault(); void submitCustomTip(); }}>
     {!inHeader ? <h1 className="text-xl font-bold">{labels.questionTypeAddCustom}</h1> : null}
     <p className="text-sm text-[#176c62]">JLPT N1 · {labels[`questionTypeSection_${selectedSection}`]}</p>
     <label className="grid gap-2 font-semibold">{labels.questionTypeCustomTitle}

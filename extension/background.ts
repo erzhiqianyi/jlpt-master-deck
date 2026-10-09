@@ -1,4 +1,3 @@
-import { normalizeVocabularyQuestionKinds } from '../src/domain/vocabularyQuestionRules.mjs';
 import { getValidAccessToken, login, logout } from './lib/auth';
 import { callMcpTool } from './lib/mcp';
 import { getStoredAuth, setStoredAuth, clearSession, normalizeApiBaseUrl } from './lib/storage';
@@ -20,8 +19,8 @@ async function handle(message: ExtensionMessage): Promise<unknown> {
       return { user, apiBaseUrl };
     }
     case 'GET_STUDY_SETTINGS': {
-      const state = await withMcp<{ settings: Record<string, unknown> }>('get_study_state');
-      return { jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(state.settings) };
+      const settings = await withMcp<{ questionKinds: string[] }>('get_settings');
+      return { questionKinds: settings.questionKinds.filter((kind) => kind.startsWith('vocabulary-')) };
     }
     case 'LOGIN':
       return login();
@@ -35,15 +34,15 @@ async function handle(message: ExtensionMessage): Promise<unknown> {
       return { apiBaseUrl };
     }
     case 'LOOKUP_WORD':
-      return { matches: await withMcp('lookup_word', { query: message.query }) };
+      return { matches: (await withMcp<{ items: unknown[] }>('lookup_word', { query: message.query })).items };
     case 'CREATE_CAPTURE':
       return { capture: await withMcp('create_learning_capture', withoutUndefined(message.input)) };
     case 'LIST_CAPTURES':
-      return { captures: await withMcp('list_learning_captures', withoutUndefined({ status: message.status })) };
+      return { captures: (await withMcp<{ items: unknown[] }>('list_learning_captures', withoutUndefined({ status: message.status }))).items };
     case 'UPDATE_CAPTURE_STATUS':
-      return { capture: await withMcp('update_learning_capture_status', { id: message.id, status: message.status }) };
+      return { capture: await withMcp('update_learning_capture_status', { code: message.code, status: message.status }) };
     case 'LIST_WORDBOOKS':
-      return { wordbooks: await withMcp('list_wordbooks') };
+      return withMcp<{ wordbooks: unknown[] }>('list_wordbooks');
     default:
       throw new Error(`未知消息类型：${(message as { type?: string }).type}`);
   }

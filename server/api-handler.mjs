@@ -1,104 +1,29 @@
-import { studySync, studySyncStatus } from './study-sync.mjs';
-import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
-import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
+// HTTP API（ローカル Node）：ヘルスチェック、ローカル資料、ログイン、接続中のエージェント、読み上げ、MCP、v3 の学習データ。
+import { handleV3 } from './v3/api.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest } from './local-study-data.mjs';
-import { decorateReferences, resolveReference, registerQuestionReference } from './references.mjs';
-import { getDb } from './storage.mjs';
-import { getDailySummary, listDailySummaries, validSummaryDate, dailyCardReviewStats } from './daily-summary.mjs';
-import { shareCover, setShareCover, userReviewData, sharingSources, sourcePackage, publishShare, publishListeningShare, listeningShareAudio, importListeningShare, listShares, shareDetail, updateShare, withdrawShare, importShare, importPackage, validatePackage } from './market.mjs';
-import { findLookupItems } from './word-lookup.mjs';
 import { authConfiguration, firebaseSession, firebaseIdentity } from './firebase-auth.mjs';
+import { createUser, databasePath, deleteSession, loginUser, userForToken } from './accounts.mjs';
 import { createReadStream, existsSync, readFileSync, statSync } from './files.mjs';
 import { homedir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  analyzeWeakPoints,
-  addDraftAnnotation,
-  buildDraftRevisionContext,
-  buildDraftProcessingContext,
-  buildStudyRecord,
-  confirmDraftForAgentProcessing,
-  createDailyReviewPackDraft,
-  createDailyPractice,
-  createDailyPracticeFromDraft,
-  createListeningRecording,
-  createListeningQuestion,
-  findListeningAudioQuestions,
-  createLearningCapture,
-  createReviewPackDraft,
-  createReadingQuestion,
-  readingQuestionForUser,
-  updateReadingQuestion,
-  updateListeningQuestion,
-  updateListeningTranscript,
-  createUser,
-  createWordbook,
-  databasePath,
-  deleteSession,
-  deleteListeningQuestion,
-  deleteListeningRecording,
-  deleteReadingQuestion,
-  deleteReviewPackDraft,
-  getReviewPackDraft,
-  getDailyPractice,
-  updatePracticeQuestionExplanation,
-  updatePracticeQuestion,
-  getHistoryQuestions,
-  getStudyState,
-  getStudySettings,
-  getStudyPlan,
-  saveGeneratedStudyPlan,
-  listReviewPackDrafts,
-  listDailyPractices,
-  listListeningQuestions,
-  listeningQuestionForUser,
-  listListeningRecordings,
-  listReadingQuestions,
-  listLearningCaptures,
-  listWordbooks,
-  organizeReviewItem,
-  addReviewItemImage,
-  removeReviewItemImage,
-  itemImageForUser,
-  listeningAudioForUser,
-  materialAudioForUser,
-  listeningRecordingAudioForUser,
-  loginUser,
-  reviewDataPath,
-  saveAnswer,
-  replayPendingAnswer,
-  savePracticeState,
-  saveProgressEntry,
-  saveSettings,
-  saveStudyPlanProfile,
-  updateStudyPlanTask,
-  updateLearningCaptureStatus,
-  updateWordbook,
-  updateReviewPackDraft,
-  userForToken,
-} from './storage.mjs';
 import { MCP_PATHS } from './mcp-app.mjs';
 import { listProviderDescriptors, ttsCredentialStatus, saveTtsCredential, deleteTtsCredential, synthesizeSpeech, listSpeechVoices } from './tts/index.mjs';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const localOfficialRoot = join(rootDir, '.local', 'official-jlpt');
 const localMockRoot = join(rootDir, '.local', 'mock-exams');
+const MEDIA_PATH = /^\/api\/v3\/media\/\d+$/;
 
 export function createApiHandler({ mcp, mcpListener, health = () => buildHealthPayload(mcp) }) {
 return async (req, res) => {
   if (MCP_PATHS.test(req.url ?? '')) return mcpListener(req, res);
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-    const publicCover = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
-    if (publicCover && req.method === 'GET') {
-      const asset = shareCover(publicCover[1],url.searchParams.has('revision')?Number(url.searchParams.get('revision')):undefined);
-      res.writeHead(200, { 'content-type': asset.mime, 'content-length': asset.size, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
-      return createReadStream(asset.path).pipe(res);
-    }
     const token = bearerToken(req);
     let user = userForToken(token);
-    if (!user && req.method === 'GET' && (/\/api\/(listening-questions|listening-recordings)\/[^/]+\/audio$/.test(url.pathname) || /^\/api\/materials\/[^/]+\/versions\/\d+\/audio$/.test(url.pathname)) && mcp) {
+    // MCP App（ウィジェット）は OAuth のトークンで音声・画像を読む（audio:read が必要）。
+    if (!user && req.method === 'GET' && MEDIA_PATH.test(url.pathname) && mcp) {
       const authRequest = new Request(url, { headers: req.headers });
       if (mcp.carriesToken(authRequest)) {
         let grant;
@@ -109,58 +34,31 @@ return async (req, res) => {
         user = { id: Number(grant.ownerId) };
       }
     }
-    res.referenceUserId = url.pathname.startsWith('/api/market') || url.pathname.startsWith('/api/local-') ? undefined : user?.id;
-    if (req.method === 'POST' && url.pathname === '/api/references/question') {
-      if (!user) return json(res, 401, { error: 'Authentication required' });
-      try { return json(res, 200, registerQuestionReference(getDb(), user.id, await readJson(req, 60000))); }
-      catch (error) { return json(res, 400, { error: error.message }); }
-    }
-    if (req.method === 'GET' && url.pathname === '/api/references/resolve') {
-      if (!user) return json(res, 401, { error: 'Authentication required' });
-      const record = resolveReference(getDb(), user.id, url.searchParams.get('reference'));
-      return json(res, record ? 200 : 404, record ?? { error: 'Reference not found' });
-    }
 
-    if (req.method === 'GET' && url.pathname === '/api/health') {
-      return json(res, 200, health());
-    }
+    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, health());
 
     if (req.method === 'GET' && url.pathname === '/api/local-official-samples') {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local official samples are only available from localhost' });
-      }
+      if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Local official samples are only available from localhost' });
       return json(res, 200, readLocalOfficialSamples(url.searchParams.get('module')));
     }
-
     if (req.method === 'GET' && url.pathname === '/api/local-mock-exams') {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local mock exams are only available from localhost' });
-      }
+      if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Local mock exams are only available from localhost' });
       return json(res, 200, readLocalMockExamManifest());
     }
-
     const localMockExamMatch = /^\/api\/local-mock-exams\/([^/]+)$/.exec(url.pathname);
     if (req.method === 'GET' && localMockExamMatch) {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local mock exams are only available from localhost' });
-      }
+      if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Local mock exams are only available from localhost' });
       const exam = readLocalMockExam(localMockExamMatch[1]);
       return json(res, exam ? 200 : 404, exam ?? { error: 'Local mock exam not found' });
     }
-
     const localMockFileMatch = /^\/api\/local-mock-files\/(.+)$/.exec(url.pathname);
     if (req.method === 'GET' && localMockFileMatch) {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local mock files are only available from localhost' });
-      }
+      if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Local mock files are only available from localhost' });
       return streamLocalFile(res, localMockRoot, localMockFileMatch[1], 'Local mock file not found');
     }
-
     const localOfficialMatch = /^\/api\/local-official-jlpt\/(.+)$/.exec(url.pathname);
     if (req.method === 'GET' && localOfficialMatch) {
-      if (!isLoopbackRequest(req)) {
-        return json(res, 403, { error: 'Local official files are only available from localhost' });
-      }
+      if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Local official files are only available from localhost' });
       return streamLocalFile(res, localOfficialRoot, localOfficialMatch[1], 'Local official file not found');
     }
 
@@ -170,164 +68,48 @@ return async (req, res) => {
       catch { return json(res, 401, { error: 'Firebase 登录验证失败，请重试' }); }
     }
     if (req.method === 'POST' && url.pathname === '/api/auth/firebase/link') {
-      if (!user) return json(res,401,{ error:'请先登录原来的本地账号' });
-      try { return json(res,200,await firebaseSession((await readJson(req)).idToken,user)); }
-      catch (error) { return json(res,400,{error:error.message}); }
+      if (!user) return json(res, 401, { error: '请先登录原来的本地账号' });
+      try { return json(res, 200, await firebaseSession((await readJson(req)).idToken, user)); }
+      catch (error) { return json(res, 400, { error: error.message }); }
     }
     if (authConfiguration().mode === 'firebase' && ['/api/auth/login', '/api/auth/register'].includes(url.pathname)) {
       return json(res, 403, { error: '此部署使用 Firebase 登录' });
     }
-
     if (req.method === 'POST' && url.pathname === '/api/auth/register') {
       const body = await readJson(req);
       const created = createUser(body.username, body.password);
       const session = loginUser(body.username, body.password);
       return json(res, 201, { user: created, token: session.token });
     }
-
     if (req.method === 'POST' && url.pathname === '/api/auth/login') {
       const body = await readJson(req);
       const session = loginUser(body.username, body.password);
-      if (!session) {
-        return json(res, 401, { error: 'Invalid username or password' });
-      }
+      if (!session) return json(res, 401, { error: 'Invalid username or password' });
       return json(res, 200, session);
     }
-
     if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
       deleteSession(token);
       return json(res, 200, { ok: true });
     }
 
-    if (!user) {
-      return json(res, 401, { error: 'Authentication required' });
-    }
+    if (!user) return json(res, 401, { error: 'Authentication required' });
 
-    if (url.pathname === '/api/auth/firebase/status' && req.method === 'GET') return json(res,200,firebaseIdentity(user.id));
-    if (url.pathname === '/api/market/sources' && req.method === 'GET') return json(res,200,sharingSources(user.id));
-    if (url.pathname === '/api/market/preview' && req.method === 'POST') return json(res,200,{ package:sourcePackage(user.id,await readJson(req)) });
-    if (url.pathname === '/api/market/validate' && req.method === 'POST') return json(res,200,{ package:validatePackage(await readJson(req)) });
-    if (url.pathname === '/api/market/import' && req.method === 'POST') {
-      const input = await readJson(req);
-      if (input?.shareId !== undefined) {
-        const share = shareDetail(user.id, input.shareId,input.revision);
-        if(share.package.kind==='listening'&&input.revision!==undefined&&input.revision!==share.currentRevision)throw Object.assign(new Error('Historical listening import requires versioned media support'),{statusCode:400});
-        return json(res,201,share.package.kind === 'listening' ? await importListeningShare(user.id, input.shareId) : importShare(user.id, input.shareId,input.revision));
-      }
-      return json(res,201,importPackage(user.id,input));
-    }
-    if (url.pathname === '/api/market/listening' && req.method === 'POST') return json(res,201,await publishListeningShare(user.id,await readJson(req)));
-    if (url.pathname === '/api/market' && req.method === 'GET') return json(res,200,{shares:listShares(user.id,url.searchParams.get('mine') === '1')});
-    if (url.pathname === '/api/market' && req.method === 'POST') return json(res,201,publishShare(user.id,await readJson(req)));
-    const coverMatch = /^\/api\/market\/([^/]+)\/cover$/.exec(url.pathname);
-    if (coverMatch && req.method === 'PUT') return json(res,200,setShareCover(user.id,coverMatch[1],await readJson(req, 7 * 1024 * 1024)));
-    const shareMatch = /^\/api\/market\/([^/]+)$/.exec(url.pathname);
-    const shareAudioMatch = /^\/api\/market\/([^/]+)\/audio$/.exec(url.pathname);
-    if (shareAudioMatch && req.method === 'GET') {
-      const audio = listeningShareAudio(user.id, shareAudioMatch[1]);
-      res.writeHead(200, { 'content-type': audio.audio_mime, 'content-length': audio.audio_size, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
-      return createReadStream(audio.audio_path).pipe(res);
-    }
-    if (shareMatch && req.method === 'GET') return json(res,200,shareDetail(user.id,shareMatch[1],url.searchParams.has('revision')?Number(url.searchParams.get('revision')):undefined));
-    if (shareMatch && req.method === 'PATCH') return json(res,200,updateShare(user.id,shareMatch[1],await readJson(req)));
-    if (shareMatch && req.method === 'DELETE') return json(res,200,withdrawShare(user.id,shareMatch[1]));
+    if (await handleV3({ req, res, url, user, json, readJson })) return;
 
-    if (req.method === 'GET' && url.pathname === '/api/me') {
-      return json(res, 200, { user });
-    }
+    if (req.method === 'GET' && url.pathname === '/api/auth/firebase/status') return json(res, 200, firebaseIdentity(user.id));
+    if (req.method === 'GET' && url.pathname === '/api/me') return json(res, 200, { user });
 
-    // Agents connected through OAuth (settings page): list and disconnect.
-    if (req.method === 'GET' && url.pathname === '/api/agents') {
-      return json(res, 200, { grants: await mcp.listGrants(String(user.id)) });
-    }
+    // OAuth で接続した AI エージェント（設定画面）：一覧と接続解除。
+    if (req.method === 'GET' && url.pathname === '/api/agents') return json(res, 200, { grants: await mcp.listGrants(String(user.id)) });
     const revokeAgentMatch = /^\/api\/agents\/([^/]+)\/revoke$/.exec(url.pathname);
     if (req.method === 'POST' && revokeAgentMatch) {
       await mcp.revokeGrant(String(user.id), decodeURIComponent(revokeAgentMatch[1]));
       return json(res, 200, { ok: true });
     }
 
-    if (req.method === 'GET' && url.pathname === '/api/sync/status') {
-      return json(res,200,studySyncStatus(user.id));
-    }
-    if (req.method === 'GET' && url.pathname === '/api/study-state/settings') {
-      return json(res,200,{ settings:getStudySettings(user.id), progress:{}, answers:{} });
-    }
-    if (req.method === 'POST' && url.pathname === '/api/sync') {
-      return json(res, 200, studySync(user.id, await readJson(req)));
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/review-data') {
-      return json(res, 200, userReviewData(user.id));
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/vocab/lookup') {
-      const query = url.searchParams.get('q') || '';
-      const { items } = userReviewData(user.id);
-      return json(res, 200, { matches: findLookupItems(items, query) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/wordbooks') {
-      return json(res, 200, { wordbooks: listWordbooks(user.id) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/wordbooks') {
-      return json(res, 201, { wordbook: createWordbook(user.id, await readJson(req)) });
-    }
-
-    const reviewItemMatch = /^\/api\/review-items\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && reviewItemMatch) {
-      const item = organizeReviewItem(user.id, decodeURIComponent(reviewItemMatch[1]), await readJson(req));
-      return item ? json(res, 200, { item }) : json(res, 404, { error: 'Review item not found' });
-    }
-
-    const reviewItemImagesMatch = /^\/api\/review-items\/([^/]+)\/images(?:\/([^/]+))?$/.exec(url.pathname);
-    if (reviewItemImagesMatch && ((req.method === 'POST' && !reviewItemImagesMatch[2]) || (req.method === 'DELETE' && reviewItemImagesMatch[2]))) {
-      const itemId = decodeURIComponent(reviewItemImagesMatch[1]);
-      const item = req.method === 'POST'
-        ? addReviewItemImage(user.id, itemId, await readJson(req, 8 * 1024 * 1024))
-        : removeReviewItemImage(user.id, itemId, decodeURIComponent(reviewItemImagesMatch[2]));
-      return item ? json(res, req.method === 'POST' ? 201 : 200, { item }) : json(res, 404, { error: 'Review item not found' });
-    }
-
-    const itemImageMatch = /^\/api\/item-images\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && itemImageMatch) {
-      const image = itemImageForUser(user.id, itemImageMatch[1]);
-      if (!image) return json(res, 404, { error: 'Image not found' });
-      res.writeHead(200, {
-        'content-type': image.mime,
-        'content-length': image.size,
-        'cache-control': 'private, max-age=86400',
-        'x-content-type-options': 'nosniff',
-      });
-      return createReadStream(image.image_path).pipe(res);
-    }
-
-    const wordbookMatch = /^\/api\/wordbooks\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && wordbookMatch) {
-      const wordbook = updateWordbook(user.id, decodeURIComponent(wordbookMatch[1]), await readJson(req));
-      return wordbook ? json(res, 200, { wordbook }) : json(res, 404, { error: 'Wordbook not found' });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/study-state') {
-      return json(res, 200, getStudyState(user.id));
-    }
-
-    if (req.method === 'PUT' && url.pathname === '/api/study-state/settings') {
-      return json(res, 200, { settings: saveSettings(user.id, await readJson(req)) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/tts/providers') {
-      return json(res, 200, { providers: listProviderDescriptors() });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/tts/voices') {
-      return json(res, 200, { voices: await listSpeechVoices(user.id, url.searchParams.get('provider')) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/tts/credentials') {
-      return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
-    }
-
+    if (req.method === 'GET' && url.pathname === '/api/tts/providers') return json(res, 200, { providers: listProviderDescriptors() });
+    if (req.method === 'GET' && url.pathname === '/api/tts/voices') return json(res, 200, { voices: await listSpeechVoices(user.id, url.searchParams.get('provider')) });
+    if (req.method === 'GET' && url.pathname === '/api/tts/credentials') return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
     const ttsCredentialMatch = /^\/api\/tts\/credentials\/([^/]+)$/.exec(url.pathname);
     if (req.method === 'PUT' && ttsCredentialMatch) {
       return json(res, 200, { credentials: saveTtsCredential(user.id, decodeURIComponent(ttsCredentialMatch[1]), await readJson(req)) });
@@ -336,347 +118,11 @@ return async (req, res) => {
       deleteTtsCredential(user.id, decodeURIComponent(ttsCredentialMatch[1]));
       return json(res, 200, { credentials: ttsCredentialStatus(user.id) });
     }
-
     if (req.method === 'POST' && url.pathname === '/api/tts/speak') {
       const { text, provider, voice, style, role } = await readJson(req);
       const { audio, mimeType } = await synthesizeSpeech(user.id, { text, provider, voice, style, role });
       res.writeHead(200, { 'content-type': mimeType, 'content-length': audio.length, 'cache-control': 'private, no-store' });
       return res.end(audio);
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/study-plan') {
-      return json(res, 200, { plan: getStudyPlan(user.id) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/daily-summaries') {
-      return json(res, 200, { summaries: listDailySummaries(getDb(), user.id, 60).map(({ date, accuracy, totalQuestions }) => ({ date, accuracy, totalQuestions })) });
-    }
-    const dailySummaryMatch = /^\/api\/daily-summaries\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && dailySummaryMatch) {
-      const date = validSummaryDate(decodeURIComponent(dailySummaryMatch[1]));
-      return json(res, 200, { summary: getDailySummary(getDb(), user.id, date), cardReviews: dailyCardReviewStats(getDb(), user.id, date) });
-    }
-
-    if (req.method === 'PUT' && (url.pathname === '/api/study-plan' || url.pathname === '/api/study-plan/profile')) {
-      return json(res, 200, { plan: saveStudyPlanProfile(user.id, await readJson(req)) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/study-plan/generated') {
-      return json(res, 200, { plan: saveGeneratedStudyPlan(user.id, await readJson(req)) });
-    }
-
-    const planTaskMatch = /^\/api\/study-plan\/tasks\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && planTaskMatch) {
-      const body = await readJson(req);
-      const plan = updateStudyPlanTask(user.id, planTaskMatch[1], body.status);
-      return plan ? json(res, 200, { plan }) : json(res, 404, { error: 'Plan task not found' });
-    }
-
-    if (req.method === 'PUT' && url.pathname === '/api/study-state/practice') {
-      savePracticeState(user.id, await readJson(req));
-      return json(res, 200, getStudyState(user.id));
-    }
-
-    const progressMatch = /^\/api\/study-state\/progress\/([^/]+)$/.exec(url.pathname);
-    if (progressMatch && ['GET', 'PUT'].includes(req.method)) {
-      const requestedId = decodeURIComponent(progressMatch[1]);
-      const isReference = /^[A-Z]{2}-\d{6,}$/i.test(requestedId);
-      const resolved = isReference ? resolveReference(getDb(), user.id, requestedId) : null;
-      const itemId = isReference ? (resolved?.entity === 'item' ? resolved.id : null) : requestedId;
-      if (!itemId) return json(res, 404, { error: 'Review item not found' });
-      if (req.method === 'PUT') return json(res, 200, saveProgressEntry(user.id, itemId, await readJson(req)));
-      const state = getStudyState(user.id);
-      return json(res,200,{ progress:state.progress[itemId] ? {[itemId]:state.progress[itemId]} : {}, answers:{}, attemptHistory:state.attemptHistory });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/answers/replay') {
-      return json(res, 200, replayPendingAnswer(user.id, await readJson(req)));
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/answers') {
-      const input = await readJson(req);
-      saveAnswer(user.id, input);
-      const state = getStudyState(user.id);
-      if (url.searchParams.get('compact') === '1') {
-        return json(res,200,{ progress:{ [input.itemId]:state.progress[input.itemId] },
-          cardReviews:(state.cardReviews ?? []).filter(event => event.eventId === (input.reviewEventId ?? `card:${input.itemId}:${input.reviewedAt ?? input.progressEntry.lastReviewedAt}:${input.selected}`)),
-          answers:state.answers[input.questionId] ? {[input.questionId]:state.answers[input.questionId]} : {},
-          ...(input.attemptHistory ? {attemptHistory:state.attemptHistory} : {}) });
-      }
-      return json(res, 200, state);
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/study-record') {
-      return json(res, 200, buildStudyRecord(user.id));
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/captures') {
-      return json(res, 200, { captures: listLearningCaptures(user.id, url.searchParams.get('status')) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/captures') {
-      return json(res, 201, { capture: createLearningCapture(user.id, await readJson(req)) });
-    }
-
-    const captureMatch = /^\/api\/captures\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && captureMatch) {
-      const capture = updateLearningCaptureStatus(user.id, captureMatch[1], (await readJson(req)).status);
-      return capture ? json(res, 200, { capture }) : json(res, 404, { error: 'Capture not found' });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/analysis/weak-points') {
-      return json(res, 200, analyzeWeakPoints(user.id));
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/listening-questions') {
-      return json(res, 200, { questions: listListeningQuestions(user.id) });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/listening-audio-match') {
-      const hash = url.searchParams.get('sha256') ?? '';
-      if (!/^[a-f0-9]{64}$/.test(hash)) return json(res, 400, { error: 'Invalid audio hash' });
-      return json(res, 200, { questions: findListeningAudioQuestions(user.id, hash) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/listening-questions') {
-      const question = createListeningQuestion(user.id, await readJson(req, 36 * 1024 * 1024));
-      return json(res, 201, { question });
-    }
-
-    const materialAudioMatch = /^\/api\/materials\/([^/]+)\/versions\/(\d+)\/audio$/.exec(url.pathname);
-    if (req.method === 'GET' && materialAudioMatch) {
-      const audio = materialAudioForUser(user.id,decodeURIComponent(materialAudioMatch[1]),Number(materialAudioMatch[2]));
-      if (!audio) return json(res,404,{error:'missingMaterial'});
-      res.writeHead(200,{'content-type':audio.audio_mime,'content-length':audio.audio_size,'cache-control':'private, no-store','x-content-type-options':'nosniff'});
-      return createReadStream(audio.audio_path).pipe(res);
-    }
-
-    const listeningAudioMatch = /^\/api\/listening-questions\/([^/]+)\/audio$/.exec(url.pathname);
-    if (req.method === 'GET' && listeningAudioMatch) {
-      const audio = listeningAudioForUser(user.id, listeningAudioMatch[1]);
-      if (!audio) {
-        return json(res, 404, { error: 'Listening audio not found' });
-      }
-      res.writeHead(200, {
-        'content-type': audio.audio_mime,
-        'content-length': audio.audio_size,
-        'cache-control': 'private, no-store',
-        'content-disposition': 'inline',
-      });
-      return createReadStream(audio.audio_path).pipe(res);
-    }
-
-    const listeningRecordingsMatch = /^\/api\/listening-questions\/([^/]+)\/recordings$/.exec(url.pathname);
-    if (req.method === 'GET' && listeningRecordingsMatch) {
-      return json(res, 200, { recordings: listListeningRecordings(user.id, listeningRecordingsMatch[1]) });
-    }
-    if (req.method === 'POST' && listeningRecordingsMatch) {
-      const recording = createListeningRecording(user.id, listeningRecordingsMatch[1], await readJson(req, 36 * 1024 * 1024));
-      return json(res, 201, {
-        recording,
-        agentMessage: `请通过 jlpt_review MCP 调用 get_listening_recording_analysis_context 分析录音 ${recording.id}，再用 save_listening_recording_analysis 写回结果。`,
-      });
-    }
-
-    const listeningRecordingMatch = /^\/api\/listening-recordings\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'DELETE' && listeningRecordingMatch) {
-      if (!deleteListeningRecording(user.id, listeningRecordingMatch[1])) {
-        return json(res, 404, { error: 'Listening recording not found' });
-      }
-      return json(res, 200, { ok: true });
-    }
-
-    const listeningRecordingAudioMatch = /^\/api\/listening-recordings\/([^/]+)\/audio$/.exec(url.pathname);
-    if (req.method === 'GET' && listeningRecordingAudioMatch) {
-      const audio = listeningRecordingAudioForUser(user.id, listeningRecordingAudioMatch[1]);
-      if (!audio) {
-        return json(res, 404, { error: 'Listening recording audio not found' });
-      }
-      res.writeHead(200, {
-        'content-type': audio.audio_mime,
-        'content-length': audio.audio_size,
-        'cache-control': 'private, no-store',
-        'content-disposition': 'inline',
-      });
-      return createReadStream(audio.audio_path).pipe(res);
-    }
-
-    const listeningQuestionMatch = /^\/api\/listening-questions\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && listeningQuestionMatch) {
-      const { transcript, transcriptTranslation, ...patch } = await readJson(req);
-      const question = updateListeningQuestion(user.id, listeningQuestionMatch[1], patch);
-      if (!question) return json(res, 404, { error: 'Listening question not found' });
-      if (transcript !== undefined || transcriptTranslation !== undefined) {
-        updateListeningTranscript(user.id, question.id, {
-          ...(transcript !== undefined ? { transcript } : {}),
-          ...(transcriptTranslation !== undefined ? { transcriptTranslation } : {}),
-        });
-      }
-      return json(res, 200, { question: listeningQuestionForUser(user.id, question.id) });
-    }
-    if (req.method === 'DELETE' && listeningQuestionMatch) {
-      if (!deleteListeningQuestion(user.id, listeningQuestionMatch[1])) {
-        return json(res, 404, { error: 'Listening question not found' });
-      }
-      return json(res, 200, { ok: true });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/reading-questions') {
-      return json(res, 200, { questions: listReadingQuestions(user.id) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/reading-questions') {
-      const question = createReadingQuestion(user.id, await readJson(req));
-      return json(res, 201, { question });
-    }
-
-    const readingQuestionMatch = /^\/api\/reading-questions\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && readingQuestionMatch) {
-      const question = readingQuestionForUser(user.id, readingQuestionMatch[1]);
-      return question ? json(res, 200, { question }) : json(res, 404, { error: 'Reading question not found' });
-    }
-    if (req.method === 'PATCH' && readingQuestionMatch) {
-      const question = updateReadingQuestion(user.id, readingQuestionMatch[1], await readJson(req));
-      return question ? json(res, 200, { question }) : json(res, 404, { error: 'Reading question not found' });
-    }
-    if (req.method === 'DELETE' && readingQuestionMatch) {
-      if (!deleteReadingQuestion(user.id, readingQuestionMatch[1])) {
-        return json(res, 404, { error: 'Reading question not found' });
-      }
-      return json(res, 200, { ok: true });
-    }
-
-    if (url.pathname === '/api/mock-exams' || /^\/api\/mock-exams\/[^/]+$/.test(url.pathname)) {
-      try {
-        if (url.pathname === '/api/mock-exams') {
-          if (req.method === 'GET') return json(res, 200, { exams: listMockExams(getDb(), user.id) });
-          if (req.method === 'POST') return json(res, 201, { exam: createMockExam(getDb(), user.id, await readJson(req, 4 * 1024 * 1024)) });
-        } else {
-          const id = decodeURIComponent(url.pathname.split('/').pop());
-          if (req.method === 'GET' || req.method === 'PATCH') {
-            const exam = req.method === 'GET' ? getMockExam(getDb(), user.id, id)
-              : updateMockExam(getDb(), user.id, id, await readJson(req, 4 * 1024 * 1024));
-            return json(res, exam ? 200 : 404, exam ? { exam } : { error: 'Exam not found' });
-          }
-        }
-        return json(res, 405, { error: 'Method not allowed' });
-      } catch (error) { return json(res, error.status ?? error.statusCode ?? 400, { error: error.message }); }
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/drafts') {
-      return json(res, 200, { drafts: listReviewPackDrafts(user.id) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/history-questions') {
-      return json(res, 200, { questions: getHistoryQuestions(user.id) });
-    }
-
-    if (req.method === 'GET' && url.pathname === '/api/daily-practices') {
-      return json(res, 200, { practices: listDailyPractices(user.id) });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/daily-practices') {
-      const practice = createDailyPractice(user.id, await readJson(req));
-      return json(res, 201, { practice });
-    }
-
-    const draftPublishMatch = /^\/api\/drafts\/([^/]+)\/publish-daily-practice$/.exec(url.pathname);
-    if (req.method === 'POST' && draftPublishMatch) {
-      const practice = createDailyPracticeFromDraft(user.id, draftPublishMatch[1], await readJson(req));
-      return json(res, 201, { practice });
-    }
-
-    const questionPatchMatch = /^\/api\/daily-practices\/([^/]+)\/questions\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'PATCH' && questionPatchMatch) {
-      const practice = updatePracticeQuestion(user.id, decodeURIComponent(questionPatchMatch[1]), decodeURIComponent(questionPatchMatch[2]), await readJson(req));
-      return json(res, 200, { practice });
-    }
-    const explanationMatch = /^\/api\/daily-practices\/([^/]+)\/questions\/([^/]+)\/explanation$/.exec(url.pathname);
-    if (req.method === 'PATCH' && explanationMatch) {
-      const practice = updatePracticeQuestionExplanation(user.id, decodeURIComponent(explanationMatch[1]), decodeURIComponent(explanationMatch[2]), await readJson(req));
-      return json(res, 200, { practice });
-    }
-    const dailyPracticeMatch = /^\/api\/daily-practices\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && dailyPracticeMatch) {
-      const requestedId = decodeURIComponent(dailyPracticeMatch[1]);
-      const isReference = /^PR-\d{6,}$/i.test(requestedId);
-      const resolved = isReference ? resolveReference(getDb(), user.id, requestedId) : null;
-      const practiceId = isReference ? (resolved?.entity === 'practice_session' ? resolved.id : null) : requestedId;
-      const practice = practiceId ? getDailyPractice(user.id, practiceId) : null;
-      if (!practice) {
-        return json(res, 404, { error: 'Daily practice not found' });
-      }
-      return json(res, 200, { practice });
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/drafts') {
-      const body = await readJson(req);
-      const draft = body.kind === 'daily_review_pack'
-        ? createDailyReviewPackDraft(user.id, body)
-        : createReviewPackDraft(user.id, body);
-      return json(res, 201, { draft });
-    }
-
-    if(req.method==='POST'&&url.pathname==='/api/question-drafts')return json(res,201,saveAuthoredQuestion(user.id,await readJson(req)));
-    const authoredDraftMatch=/^\/api\/question-drafts\/([^/]+)$/.exec(url.pathname);
-    if(req.method==='GET'&&authoredDraftMatch)return json(res,200,getAuthoredQuestion(user.id,authoredDraftMatch[1]));
-    const draftAnnotationMatch = /^\/api\/drafts\/([^/]+)\/annotations$/.exec(url.pathname);
-    if (req.method === 'POST' && draftAnnotationMatch) {
-      const draft = addDraftAnnotation(user.id, draftAnnotationMatch[1], await readJson(req));
-      if (!draft) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, { draft });
-    }
-
-    const draftRevisionMatch = /^\/api\/drafts\/([^/]+)\/revision-context$/.exec(url.pathname);
-    if (req.method === 'GET' && draftRevisionMatch) {
-      const context = buildDraftRevisionContext(user.id, draftRevisionMatch[1]);
-      if (!context) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, context);
-    }
-
-    const draftProcessingMatch = /^\/api\/drafts\/([^/]+)\/processing-context$/.exec(url.pathname);
-    if (req.method === 'GET' && draftProcessingMatch) {
-      const context = buildDraftProcessingContext(user.id, draftProcessingMatch[1]);
-      if (!context) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, context);
-    }
-
-    const draftConfirmMatch = /^\/api\/drafts\/([^/]+)\/confirm$/.exec(url.pathname);
-    if (req.method === 'POST' && draftConfirmMatch) {
-      const context = confirmDraftForAgentProcessing(user.id, draftConfirmMatch[1], await readJson(req));
-      if (!context) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, context);
-    }
-
-    const draftMatch = /^\/api\/drafts\/([^/]+)$/.exec(url.pathname);
-    if (req.method === 'GET' && draftMatch) {
-      const draft = getReviewPackDraft(user.id, draftMatch[1]);
-      if (!draft) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, { draft });
-    }
-
-    if (req.method === 'PATCH' && draftMatch) {
-      const draft = updateReviewPackDraft(user.id, draftMatch[1], await readJson(req));
-      if (!draft) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, { draft });
-    }
-
-    if (req.method === 'DELETE' && draftMatch) {
-      if (!deleteReviewPackDraft(user.id, draftMatch[1])) {
-        return json(res, 404, { error: 'Draft not found' });
-      }
-      return json(res, 200, { ok: true });
     }
 
     return json(res, 404, { error: 'Not found' });
@@ -705,7 +151,6 @@ function buildHealthPayload(mcp) {
     ok: true,
     checkedAt: new Date().toISOString(),
     databaseReady: existsSync(databasePath()),
-    reviewDataReady: existsSync(reviewDataPath()),
     mcp: {
       httpPath: mcpHttpPath,
       serverReady: mcpServerReady,
@@ -771,7 +216,7 @@ async function readJson(req, maxBytes = 1024 * 1024) {
 }
 
 function json(res, status, body) {
-  const payload = JSON.stringify(res.referenceUserId && status < 400 ? decorateReferences(getDb(), res.referenceUserId, body) : body);
+  const payload = JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',

@@ -8,7 +8,7 @@ export function routeFromHash(hash: string): AppRoute {
   if (view === 'plan') {
     return { view, page: 'questions', itemId: pageValue === 'textbooks' ? pageValue : undefined };
   }
-  if (view === 'market' || view === 'question-types') {
+  if (view === 'market' || view === 'question-types' || view === 'drafts') {
     return { view, page: 'questions', itemId: pageValue ? decodeURIComponent(pageValue) : undefined };
   }
   if (view === 'mock-exams') {
@@ -31,7 +31,7 @@ export function routeFromHash(hash: string): AppRoute {
       return { view, page: 'tips', itemId: `opinion/${detailValue}` };
     }
     const page = pageValue === 'questions' || pageValue === 'review' || pageValue === 'mock' || pageValue === 'words' ? pageValue : 'tips';
-    const itemId = (page === 'words' || ((page === 'questions' || page === 'review') && (itemValue === 'type-session' || replayRouteAttemptId(itemValue ? decodeURIComponent(itemValue) : undefined)))) && itemValue
+    const itemId = (page === 'words' || ((page === 'questions' || page === 'review') && (itemValue === 'type-session' || isPracticeItem(itemValue) || replayRouteAttemptId(itemValue ? decodeURIComponent(itemValue) : undefined)))) && itemValue
       ? decodeURIComponent(itemValue)
       : page === 'tips' && ['topics', 'types', 'dialogue', 'opinion'].includes(itemValue)
         ? itemValue
@@ -46,8 +46,8 @@ export function routeFromHash(hash: string): AppRoute {
   if (supportsStudyPage(view) && !pageValue) {
     return { view, page: defaultDesktopStudyPage(view) };
   }
-  const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' || (view === 'grammar' && pageValue === 'bank') ? pageValue : 'questions';
-  const itemId = (page === 'tips' || page === 'words' || (itemValue === 'type-session' && ['questions', 'review'].includes(page))) && itemValue ? decodeURIComponent(itemValue) : undefined;
+  const page = pageValue === 'tips' || pageValue === 'words' || pageValue === 'wordbooks' || pageValue === 'review' || (isBankModule(view) && pageValue === 'bank') ? pageValue : 'questions';
+  const itemId = (page === 'tips' || page === 'words' || page === 'bank' || ((itemValue === 'type-session' || isPracticeItem(itemValue)) && ['questions', 'review'].includes(page))) && itemValue ? decodeURIComponent(itemValue) : undefined;
   return { view, page: supportsStudyPage(view) && (page !== 'wordbooks' || view === 'vocabulary' || view === 'grammar') ? page : 'questions', itemId };
 }
 
@@ -60,7 +60,7 @@ export function routeHash(view: AppView, page: StudyPage, itemId?: string) {
   if (view === 'history') {
     return itemId ? `#/history/${encodeURIComponent(itemId)}` : '#/history';
   }
-  if (view === 'market' || view === 'question-types') {
+  if (view === 'market' || view === 'question-types' || view === 'drafts') {
     return itemId ? `#/${view}/${encodeURIComponent(itemId)}` : `#/${view}`;
   }
   if (view === 'mock-exams') {
@@ -79,12 +79,18 @@ export function routeHash(view: AppView, page: StudyPage, itemId?: string) {
     return itemId ? `#/${view}/samples/${encodeURIComponent(itemId)}` : `#/${view}/samples`;
   }
   if (itemId === 'type-session' && supportsStudyPage(view) && (page === 'questions' || page === 'review')) return `#/${view}/${page}/${itemId}`;
+  if (isPracticeItem(itemId) && supportsStudyPage(view) && (page === 'questions' || page === 'review')) return `#/${view}/${page}/${encodeURIComponent(itemId!)}`;
   if (view === 'mixed' && replayRouteAttemptId(itemId) && (page === 'questions' || page === 'review')) return `#/${view}/${page}/${encodeURIComponent(itemId!)}`;
   if (view === 'daily-practice' && itemId) return `#/${view}/${page}/${encodeURIComponent(itemId)}`;
   if (!supportsStudyPage(view)) {
     return `#/${view}`;
   }
-  return itemId && (page === 'tips' || page === 'words') ? `#/${view}/${page}/${encodeURIComponent(itemId)}` : `#/${view}/${page}`;
+  return itemId && (page === 'tips' || page === 'words' || page === 'bank') ? `#/${view}/${page}/${encodeURIComponent(itemId)}` : `#/${view}/${page}`;
+}
+
+/** 題庫（v3）を持つモジュール。 */
+export function isBankModule(view: AppView): view is 'vocabulary' | 'grammar' | 'reading' | 'listening' {
+  return view === 'vocabulary' || view === 'grammar' || view === 'reading' || view === 'listening';
 }
 
 export function supportsStudyPage(view: AppView) {
@@ -186,4 +192,9 @@ export function desktopBackRoute(route: AppRoute): AppRoute | null {
     return { view: 'mixed', page: 'tips' };
   }
   return { view: 'home', page: 'questions' };
+}
+
+/** 練習（v3）の画面内の行き先：練習記録 AT12、練習 DP3 / TP2 / MX1、記録一覧、間違えた問題。 */
+export function isPracticeItem(value: string | undefined): boolean {
+  return Boolean(value && /^((AT|DP|TP|MX)\d+|history|mistakes)$/i.test(value));
 }

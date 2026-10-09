@@ -4,31 +4,28 @@
 
 export type CaptureCategory = 'word' | 'grammar' | 'sentence' | 'listening' | 'reading' | 'unsure';
 export type CaptureStatus = 'inbox' | 'processed' | 'archived';
-export type Deck = 'n1_vocab' | 'name_reading' | 'grammar_expression';
-
+// Shapes follow the v3 MCP tools (list_wordbooks, list_learning_captures, lookup_word).
 export interface Wordbook {
-  id: string;
+  code: string;
   title: string;
-  deck: Deck;
-  builtIn: boolean;
 }
 
 export interface LearningCapture {
-  id: string;
+  code: string;
   body: string;
   category: CaptureCategory;
-  context?: string;
+  context?: string | null;
+  wordbook?: string | null;
   status: CaptureStatus;
   createdAt?: string;
-  targetDeck?: string;
 }
 
 export interface VocabMatch {
-  id: string;
-  original: string;
-  reading?: string;
-  meaning_zh?: string;
-  meaning_ja?: string;
+  code: string;
+  kind: 'word' | 'grammar' | 'name';
+  expression: string;
+  reading?: string | null;
+  meaning?: { text: string; language: string } | null;
 }
 
 export interface AppUser {
@@ -45,10 +42,10 @@ export type ExtensionMessage =
   | { type: 'LOGOUT' }
   | { type: 'SET_API_BASE_URL'; apiBaseUrl: string }
   | { type: 'LOOKUP_WORD'; query: string }
-  | { type: 'CREATE_CAPTURE'; input: { body: string; category: CaptureCategory; context?: string; targetDeck?: Deck; targetWordbookId?: string } }
+  | { type: 'CREATE_CAPTURE'; input: { body: string; category: CaptureCategory; context?: string; wordbook?: string } }
   | { type: 'LIST_CAPTURES'; status?: CaptureStatus }
   | { type: 'LIST_WORDBOOKS' }
-  | { type: 'UPDATE_CAPTURE_STATUS'; id: string; status: CaptureStatus };
+  | { type: 'UPDATE_CAPTURE_STATUS'; code: string; status: CaptureStatus };
 
 export type ExtensionResponse<T = unknown> = { ok: true; data: T } | { ok: false; error: string };
 

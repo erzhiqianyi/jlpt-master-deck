@@ -61,7 +61,7 @@ function renderLoading() {
 }
 
 function meaningOf(item: VocabMatch): string {
-  return item.meaning_zh?.trim() || item.meaning_ja?.trim() || '';
+  return item.meaning?.text.trim() ?? '';
 }
 
 let wordbooksCache: Wordbook[] | null = null;
@@ -76,7 +76,7 @@ async function getWordbooks(): Promise<Wordbook[]> {
 function renderMatches(word: string, matches: VocabMatch[], context: string) {
   if (matches.length) {
     panel.innerHTML = matches
-      .map((item) => `<h4>${escapeHtml(item.original)}${item.reading && item.reading !== word ? ` <span class="reading">${escapeHtml(item.reading)}</span>` : ''}</h4>
+      .map((item) => `<h4>${escapeHtml(item.expression)}${item.reading && item.reading !== word ? ` <span class="reading">${escapeHtml(item.reading)}</span>` : ''}</h4>
         <p class="meaning">${escapeHtml(meaningOf(item) || '暂无释义')}</p>`)
       .join('');
     return;
@@ -104,7 +104,7 @@ function renderMatches(word: string, matches: VocabMatch[], context: string) {
     const category = categorySelect.value as CaptureCategory;
     const options = wordbooksForCategory(wordbooks, category);
     wordbookSelect.innerHTML = options.length
-      ? options.map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.title)}</option>`).join('')
+      ? options.map((book) => `<option value="${escapeHtml(book.code)}">${escapeHtml(book.title)}</option>`).join('')
       : '<option value="">（无可用单词本）</option>';
   }
   categorySelect?.addEventListener('change', populateWordbooks);
@@ -113,7 +113,7 @@ function renderMatches(word: string, matches: VocabMatch[], context: string) {
   button?.addEventListener('click', async () => {
     if (!button || !feedback || !categorySelect || !wordbookSelect) return;
     const wordbooks = await getWordbooks();
-    const wordbook = wordbooks.find((book) => book.id === wordbookSelect.value);
+    const wordbook = wordbooks.find((book) => book.code === wordbookSelect.value);
     button.disabled = true;
     button.textContent = '正在加入…';
     feedback.textContent = '';
@@ -123,8 +123,7 @@ function renderMatches(word: string, matches: VocabMatch[], context: string) {
         input: {
           body: word,
           category: categorySelect.value as CaptureCategory,
-          targetDeck: wordbook?.deck,
-          targetWordbookId: wordbook?.id,
+          wordbook: wordbook?.code,
           context: `插件网页选词\n页面：${location.href}\n原文：${context}`,
         },
       });

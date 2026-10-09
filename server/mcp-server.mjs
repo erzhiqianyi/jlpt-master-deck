@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { userForToken } from './storage.mjs';
+import { userForToken } from './accounts.mjs';
 import { resources, tools, toolJsonSchema } from './mcp-tools.mjs';
 
 const protocolVersion = '2024-11-05';

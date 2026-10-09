@@ -8,7 +8,7 @@ struct LibraryView: View {
     let vocabularyOnly: Bool
     let query: String
     private var filtered: [StudyItem] {
-        store.items.filter { (!grammarOnly || $0.isGrammar) && (!vocabularyOnly || !$0.isGrammar) && (query.isEmpty || [$0.original, $0.reading ?? "", $0.meaning_zh ?? ""].joined().localizedCaseInsensitiveContains(query)) }
+        store.items.filter { (!grammarOnly || $0.isGrammar) && (!vocabularyOnly || !$0.isGrammar) && (query.isEmpty || [$0.original, $0.reading ?? "", $0.romaji ?? "", $0.reference ?? "", $0.meaning_zh ?? ""].joined(separator: " ").localizedCaseInsensitiveContains(query)) }
     }
     var body: some View {
         if filtered.isEmpty {
@@ -44,8 +44,13 @@ struct ItemDetailView: View {
                     }
                     JapaneseText(text: item.original, item: item, japanese: true, fontSize: 34 * store.textScale, weight: .semibold)
                         .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                    if let reading = item.cardText("reading", locale: locale), !store.displayFlag("showReviewRuby") {
-                        Text(reading).font(.subheadline).foregroundStyle(DeckTheme.muted)
+                    let reading = store.displayFlag("showReviewRuby") ? nil : item.cardText("reading", locale: locale)
+                    let romaji = store.displayFlag("showRomaji") ? item.cardText("romaji", locale: locale) : nil
+                    if reading != nil || romaji != nil {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            if let reading { Text(reading).font(.subheadline).foregroundStyle(DeckTheme.muted) }
+                            if let romaji { Text(romaji).font(.subheadline.italic()).foregroundStyle(DeckTheme.muted).accessibilityIdentifier("entry.romaji") }
+                        }
                     }
                 }
                 detailSection("meaning", icon: "text.alignleft")
@@ -122,8 +127,17 @@ struct ItemDetailView: View {
                 Divider()
                 sectionHeading(CardFields.label(field), icon: icon)
                 detailText(text, japanese: field == "meaning_ja")
+                if let note = translationNote(field, shown: text) {
+                    Text(note).font(.caption).foregroundStyle(DeckTheme.muted).accessibilityIdentifier("entry.translationNote.\(field)")
+                }
             }
         }
+    }
+    /// Explains a missing or unverified translation, only when the shown text is the server-picked one.
+    private func translationNote(_ field: String, shown: String) -> String? {
+        let picked = field == "meaning" ? item.localized?.meaning : field == "explanation" ? item.localized?.explanation : nil
+        guard let picked, picked.text.trimmingCharacters(in: .whitespacesAndNewlines) == shown else { return nil }
+        return picked.note(requested: item.localized?.language)
     }
     private func startPractice() {
         preparingPractice = true

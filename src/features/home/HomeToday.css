@@ -1,0 +1,13 @@
+/* ホーム（v3） */
+.home-today-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.home-card { display: grid; gap: 8px; align-content: start; }
+.home-card .library-button { justify-self: start; }
+.home-big { margin: 0; font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.home-daily-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.home-week { height: 72px; }
+.home-entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.home-entries button { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line);
+  background: var(--ledger-surface); color: var(--ledger-ink); font-weight: 700; cursor: pointer; text-align: left; }
+.home-entries button svg:last-child { margin-left: auto; color: var(--ledger-muted); }
+.home-entries button:hover { border-color: var(--ledger-indigo); background: var(--ledger-indigo-soft); }
+.home-today .library-header button { min-height: 36px; padding: 0 12px; border-radius: var(--ui-radius); border: 1px solid var(--ledger-line); background: var(--ledger-surface); font-weight: 600; cursor: pointer; }

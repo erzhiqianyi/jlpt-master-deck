@@ -1,19 +1,20 @@
-import { getDb } from '../storage.mjs';
+import { getDb } from '../accounts.mjs';
+import { getSettings } from '../v3/repo/settings.mjs';
 import { currentPlatform } from '../platform.mjs';
 import { synthesizeSpeech } from './index.mjs';
 import { ttsCredentialStatus } from './store.mjs';
 import { providersById } from './registry.mjs';
 
 // Run only after a successful save; cloud transactions defer this until commit.
+// item: a v3 knowledge point ({ kind, expression, reading }).
 export function scheduleItemPronunciation(userId, item) {
   const platform = currentPlatform();
   const run = async () => {
     try {
-      const row = getDb().prepare('SELECT settings_json FROM user_settings WHERE user_id = ?').get(userId);
-      const settings = row ? JSON.parse(row.settings_json) : {};
-      const provider = settings.ttsProvider;
+      const settings = getSettings(getDb(), userId);
+      const provider = settings.speech.provider;
       if (!providersById[provider] || !ttsCredentialStatus(userId).some(value => value.provider === provider && value.configured)) return;
-      const text = String(item.type === 'word' ? item.reading?.trim() || item.original : item.original ?? '').trim();
+      const text = String(item.kind === 'word' ? item.reading?.trim() || item.expression : item.expression ?? '').trim();
       if (!text) return;
       const voice = settings.speech?.voices?.[provider] ?? {};
       // Match playback's UTF-16 chunk limit without splitting a surrogate pair.

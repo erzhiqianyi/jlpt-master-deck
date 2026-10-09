@@ -99,6 +99,10 @@ export type DisplaySettings = {
   showReviewRuby: boolean;
   memoryCardWordSpacing: boolean;
   showExplanationRuby: boolean;
+  /** 是否在单词读音旁显示罗马音。 */
+  showRomaji?: boolean;
+  /** 释义、解析使用的语言（BCP 47）。 */
+  explanationLanguage?: string;
   locale: Locale;
   fontSize: FontSize;
   memoryCardFrontFields: import('./domain/memoryCards').MemoryCardField[];
@@ -493,6 +497,12 @@ export type VocabItem = {
   question_kinds?: QuestionKind[];
   question_distractors?: Partial<Record<QuestionKind, string[]>>;
   practice_questions?: PracticeQuestionSeed[];
+  /** 由读音生成的罗马音（服务端生成）。 */
+  romaji?: string;
+  /** AI 按需加的注音（Anki 写法），键是原文。 */
+  ruby_annotations?: Record<string, string>;
+  /** 用户说明语言下的释义与讲解（缺译时按回退链取其他语言）。 */
+  localized?: { language: string; meaning?: { text: string; language: string; isFallback: boolean; origin?: string; verified?: boolean }; explanation?: { text: string; language: string; isFallback: boolean; origin?: string; verified?: boolean } };
 };
 
 export type ReviewData = {

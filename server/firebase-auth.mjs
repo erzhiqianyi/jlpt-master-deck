@@ -3,7 +3,8 @@ import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getDb } from "./storage.mjs";
+import { getDb } from "./accounts.mjs";
+import { ensureUser } from "./v3/database.mjs";
 
 const path =
   process.env.JLPT_FIREBASE_CONFIG_PATH ||
@@ -79,6 +80,7 @@ export async function firebaseSession(idToken, existingUser = null) {
         claims.uid,
         identity.user_id,
       );
+      ensureUser(db, { id: identity.user_id });
       db.exec("COMMIT");
     } catch (error) {
       db.exec("ROLLBACK");

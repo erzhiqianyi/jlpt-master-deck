@@ -108,3 +108,24 @@ body {
 
 .empty { color: var(--fg-2); font-size: 14px; }
 .error { color: var(--bad-fg); font-size: 13px; margin-top: 8px; }
+
+/* v3 の練習画面 */
+.practice { display: grid; gap: 10px; padding: 12px; font-family: system-ui, sans-serif; }
+.practice .eyebrow { font-size: 11px; letter-spacing: .08em; opacity: .6; }
+.practice h1 { font-size: 18px; margin: 0; }
+.practice .muted, .practice .position { margin: 0; font-size: 13px; opacity: .7; }
+.practice .question { display: grid; gap: 8px; }
+.practice .passage { white-space: pre-wrap; line-height: 1.8; margin: 0; padding: 8px; border-radius: 8px; background: rgb(127 127 127 / 8%); }
+.practice .prompt mark { background: none; color: inherit; }
+.practice .mark-target { text-decoration: underline; text-underline-offset: 4px; }
+.practice .mark-blank, .practice .mark-slot, .practice .mark-star_slot { border-bottom: 2px solid currentColor; }
+.practice .choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.practice .choices button { width: 100%; text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid rgb(127 127 127 / 35%); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.practice .choices button[data-state='correct'] { border-color: #4f7c5c; background: rgb(79 124 92 / 14%); }
+.practice .choices button[data-state='wrong'] { border-color: #c46a5a; background: rgb(196 106 90 / 14%); }
+.practice .analysis, .practice .explanation { margin: 2px 0 0; font-size: 13px; white-space: pre-wrap; }
+.practice .result { display: grid; gap: 4px; padding: 8px 10px; border-radius: 8px; background: rgb(127 127 127 / 8%); }
+.practice nav { display: flex; gap: 8px; }
+.practice nav button, .practice .text-answer button { padding: 6px 14px; border-radius: 8px; border: 1px solid rgb(127 127 127 / 35%); background: transparent; color: inherit; cursor: pointer; }
+.practice .text-answer { display: grid; gap: 6px; }
+.practice .text-answer textarea { font: inherit; padding: 6px; border-radius: 8px; }

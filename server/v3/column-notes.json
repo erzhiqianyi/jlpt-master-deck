@@ -1,0 +1,1295 @@
+{
+  "languages": {
+    "code": {
+      "sample": "ja、zh-Hans、en、zh-Hant、ko、vi、id、th、my、ne、es、fr",
+      "meaning": "语言代码（BCP 47），主键"
+    },
+    "native_name": {
+      "sample": "简体中文、English",
+      "meaning": "用该语言自己写的名称，用于设置页"
+    },
+    "fallback_code": {
+      "sample": "zh-Hant → zh-Hans；ko → en",
+      "meaning": "缺少该语言译文时先找哪种语言"
+    },
+    "enabled": {
+      "sample": "1",
+      "meaning": "是否在设置里提供"
+    },
+    "sort_order": {
+      "meaning": "设置页中的排列顺序"
+    }
+  },
+  "translatable_fields": {
+    "owner_table": {
+      "sample": "knowledge_points、meaning"
+    },
+    "field": {
+      "sample": "knowledge_points、meaning"
+    },
+    "description": {
+      "sample": "释义（ja 为日语释义）",
+      "meaning": "字段含义"
+    },
+    "allows_ja": {
+      "sample": "1",
+      "meaning": "是否允许日语行；只有释义这类字段有日语版本"
+    },
+    "learner_visible": {
+      "sample": "1",
+      "meaning": "是否显示给学习者；为 0 的不列入 AI 待翻译清单"
+    }
+  },
+  "content_translations": {
+    "owner_table": {
+      "sample": "knowledge_points、347"
+    },
+    "owner_rid": {
+      "sample": "knowledge_points、347"
+    },
+    "field": {
+      "sample": "meaning",
+      "meaning": "属于该行的哪个字段（须在 `translatable_fields` 登记）"
+    },
+    "language": {
+      "sample": "zh-Hans、en、ja",
+      "meaning": "这一行文字的语言（FK → `languages.code`）"
+    },
+    "text": {
+      "sample": "概观、概览",
+      "meaning": "文字内容，不能为空"
+    },
+    "origin": {
+      "sample": "migrated 从旧数据迁移 / manual 用户编辑 / ai AI 写入",
+      "meaning": "来源"
+    },
+    "verified": {
+      "sample": "AI 写入的默认 0",
+      "meaning": "是否已核对"
+    }
+  },
+  "ruby_annotations": {
+    "owner_table": {
+      "sample": "knowledge_examples、758、sentence、ja"
+    },
+    "owner_rid": {
+      "sample": "knowledge_examples、758、sentence、ja"
+    },
+    "field": {
+      "sample": "knowledge_examples、758、sentence、ja"
+    },
+    "language": {
+      "sample": "knowledge_examples、758、sentence、ja"
+    },
+    "annotated_text": {
+      "sample": "日本経済[にほんけいざい]の 歴史[れきし]を…",
+      "meaning": "带注音的文字，Anki 写法：汉字后跟 [读音]，汉字前紧接其他字符时用空格划定范围"
+    },
+    "created_by": {
+      "sample": "ai / user",
+      "meaning": "谁加的注音"
+    }
+  },
+  "id_sequences": {
+    "user_id": {
+      "sample": "1、W"
+    },
+    "prefix": {
+      "sample": "1、W"
+    },
+    "next_no": {
+      "sample": "331",
+      "meaning": "下一个可用序号；编号删除后不复用"
+    }
+  },
+  "media_files": {
+    "kind": {
+      "source": "来自哪张旧表",
+      "sample": "image / audio",
+      "meaning": "文件类别"
+    },
+    "file_name": {
+      "source": "`listening_audio_assets.file_name`",
+      "sample": "lesson3.mp3",
+      "meaning": "上传时的原始文件名"
+    },
+    "mime": {
+      "source": "`mime`",
+      "sample": "audio/mpeg、image/png",
+      "meaning": "文件类型"
+    },
+    "size": {
+      "source": "`size`",
+      "meaning": "字节数"
+    },
+    "storage_path": {
+      "source": "`item_images.image_path`、`listening_audio_assets.audio_path`",
+      "meaning": "文件在存储里的路径（本地目录或 R2 键）"
+    },
+    "transcript": {
+      "source": "`listening_audio_assets.transcript`",
+      "meaning": "音频的日语原文"
+    }
+  },
+  "user_preferences": {
+    "ui_language": {
+      "source": "`settings_json.locale`",
+      "sample": "zh-CN / ja / en",
+      "meaning": "界面语言"
+    },
+    "explanation_language": {
+      "source": "`settings_json.explanationLanguage`",
+      "sample": "12 种语言之一；未设时按界面语言推断后写入",
+      "meaning": "释义与解析的语言"
+    },
+    "font_scale": {
+      "source": "`settings_json.fontScale`；只有旧档位 `fontSize` 时换算",
+      "sample": "0.8–2.0（1）",
+      "meaning": "字体缩放倍数"
+    },
+    "feedback_mode": {
+      "source": "`settings_json.feedbackMode`",
+      "sample": "immediate 每题答完显示 / batch 整组做完再显示（immediate）",
+      "meaning": "练习时何时显示对错"
+    },
+    "practice_navigation": {
+      "source": "`settings_json.practiceNavigation`",
+      "sample": "auto 自动 / manual 手动（auto）",
+      "meaning": "答完一题后如何进入下一题"
+    },
+    "auto_advance_seconds": {
+      "source": "`settings_json.practiceAutoAdvanceSeconds`",
+      "sample": "0–10，一位小数",
+      "meaning": "自动跳转前等待的秒数"
+    },
+    "show_review_ruby": {
+      "source": "`settings_json.showReviewRuby`",
+      "sample": "是 / 否（是）",
+      "meaning": "复习卡片上显示假名注音"
+    },
+    "show_explanation_ruby": {
+      "source": "`settings_json.showExplanationRuby`",
+      "sample": "是 / 否（是）",
+      "meaning": "解析文字里显示假名注音"
+    },
+    "show_romaji": {
+      "source": "`settings_json.showRomaji`",
+      "sample": "是 / 否（是）",
+      "meaning": "读音旁显示罗马音"
+    },
+    "card_word_spacing": {
+      "source": "`settings_json.memoryCardWordSpacing`",
+      "sample": "是 / 否（是）",
+      "meaning": "记忆卡上日语按词加间隔"
+    },
+    "segmented_display": {
+      "source": "`settings_json.japaneseDisplay.segmented`",
+      "sample": "是 / 否",
+      "meaning": "日语分词与词性着色"
+    },
+    "daily_source_answers": {
+      "source": "`settings_json.dailyPracticeSources.answers`",
+      "sample": "是 / 否",
+      "meaning": "每日练习是否取材于最近的作答错题"
+    },
+    "daily_source_card_reviews": {
+      "source": "`settings_json.dailyPracticeSources.cardReviews`",
+      "sample": "是 / 否",
+      "meaning": "每日练习是否取材于最近的卡片自评"
+    },
+    "daily_source_window": {
+      "source": "`settings_json.dailyPracticeSources.window`",
+      "sample": "实现阶段核对取值",
+      "meaning": "取材的时间范围方式"
+    },
+    "daily_source_hours": {
+      "source": "`settings_json.dailyPracticeSources.hours`",
+      "meaning": "按小时取材时的小时数"
+    },
+    "daily_source_time_zone": {
+      "source": "`settings_json.dailyPracticeSources.timeZone`",
+      "sample": "Asia/Tokyo",
+      "meaning": "判断“今天”用的时区"
+    },
+    "daily_source_run_at": {
+      "source": "`settings_json.dailyPracticeSources.runAt`",
+      "sample": "07:00",
+      "meaning": "每天自动生成练习的时间"
+    }
+  },
+  "user_daily_source_ratings": {
+    "rating": {
+      "source": "`settings_json.dailyPracticeSources.ratings[]`"
+    }
+  },
+  "user_pos_styles": {
+    "pos": {
+      "source": "`settings_json.japaneseDisplay.styles` 的键"
+    },
+    "mode": {
+      "source": "`settings_json.japaneseDisplay.styles.<词性>.mode`"
+    },
+    "color": {
+      "source": "`settings_json.japaneseDisplay.styles.<词性>.color`"
+    }
+  },
+  "user_question_type_tips": {
+    "type_id": {
+      "source": "`settings_json.questionTypeTips` 的键"
+    },
+    "tip": {
+      "source": "`settings_json.questionTypeTips` 的值"
+    }
+  },
+  "user_custom_tips": {
+    "section": {
+      "source": "`settings_json.customQuestionTypeTips[]`.section"
+    },
+    "title": {
+      "source": "`settings_json.customQuestionTypeTips[]`.title"
+    },
+    "description": {
+      "source": "`settings_json.customQuestionTypeTips[]`.description"
+    },
+    "tip": {
+      "source": "`settings_json.customQuestionTypeTips[]`.tip"
+    }
+  },
+  "user_speech_settings": {
+    "provider": {
+      "source": "`settings_json.ttsProvider`",
+      "sample": "browser（浏览器 / 系统自带语音）或已注册的服务 ID（browser）",
+      "meaning": "朗读使用的语音服务"
+    },
+    "rate": {
+      "source": "`settings_json.speech.rate`",
+      "sample": "0.5–1.5（1）",
+      "meaning": "语速"
+    },
+    "card_auto": {
+      "source": "`settings_json.speech.cardAuto`",
+      "sample": "off 不朗读 / front 显示正面时 / back 翻到背面时（off）",
+      "meaning": "记忆卡是否自动朗读"
+    },
+    "grammar_auto": {
+      "source": "`settings_json.speech.grammarAuto`",
+      "sample": "是 / 否（否）",
+      "meaning": "打开语法详情时自动朗读"
+    },
+    "include_example": {
+      "source": "`settings_json.speech.includeExample`",
+      "sample": "是 / 否（否）",
+      "meaning": "自动朗读时连同例句一起读"
+    }
+  },
+  "user_speech_voices": {
+    "provider": {
+      "source": "`settings_json.speech.voices` 的键",
+      "meaning": "语音服务 ID"
+    },
+    "voice": {
+      "source": "`speech.voices.<provider>.voice`",
+      "meaning": "选用的声音"
+    },
+    "style": {
+      "source": "`speech.voices.<provider>.style`",
+      "meaning": "说话风格（服务支持时）"
+    },
+    "role": {
+      "source": "`speech.voices.<provider>.role`",
+      "meaning": "角色（服务支持时）"
+    }
+  },
+  "wordbooks": {
+    "rid": {
+      "source": "新生成",
+      "sample": "1",
+      "meaning": "内部主键"
+    },
+    "user_id": {
+      "source": "`wordbooks.user_id`；内置词库迁移出的单词本属于挂了条目的那个用户",
+      "sample": "1",
+      "meaning": "所属用户（FK → `users`）；单词本只属于一个用户，其他用户看不到"
+    },
+    "code": {
+      "source": "新生成",
+      "sample": "WB1",
+      "meaning": "单词本编号，按用户各自从 WB1 开始编"
+    },
+    "title": {
+      "source": "`wordbooks.title`；用户改过名的取 `wordbook_title_overrides.title`",
+      "sample": "N1 文法、IT词汇",
+      "meaning": "单词本名称；同一用户下不能重名"
+    },
+    "created_at": {
+      "source": "`wordbooks.created_at`、`updated_at`"
+    },
+    "updated_at": {
+      "source": "`wordbooks.created_at`、`updated_at`"
+    }
+  },
+  "knowledge_points": {
+    "code": {
+      "source": "新生成",
+      "sample": "W5、G3、N1",
+      "meaning": "业务编号，前缀按类别：单词类 W、语法类 G、名字 N"
+    },
+    "wordbook_rid": {
+      "source": "`item_json.wordbook_id`；为空时归入按旧 `deck` 迁移出的单词本",
+      "meaning": "所属单词本，必填"
+    },
+    "kind": {
+      "meaning": "大类",
+      "sample": "word 单词类 / grammar 语法类 / name 名字",
+      "source": "`item_json.type`：vocabulary、phrase、expression、phrase_set → word；grammar、listening_rule → grammar；proper_name → name（与旧 `deck` 无关：“生活日语”里借用 name_reading 词库的普通词汇归为 word）。细分类型转为标签"
+    },
+    "expression": {
+      "source": "`item_json.original`",
+      "sample": "概観、～を皮切りに",
+      "meaning": "知识点本身的日语写法：单词的汉字或假名写法、语法的句型"
+    },
+    "reading": {
+      "source": "`item_json.reading`",
+      "sample": "がいかん",
+      "meaning": "假名读音"
+    },
+    "romaji": {
+      "source": "迁移时生成",
+      "sample": "gaikan、toukyou",
+      "meaning": "由读音自动生成的罗马音（修订赫本式，长音按输入法写法）；读音含汉字时为空"
+    },
+    "romaji_key": {
+      "source": "迁移时生成",
+      "sample": "gaikan、tokyo",
+      "meaning": "罗马音搜索键：小写、去空格、合并长音，tokyo / toukyou / tōkyō 都能匹配"
+    },
+    "pos": {
+      "source": "从 `item_json.part_of_speech` 与 `item_json.inflection_class` 换算，见“词性换算”",
+      "sample": "verb_1、verb_2、verb_3_suru、verb_3_kuru、i_adjective、na_adjective、noun …，完整列表见下方“词性”",
+      "meaning": "词性，固定枚举，按日本語教育的分法；动词的活用分组直接包含在词性里。语法条目和口语音变规则为空"
+    },
+    "transitivity": {
+      "source": "从 `part_of_speech` 中的 他動詞 / 自動詞",
+      "sample": "transitive 他動詞 / intransitive 自動詞 / both 自他両用",
+      "meaning": "动词的自他，固定枚举；非动词为空"
+    },
+    "is_suru_noun": {
+      "source": "`part_of_speech` 含 サ変，或 `inflection_class` 为 suru 且原文不以する结尾",
+      "sample": "是 / 否",
+      "meaning": "名词能否加する作动词（「規制」→「規制する」）。词条按名詞记录，变形按Ⅲグループ（する）生成"
+    },
+    "base_form": {
+      "source": "`item_json.base_form`",
+      "sample": "規制 → 規制する",
+      "meaning": "辞书形"
+    },
+    "jlpt_level_min": {
+      "source": "拆分 `item_json.jlpt_level`：N1 → N1/N1，N2-N1 → N2/N1，“N2関連”→ N2/N2；“非JLPT核心词”“生活词汇”转为标签",
+      "sample": "N2-N1 → min N2、max N1"
+    },
+    "jlpt_level_max": {
+      "source": "拆分 `item_json.jlpt_level`：N1 → N1/N1，N2-N1 → N2/N1，“N2関連”→ N2/N2；“非JLPT核心词”“生活词汇”转为标签",
+      "sample": "N2-N1 → min N2、max N1"
+    },
+    "register_level": {
+      "source": "`item_json.register.level`",
+      "sample": "written 书面 / spoken 口语 / formal 正式 / both 通用",
+      "meaning": "语体，固定枚举，用于筛选；语体的文字说明在 `knowledge_notes`"
+    },
+    "source_sentence": {
+      "source": "`item_json.source.sentence` 中真正是句子的值；书名章节类的值改存 `knowledge_sources`，见下",
+      "sample": "しかし東京では、岸壁という形で海に近づけるのは…",
+      "meaning": "学习者遇到这个词的日语原句（读过的文章、听到的句子）"
+    },
+    "compile_note": {
+      "source": "`item_json.source.chat_summary`",
+      "sample": "ユーザー提供の教材写真から例文と練習問題を整理",
+      "meaning": "内部记录：这个知识点由什么资料、哪次对话整理而来。不翻译，不在学习页面显示"
+    },
+    "paraphrase": {
+      "source": "`item_json.paraphrase_ja`",
+      "sample": "～するとすぐに",
+      "meaning": "简短的日语换说，一两个词；出「言い換え類義」题时作为正确选项，必须与日语释义不同。日语原文，不翻译"
+    },
+    "source_capture_rid": {
+      "source": "`item_json.source.capture_id`",
+      "meaning": "由收集箱的哪条记录整理而来"
+    },
+    "market_share_id": {
+      "source": "来自 `user_review_items` 的条目",
+      "meaning": "从市场导入的知识点所对应的分享；自己录入的为空"
+    },
+    "captured_at": {
+      "source": "`item_json.input_at`；没有时用 `captured_on` 日期",
+      "sample": "2026-09-21T00:00:00+09:00",
+      "meaning": "录入时间"
+    }
+  },
+  "knowledge_examples": {
+    "sentence": {
+      "source": "`item_json.examples[]`.ja",
+      "sample": "日本経済の歴史を概観する。"
+    },
+    "sentence_reading": {
+      "source": "`item_json.examples[]`.reading"
+    },
+    "spoken_sentence": {
+      "source": "`item_json.examples[]`.spoken_ja"
+    },
+    "target_reading": {
+      "source": "`item_json.examples[]`.target_reading"
+    }
+  },
+  "knowledge_patterns": {
+    "pattern": {
+      "source": "`item_json.patterns[]`.pattern",
+      "sample": "Vた＋とたん"
+    },
+    "example": {
+      "source": "`item_json.patterns[]`.example"
+    }
+  },
+  "knowledge_notes": {
+    "kind": {
+      "source": "`points[]` → key_point；`register.note_zh` → register；`register.exam_tip_zh` → exam_tip"
+    }
+  },
+  "knowledge_comparisons": {
+    "target": {
+      "source": "`item_json.comparisons[]`.target",
+      "sample": "開講"
+    },
+    "kind": {
+      "source": "`item_json.comparisons[]`.kind（空 → synonym）"
+    }
+  },
+  "knowledge_alternate_forms": {
+    "form": {
+      "source": "`item_json.alternate_forms[]`"
+    }
+  },
+  "knowledge_related_words": {
+    "word": {
+      "source": "`item_json.related_words[]`"
+    }
+  },
+  "knowledge_sources": {
+    "title": {
+      "source": "`item_json.reference_sources[]`.title；`source.sentence` 中书名章节类的值"
+    },
+    "url": {
+      "source": "`item_json.reference_sources[]`.url"
+    }
+  },
+  "knowledge_memory_images": {
+    "point_rid": {
+      "meaning": "所属知识点"
+    },
+    "language": {
+      "source": "旧数据都是中文，记为 zh-Hans",
+      "sample": "zh-Hans、en",
+      "meaning": "图片里文字（释义、例句译文）的语言"
+    },
+    "concept": {
+      "source": "`item_json.mnemonic_image.concept`",
+      "meaning": "画面构思：用什么场景帮助记忆"
+    },
+    "prompt": {
+      "source": "`item_json.mnemonic_image.prompt`",
+      "sample": "Japanese vocabulary mnemonic illustration for 規制…",
+      "meaning": "生成图片用的提示词，按该语言写"
+    },
+    "status": {
+      "source": "`mnemonic_image.status`（prompt_synced → prompt_ready；只有图片没有提示词的记为 approved）",
+      "sample": "pending 待生成 / prompt_ready 提示词已就绪 / generated 已生成 / approved 已核对可用",
+      "meaning": "生成状态"
+    },
+    "media_rid": {
+      "source": "`item_json.images[].id`",
+      "meaning": "上传的图片文件"
+    },
+    "url": {
+      "source": "`item_json.images[].url`",
+      "meaning": "外部图片地址（没有上传文件时）"
+    },
+    "caption": {
+      "source": "`item_json.images[].caption`",
+      "meaning": "图片说明"
+    }
+  },
+  "knowledge_tags": {
+    "tag": {
+      "source": "`item_json.tags[]`；`jlpt_level` 中的非等级值；`part_of_speech` 中的补充说明"
+    }
+  },
+  "knowledge_distractors": {
+    "position": {
+      "source": "`item_json.question_distractors{题型: [选项]}`"
+    },
+    "choice": {
+      "source": "`item_json.question_distractors{题型: [选项]}` 的选项"
+    },
+    "type_id": {
+      "source": "`item_json.question_distractors` 的键（题型）换算为官方题型"
+    }
+  },
+  "knowledge_source_drafts": {
+    "draft_rid": {
+      "source": "`item_json.source.draft_ids[]`"
+    }
+  },
+  "knowledge_point_questions": {
+    "question_rid": {
+      "source": "`item_json.practice_questions[]` 迁入题库后的题目；题目的 `itemId`"
+    },
+    "position": {
+      "source": "`item_json.practice_questions[]` 迁入题库后建立关联；题目的 `itemId`"
+    },
+    "relation": {
+      "source": "旧数据只有 `itemId` 一种关联，迁移时都记为 target"
+    }
+  },
+  "questions": {
+    "code": {
+      "source": "新生成",
+      "sample": "QV15",
+      "meaning": "题目编号，前缀按模块"
+    },
+    "prompt": {
+      "source": "`prompt`、`question`（旧写法）"
+    },
+    "answer_position": {
+      "source": "`answerIndex`；只有 `answer` 文字时按选项文字找位置",
+      "sample": "0",
+      "meaning": "正确选项的位置（从 0 开始）；选择题用"
+    },
+    "answer_text": {
+      "source": "`answer`",
+      "meaning": "正确答案文字；对不上选项或非选择题时用"
+    },
+    "group_rid": {
+      "source": "迁移时按来源建题组：阅读、听力题按文章 / 音频分组，其他题一题一组"
+    },
+    "expected_text": {
+      "source": "旧数据没有听写题，迁移时为空"
+    }
+  },
+  "question_options": {
+    "text": {
+      "source": "`choices[]`"
+    },
+    "is_correct": {
+      "source": "`answerIndex` 指向的选项；只有 `answer` 文字时按选项文字匹配；并べ替え题为★位置上的片段"
+    },
+    "position": {
+      "source": "`choices[]` 中的顺序"
+    },
+    "media_rid": {
+      "source": "旧数据没有图片、音频选项，迁移时为空"
+    },
+    "distractor_type": {
+      "source": "阅读题 `choice_explanations[].errorType`；其他题型旧数据没有，为空"
+    }
+  },
+  "question_tags": {
+    "tag": {
+      "source": "阅读题 `tags_json[]`"
+    }
+  },
+  "materials": {
+    "code": {
+      "sample": "MT3",
+      "meaning": "素材编号"
+    },
+    "kind": {
+      "sample": "passage 文章 / notice 公告或表格 / image 图片 / audio 音频",
+      "meaning": "素材类别"
+    },
+    "transcript": {
+      "source": "听力音频 `transcript`",
+      "meaning": "听力原文（日语）"
+    },
+    "body": {
+      "source": "阅读题 `passage`"
+    },
+    "media_rid": {
+      "source": "听力题 `audio_asset_id`；图片题的图片"
+    }
+  },
+  "practice_sets": {
+    "code": {
+      "source": "新生成",
+      "sample": "DP3、MX1",
+      "meaning": "练习编号"
+    },
+    "kind": {
+      "source": "`daily_practices` 按来源区分；`mock_exams` 为 mock",
+      "sample": "daily 每日练习 / topic 专项 / mixed 综合 / mock 模拟考试",
+      "meaning": "练习类别"
+    },
+    "practice_date": {
+      "source": "`daily_practices.practice_date`",
+      "sample": "2026-09-24",
+      "meaning": "练习日期"
+    },
+    "version": {
+      "source": "`daily_practices.version`",
+      "sample": "1",
+      "meaning": "同一天的第几版"
+    },
+    "minutes": {
+      "source": "`daily_practices.minutes`",
+      "sample": "10",
+      "meaning": "建议用时（分钟）"
+    },
+    "strategy": {
+      "source": "`practice_json.strategy`",
+      "sample": "approved_draft_full_set 由确认的草稿整份发布 / agent_topic AI 按主题出题 / targeted_by_history 按作答历史针对性出题",
+      "meaning": "出题方式"
+    },
+    "level": {
+      "source": "`mock_exams.content_json.level`",
+      "sample": "N1",
+      "meaning": "模拟考试的等级"
+    },
+    "source_draft_rid": {
+      "source": "`practice_json.sourceDraftId`",
+      "meaning": "由哪份 AI 草稿发布而来"
+    },
+    "generated_at": {
+      "source": "`practice_json.generated_at`",
+      "meaning": "AI 生成的时间"
+    }
+  },
+  "practice_attempts": {
+    "code": {
+      "source": "新生成",
+      "sample": "AT12",
+      "meaning": "练习记录编号"
+    },
+    "set_rid": {
+      "source": "`attempt.practiceId`",
+      "meaning": "做的是哪份练习；临时组卷的为空"
+    },
+    "kind": {
+      "source": "`attempt.view`",
+      "sample": "daily-practice / vocabulary / grammar / mixed",
+      "meaning": "练习入口"
+    },
+    "is_active": {
+      "source": "`practice_state.active_attempt_json`",
+      "sample": "每用户最多一条",
+      "meaning": "是否是当前进行中、尚未完成的练习"
+    },
+    "started_at": {
+      "source": "`startedAt`、`completedAt`"
+    },
+    "completed_at": {
+      "source": "`startedAt`、`completedAt`"
+    },
+    "analysis_status": {
+      "source": "`analysisStatus`",
+      "sample": "idle 未分析 / running / completed",
+      "meaning": "AI 练习分析的状态"
+    }
+  },
+  "attempt_answers": {
+    "attempt_rid": {
+      "meaning": "所属练习记录"
+    },
+    "position": {
+      "source": "`questionIds[]` 的顺序",
+      "meaning": "第几题"
+    },
+    "question_rid": {
+      "source": "`questionManifest[]`、`questionIds[]` 经去重对照表换算"
+    },
+    "status": {
+      "source": "`questionManifest[].status`（线上 1,910 条为 missingOriginal）",
+      "sample": "answered 已作答 / presented 出示未答 / missing_original 原题已找不到",
+      "meaning": "这道题的状态"
+    },
+    "selected_position": {
+      "source": "由 `selected` 文字换算",
+      "meaning": "选了第几个选项"
+    },
+    "selected_text": {
+      "source": "`answers[].selected`",
+      "meaning": "所选答案文字（对不上选项时保留）"
+    },
+    "correct": {
+      "source": "`answers[].correct`（保留当时的判定，不重算）",
+      "meaning": "是否答对"
+    },
+    "started_at": {
+      "source": "`answers[]` 同名字段"
+    },
+    "answered_at": {
+      "source": "`answers[]` 同名字段"
+    },
+    "elapsed_ms": {
+      "source": "`answers[]` 同名字段"
+    },
+    "selected_option_rid": {
+      "source": "`answers[].selected`（文字）按当时题目的选项文字匹配"
+    },
+    "correct_text": {
+      "source": "迁移时题目的正确选项文字"
+    },
+    "answer_text": {
+      "source": "旧数据没有输入文字类作答"
+    },
+    "recording_rid": {
+      "source": "旧数据的跟读录音与作答记录没有关联，迁移时为空"
+    }
+  },
+  "question_answer_states": {
+    "question_rid": {
+      "source": "`answers.question_id` 经对照表换算",
+      "meaning": "题目"
+    },
+    "selected": {
+      "source": "`answers.selected`、`correct`"
+    },
+    "correct": {
+      "source": "`answers.selected`、`correct`"
+    },
+    "answered_at": {
+      "source": "`answers.answered_at`",
+      "meaning": "作答时间"
+    },
+    "submission_state": {
+      "source": "`answers.submission_state`",
+      "sample": "submitted 已提交 / draft 未提交（旧数据的 legacy_submitted 记为 submitted）",
+      "meaning": "提交状态"
+    },
+    "event_id": {
+      "source": "`answers.answer_event_id`",
+      "meaning": "对应的作答事件"
+    },
+    "selected_option_rid": {
+      "source": "`answers.selected` 按题目选项文字匹配"
+    },
+    "selected_text": {
+      "source": "`answers.selected`"
+    }
+  },
+  "learning_events": {
+    "event_id": {
+      "meaning": "客户端生成的事件 ID"
+    },
+    "event_type": {
+      "sample": "AnswerSubmitted 作答 / MemoryRated 卡片自评",
+      "meaning": "事件类型"
+    },
+    "payload_hash": {
+      "meaning": "事件内容哈希，用于识别重复提交"
+    },
+    "rating": {
+      "sample": "forgot / hard / remembered / easy",
+      "meaning": "自评结果（自评事件）"
+    },
+    "source": {
+      "sample": "ios / web / app",
+      "meaning": "来自哪一端"
+    },
+    "count_outcome": {
+      "meaning": "是否计入统计"
+    },
+    "selected_option_rid": {
+      "source": "`payload_json.selected` 按题目选项文字匹配"
+    },
+    "selected_text": {
+      "source": "`payload_json.selected`"
+    }
+  },
+  "review_schedules": {
+    "point_rid": {
+      "source": "`progress.item_id`",
+      "meaning": "知识点"
+    },
+    "status": {
+      "source": "`progress_json.status`",
+      "sample": "learning 学习中 283 / review 复习中 199 / mastered 已掌握 56",
+      "meaning": "记忆状态"
+    },
+    "review_count": {
+      "source": "`progress_json.reviewCount`",
+      "meaning": "已复习次数"
+    },
+    "ease": {
+      "source": "`progress_json.ease`",
+      "sample": "1.3–3.0",
+      "meaning": "难度系数，越大间隔增长越快"
+    },
+    "interval_days": {
+      "source": "`progress_json.intervalDays`",
+      "meaning": "当前复习间隔（天）"
+    },
+    "due_at": {
+      "source": "`progress_json.nextReviewAt`",
+      "meaning": "下次复习时间"
+    },
+    "first_seen_at": {
+      "source": "同名字段"
+    },
+    "last_reviewed_at": {
+      "source": "同名字段"
+    },
+    "last_attempt_rid": {
+      "source": "`progress_json.lastPracticeSessionId`",
+      "meaning": "最近一次练到它的练习记录"
+    }
+  },
+  "memory_ratings": {
+    "event_id": {
+      "source": "`card_reviews.event_id`",
+      "meaning": "客户端事件 ID，防止重复提交"
+    },
+    "point_rid": {
+      "source": "`card_reviews.item_id`",
+      "meaning": "知识点"
+    },
+    "rating": {
+      "source": "`card_reviews.rating`",
+      "sample": "forgot 忘记 / hard 困难 / remembered 记得 / easy 简单",
+      "meaning": "自评"
+    },
+    "reviewed_at": {
+      "source": "`card_reviews.reviewed_at`",
+      "meaning": "自评时间"
+    },
+    "source": {
+      "source": "`card_reviews.source`",
+      "sample": "ios 129 / app 66 / web 1",
+      "meaning": "来自哪一端"
+    }
+  },
+  "ai_drafts": {
+    "code": {
+      "source": "新生成",
+      "sample": "DR7",
+      "meaning": "草稿编号"
+    },
+    "status": {
+      "source": "`review_pack_drafts.status`",
+      "sample": "draft 待确认 / needs_revision 需修改 / approved 已确认 / archived 已归档",
+      "meaning": "状态"
+    },
+    "kind": {
+      "source": "`content_json.kind`",
+      "sample": "daily_review_pack 每日复习包 / grammar_practice 语法练习",
+      "meaning": "草稿类型"
+    },
+    "strategy": {
+      "source": "`content_json.strategy`",
+      "sample": "targeted_by_history 按作答历史",
+      "meaning": "出题方式"
+    },
+    "target_level": {
+      "source": "`content_json.target_level`",
+      "sample": "N1",
+      "meaning": "目标等级"
+    },
+    "practice_date": {
+      "source": "`content_json.practice_date`",
+      "meaning": "计划练习日期"
+    },
+    "minutes": {
+      "source": "`content_json.estimated_minutes` / `minutes` 合并",
+      "meaning": "预计用时（分钟）"
+    },
+    "generated_at": {
+      "source": "`content_json.generated_at`",
+      "meaning": "生成时间"
+    }
+  },
+  "learning_plans": {
+    "exam_name": {
+      "source": "`plan_json.profile.examName`",
+      "sample": "JLPT 2026年12月",
+      "meaning": "目标考试"
+    },
+    "level": {
+      "source": "`profile.level`",
+      "sample": "N1",
+      "meaning": "目标等级"
+    },
+    "start_date": {
+      "source": "`profile.startDate`、`examDate`"
+    },
+    "exam_date": {
+      "source": "`profile.startDate`、`examDate`"
+    },
+    "study_days_per_week": {
+      "source": "`profile.studyDaysPerWeek`",
+      "meaning": "每周学习天数"
+    },
+    "daily_minutes": {
+      "source": "`profile.dailyMinutes`",
+      "meaning": "每天学习分钟数"
+    },
+    "material_start_status": {
+      "source": "`profile.materialStartStatus`",
+      "meaning": "教材从哪里开始学"
+    },
+    "status": {
+      "source": "`plan_json.status`",
+      "sample": "profile_only 只有基本信息 / ready 已生成 / needs_refresh 需重新生成",
+      "meaning": "计划状态"
+    },
+    "generated_at": {
+      "source": "`plan_json.generatedAt`",
+      "meaning": "计划生成时间"
+    }
+  },
+  "daily_reports": {
+    "summary_date": {
+      "source": "`daily_summaries.date`",
+      "meaning": "总结的日期"
+    },
+    "time_zone": {
+      "source": "`time_zone`",
+      "meaning": "按哪个时区划分这一天"
+    },
+    "total_questions": {
+      "source": "同名列"
+    },
+    "correct_count": {
+      "source": "同名列"
+    },
+    "incorrect_count": {
+      "source": "同名列"
+    },
+    "accuracy": {
+      "source": "同名列"
+    },
+    "unique_items": {
+      "source": "`stats_json.uniqueItems`",
+      "meaning": "当天涉及的知识点数"
+    },
+    "generated_at": {
+      "source": "`generated_at`",
+      "meaning": "生成时间"
+    }
+  },
+  "inbox_captures": {
+    "code": {
+      "source": "新生成",
+      "sample": "IN12",
+      "meaning": "编号"
+    },
+    "body": {
+      "source": "`learning_captures.body`",
+      "sample": "開校",
+      "meaning": "记下的内容"
+    },
+    "category": {
+      "source": "`category`",
+      "sample": "word 单词 286 / grammar 语法 28 / sentence / listening / reading / unsure",
+      "meaning": "内容类别"
+    },
+    "context": {
+      "source": "`context`",
+      "sample": "点词查询\\n原文：…",
+      "meaning": "出处或上下文"
+    },
+    "target_wordbook_rid": {
+      "source": "`target_wordbook_id`（旧 `target_deck` 换算为迁移出的单词本）",
+      "meaning": "整理后要放进哪个单词本"
+    },
+    "status": {
+      "source": "`status`",
+      "sample": "inbox 待处理 185 / processed 已整理 128 / archived 已归档 1",
+      "meaning": "处理状态"
+    }
+  },
+  "speaking_recordings": {
+    "code": {
+      "source": "新生成",
+      "sample": "RC1",
+      "meaning": "编号"
+    },
+    "question_rid": {
+      "source": "`listening_question_id`",
+      "meaning": "跟读的听力题"
+    },
+    "audio_media_rid": {
+      "source": "`audio_mime`、`audio_size`、`audio_path` 迁入 `media_files`",
+      "meaning": "录音文件"
+    },
+    "status": {
+      "source": "`status`",
+      "sample": "pending 待分析 / analyzing 分析中 / completed 完成 / failed 失败",
+      "meaning": "分析状态"
+    },
+    "transcript": {
+      "source": "`analysis_json.transcript`",
+      "meaning": "识别出的日语"
+    },
+    "reference_transcript": {
+      "source": "`analysis_json.referenceTranscript`",
+      "meaning": "参考原文"
+    }
+  },
+  "knowledge_question_kinds": {
+    "type_id": {
+      "source": "`item_json.question_kinds[]` 换算为官方题型"
+    }
+  },
+  "material_sentences": {
+    "sentence": {
+      "source": "阅读题 `translation_lines_json[]`.ja"
+    },
+    "is_key": {
+      "source": "句子出现在阅读题 `reading_analysis.keySentences[]` 中"
+    }
+  },
+  "practice_sections": {
+    "instruction": {
+      "source": "`practice_json.sections[]`.instruction"
+    },
+    "scheduled_date": {
+      "source": "`mock_exams.content_json.sessions[]`.scheduledDate"
+    },
+    "duration_minutes": {
+      "source": "`mock_exams.content_json.sessions[]`.durationMinutes"
+    }
+  },
+  "practice_set_entries": {
+    "question_rid": {
+      "source": "`practice_json.questions[]`、`sessions[].questions[]` 迁入题库后的题目"
+    }
+  },
+  "practice_set_filters": {
+    "wordbook_rid": {
+      "source": "`practice_json.filters.wordbookId`"
+    },
+    "jlpt_level": {
+      "source": "`practice_json.filters.jlptLevel`"
+    },
+    "only_due": {
+      "source": "`practice_json.filters.onlyDue`"
+    },
+    "question_count": {
+      "source": "`practice_json.filters.count`"
+    }
+  },
+  "practice_set_filter_types": {
+    "type_id": {
+      "source": "`practice_json.filters.kinds[]` 换算为官方题型"
+    }
+  },
+  "practice_set_filter_statuses": {
+    "status": {
+      "source": "`practice_json.filters.statuses[]`"
+    }
+  },
+  "ai_draft_sections": {
+    "instruction": {
+      "source": "`content_json.sections[]`.instruction"
+    }
+  },
+  "ai_draft_questions": {
+    "role": {
+      "source": "`sections[].questions[]` → section；`quiz[]` → quiz；`generated_practice[]` → generated"
+    },
+    "question_rid": {
+      "source": "草稿中的题目迁入题库后的题目"
+    }
+  },
+  "ai_draft_comments": {
+    "body": {
+      "source": "`review_pack_drafts.annotations_json[]`.body"
+    },
+    "code": {
+      "source": "新生成"
+    }
+  },
+  "learning_plan_materials": {
+    "module": {
+      "source": "`plan_json.profile.materials[]`.module"
+    }
+  },
+  "learning_plan_tasks": {
+    "scheduled_date": {
+      "source": "`plan_json.tasks[]`.date"
+    },
+    "module": {
+      "source": "`plan_json.tasks[]`.module"
+    },
+    "minutes": {
+      "source": "`plan_json.tasks[]`.minutes"
+    },
+    "material_rid": {
+      "source": "`plan_json.tasks[]`.materialId"
+    },
+    "workload_kind": {
+      "source": "`plan_json.tasks[]`.workloadKind"
+    },
+    "status": {
+      "source": "`plan_json.tasks[]`.status"
+    },
+    "completed_at": {
+      "source": "`plan_json.tasks[]`.completedAt"
+    },
+    "code": {
+      "source": "新生成"
+    }
+  },
+  "learning_plan_phases": {
+    "start_date": {
+      "source": "`plan_json.phases[]`.startDate"
+    },
+    "end_date": {
+      "source": "`plan_json.phases[]`.endDate"
+    }
+  },
+  "daily_report_type_stats": {
+    "type_id": {
+      "source": "`stats_json.byKind[]`.kind 换算为官方题型"
+    },
+    "total": {
+      "source": "`stats_json.byKind[]`.total"
+    },
+    "correct": {
+      "source": "`stats_json.byKind[]`.correct"
+    },
+    "incorrect": {
+      "source": "`stats_json.byKind[]`.incorrect"
+    },
+    "accuracy": {
+      "source": "`stats_json.byKind[]`.accuracy"
+    }
+  },
+  "daily_report_points": {
+    "kind": {
+      "source": "`strengths_json[]` → strength；`weaknesses_json[]` → weakness"
+    }
+  },
+  "daily_report_confusion_points": {
+    "point_rid": {
+      "source": "`confusion_groups_json[]`.items[]"
+    }
+  },
+  "daily_report_confusion_questions": {
+    "question_rid": {
+      "source": "`confusion_groups_json[]`.evidenceQuestionIds[]"
+    }
+  },
+  "daily_report_recommendations": {
+    "type": {
+      "source": "`recommendations_json[]`.type"
+    }
+  },
+  "daily_report_wrong_answers": {
+    "question_rid": {
+      "source": "`wrong_questions_json[]`.questionId"
+    },
+    "point_rid": {
+      "source": "`wrong_questions_json[]`.itemId"
+    },
+    "selected": {
+      "source": "`wrong_questions_json[]`.selected"
+    },
+    "correct_answer": {
+      "source": "`wrong_questions_json[]`.correctAnswer"
+    }
+  },
+  "speaking_recording_notes": {
+    "kind": {
+      "source": "`analysis_json.strengths[]` → strength；`improvements[]` → improvement"
+    }
+  },
+  "user_question_kinds": {
+    "type_id": {
+      "source": "`settings_json.jlptVocabularyQuestionKinds[]` 换算为官方题型"
+    }
+  },
+  "question_groups": {
+    "type_id": {
+      "source": "题目的 `questionTypeId`；缺失时由旧 `kind`（grammar、文法、kanji_to_kana、漢字読み …）换算",
+      "sample": "vocabulary-kanji-reading、grammar-form、reading-short",
+      "meaning": "官方题型（题型注册表 ID）"
+    },
+    "status": {
+      "source": "草稿里的题为 draft；练习中用过的为 ready（迁移后由 AI 补做一次审查，见迁移报告）",
+      "sample": "draft / needs_review / needs_revision / ready / retired"
+    },
+    "official": {
+      "source": "`official_jlpt_question`",
+      "sample": "是 / 否",
+      "meaning": "是否官方原题"
+    },
+    "level": {
+      "source": "旧数据大多为空",
+      "sample": "N1、空",
+      "meaning": "JLPT 等级，只允许核对过的值"
+    },
+    "source_reference": {
+      "source": "`source_reference` / `source`",
+      "meaning": "出处（书名、章节、网址等）"
+    },
+    "instruction": {
+      "source": "`instruction`",
+      "sample": "（　）に入る最もよいものを…",
+      "meaning": "作答说明（日语）"
+    },
+    "context": {
+      "source": "`context`",
+      "meaning": "题干之外的上下文（日语）"
+    },
+    "shuffle_options": {
+      "source": "新设：选项文字引用其他选项（「1と2の両方」等）或官方原题为 0，其余为 1"
+    },
+    "code": {
+      "source": "新生成"
+    }
+  },
+  "question_marks": {
+    "kind": {
+      "source": "按题型换算：漢字読み、表記、言い換え → target；語形成、文脈規定、文法形式 → blank；文の組み立て → slot / star_slot；文章の文法 → blank（标在素材正文）"
+    },
+    "start_offset": {
+      "source": "迁移时在题干（或素材正文）中查找 `promptTarget` / 空位（　）/ ＿＿ 的位置；找不到或出现多次的写进迁移报告"
+    },
+    "end_offset": {
+      "source": "同上"
+    },
+    "material_rid": {
+      "source": "文章の文法：题组的文章"
+    },
+    "label": {
+      "source": "★、（１）等题干中的编号"
+    }
+  },
+  "question_explanation_sections": {
+    "kind": {
+      "source": "`explanation` / `correctReason` → basis；`memoryPoint` → tip；`learningObjective` → objective；阅读 `explanation_nodes[]` → step；`full_order` → full_answer（正文为完整句子）"
+    }
+  },
+  "question_evidence": {
+    "option_rid": {
+      "source": "阅读题 `choice_explanations[]` 对应的选项"
+    },
+    "quote": {
+      "source": "阅读题 `choice_explanations[].evidence`"
+    },
+    "source": {
+      "source": "阅读题为 body；听力题为 transcript"
+    },
+    "start_offset": {
+      "source": "迁移时在素材正文中查找摘录的位置；找不到时为空"
+    }
+  },
+  "user_card_templates": {
+    "template_rid": {
+      "source": "旧 `memoryCardFrontFields` / `memoryCardBackFields`（逐字段设置）不迁移；迁移后各类别使用默认模板"
+    }
+  },
+  "question_reviews": {
+    "reviewer": {
+      "source": "新设；旧数据没有审查记录"
+    }
+  }
+}

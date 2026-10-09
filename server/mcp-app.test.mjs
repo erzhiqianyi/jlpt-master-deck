@@ -1,21 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdtempSync, mkdirSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Writable } from 'node:stream';
 
 const dir = mkdtempSync(join(tmpdir(), 'jlpt-mcp-app-'));
 process.env.JLPT_DB_PATH = join(dir, 'test.sqlite');
-process.env.JLPT_REVIEW_DATA_PATH = join(dir, 'data');
-mkdirSync(process.env.JLPT_REVIEW_DATA_PATH);
 delete process.env.JLPT_PUBLIC_ORIGIN;
 
-const { createUser, loginUser, createLearningCapture, createListeningQuestion, createListeningRecording, upsertReviewItem, getStudyState, createWordbook, listWordbooks, createReviewPackDraft, getReviewPackDraft, addDraftAnnotation } = await import('./storage.mjs');
+const { createUser, loginUser } = await import('./accounts.mjs');
 const { PRACTICE_UI_URI, REVIEW_CARDS_UI_URI, AI_HOME_UI_URI, MCP_APP_MIME, practiceViewAvailable } = await import('./mcp-ui.mjs');
 const { createJlptMcp, MCP_PATHS } = await import('./mcp-app.mjs');
 const { createApiHandler } = await import('./api-handler.mjs');
+const { getV3Db, ensureUser: ensureV3User } = await import('./v3/database.mjs');
+const { createCapture: createV3Capture } = await import('./v3/repo/inbox.mjs');
 const { tools, toolJsonSchema } = await import('./mcp-tools.mjs');
 
 const origin = 'http://127.0.0.1:4221';
@@ -50,7 +50,7 @@ test('MCP_PATHS claims only the OAuth/MCP surface', () => {
 
 test('every tool converts to JSON Schema and none carries a token parameter', () => {
   assert.equal(new Set(tools.map((tool) => tool.name)).size, tools.length);
-  for (const name of ['get_reading_question', 'list_reading_questions', 'get_study_state', 'get_history_questions', 'list_listening_recordings', 'get_market_share', 'get_local_mock_exam']) {
+  for (const name of ['get_question_group', 'list_question_groups', 'get_practice', 'get_study_overview', 'list_recordings', 'get_market_share', 'get_local_mock_exam']) {
     assert.ok(tools.some((tool) => tool.name === name), name);
   }
   assert.ok(!tools.some((tool) => tool.name === 'login'));
@@ -61,17 +61,22 @@ test('every tool converts to JSON Schema and none carries a token parameter', ()
   }
   const plan = toolJsonSchema(tools.find((tool) => tool.name === 'save_generated_study_plan'));
   assert.deepEqual(plan.required, ['tasks']);
-  assert.equal(plan.properties.tasks.maxItems, 730);
-  assert.deepEqual(plan.properties.tasks.items.properties.module.enum, ['grammar', 'reading', 'listening', 'vocabulary', 'other']);
+  assert.equal(plan.properties.tasks.maxItems, 2000);
+  assert.deepEqual(plan.properties.tasks.items.properties.module.enum, ['vocabulary', 'grammar', 'reading', 'listening', 'other']);
 });
 
 test('discovery, consent, token exchange and a scoped tool call run on node:sqlite', async () => {
   const user = createUser('agent-owner', 'test-password');
   const session = loginUser('agent-owner', 'test-password');
-  createLearningCapture(user.id, { body: '面目躍如', category: 'word' });
+  createV3Capture(getV3Db(), user.id, { body: '面目躍如', category: 'word' });
   const other = createUser('someone-else', 'test-password');
-  createLearningCapture(other.id, { body: 'should not leak', category: 'word' });
-  const listening = createListeningQuestion(user.id, { question: '何をしますか。', choices: ['読む', '書く', '聞く', '話す'], choiceDetails: ['読む', '書く', '聞く', '話す'].map((choice) => ({ explanation: `${choice} の理由` })), answerIndex: 2, audioFileName: 'mcp-test.wav', audioMime: 'audio/wav', audioBase64: Buffer.from('mcp-audio-bytes').toString('base64') });
+  ensureV3User(getV3Db(), other);
+  createV3Capture(getV3Db(), other.id, { body: 'should not leak', category: 'word' });
+  // v3 のファイル（get_media は audio:read が必要）
+  const { ensureUser } = await import('./v3/database.mjs');
+  const { storeMedia } = await import('./v3/repo/media.mjs');
+  ensureUser(getV3Db(), user);
+  const mediaId = storeMedia(getV3Db(), user.id, { base64: Buffer.from('mcp-audio-bytes').toString('base64'), mime: 'audio/wav' });
 
   const resource = await mcp.fetch(new Request(origin + '/.well-known/oauth-protected-resource'));
   assert.equal(resource.status, 200);
@@ -134,11 +139,11 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   const list = await rpcResult(await rpc(issued.access_token, 'tools/list', {}, 2));
   const names = list.result.tools.map((tool) => tool.name);
   assert.ok(names.includes('list_learning_captures'));
-  assert.ok(names.includes('get_review_data'));
-  assert.ok(names.includes('update_review_pack_draft'));
-  assert.ok(!names.includes('upsert_review_item'), 'library:write was not granted');
-  assert.ok(!names.includes('get_listening_audio'), 'audio:read was not granted');
-  const deniedAudio = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_listening_audio', arguments: { question_id: listening.id } }));
+  assert.ok(names.includes('list_knowledge_points'));
+  assert.ok(names.includes('update_practice_draft'));
+  assert.ok(!names.includes('create_knowledge_point'), 'library:write was not granted');
+  assert.ok(!names.includes('get_media'), 'audio:read was not granted');
+  const deniedAudio = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_media', arguments: { mediaId } }));
   assert.ok(deniedAudio.error || deniedAudio.result?.isError);
   const protectedTools = tools.filter((tool) => tool.name.startsWith('delete_') || /^(create|update|edit|patch|upsert)_listening_question$/.test(tool.name));
   for (const tool of protectedTools) {
@@ -154,15 +159,13 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
 
   const called = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'list_learning_captures', arguments: { status: 'inbox' } }, 3));
   const captures = JSON.parse(called.result.content[0].text);
-  assert.deepEqual(captures.map((capture) => capture.body), ['面目躍如']);
+  assert.deepEqual(captures.items.map((capture) => capture.body), ['面目躍如']);
   assert.ok(events.some((event) => event.type === 'tool' && event.tool === 'list_learning_captures' && event.ownerId === String(user.id) && event.ok));
 
   // MCP App: the practice tools point at the ui:// resource, the resource is listed and readable,
   // and a full session (start → answer → summary) runs through structuredContent.
-  const startTool = list.result.tools.find((tool) => tool.name === 'start_topic_practice');
+  const startTool = list.result.tools.find((tool) => tool.name === 'start_practice');
   assert.deepEqual(startTool._meta, { ui: { resourceUri: PRACTICE_UI_URI } });
-  // All six JLPT vocabulary types (plus grammar) are selectable through the published MCP schema.
-  assert.deepEqual(startTool.inputSchema.properties.kinds.items.enum, ['meaning', 'grammar', 'kanji_to_kana', 'kana_to_kanji', 'word_formation', 'moji_goi', 'usage']);
   const resourcesList = await rpcResult(await rpc(issued.access_token, 'resources/list', {}, 10));
   assert.deepEqual(resourcesList.result.resources.map((entry) => [entry.uri, entry.mimeType]), [[PRACTICE_UI_URI, MCP_APP_MIME], [REVIEW_CARDS_UI_URI, MCP_APP_MIME], [AI_HOME_UI_URI, MCP_APP_MIME]]);
   if (practiceViewAvailable()) {
@@ -170,50 +173,46 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
     assert.equal(read.result.contents[0].mimeType, MCP_APP_MIME);
     assert.match(read.result.contents[0].text, /<div id="app"><\/div>/);
     const reviewResource = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: REVIEW_CARDS_UI_URI }));
-    assert.equal(reviewResource.result.contents[0].mimeType, MCP_APP_MIME);
-    assert.match(reviewResource.result.contents[0].text, /get_review_cards/);
-    const cards = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_review_cards', arguments: {} }));
-    assert.ok(Array.isArray(cards.result.structuredContent.cards));
-    assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_review_cards')._meta, { ui: { resourceUri: REVIEW_CARDS_UI_URI } });
+    assert.match(reviewResource.result.contents[0].text, /get_due_cards/);
+    assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_due_cards')._meta, { ui: { resourceUri: REVIEW_CARDS_UI_URI } });
     const homeResource = await rpcResult(await rpc(issued.access_token, 'resources/read', { uri: AI_HOME_UI_URI }));
     assert.match(homeResource.result.contents[0].text, /get_ai_learning_home/);
     assert.deepEqual(list.result.tools.find((entry) => entry.name === 'get_ai_learning_home')._meta, { ui: { resourceUri: AI_HOME_UI_URI } });
-
   }
 
-  upsertReviewItem({
-    id: 'item-topic-1', deck: 'n1_vocab', type: 'word', original: '面目躍如', reading: 'めんもくやくじょ', jlpt_level: 'N1',
-    meaning_ja: '評価にふさわしい活躍をして、名声が高まるさま。', paraphrase_ja: '評判どおりの活躍で面目を保つこと。', meaning_zh: '名副其实地大显身手。',
-    examples: [{ ja: '決勝で面目躍如の活躍を見せた。', zh: '在决赛中大显身手。' }, { ja: '彼の面目躍如たる演技だった。', zh: '这是他名副其实的精彩表演。' }],
-    practice_questions: [{ id: 'item-topic-1-meaning', kind: 'meaning', instruction: '意味として最も近いものを選びなさい。', prompt: '決勝で面目躍如の活躍を見せた。', target: '面目躍如', choices: ['評判どおりの活躍で面目を保つこと。', '面目を失って恥をかくこと。', '目立たないように振る舞うこと。', '相手の顔色をうかがうこと。'], answer: '評判どおりの活躍で面目を保つこと。', explanation_zh: '「面目躍如」指名副其实地大显身手。',
-      distractor_notes: { '面目を失って恥をかくこと。': '这是「面目を失う」，意思正好相反。', '目立たないように振る舞うこと。': '「躍如」是生动显现，不是低调。', '相手の顔色をうかがうこと。': '这是「顔色をうかがう」，与名声无关。' } }],
-  }, { userId: user.id });
-  const started = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'start_topic_practice', arguments: { deck: 'n1_vocab', kinds: ['meaning'], count: 5 } }, 12));
+  // v3 の練習：審査を通った問題で練習を始め、答えると結果が返り、カードを評価できる
+  const v3 = getV3Db();
+  const { createWordbook: createV3Wordbook } = await import('./v3/repo/wordbooks.mjs');
+  const { createKnowledge } = await import('./v3/repo/knowledge.mjs');
+  const { createQuestionGroup } = await import('./v3/repo/questions.mjs');
+  const { submitReview } = await import('./v3/repo/reviews.mjs');
+  const book = createV3Wordbook(v3, user.id, { title: 'MCP 词汇' });
+  const point = createKnowledge(v3, user.id, { kind: 'word', wordbook: book.code, expression: '面目躍如', reading: 'めんもくやくじょ', pos: 'noun', meaning: '名副其实地大显身手' });
+  const group = createQuestionGroup(v3, user.id, { typeId: 'vocabulary-paraphrase', questions: [{ prompt: '決勝で面目躍如の活躍を見せた。', marks: [{ kind: 'target', start: 3, end: 7 }],
+    options: ['評判どおりの活躍で面目を保つこと。', '面目を失って恥をかくこと。', '目立たないように振る舞うこと。', '仲間に功績を譲ること。'].map((text, i) => ({ text, correct: i === 0, analysis: i ? '不对' : '对' })),
+    explanation: [{ kind: 'basis', body: '面目躍如＝评价相符的活跃。' }], knowledge: [{ code: point.code }] }] });
+  submitReview(v3, user.id, group.code, { verdict: 'pass', summary: 'ok' });
+  const started = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'start_practice', arguments: { filters: { module: 'vocabulary', count: 5 } } }, 12));
   const practice = started.result.structuredContent;
-  assert.equal(practice.progress.total, 1);
-  assert.equal(practice.questions[0].answered, false);
-  assert.ok(!('answer' in practice.questions[0]), 'answer key stays hidden until answered');
-  const submitted = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'submit_practice_answer', arguments: { practice_id: practice.id, question_id: practice.questions[0].id, selected: practice.questions[0].choices[1] } }, 13));
+  assert.equal(practice.summary.total, 1);
+  assert.equal(practice.items[0].result, null, 'answer key stays hidden until answered');
+  const question = practice.items[0].question;
+  const wrong = question.options.find((o) => o.text === '面目を失って恥をかくこと。');
+  const submitted = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'submit_answer', arguments: { attempt: practice.code, question: question.code, selectedOptionId: wrong.id, eventId: 'mcp-app-1' } }));
   const outcome = submitted.result.structuredContent;
-  assert.equal(outcome.question.correct, false);
-  assert.equal(outcome.question.answer, '評判どおりの活躍で面目を保つこと。');
-  assert.equal(outcome.completed, true);
-  assert.equal(outcome.next, null);
-  const state = getStudyState(user.id);
-  assert.equal(state.progress['item-topic-1'].status, 'learning');
-  assert.equal(state.attemptHistory[0].practiceId, practice.id);
-  assert.equal(state.attemptHistory[0].summary.wrong, 1);
-  const reopened = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_practice_session', arguments: { practice_id: practice.id } }, 14));
-  assert.equal(reopened.result.structuredContent.completed, true);
-  assert.equal((await rpcResult(await rpc(other.id ? issued.access_token : '', 'tools/call', { name: 'get_practice_session', arguments: { practice_id: 'nope' } }, 15))).result.isError, true);
+  assert.equal(outcome.item.answer.correct, false);
+  assert.equal(outcome.item.result.correctText, '評判どおりの活躍で面目を保つこと。');
+  const reopened = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_practice', arguments: { code: practice.code } }, 14));
+  assert.equal(reopened.result.structuredContent.summary.answered, 1);
+  assert.equal((await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_practice', arguments: { code: 'AT999' } }, 15))).result.isError, true);
   const home = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_ai_learning_home', arguments: {} }));
   assert.equal(typeof home.result.structuredContent.due.total, 'number');
-  const cardsBeforeRating = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_review_cards', arguments: { only_due: false } }));
-  const cardId = cardsBeforeRating.result.structuredContent.cards[0].id;
-  const rated = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'rate_review_card', arguments: { item_id: cardId, rating: 'easy' } }));
-  assert.equal(rated.result.structuredContent.item_id, cardId);
-  assert.equal(rated.result.structuredContent.progress.intervalDays, 7);
-  assert.equal(getStudyState(user.id).progress[cardId].intervalDays, 7);
+  createKnowledge(v3, user.id, { kind: 'word', wordbook: book.code, expression: '捉える', reading: 'とらえる', pos: 'verb_2', meaning: '抓住' });
+  const due = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'get_due_cards', arguments: {} }));
+  const cardCode = due.result.structuredContent.cards[0].code;
+  const rated = await rpcResult(await rpc(issued.access_token, 'tools/call', { name: 'rate_card', arguments: { code: cardCode, rating: 'easy', eventId: 'mcp-app-card-1' } }));
+  assert.equal(rated.result.structuredContent.code, cardCode);
+  assert.ok(rated.result.structuredContent.schedule.intervalDays >= 1);
 
   // get_connection_info reports the grant's user and environment, not the browser session's.
   assert.ok(names.includes('get_connection_info'));
@@ -240,11 +239,12 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
   }))).json();
   assert.ok(writeToken.access_token);
   const writeList = await rpcResult(await rpc(writeToken.access_token, 'tools/list'));
-  assert.ok(writeList.result.tools.some((entry) => entry.name === 'get_listening_audio'));
-  const audioResult = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name: 'get_listening_audio', arguments: { question_id: listening.id } }));
+  assert.ok(writeList.result.tools.some((entry) => entry.name === 'get_media'));
+  const audioResult = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name: 'get_media', arguments: { mediaId } }));
   assert.equal(audioResult.result.content[0].type, 'audio');
   assert.equal(Buffer.from(audioResult.result.content[0].data, 'base64').toString(), 'mcp-audio-bytes');
-  const recording = createListeningRecording(user.id, listening.id, { audioMime: 'audio/wav', audioBase64: Buffer.from('local-recording').toString('base64') });
+  const recordingId = storeMedia(getV3Db(), user.id, { base64: Buffer.from('local-recording').toString('base64'), mime: 'audio/wav' });
+  const otherMedia = storeMedia(getV3Db(), other.id, { base64: Buffer.from('other-recording').toString('base64'), mime: 'audio/wav' });
   const localAudio = async (path, bearer) => {
     const chunks = [];
     let status;
@@ -255,54 +255,31 @@ test('discovery, consent, token exchange and a scoped tool call run on node:sqli
     await finished;
     return { status, body: Buffer.concat(chunks).toString() };
   };
-  const recordingPath = `/api/listening-recordings/${recording.id}/audio`;
+  const recordingPath = `/api/v3/media/${recordingId}`;
   assert.deepEqual(await localAudio(recordingPath, writeToken.access_token), { status: 200, body: 'local-recording' });
   assert.equal((await localAudio(recordingPath, issued.access_token)).status, 403);
   assert.equal((await localAudio(recordingPath, 'agt_invalid')).status, 401);
-  assert.equal((await localAudio(`/api/listening-recordings/${recording.id}-other/audio`, writeToken.access_token)).status, 404);
+  assert.equal((await localAudio(`/api/v3/media/${otherMedia}`, writeToken.access_token)).status, 404);
+  assert.deepEqual(await localAudio(recordingPath, session.token), { status: 200, body: 'local-recording' });
   for (const tool of protectedTools) {
     const exposed = writeList.result.tools.find((entry) => entry.name === tool.name);
     assert.ok(exposed, tool.name);
     if (tool.name.startsWith('delete_')) assert.equal(exposed.annotations.destructiveHint, true);
   }
-  const book = createWordbook(user.id, { title: 'delete-owned', deck: 'grammar_expression' });
-  const otherBook = createWordbook(other.id, { title: 'keep-other', deck: 'grammar_expression' });
-  const draft = createReviewPackDraft(user.id, { title: 'delete-owned', content: {} });
-  const otherDraft = createReviewPackDraft(other.id, { title: 'keep-other', content: {} });
-  addDraftAnnotation(user.id, draft.id, { body: 'keep this note' });
-  const updateDraft = async (token, args) => rpcResult(await rpc(token, 'tools/call', {
-    name: 'update_review_pack_draft', arguments: args,
-  }));
-  const titleEdit = await updateDraft(issued.access_token, { draft_id: draft.id, title: 'edited title' });
-  assert.equal(JSON.parse(titleEdit.result.content[0].text).title, 'edited title');
-  const contentEdit = await updateDraft(issued.access_token, { draft_id: draft.id, content: { quiz: [{ id: 'q1', explanation: '逐项解析' }] } });
-  assert.deepEqual(JSON.parse(contentEdit.result.content[0].text).content.quiz, [{ id: 'q1', explanation: '逐项解析' }]);
-  assert.equal(getReviewPackDraft(user.id, draft.id).title, 'edited title');
-  assert.equal(getReviewPackDraft(user.id, draft.id).status, 'draft');
-  assert.equal(getReviewPackDraft(user.id, draft.id).annotations.length, 1);
-  for (const args of [
-    { draft_id: draft.id },
-    { draft_id: draft.id, title: '   ' },
-    { draft_id: otherDraft.id, title: 'stolen' },
-  ]) {
-    const rejected = await updateDraft(issued.access_token, args);
-    assert.equal(rejected.result.isError, true);
-  }
-  assert.equal(getReviewPackDraft(other.id, otherDraft.id).title, 'keep-other');
-  assert.equal(getReviewPackDraft(user.id, draft.id).title, 'edited title');
-  for (const [name, ownArgs, otherArgs] of [
-    ['delete_wordbook', { wordbookId: book.id }, { wordbookId: otherBook.id }],
-    ['delete_review_pack_draft', { draft_id: draft.id }, { draft_id: otherDraft.id }],
-  ]) {
-    const rejected = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name, arguments: otherArgs }));
-    assert.equal(rejected.result.isError, true);
-    const deleted = await rpcResult(await rpc(writeToken.access_token, 'tools/call', { name, arguments: ownArgs }));
-    assert.equal(JSON.parse(deleted.result.content[0].text).ok, true);
-  }
-  assert.ok(listWordbooks(other.id).some((entry) => entry.id === otherBook.id));
-  assert.ok(getReviewPackDraft(other.id, otherDraft.id));
-  assert.ok(!listWordbooks(user.id).some((entry) => entry.id === book.id));
-  assert.equal(getReviewPackDraft(user.id, draft.id), null);
+  // v3 の下書き：作成・修正は study の範囲、削除は library:write が必要。他人の下書きは見えない
+  const call = async (token, name, args) => rpcResult(await rpc(token, 'tools/call', { name, arguments: args }));
+  const created = await call(issued.access_token, 'create_practice_draft', { title: 'delete-owned', objectives: ['区分清浊'] });
+  const draftCode = created.result.structuredContent.code;
+  const edited = await call(issued.access_token, 'update_practice_draft', { code: draftCode, title: 'edited title' });
+  assert.equal(edited.result.structuredContent.title.text, 'edited title');
+  ensureV3User(getV3Db(), other);
+  const { createDraft } = await import('./v3/repo/drafts.mjs');
+  const otherDraft = createDraft(getV3Db(), other.id, { title: 'keep-other' });
+  assert.equal((await call(issued.access_token, 'get_practice_draft', { code: 'DR999' })).result.isError, true);
+  assert.equal((await call(issued.access_token, 'delete_practice_draft', { code: draftCode })).error != null || (await call(issued.access_token, 'delete_practice_draft', { code: draftCode })).result?.isError, true, 'library:write was not granted');
+  assert.deepEqual((await call(writeToken.access_token, 'delete_practice_draft', { code: draftCode })).result.structuredContent, { deleted: draftCode });
+  const { getDraft } = await import('./v3/repo/drafts.mjs');
+  assert.equal(getDraft(getV3Db(), other.id, otherDraft.code).title.text, 'keep-other');
   await mcp.revokeGrant(String(user.id), grants[0].id);
   assert.equal((await rpc(issued.access_token, 'tools/list', {}, 4)).status, 401);
 });

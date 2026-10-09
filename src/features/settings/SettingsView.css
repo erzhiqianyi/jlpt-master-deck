@@ -48,3 +48,5 @@
 .settings-template .settings-row > h3 { font-size: calc(1.25rem * var(--ui-font-scale, 1)); }
 .settings-template :is(.settings-toggle, .settings-row select, .settings-row input:not(.settings-switch), .settings-feedback-options button, .settings-detail-card p) { font-size: calc(1rem * var(--ui-font-scale, 1)); }
 .settings-template .settings-feedback-options button { line-height: 1.7; }
+
+.settings-select { min-height: 40px; max-width: 20rem; border: 1px solid #e6cfd8; border-radius: 8px; background: #fff; padding: 0 10px; color: inherit; font: inherit; }

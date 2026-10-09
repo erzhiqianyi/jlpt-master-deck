@@ -3,6 +3,20 @@ import { withPlatform } from '../../server/platform.mjs';
 // Local integration-test entry only. Production always bundles api-worker.mjs.
 import { JlptDatabase } from '../api-worker.mjs';
 const fetchProduction = JlptDatabase.prototype.fetch;
+const dispatchProduction = JlptDatabase.prototype.dispatch;
+// 旧エンジンの読解・聴解の問題は REST から作れなくなった（作成は v3 の題庫）。録音や R2 音声の確認用に、本番と同じトランザクション・アップロード経路の中で直接作る。
+JlptDatabase.prototype.dispatch = async function(request, mcp) {
+  const { pathname } = new URL(request.url);
+  if (['/__seed-listening', '/__seed-reading', '/__delete-listening'].includes(pathname)) {
+    const storage = await import('../../server/storage.mjs');
+    const body = await request.json();
+    const userId = Number(request.headers.get('x-test-user') ?? 1);
+    if (pathname === '/__delete-listening') return Response.json({ ok: storage.deleteListeningQuestion(userId, body.id) });
+    const question = pathname === '/__seed-listening' ? storage.createListeningQuestion(userId, body) : storage.createReadingQuestion(userId, body);
+    return Response.json({ question }, { status: 201 });
+  }
+  return dispatchProduction.call(this, request, mcp);
+};
 JlptDatabase.prototype.fetch = async function(request) {
     if (new URL(request.url).pathname === '/__tts-cache-alarm-recovery') {
       const original = this.db.prepare;
@@ -37,7 +51,10 @@ JlptDatabase.prototype.fetch = async function(request) {
     }
     if (new URL(request.url).pathname === '/__legacy-audio-schema') {
       return this.ctx.blockConcurrencyWhile(async () => {
-        this.db.exec('DROP TABLE listening_audio_assets; DELETE FROM cloud_schema_version WHERE version=3;');
+        // 新结构下 listening_audio_assets 是兼容视图（数据在 media_files），只有旧结构才模拟缺表
+        if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='listening_audio_assets'").get()) {
+          this.db.exec('DROP TABLE listening_audio_assets; DELETE FROM cloud_schema_version WHERE version=3;');
+        }
         this.db.exec('DROP TRIGGER increment_practice_completion; DROP TABLE practice_completion_receipts; DROP TABLE practice_completion_stats; DELETE FROM cloud_schema_version WHERE version=7;');
         return new Response('legacy schema restored');
       });

@@ -5,7 +5,7 @@ import './components/LearningList.css';
 import './components/WorkspaceLayout.css';
 import './components/EntryNavigation.css';
 import './components/PageTemplates.css';
-import App from './App';
+import App from './AppV3';
 import './components/UnifiedResponsive.css';
 import { ConfirmationProvider } from './components/ConfirmationProvider';
 import { initializeAnalytics, trackPageView } from './lib/analytics';

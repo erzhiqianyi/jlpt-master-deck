@@ -213,7 +213,7 @@ struct JapaneseText: View {
         let display = hintsEnabled ? (displayOverride ?? JapaneseDisplay(settings: store.state.settings)) : JapaneseDisplay()
         let ruby = hintsEnabled && allowsRuby && (rubyOverride ?? store.displayFlag(explanation || explanationMode ? "showExplanationRuby" : "showReviewRuby"))
         let needsAnalysis = display.segmented || ruby || lookupEnabled
-        let sourceAnnotations = annotations + (item?.japanese_annotations ?? [])
+        let sourceAnnotations = (item?.aiRubyAnnotations ?? []) + annotations + (item?.japanese_annotations ?? [])
         let dictionary = needsAnalysis ? (item.map { current in [current] + store.items.filter { $0.id != current.id } } ?? store.items) : []
         let tokens: [JapaneseAnnotation.Token] = needsAnalysis
             ? JapaneseAnalysis.tokens(text, japanese: japanese, annotations: sourceAnnotations, items: dictionary, terms: terms + (item?.ruby_terms ?? []))

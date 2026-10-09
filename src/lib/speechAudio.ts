@@ -6,8 +6,8 @@ export type SpeechAudioOptions = {
   token: string;
   cacheScope?: string;
   voice?: string;
-  style?: string;
-  role?: string;
+  style?: string | null;
+  role?: string | null;
 };
 const cacheName = 'jlpt-downloaded-speech-v1';
 const listeners = new Set<() => void>();

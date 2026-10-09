@@ -132,9 +132,12 @@ Reading passage detail and practice pages offer an opt-in segmentation switch. C
 
 MCP consumers can process the same queue on HTTP and stdio:
 
-1. Call `list_learning_captures` with `status: "inbox"`, optionally filtering `category` (`word`, `grammar`, `sentence`, `listening`, `reading`, `unsure`). Omitting status preserves the existing all-status listing.
+1. Call `count_learning_captures` for the pending total, then `list_learning_captures_page` for one bounded page. Both default to `status: "inbox"`; optionally filter `category` (`word`, `grammar`, `sentence`, `listening`, `reading`, `unsure`) or explicitly select `status: "all"`. The client chooses `limit`, which must be an integer from 1 through 50; only omission falls back to 5. `includeTotal: true` adds the exact whole-filter count to a page.
 2. Parse each entry with its context. For word/grammar, check existing items and use `upsert_review_item`, preserving the requested deck/wordbook and source. For reading, use the reading create/update tools. For listening, require genuine audio before creating a question. Classify sentence/unsure inputs before choosing a destination; leave ambiguous inputs pending.
 3. After the result is successfully saved, call `update_learning_capture_status` with its `id` and `status: "processed"`. Failed writes stay in `inbox`; retry by checking for an already-saved result before writing again. `inbox` reopens an entry, and `archived` dismisses it. Both tools are scoped to the authenticated owner.
+4. Continue with `page.nextCursor`, optionally changing `limit`. Omitted filters inherit the cursor; explicitly supplied filters must match. Processing the previous page does not invalidate its cursor or skip remaining entries. Continue past failed entries before starting another traversal to retry them. A traversal is live, not a snapshot or exclusive claim; newly added or reopened entries earlier than the cursor need a fresh traversal.
+
+`list_learning_captures` remains a legacy unbounded array; omitting status preserves its existing all-status behavior. REST `/api/captures` likewise keeps `{ captures: [...] }`. New REST `/api/captures/count` and `/api/captures/page` share the new tools' filters and validation. See [the capture queue protocol](mcp-capture-queue.md) for request/response contracts and deployment discovery steps.
 
 These are shared catalogue changes; hosted MCP receives them only after the cloud API is deployed.
 

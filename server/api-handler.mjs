@@ -1,4 +1,5 @@
 import { studySync, studySyncStatus } from './study-sync.mjs';
+import { captureRestInput } from './capture-pagination.mjs';
 import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
 import { listMockExams, getMockExam, createMockExam, updateMockExam } from './mock-exams.mjs';
 import { readLocalOfficialSamples, readLocalMockExam, readLocalMockExamManifest } from './local-study-data.mjs';
@@ -56,6 +57,8 @@ import {
   listListeningRecordings,
   listReadingQuestions,
   listLearningCaptures,
+  countLearningCaptures,
+  listLearningCapturesPage,
   listWordbooks,
   organizeReviewItem,
   addReviewItemImage,
@@ -410,6 +413,12 @@ return async (req, res) => {
       return json(res, 200, buildStudyRecord(user.id));
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/captures/count') {
+      return json(res, 200, countLearningCaptures(user.id, captureRestInput(url.searchParams, false)));
+    }
+    if (req.method === 'GET' && url.pathname === '/api/captures/page') {
+      return json(res, 200, listLearningCapturesPage(user.id, captureRestInput(url.searchParams, true)));
+    }
     if (req.method === 'GET' && url.pathname === '/api/captures') {
       return json(res, 200, { captures: listLearningCaptures(user.id, url.searchParams.get('status')) });
     }

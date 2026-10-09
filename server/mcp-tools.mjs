@@ -1,4 +1,5 @@
 import { japaneseAnnotationsSchema } from './japanese-annotations.mjs';
+import { captureCountInput, capturePageInput } from './capture-pagination.mjs';
 import {saveAuthoredQuestion,getAuthoredQuestion} from './question-authoring.mjs';
 import {questionStrategies} from '../src/domain/questionContract.mjs';
 import {questionSpecifications,questionRegistrySchemaVersion} from '../src/domain/questionPayload.mjs';
@@ -69,6 +70,8 @@ import {
   readListeningRecordingAudioForUser,
   listPendingListeningRecordings,
   listLearningCaptures,
+  countLearningCaptures,
+  listLearningCapturesPage,
   updateLearningCaptureStatus,
   updateReviewPackDraft,
   listReviewPackDrafts,
@@ -281,7 +284,11 @@ export const tools = [
     async (args, ctx) => text(getDailyPracticeSourceContext(uid(ctx), args))),
   tool('get_study_record', 'Read the full personalized study record from SQLite plus JSON resources.',
     {}, ro, async (_args, ctx) => text(buildStudyRecord(uid(ctx)))),
-  tool('list_learning_captures', 'Read the AI processing queue. Use status inbox for pending work and category to process by type. Preserve context and targetDeck/targetWordbookId. For word/grammar use upsert_review_item (canonical form, source sentence, requested wordbook); for reading use create_reading_question or update_reading_question; for listening use create_listening_question with an owned audioReference or real audio bytes, otherwise leave pending. For sentence/unsure first classify from context; do not invent missing source material. Check existing records before writing to avoid duplicates. Only after successful persistence call update_learning_capture_status with processed; on failure leave inbox.',
+  tool('count_learning_captures', 'Count owned learning captures on the server without reading their bodies. Default status inbox; category is optional, all explicitly selects every status. Returns {total,filters}. Uses the same filters as list_learning_captures_page; counts may change between requests.',
+    captureCountInput, ro, async (args, ctx) => structured(countLearningCaptures(uid(ctx), args))),
+  tool('list_learning_captures_page', 'Read one bounded page of the owned AI processing queue. The client chooses limit (integer 1–50; default 5 only when omitted). Default status inbox. Returns {captures,page:{limit,returned,hasMore,nextCursor},total,filters}; total is null unless includeTotal=true and counts the whole filter match, before cursor. Ordered by createdAt DESC/id DESC; follow nextCursor with cursor and a client-selected limit. Omitted filters inherit the cursor; supplied filters must match. Cursors last 24 hours and remain valid after processed updates. This is a live traversal, not a frozen snapshot or exclusive claim: newer/reopened earlier entries need a new traversal. Preserve context and targetDeck/targetWordbookId; check for duplicates before saving via the appropriate library tools. Only after successful persistence mark processed with update_learning_capture_status; leave failed or ambiguous entries inbox and continue the cursor before retrying.',
+    capturePageInput, ro, async (args, ctx) => structured(listLearningCapturesPage(uid(ctx), args))),
+  tool('list_learning_captures', 'Legacy unbounded queue array. Prefer count_learning_captures and list_learning_captures_page for bounded processing. Use status inbox for pending work and category to process by type. Preserve context and targetDeck/targetWordbookId. For word/grammar use upsert_review_item (canonical form, source sentence, requested wordbook); for reading use create_reading_question or update_reading_question; for listening use create_listening_question with an owned audioReference or real audio bytes, otherwise leave pending. For sentence/unsure first classify from context; do not invent missing source material. Check existing records before writing to avoid duplicates. Only after successful persistence call update_learning_capture_status with processed; on failure leave inbox.',
     { status: z.enum(['inbox', 'processed', 'archived']).optional(), category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional().describe('Filter queue by input type.') }, ro,
     async ({ status, category }, ctx) => text(listLearningCaptures(uid(ctx), status).filter((capture) => !category || capture.category === category))),
   tool('update_learning_capture_status', 'Synchronize an owned queue entry after processing. Mark processed only after the parsed result has been successfully saved using the appropriate library tool. Leave failed or ambiguous inputs in inbox. Use inbox to retry or archived to dismiss.', {

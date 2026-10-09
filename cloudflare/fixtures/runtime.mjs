@@ -4,6 +4,17 @@ import { withPlatform } from '../../server/platform.mjs';
 import { JlptDatabase } from '../api-worker.mjs';
 const fetchProduction = JlptDatabase.prototype.fetch;
 JlptDatabase.prototype.fetch = async function(request) {
+    if (new URL(request.url).pathname === '/__capture-seed') {
+      return this.ctx.blockConcurrencyWhile(() => {
+        const insert = this.db.prepare(`INSERT INTO learning_captures (id,user_id,body,category,context,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`);
+        for (let index = 0; index < 12; index++) insert.run(`capture-${String(index).padStart(2, '0')}`, 1, `capture ${index}`, 'word', 'source context', 'inbox', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z');
+        for (const [id, owner, category, status] of [
+          ['grammar', 1, 'grammar', 'inbox'], ['processed', 1, 'word', 'processed'],
+          ['archived', 1, 'word', 'archived'], ['other', 2, 'word', 'inbox'],
+        ]) insert.run(id, owner, id, category, '', status, '2026-09-30T00:00:00.000Z', '2026-09-30T00:00:00.000Z');
+        return Response.json({ ids: Array.from({ length: 12 }, (_, index) => `capture-${String(index).padStart(2, '0')}`).reverse() });
+      });
+    }
     if (new URL(request.url).pathname === '/__tts-cache-alarm-recovery') {
       const original = this.db.prepare;
       await this.ctx.storage.deleteAlarm();

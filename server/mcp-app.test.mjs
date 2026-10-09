@@ -49,6 +49,13 @@ test('MCP_PATHS claims only the OAuth/MCP surface', () => {
 });
 
 test('every tool converts to JSON Schema and none carries a token parameter', () => {
+  function checkPortablePatterns(schema, path) {
+    if (!schema || typeof schema !== 'object') return;
+    if (typeof schema.pattern === 'string') {
+      assert.doesNotMatch(schema.pattern, /\\[pP]\{/, `${path}: Unicode property escapes cannot be imported by all MCP clients`);
+    }
+    for (const [key, value] of Object.entries(schema)) checkPortablePatterns(value, `${path}.${key}`);
+  }
   assert.equal(new Set(tools.map((tool) => tool.name)).size, tools.length);
   for (const name of ['get_reading_question', 'list_reading_questions', 'get_study_state', 'get_history_questions', 'list_listening_recordings', 'get_market_share', 'get_local_mock_exam']) {
     assert.ok(tools.some((tool) => tool.name === name), name);
@@ -58,6 +65,7 @@ test('every tool converts to JSON Schema and none carries a token parameter', ()
     const schema = toolJsonSchema(tool);
     assert.equal(schema.type, 'object');
     assert.ok(!('token' in (schema.properties ?? {})), tool.name);
+    checkPortablePatterns(schema, tool.name);
   }
   const plan = toolJsonSchema(tools.find((tool) => tool.name === 'save_generated_study_plan'));
   assert.deepEqual(plan.required, ['tasks']);

@@ -26,6 +26,18 @@ test('every v3 tool has a JSON schema and a unique name', () => {
   for (const t of v3Tools) assert.ok(z.toJSONSchema(z.object(t.inputSchema), { io: 'input' }), t.name);
 });
 
+test('tool schemas carry no Unicode-property regex patterns (MCP clients reject them during discovery)', () => {
+  const patterns = (node, path, out) => {
+    if (Array.isArray(node)) node.forEach((n, i) => patterns(n, `${path}[${i}]`, out));
+    else if (node && typeof node === 'object') {
+      if (typeof node.pattern === 'string' && /\\[pP]\{/.test(node.pattern)) out.push(path);
+      for (const [k, v] of Object.entries(node)) patterns(v, `${path}.${k}`, out);
+    }
+    return out;
+  };
+  for (const t of v3Tools) assert.deepEqual(patterns(z.toJSONSchema(z.object(t.inputSchema), { io: 'input' }), t.name, []), []);
+});
+
 test('knowledge, wordbooks, translations and ruby work through the tools', async () => {
   const book = (await call('create_wordbook', { title: '词汇' })).structuredContent;
   assert.equal(book.code, 'WB1');
@@ -85,4 +97,40 @@ test('question groups are validated, created, reviewed by another agent and audi
   assert.equal(Buffer.from(media.content[0].data, 'base64').toString(), 'ID3-test-audio');
   assert.equal((await byName.get_media.handler({ mediaId: upload.mediaId }, { ownerId: '2' })).isError, true, '他人のファイルは読めない');
   assert.equal((await call('list_question_groups', { module: 'listening' })).structuredContent.total, 1);
+});
+
+test('inbox count and cursor pages stay bounded and do not skip entries processed mid-traversal', async () => {
+  const owner = '3';
+  const add = (body, category = 'word') => call('create_learning_capture', { body, category }, owner);
+  for (let i = 0; i < 7; i++) await add(`語${i}`);
+  await add('文法', 'grammar');
+  await call('create_learning_capture', { body: '他人' }, '4');
+
+  assert.equal((await call('count_learning_captures', {}, owner)).structuredContent.total, 8);
+  assert.equal((await call('count_learning_captures', { status: 'inbox', category: 'word' }, owner)).structuredContent.total, 7);
+
+  const seen = [];
+  let page = (await call('list_learning_captures', { status: 'inbox', category: 'word', limit: 3 }, owner)).structuredContent;
+  assert.equal(page.total, 7);
+  for (;;) {
+    assert.ok(page.items.length <= 3);
+    seen.push(...page.items.map((c) => c.body));
+    // ページを処理してから続きを読む：OFFSET なら次のページが飛ぶ
+    for (const c of page.items) await call('update_learning_capture_status', { code: c.code, status: 'processed' }, owner);
+    if (!page.nextCursor) break;
+    page = (await call('list_learning_captures', { status: 'inbox', category: 'word', limit: 3, cursor: page.nextCursor }, owner)).structuredContent;
+  }
+  assert.deepEqual(seen, ['語6', '語5', '語4', '語3', '語2', '語1', '語0']);
+  assert.equal((await call('count_learning_captures', { status: 'inbox' }, owner)).structuredContent.total, 1);
+
+  // 境界ちょうどで終わるときは nextCursor を作らない
+  const exact = (await call('list_learning_captures', { status: 'processed', limit: 7 }, owner)).structuredContent;
+  assert.equal(exact.items.length, 7);
+  assert.equal(exact.nextCursor, null);
+
+  assert.equal((await call('list_learning_captures', { cursor: 'IN999' }, owner)).isError, true, '存在しない cursor は拒否');
+  const foreign = (await call('list_learning_captures', {}, '4')).structuredContent;
+  assert.equal((await call('list_learning_captures', { cursor: foreign.items[0].code }, owner)).structuredContent.items.length, 0,
+    '他人の编号は自分の编号空間で解決される');
+  assert.throws(() => z.object(byName.list_learning_captures.inputSchema).parse({ limit: 0 }));
 });

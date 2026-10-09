@@ -44,7 +44,8 @@ function requireOwned(db, userId, table, rid) {
 /** 指定言語の文字がない翻訳フィールドの一覧（学習者に見せるフィールドだけ）。 */
 export function listMissingTranslations(db, userId, { language, code, limit = 50 }) {
   if (!SUPPORTED_LANGUAGES.includes(language)) throw new InputError(`未対応の言語：${language}`);
-  const visible = new Set(db.prepare('SELECT owner_table || ? || field AS k FROM translatable_fields WHERE learner_visible = 1').all('\u0000').map((r) => r.k));
+  // キーは JS 側で組み立てる（SQLite は NUL を含む文字列を NUL で切って返す）。
+  const visible = new Set(db.prepare('SELECT owner_table, field FROM translatable_fields WHERE learner_visible = 1').all().map((r) => `${r.owner_table}\u0000${r.field}`));
   const groups = db.prepare(`SELECT owner_table, owner_rid, field FROM content_translations GROUP BY owner_table, owner_rid, field
     HAVING SUM(language = ?) = 0 AND SUM(language <> 'ja') > 0 ORDER BY owner_table, owner_rid, field`).all(language);
   const wanted = code ? String(code).toUpperCase() : null;

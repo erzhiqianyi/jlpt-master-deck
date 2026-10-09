@@ -12,7 +12,7 @@ import { listMaterials, getMaterial, createMaterial, updateMaterial, deleteMater
 import { createPracticeSet, listPracticeSets, getPracticeSet, deletePracticeSet, startAttempt, getAttempt, submitAnswer, completeAttempt, activeAttempt, listAttempts, listMistakes } from './repo/practice.mjs';
 import { dueCards, rateCard, listRatings, cardFor } from './repo/cards.mjs';
 import { studyOverview } from './repo/stats.mjs';
-import { listCaptures, getCapture, createCapture, setCaptureStatus, deleteCapture } from './repo/inbox.mjs';
+import { listCaptures, countCaptures, getCapture, createCapture, setCaptureStatus, deleteCapture } from './repo/inbox.mjs';
 import { createRecording, getRecording, listRecordings, claimRecording, saveRecordingAnalysis, deleteRecording } from './repo/recordings.mjs';
 import { getPlan, savePlanProfile, saveGeneratedPlan, setTaskStatus } from './repo/plans.mjs';
 import { reportContext, upsertReport, getReport, listReports } from './repo/reports.mjs';
@@ -110,7 +110,8 @@ route('GET', new RegExp(`^/api/v3/cards/${CODE}$`), ({ db, user, params, url }) 
 route('GET', /^\/api\/v3\/stats$/, ({ db, user, url }) => studyOverview(db, user.id, param(url, ['days', 'module'])));
 
 // ---------- 收集箱、录音 ----------
-route('GET', /^\/api\/v3\/inbox$/, ({ db, user, url }) => listCaptures(db, user.id, param(url, ['status', 'category', 'limit', 'offset'])));
+route('GET', /^\/api\/v3\/inbox$/, ({ db, user, url }) => listCaptures(db, user.id, param(url, ['status', 'category', 'limit', 'offset', 'cursor'])));
+route('GET', /^\/api\/v3\/inbox\/count$/, ({ db, user, url }) => countCaptures(db, user.id, param(url, ['status', 'category'])));
 route('POST', /^\/api\/v3\/inbox$/, ({ db, user, body }) => ({ capture: createCapture(db, user.id, body) }), { write: true });
 route('GET', new RegExp(`^/api/v3/inbox/${CODE}$`), ({ db, user, params }) => ({ capture: getCapture(db, user.id, params[0]) }));
 route('PATCH', new RegExp(`^/api/v3/inbox/${CODE}$`), ({ db, user, params, body }) => ({ capture: setCaptureStatus(db, user.id, params[0], body?.status) }), { write: true });

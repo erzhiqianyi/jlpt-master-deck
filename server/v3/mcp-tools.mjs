@@ -16,7 +16,7 @@ import { createPracticeSet, listPracticeSets, getPracticeSet, deletePracticeSet,
 import { dueCards, rateCard, listRatings } from './repo/cards.mjs';
 import { studyOverview } from './repo/stats.mjs';
 import { learningHome } from './repo/home.mjs';
-import { listCaptures, createCapture, setCaptureStatus } from './repo/inbox.mjs';
+import { listCaptures, countCaptures, createCapture, setCaptureStatus } from './repo/inbox.mjs';
 import { getRecording, listRecordings, claimRecording, saveRecordingAnalysis, deleteRecording } from './repo/recordings.mjs';
 import { getPlan, savePlanProfile, saveGeneratedPlan, setTaskStatus, planContext } from './repo/plans.mjs';
 import { reportContext, upsertReport, getReport, listReports, dailyPracticeContext } from './repo/reports.mjs';
@@ -267,8 +267,12 @@ export const v3Tools = [
 
 
   // ---------- 收集箱 ----------
-  tool('list_learning_captures', 'Read the inbox of things the learner noted while studying (words, grammar, sentences, listening or reading questions). Use status inbox for unprocessed entries.', {
+  tool('count_learning_captures', 'Count inbox entries without reading them. Same status / category filters as list_learning_captures; omit status to count every status.', {
+    status: z.enum(['inbox', 'processed', 'archived']).optional(), category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional(),
+  }, ro, ({ db, userId }, args) => countCaptures(db, userId, args)),
+  tool('list_learning_captures', 'Read the inbox of things the learner noted while studying (words, grammar, sentences, listening or reading questions), newest first. Use status inbox for unprocessed entries. Returns {total,items,nextCursor}; pass nextCursor back as cursor (with the same filters) for the next page. Marking entries processed does not make the next page skip any.', {
     status: z.enum(['inbox', 'processed', 'archived']).optional(), category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional(), limit: z.number().int().min(1).max(500).optional(),
+    cursor: z.string().max(40).optional().describe('nextCursor of the previous page (an inbox code such as IN12).'),
   }, ro, ({ db, userId }, args) => listCaptures(db, userId, args)),
   tool('create_learning_capture', 'Add something to the learner inbox for later processing, e.g. a word lookup that found nothing. wordbook (WB1) is where it should go once processed.', {
     body: z.string().min(1).max(4000), category: z.enum(['word', 'grammar', 'sentence', 'listening', 'reading', 'unsure']).optional(), context: z.string().max(8000).optional(), wordbook: z.string().optional(),

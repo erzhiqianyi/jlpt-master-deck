@@ -9,15 +9,46 @@ function shape(r) {
 }
 const SELECT = 'SELECT c.*, w.code AS wordbook_code FROM inbox_captures c LEFT JOIN wordbooks w ON w.rid = c.target_wordbook_rid';
 
-export function listCaptures(db, userId, { status, category, limit = 100, offset = 0 } = {}) {
+function filters(userId, { status, category } = {}) {
   const where = ['c.user_id = :user'];
   const params = { user: userId };
   if (status) { where.push('c.status = :status'); params.status = oneOf(status, STATUSES, 'status'); }
   if (category) { where.push('c.category = :category'); params.category = oneOf(category, CATEGORIES, 'category'); }
+  return { where, params };
+}
+
+function pageLimit(limit) {
+  if (limit === undefined || limit === null || limit === '') return 100;
+  const n = Number(limit);
+  if (!Number.isInteger(n) || n < 1 || n > 500) throw new InputError(`limit 只能是 1～500 的整数，收到「${limit}」`);
+  return n;
+}
+
+/** 条件に合う件数だけを数える（本文は読まない）。 */
+export function countCaptures(db, userId, query = {}) {
+  const { where, params } = filters(userId, query);
+  return { total: db.prepare(`SELECT count(*) AS n FROM inbox_captures c WHERE ${where.join(' AND ')}`).get(params).n };
+}
+
+/**
+ * 新しい順に 1 ページ。cursor は前のページの nextCursor（最後に返した条目の编号）で、
+ * その条目より古いものから続ける。途中で processed にしても続きが飛ばない（OFFSET と違う）。
+ */
+export function listCaptures(db, userId, { status, category, limit, offset, cursor } = {}) {
+  const { where, params } = filters(userId, { status, category });
   const total = db.prepare(`SELECT count(*) AS n FROM inbox_captures c WHERE ${where.join(' AND ')}`).get(params).n;
+  if (cursor) {
+    const anchor = db.prepare('SELECT rid FROM inbox_captures WHERE user_id = ? AND code = ?').get(userId, String(cursor).toUpperCase());
+    if (!anchor) throw new InputError(`cursor 无效：${cursor}（请不带 cursor 重新开始）`);
+    where.push('c.rid < :anchor');
+    params.anchor = anchor.rid;
+  }
+  const size = pageLimit(limit);
+  // 1 件多く読んで続きがあるかを判定する（その 1 件は返さない）。
   const rows = db.prepare(`${SELECT} WHERE ${where.join(' AND ')} ORDER BY c.rid DESC LIMIT :limit OFFSET :offset`)
-    .all({ ...params, limit: Math.min(500, Math.max(1, Number(limit) || 100)), offset: Math.max(0, Number(offset) || 0) });
-  return { total, items: rows.map(shape) };
+    .all({ ...params, limit: size + 1, offset: cursor ? 0 : Math.max(0, Number(offset) || 0) });
+  const items = rows.slice(0, size).map(shape);
+  return { total, items, nextCursor: rows.length > size ? items.at(-1).code : null };
 }
 
 export function getCapture(db, userId, code) {

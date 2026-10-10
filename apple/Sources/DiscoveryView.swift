@@ -230,10 +230,9 @@ struct DiscoveryDetailView: View {
                     do {
                         guard let bytes = try await item.loadTransferable(type: Data.self), let bitmap = UIImage(data: bytes), let data = bitmap.jpegData(compressionQuality: 0.85) else { throw APIError.invalidResponse }
                         guard data.count <= 5 * 1024 * 1024 else { message = "图片不能超过 5 MB"; return }
-                        struct Input: Encodable { let imageBase64: String; let mime: String }
-                        struct Result: Decodable { let coverUrl: String }
-                        let _: Result = try await store.api.put("api/market/\(share.id)/cover", body: Input(imageBase64: data.base64EncodedString(), mime: "image/jpeg"))
-                        await store.refresh(); content = nil; await loadContent(); message = "封面已更新"
+                        // Shares in schema v3 have no cover image; the generated cover is used.
+                        _ = data
+                        message = "当前版本的分享不支持自定义封面"
                     } catch { message = error.localizedDescription }
                 }
             }
@@ -246,8 +245,7 @@ struct DiscoveryDetailView: View {
         Task {
             defer { busy = false }
             do {
-                struct Result: Decodable {}
-                let _: Result = try await store.api.delete("api/market/\(share.id)")
+                _ = try await store.api.data("api/v3/market/\(share.id)", method: "DELETE")
                 store.shares.removeAll { $0.id == share.id }
                 dismiss()
             } catch { message = error.localizedDescription }
@@ -259,9 +257,7 @@ struct DiscoveryDetailView: View {
         Task {
             defer { busy = false }
             do {
-                struct Input: Encodable { let shareId: String }
-                struct Result: Decodable {}
-                let _: Result = try await store.api.post("api/market/import", body: Input(shareId: share.id))
+                _ = try await store.api.data("api/v3/market/\(share.id)/import", method: "POST", body: Data("{}".utf8))
                 added = true
                 await store.refresh()
                 message = store.notice ?? "已添加到我的学习"
@@ -273,9 +269,9 @@ struct DiscoveryDetailView: View {
         loading = true; loadError = nil
         defer { loading = false }
         do {
-            let result: DiscoveryDetail = try await store.api.get("api/market/\(share.id)")
+            let package = try await V3Bridge.shareDetail(api: store.api, id: share.id)
             guard !Task.isCancelled else { return }
-            content = result.package
+            content = package
         } catch { if !Task.isCancelled { loadError = error.localizedDescription } }
     }
 }
@@ -552,9 +548,10 @@ struct MyDiscoverySharesView: View {
         loading = true; error = nil
         defer { loading = false }
         do {
-            struct Result: Decodable { let shares: [DiscoveryShare] }
-            let result: Result = try await store.api.get("api/market?mine=1")
-            store.shares = store.shares.filter { $0.mine != true } + result.shares
+            let mine = V3Bridge.array(try V3Bridge.object(try await store.api.data("api/v3/market?mine=1"))["shares"]).map { entry -> DiscoveryShare in
+                var share = V3Bridge.share(entry); share.mine = true; return share
+            }
+            store.shares = store.shares.filter { $0.mine != true } + mine
         } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
     }
 }
@@ -566,7 +563,6 @@ struct EditDiscoveryShareView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var description: String
-    @State private var refreshSource = false
     @State private var busy = false
     @State private var error: String?
     init(share: DiscoveryShare, onSaved: @escaping (DiscoveryPackage) -> Void) {
@@ -578,11 +574,9 @@ struct EditDiscoveryShareView: View {
             Form {
                 Section("标题") { TextField("分享标题", text: $title) }
                 Section("简介") { TextEditor(text: $description).frame(minHeight: 120) }
-                if share.kind != "listening" {
-                    Section {
-                        Toggle("更新为原内容最新版", isOn: $refreshSource)
-                    } footer: { Text("修改原单词本或练习后，可在这里更新分享内容。别人已导入的副本不会改变。") }
-                }
+                Section {
+                    EmptyView()
+                } footer: { Text("保存时分享内容会按原单词本或练习的最新版本更新。别人已导入的副本不会改变。") }
                 if let error { Text(error).foregroundStyle(.red) }
             }.disabled(busy).navigationTitle("编辑分享").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -597,12 +591,13 @@ struct EditDiscoveryShareView: View {
         Task {
             defer { busy = false }
             do {
-                struct Input: Encodable { let title: String; let description: String; let refreshSource: Bool }
-                let result: DiscoveryDetail = try await store.api.patch("api/market/\(share.id)", body: Input(title: title, description: description, refreshSource: refreshSource))
-                onSaved(result.package)
+                struct Input: Encodable { let title: String; let description: String }
+                let response = try V3Bridge.object(try await store.api.data("api/v3/market/\(share.id)/refresh", method: "POST", body: JSONEncoder().encode(Input(title: title, description: description))))
+                let package = try V3Bridge.package(response["share"] as? [String: Any] ?? [:])
+                onSaved(package)
                 // Update this row immediately; a later refresh must not leave stale title/intro visible.
                 if let index = store.shares.firstIndex(where: { $0.id == share.id }) {
-                    store.shares[index] = DiscoveryShare(id: share.id, title: title.trimmingCharacters(in: .whitespacesAndNewlines), kind: share.kind, description: description.trimmingCharacters(in: .whitespacesAndNewlines), count: share.kind == "wordbook" ? (result.package.items?.count ?? share.count) : (result.package.questions?.count ?? share.count), categories: share.categories, cover: share.cover, coverUrl: share.coverUrl, level: share.level, coverTitle: nil, mine: true)
+                    store.shares[index] = DiscoveryShare(id: share.id, title: title.trimmingCharacters(in: .whitespacesAndNewlines), kind: share.kind, description: description.trimmingCharacters(in: .whitespacesAndNewlines), count: share.kind == "wordbook" ? (package.items?.count ?? share.count) : (package.questions?.count ?? share.count), categories: share.categories, cover: share.cover, coverUrl: share.coverUrl, level: share.level, coverTitle: nil, mine: true)
                 }
                 dismiss()
             } catch { self.error = error.localizedDescription }

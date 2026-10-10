@@ -30,6 +30,7 @@
 		B78879CD47D2FC54A3929C42 /* StudyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A049F8665810C5F1A7374FB /* StudyTests.swift */; };
 		C32D759FDC7645FB2811A211 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 11BA31F958F73F69AA3D6FAD /* GoogleSignIn */; };
 		C3B95992D273051CE1451F32 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9C6932FCBFA6E158266D95 /* Theme.swift */; };
+		A10D15A100000000000003B1 /* V3Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10D15A10000000000003B02 /* V3Bridge.swift */; };
 		C540AEBD7F182F2ED63AC3E0 /* NativePractice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86EB041AD44AA21857F254F0 /* NativePractice.swift */; };
 		D0E6701BFD52325C024FA9EE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D1EED32A237987B12C4C46 /* APIClient.swift */; };
 		D1D362EF4C86DE97AD5B26F1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 055618518B832B414C7824D2 /* Foundation.framework */; };
@@ -97,6 +98,7 @@
 		DE70D740A316D208D2E6FEB9 /* JLPTMasterDeck.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = JLPTMasterDeck.entitlements; sourceTree = "<group>"; };
 		EAB95471ABAE4B69878AFC8E /* JLPTMasterDeckApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JLPTMasterDeckApp.swift; sourceTree = "<group>"; };
 		EF9C6932FCBFA6E158266D95 /* Theme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A10D15A10000000000003B02 /* V3Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = V3Bridge.swift; sourceTree = "<group>"; };
 		F09C68181B70689CC18C24DA /* LocalStudyData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalStudyData.swift; sourceTree = "<group>"; };
 		A10D15A10000000000000002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -178,6 +180,7 @@
 				C363CA3B219A0FFBD6D023CB /* StudyViews.swift */,
 				0081F089492841CD7A2AF1A6 /* SupportingViews.swift */,
 				EF9C6932FCBFA6E158266D95 /* Theme.swift */,
+				A10D15A10000000000003B02 /* V3Bridge.swift */,
 				A10D15A10000000000000006 /* JapaneseText.swift */,
 				C0DC1D07451F2D1D0C4D52DE /* WorkspaceView.swift */,
 				F09C68181B70689CC18C24DA /* LocalStudyData.swift */,
@@ -394,6 +397,7 @@
 				E239F3B5159F1B61092D80C6 /* StudyViews.swift in Sources */,
 				D21B0BE04E849FD17ABFE242 /* SupportingViews.swift in Sources */,
 				C3B95992D273051CE1451F32 /* Theme.swift in Sources */,
+				A10D15A100000000000003B1 /* V3Bridge.swift in Sources */,
 				A10D15A10000000000000005 /* JapaneseText.swift in Sources */,
 				AFD6EA67BD6149BDEF721AD3 /* WorkspaceView.swift in Sources */,
 				45725CA97634113BA043EC64 /* LocalStudyData.swift in Sources */,

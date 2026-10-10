@@ -1,7 +1,6 @@
 import SwiftUI
 import WebKit
 import CryptoKit
-import JavaScriptCore
 
 struct PracticeEntry: Identifiable {
     let id: String; let title: String; let subtitle: String; let icon: String
@@ -49,34 +48,16 @@ extension NativeQuestion {
         return value
     }
 }
-/// Uses the same authored seeds, eligibility rules, distractors and IDs as web practice.
+/// Practice questions come from the reviewed v3 question bank (synchronized into `AppStore.bank`),
+/// not generated from items on the device. Pack versions are listed first.
 enum NativeItemQuestions {
+    static var bank: [NativeQuestion] = []
     static func buildAll(items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
-        guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"), let context = JSContext() else { throw APIError.invalidResponse }
-        context.evaluateScript(try String(contentsOf: url, encoding: .utf8))
-        let json = String(decoding: try JSONEncoder().encode(items), as: UTF8.self)
-        guard let output = context.objectForKeyedSubscript("JLPTItemQuestions")?.objectForKeyedSubscript("all")?.call(withArguments: [json, locale])?.toString(), context.exception == nil else { throw APIError.invalidResponse }
-        let generated = try JSONDecoder().decode([NativeQuestion].self, from: Data(output.utf8))
-        let supported = Set(generated.map(\.id))
         var seen = Set<String>()
-        return (packs.flatMap(\.questions).filter { supported.contains($0.id) } + generated).filter { $0.isUsable && seen.insert($0.canonicalQuestionId ?? $0.id).inserted }
+        return (packs.flatMap(\.questions) + bank).filter { $0.isUsable && seen.insert($0.id).inserted }
     }
     static func build(item: StudyItem, items: [StudyItem], packs: [NativePack], locale: String) throws -> [NativeQuestion] {
-        guard let url = Bundle.main.url(forResource: "ItemQuestions", withExtension: "js"),
-              let context = JSContext() else { throw APIError.invalidResponse }
-        context.evaluateScript(try String(contentsOf: url, encoding: .utf8))
-        let inputs = items.contains(where: { $0.id == item.id }) ? items : items + [item]
-        let json = String(decoding: try JSONEncoder().encode(inputs), as: UTF8.self)
-        let supportedLocale = ["zh-CN", "ja", "en"].contains(locale) ? locale : "zh-CN"
-        guard let function = context.objectForKeyedSubscript("JLPTItemQuestions")?.objectForKeyedSubscript("forItem"),
-              let output = function.call(withArguments: [json, item.id, supportedLocale])?.toString(),
-              context.exception == nil else { throw APIError.invalidResponse }
-        let generated = try JSONDecoder().decode([NativeQuestion].self, from: Data(output.utf8))
-        var seen = Set<String>()
-        // Pack versions take precedence when the same question has subsequently been edited.
-        return (packs.flatMap(\.questions) + generated).filter {
-            $0.itemId == item.id && $0.isUsable && seen.insert($0.canonicalQuestionId ?? $0.id).inserted
-        }
+        try buildAll(items: items, packs: packs, locale: locale).filter { $0.itemId == item.id }
     }
 }
 
@@ -1123,9 +1104,7 @@ struct NativeTopicConfirmationView: View {
         case .publish: return "练习准备未完成，请重试。"
         }
     }
-    private struct Envelope: Decodable { let draft: NativeTopicDraft }
-    private struct Acknowledgment: Decodable { }
-    private var path: String { "api/drafts/\(draftID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? draftID)" }
+    private var code: String { draftID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? draftID }
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 8) {
@@ -1197,7 +1176,7 @@ struct NativeTopicConfirmationView: View {
         failureOperation = .load
         busy = true; failure = nil
         defer { busy = false }
-        do { let result: Envelope = try await store.api.get(path); draft = result.draft }
+        do { draft = try await V3Bridge.topicDraft(api: store.api, code: code) }
         catch { failure = error.localizedDescription }
     }
     private func confirm() async {
@@ -1208,23 +1187,23 @@ struct NativeTopicConfirmationView: View {
         busy = true; failure = nil
         defer { busy = false }
         do {
-            let latest: Envelope = try await client.get(path)
+            let latest = try await V3Bridge.topicDraft(api: client, code: code)
             guard store.session?.token == token else { throw CancellationError() }
-            if latest.draft.approved {
-                draft = latest.draft
-                try await store.cacheTopicDraft(latest.draft)
+            if latest.approved {
+                draft = latest
+                try await store.cacheTopicDraft(latest)
                 return
             }
-            guard latest.draft.updated_at == reviewed.updated_at else {
-                draft = latest.draft
+            guard latest.updated_at == reviewed.updated_at else {
+                draft = latest
                 throw IdentityError.message("这份练习已在其他端更新，请重新检查后确认。")
             }
-            struct Input: Encodable { let unknownWords: String }
-            let _: Acknowledgment = try await client.post(path + "/confirm", body: Input(unknownWords: ""))
-            let result: Envelope = try await client.get(path)
+            struct Input: Encodable { let status: String }
+            _ = try await client.data("api/v3/drafts/\(code)/status", method: "POST", body: JSONEncoder().encode(Input(status: "approved")))
+            let result = try await V3Bridge.topicDraft(api: client, code: code)
             guard store.session?.token == token else { throw CancellationError() }
-            draft = result.draft
-            try await store.cacheTopicDraft(result.draft)
+            draft = result
+            try await store.cacheTopicDraft(result)
         } catch { failure = error.localizedDescription }
     }
     private func publish() async {
@@ -1234,15 +1213,13 @@ struct NativeTopicConfirmationView: View {
         busy = true; failure = nil
         defer { busy = false }
         do {
-            struct Input: Encodable { let date: String; let title: String }
-            struct Result: Decodable { let practice: NativePack }
-            let result: Result = try await client.post(path + "/publish-daily-practice", body: Input(date: StudyDates.day(), title: draft?.title ?? "专项练习"))
-            let latest: Envelope = try await client.get(path)
+            let practice = try await V3Bridge.publishDraft(api: client, code: code, date: StudyDates.day(), title: draft?.title ?? "专项练习")
+            let latest = try await V3Bridge.topicDraft(api: client, code: code)
             guard store.session?.token == token else { throw CancellationError() }
-            draft = latest.draft
-            try await store.cacheTopicDraft(latest.draft, practice: result.practice)
+            draft = latest
+            try await store.cacheTopicDraft(latest, practice: practice)
             dismiss()
-            onStart(result.practice)
+            onStart(practice)
         } catch { failure = error.localizedDescription }
     }
 }

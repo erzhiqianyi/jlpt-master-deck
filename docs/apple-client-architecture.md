@@ -1,6 +1,6 @@
 # Apple client and shared identity
 
-> The data layer of the Apple client still uses the pre-v3 API. What has to change, call by call, is in [apple-v3-port.md](apple-v3-port.md). Identity and sign-in below are unchanged.
+> The data layer of the Apple client uses the v3 API through `apple/Sources/V3Bridge.swift`; see [apple-v3-port.md](apple-v3-port.md). Identity and sign-in below are unchanged.
 
 ## Scope and platform
 

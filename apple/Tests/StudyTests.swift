@@ -156,59 +156,32 @@ final class StudyTests: XCTestCase {
         XCTAssertEqual(restored, display)
     }
 
-    func testItemPracticePreservesSeedsAndAllLinkedQuestions() throws {
-        let json = """
-        {"id":"word","deck":"n1_vocab","original":"測定","reading":"そくてい","type":"word",
-         "meaning_zh":"测定","examples":[{"ja":"温度を測定する。","zh":"测量温度。"}],
-         "practice_questions":[
-           {"id":"seed-reading","kind":"kanji_to_kana","prompt":"温度を測定する。","choices":["そくてい","そってい"],"answer":"そくてい"},
-           {"id":"seed-usage","kind":"usage","prompt":"測定","choices":["温度を測定する。","友達を測定する。"],"answer":"温度を測定する。"}]}
-        """
-        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
-        let cached = try JSONDecoder().decode(StudyItem.self, from: JSONEncoder().encode(item))
+    func testItemPracticeUsesBankAndPackQuestionsLinkedToTheItem() throws {
         let linked = (0..<25).map { index in
-            NativeQuestion(id: "linked-\(index)", itemId: item.id, kind: "meaning", title: "词义", prompt: "測定", choices: ["测定", "决定"], answer: "测定")
+            NativeQuestion(id: "QV\(index + 1)", itemId: "W1", kind: "meaning", title: "词义", prompt: "測定", choices: ["测定", "决定"], answer: "测定")
         }
-        let unrelated = NativeQuestion(id: "other", itemId: "other-item", kind: "meaning", title: "词义", prompt: "別", choices: ["A", "B"], answer: "A")
-        let packs = [NativePack(id: "pack", title: "练习", date: "2026-10-05", questions: linked + [linked[0], unrelated])]
-        let questions = try NativeItemQuestions.build(item: cached, items: [cached], packs: packs, locale: "zh-CN")
-        XCTAssertTrue(Set(questions.map(\.id)).isSuperset(of: linked.map(\.id)))
-        XCTAssertEqual(questions.filter { $0.id == "linked-0" }.count, 1)
-        XCTAssertTrue(questions.contains { $0.id == "seed-reading" })
-        XCTAssertTrue(questions.contains { $0.id == "seed-usage" })
-        XCTAssertTrue(questions.allSatisfy { $0.itemId == item.id && $0.isUsable })
+        let unrelated = NativeQuestion(id: "QV99", itemId: "W2", kind: "meaning", title: "词义", prompt: "別", choices: ["A", "B"], answer: "A")
+        NativeItemQuestions.bank = [linked[0], unrelated]
+        defer { NativeItemQuestions.bank = [] }
+        let item = try JSONDecoder().decode(StudyItem.self, from: Data(#"{"id":"W1","deck":"n1_vocab","original":"測定"}"#.utf8))
+        let packs = [NativePack(id: "DP1", title: "练习", date: "2026-10-05", questions: linked + [linked[0], unrelated])]
+        let questions = try NativeItemQuestions.build(item: item, items: [item], packs: packs, locale: "zh-CN")
+        XCTAssertEqual(Set(questions.map(\.id)), Set(linked.map(\.id)))
+        XCTAssertEqual(questions.filter { $0.id == "QV1" }.count, 1)
+        XCTAssertTrue(questions.allSatisfy { $0.itemId == "W1" && $0.isUsable })
     }
 
-    func testTypePracticePoolKeepsBookMetadataAndUniqueSeedIDs() throws {
-        let json = """
-        {"id":"grammar","deck":"grammar_expression","wordbook_id":"book-1","original":"かつて","meaning_zh":"曾经","tags":["時間"],
-         "practice_questions":[{"id":"g-type","kind":"grammar","prompt":"ここは（　）工場だった。","choices":["かつて","まだ"],"answer":"かつて"}]}
-        """
-        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
-        let cached = try JSONDecoder().decode(StudyItem.self, from: JSONEncoder().encode(item))
-        XCTAssertEqual(cached.wordbook_id, "book-1")
-        XCTAssertEqual(cached.tags, ["時間"])
-        let initial = try NativeItemQuestions.buildAll(items: [cached], packs: [], locale: "zh-CN")
-        XCTAssertEqual(initial.map(\.id), ["g-type"])
-        let pack = NativePack(id: "pack", title: "练习", date: "2026-10-07", questions: initial + initial)
-        XCTAssertEqual(try NativeItemQuestions.buildAll(items: [cached], packs: [pack], locale: "zh-CN").map(\.id), ["g-type"])
-        var data = LocalStudyData(); data.wordbooks = [NativeWordbook(id: "book-1", title: "时间", deck: "grammar_expression")]
+    func testTypePracticePoolDeduplicatesBankAndPackQuestions() throws {
+        let question = NativeQuestion(id: "QG1", itemId: "G1", kind: "grammar", title: "文法", prompt: "ここは（　）工場だった。", choices: ["かつて", "まだ"], answer: "かつて")
+        NativeItemQuestions.bank = [question]
+        defer { NativeItemQuestions.bank = [] }
+        XCTAssertEqual(try NativeItemQuestions.buildAll(items: [], packs: [], locale: "zh-CN").map(\.id), ["QG1"])
+        let pack = NativePack(id: "DP1", title: "练习", date: "2026-10-07", questions: [question, question])
+        XCTAssertEqual(try NativeItemQuestions.buildAll(items: [], packs: [pack], locale: "zh-CN").map(\.id), ["QG1"])
+        var data = LocalStudyData(); data.wordbooks = [NativeWordbook(id: "WB1", title: "时间", deck: "all")]; data.bank = [question]
         let restored = try JSONDecoder().decode(LocalStudyData.self, from: JSONEncoder().encode(data))
-        XCTAssertEqual(restored.wordbooks?.first?.id, "book-1")
-    }
-
-    func testGrammarItemPracticeKeepsEveryAuthoredSeed() throws {
-        let json = """
-        {"id":"grammar","deck":"grammar_expression","original":"かつて","meaning_zh":"曾经",
-         "practice_questions":[
-          {"id":"g1","prompt":"ここは（　）工場だった。","choices":["かつて","まだ"],"answer":"かつて","explanation_zh":"表示过去的某个时期。"},
-          {"id":"g2","kind":"grammar","prompt":"いまだ（　）見たことがない。","choices":["かつて","まもなく"],"answer":"かつて"}]}
-        """
-        let item = try JSONDecoder().decode(StudyItem.self, from: Data(json.utf8))
-        let questions = try NativeItemQuestions.build(item: item, items: [item], packs: [], locale: "zh-CN")
-        XCTAssertEqual(questions.map(\.id), ["g1", "g2"])
-        XCTAssertTrue(questions.allSatisfy { $0.kind == "grammar" })
-        XCTAssertTrue(questions[0].correctReason?.contains("表示过去") == true)
+        XCTAssertEqual(restored.wordbooks?.first?.id, "WB1")
+        XCTAssertEqual(restored.bank?.map(\.id), ["QG1"])
     }
 
     actor ImageDownloads {
@@ -506,9 +479,9 @@ final class StudyTests: XCTestCase {
     }
     func testImageRequestsHandleUploadedRelativeAndExternalImages() throws {
         let uploaded = try APIClient.itemImageRequest(["id": "vocab-image"], token: "test-token")
-        XCTAssertEqual(uploaded.url?.path, "/api/item-images/vocab-image")
+        XCTAssertEqual(uploaded.url?.path, "/api/v3/media/vocab-image")
         XCTAssertEqual(uploaded.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
-        let relative = try APIClient.itemImageRequest(["url": "/api/item-images/grammar-image"], token: "test-token")
+        let relative = try APIClient.itemImageRequest(["url": "/api/v3/media/12"], token: "test-token")
         XCTAssertEqual(relative.url?.host, APIClient.origin.host)
         XCTAssertEqual(relative.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
         let external = try APIClient.itemImageRequest(["url": "https://example.com/image.jpg"], token: "test-token")
@@ -1298,5 +1271,111 @@ final class TypedQuestionPresentationTests: XCTestCase {
         XCTAssertNotNil(value.attribute(.underlineStyle, at: range.location, effectiveRange: nil))
         XCTAssertEqual(value.attribute(.foregroundColor, at: range.location, effectiveRange: nil) as? UIColor, UIColor.red)
         XCTAssertNil(NativeTargetSpan(start: 1, end: 2, text: "x").range(in: "😀x"))
+    }
+}
+
+
+/// The v3 adapter, fed with real output of the v3 server (generated by the Node repositories).
+final class V3BridgeTests: XCTestCase {
+    static let records = #"""
+[{"collection": "settings", "code": null, "value": {"uiLanguage": "zh-CN", "explanationLanguage": "zh-Hans", "fontScale": 1, "feedbackMode": "immediate", "practiceNavigation": "auto", "autoAdvanceSeconds": 0.5, "showReviewRuby": true, "showExplanationRuby": true, "showRomaji": true, "cardWordSpacing": true, "segmentedDisplay": false, "dailySource": {"answers": true, "cardReviews": true, "window": null, "hours": null, "timeZone": null, "runAt": null, "ratings": []}, "questionKinds": [], "posStyles": {}, "questionTypeTips": {}, "customTips": [], "speech": {"provider": "browser", "rate": 1, "cardAuto": "off", "grammarAuto": false, "includeExample": false, "voices": {}}, "cardTemplates": {"word": "word_standard", "grammar": "grammar_standard", "name": "name_standard"}}}, {"collection": "wordbooks", "code": null, "value": [{"code": "WB1", "title": "词汇", "createdAt": "2026-10-10T00:48:32.121Z", "updatedAt": "2026-10-10T00:48:32.121Z", "stats": {"total": 1, "words": 1, "grammar": 0, "names": 0, "due": 0, "new": 0, "mastered": 0}}]}, {"collection": "plan", "code": null, "value": {"status": "ready", "generatedAt": "2026-10-10T00:48:32.205Z", "updatedAt": "2026-10-10T00:48:32.205Z", "language": "zh-Hans", "profile": {"examName": "JLPT", "level": "N2", "startDate": null, "examDate": "2026-12-06", "studyDaysPerWeek": null, "dailyMinutes": 30, "materialStartStatus": null, "fixedSchedule": null, "supplementalNeeds": null, "materials": []}, "strategy": {"phaseStrategy": null, "postMaterialStrategy": null, "goal": null}, "phases": [], "tasks": [{"code": "TK1", "date": "2026-10-10", "module": "vocabulary", "minutes": 20, "material": null, "status": "pending", "completedAt": null, "title": {"text": "単語", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "detail": null, "sourceLabel": null}]}}, {"collection": "inbox", "code": null, "value": [{"code": "IN1", "body": "面目躍如", "category": "word", "context": null, "wordbook": "WB1", "status": "inbox", "createdAt": "2026-10-10T00:48:32.200Z", "updatedAt": "2026-10-10T00:48:32.200Z"}]}, {"collection": "drafts", "code": null, "value": [{"code": "DR1", "status": "draft", "kind": null, "date": null, "questionCount": 1, "commentCount": 0, "title": {"text": "复习包", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "createdAt": "2026-10-10T00:48:32.208Z", "updatedAt": "2026-10-10T00:48:32.208Z"}]}, {"collection": "attempts", "code": null, "value": [{"code": "AT1", "kind": "mixed", "practice": null, "active": false, "startedAt": "2026-10-10T00:48:32.186Z", "completedAt": "2026-10-10T00:48:32.192Z", "title": null, "summary": {"total": 1, "answered": 1, "scored": 1, "correct": 1, "elapsedMs": 0}}]}, {"collection": "ratings", "code": null, "value": [{"eventId": "r1", "code": "W1", "rating": "hard", "reviewedAt": "2026-10-10T00:48:32.195Z", "source": "mcp"}]}, {"collection": "knowledge", "code": "W1", "value": {"code": "W1", "kind": "word", "wordbook": "WB1", "language": "zh-Hans", "expression": "捉える", "reading": "とらえる", "romaji": "toraeru", "pos": "verb_2", "transitivity": null, "isSuruNoun": false, "baseForm": null, "jlptLevel": {"min": "N2", "max": "N2"}, "register": null, "paraphrase": null, "meaning": {"text": "抓住", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "meaningJa": "しっかりつかむ。", "explanation": {"text": "解释", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "examples": [{"sentence": "要点を捉える。", "reading": null, "spokenSentence": null, "targetReading": null, "translation": {"text": "抓住要点。", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "spokenTranslation": null, "analysis": null, "formAnalysis": null}], "memoryPoints": [{"text": "抽象", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}], "patterns": [{"pattern": "～を捉える", "example": null, "connection": null, "meaning": {"text": "抓住", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "exampleTranslation": null}], "notes": [{"kind": "exam_tip", "title": null, "body": {"text": "tip", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "comparisons": [{"target": "捕らえる", "kind": "synonym", "difference": {"text": "具体", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "alternateForms": [], "relatedWords": [], "sources": [], "tags": ["动词"], "questionKinds": [], "distractors": {}, "memoryImage": null, "conjugations": [{"form": "dictionary", "label": "辞書形", "written": "捉える", "reading": "とらえる", "exception": false, "step": {"text": "去掉词尾「る」，接「る」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "polite", "label": "ます形", "written": "捉えます", "reading": "とらえます", "exception": false, "step": {"text": "去掉词尾「る」，接「ます」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "negative", "label": "ない形", "written": "捉えない", "reading": "とらえない", "exception": false, "step": {"text": "去掉词尾「る」，接「ない」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "past", "label": "た形", "written": "捉えた", "reading": "とらえた", "exception": false, "step": {"text": "去掉词尾「る」，接「た」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "te", "label": "て形", "written": "捉えて", "reading": "とらえて", "exception": false, "step": {"text": "去掉词尾「る」，接「て」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "potential", "label": "可能形", "written": "捉えられる", "reading": "とらえられる", "exception": false, "step": {"text": "去掉词尾「る」，接「られる」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "passive", "label": "受身形", "written": "捉えられる", "reading": "とらえられる", "exception": false, "step": {"text": "去掉词尾「る」，接「られる」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "causative", "label": "使役形", "written": "捉えさせる", "reading": "とらえさせる", "exception": false, "step": {"text": "去掉词尾「る」，接「させる」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "causative_passive", "label": "使役受身形", "written": "捉えさせられる", "reading": "とらえさせられる", "exception": false, "step": {"text": "去掉词尾「る」，接「させられる」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "volitional", "label": "意向形", "written": "捉えよう", "reading": "とらえよう", "exception": false, "step": {"text": "去掉词尾「る」，接「よう」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "conditional_ba", "label": "条件形（ば）", "written": "捉えれば", "reading": "とらえれば", "exception": false, "step": {"text": "去掉词尾「る」，接「れば」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "conditional_tara", "label": "たら形", "written": "捉えたら", "reading": "とらえたら", "exception": false, "step": {"text": "去掉词尾「る」，接「たら」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "imperative", "label": "命令形", "written": "捉えろ", "reading": "とらえろ", "exception": false, "step": {"text": "去掉词尾「る」，接「ろ」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}, {"form": "prohibitive", "label": "禁止形", "written": "捉えるな", "reading": "とらえるな", "exception": false, "step": {"text": "去掉词尾「る」，接「るな」", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "questions": [{"code": "QV1", "typeId": "vocabulary-kanji-reading", "status": "ready", "relation": "target"}], "sourceSentence": "要点を捉えて話す。", "compileNote": null, "review": {"status": "review", "reviewCount": 2, "ease": 2.6, "intervalDays": 1, "dueAt": "2026-10-11T00:48:32.195Z", "firstSeenAt": "2026-10-10T00:48:32.189Z", "lastReviewedAt": "2026-10-10T00:48:32.195Z"}, "capturedAt": "2026-10-10T00:48:32.127Z", "createdAt": "2026-10-10T00:48:32.127Z", "updatedAt": "2026-10-10T00:48:32.127Z"}}, {"collection": "questionGroups", "code": "QS1", "value": {"code": "QS1", "typeId": "vocabulary-kanji-reading", "module": "vocabulary", "status": "ready", "level": "N2", "official": false, "shuffleOptions": true, "instruction": "読み方", "instructionTranslation": null, "context": null, "contextTranslation": null, "sourceReference": null, "language": "zh-Hans", "materials": [], "questions": [{"code": "QV1", "position": 0, "prompt": "彼は問題の本質を的確に捉えている。", "promptMediaId": null, "expectedText": null, "translation": {"text": "t", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "marks": [{"kind": "target", "start": 11, "end": 14, "label": null, "material": null}], "options": [{"id": 1, "position": 0, "text": "とらえて", "mediaId": null, "correct": true, "distractorType": null, "analysis": {"text": "a", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 2, "position": 1, "text": "おさえて", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "b", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 3, "position": 2, "text": "かかえて", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "c", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 4, "position": 3, "text": "つかまえて", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "d", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}], "explanation": [{"kind": "basis", "title": null, "body": {"text": "basis", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "evidence": [], "tags": [], "knowledge": [{"code": "W1", "relation": "target", "expression": "捉える"}]}], "review": {"latest": {"reviewer": "ai", "verdict": "pass", "agentLabel": null, "summary": {"text": "ok", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "createdAt": "2026-10-10T00:48:32.158Z"}, "openFindings": []}, "createdAt": "2026-10-10T00:48:32.153Z", "updatedAt": "2026-10-10T00:48:32.158Z"}}, {"collection": "questionGroups", "code": "QS2", "value": {"code": "QS2", "typeId": "reading-short", "module": "reading", "status": "ready", "level": "N2", "official": false, "shuffleOptions": true, "instruction": null, "instructionTranslation": null, "context": null, "contextTranslation": null, "sourceReference": null, "language": "zh-Hans", "materials": [{"role": "main", "material": "MT1", "kind": "passage", "body": "素材が変わった。だから味も変わった。", "transcript": null, "mediaId": null, "mediaUrl": null, "clipStartMs": null, "clipEndMs": null, "title": null, "bodyTranslation": {"text": "食材变了。", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "summary": null, "structure": null, "transcriptTranslation": null, "sentences": [], "createdAt": "2026-10-10T00:48:32.173Z", "updatedAt": "2026-10-10T00:48:32.173Z"}], "questions": [{"code": "QR1", "position": 0, "prompt": "何が変わったか。", "promptMediaId": null, "expectedText": null, "translation": null, "marks": [], "options": [{"id": 5, "position": 0, "text": "素材", "mediaId": null, "correct": true, "distractorType": null, "analysis": {"text": "a", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 6, "position": 1, "text": "場所", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "b", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 7, "position": 2, "text": "人", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "c", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 8, "position": 3, "text": "時間", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "d", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}], "explanation": [{"kind": "basis", "title": null, "body": {"text": "basis", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "evidence": [{"option": null, "material": "main", "source": "body", "start": null, "end": null, "quote": "素材が変わった。"}], "tags": [], "knowledge": []}], "review": {"latest": {"reviewer": "ai", "verdict": "pass", "agentLabel": null, "summary": {"text": "ok", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "createdAt": "2026-10-10T00:48:32.183Z"}, "openFindings": []}, "createdAt": "2026-10-10T00:48:32.172Z", "updatedAt": "2026-10-10T00:48:32.183Z"}}, {"collection": "questionGroups", "code": "QS3", "value": {"code": "QS3", "typeId": "listening-points", "module": "listening", "status": "ready", "level": "N2", "official": false, "shuffleOptions": true, "instruction": null, "instructionTranslation": null, "context": null, "contextTranslation": null, "sourceReference": null, "language": "zh-Hans", "materials": [{"role": "audio", "material": "MT2", "kind": "audio", "body": null, "transcript": "男：明日は雨です。", "mediaId": 1, "mediaUrl": "/api/v3/media/1", "clipStartMs": null, "clipEndMs": null, "title": null, "bodyTranslation": null, "summary": null, "structure": null, "transcriptTranslation": null, "sentences": [], "createdAt": "2026-10-10T00:48:32.179Z", "updatedAt": "2026-10-10T00:48:32.179Z"}], "questions": [{"code": "QL1", "position": 0, "prompt": "天気は？", "promptMediaId": null, "expectedText": null, "translation": null, "marks": [], "options": [{"id": 9, "position": 0, "text": "雨", "mediaId": null, "correct": true, "distractorType": null, "analysis": {"text": "a", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 10, "position": 1, "text": "晴れ", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "b", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 11, "position": 2, "text": "雪", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "c", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}, {"id": 12, "position": 3, "text": "曇り", "mediaId": null, "correct": false, "distractorType": "x", "analysis": {"text": "d", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "translation": null}], "explanation": [{"kind": "basis", "title": null, "body": {"text": "basis", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}}], "evidence": [], "tags": [], "knowledge": []}], "review": {"latest": {"reviewer": "ai", "verdict": "pass", "agentLabel": null, "summary": {"text": "ok", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "createdAt": "2026-10-10T00:48:32.184Z"}, "openFindings": []}, "createdAt": "2026-10-10T00:48:32.179Z", "updatedAt": "2026-10-10T00:48:32.184Z"}}, {"collection": "practiceSets", "code": "DP1", "value": {"code": "DP1", "kind": "daily", "date": "2026-10-10", "version": 1, "minutes": null, "strategy": null, "level": null, "title": {"text": "今日の練習", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "description": null, "disclaimer": null, "sourceSummary": null, "sections": [{"position": 0, "instruction": null, "scheduledDate": null, "durationMinutes": null, "title": {"text": "語彙", "language": "zh-Hans", "isFallback": false, "origin": "manual", "verified": true}, "description": null, "entries": [{"position": 0, "question": "QV1", "group": "QS1", "typeId": "vocabulary-kanji-reading", "groupStatus": "ready"}]}], "entries": [], "attempts": [], "createdAt": "2026-10-10T00:48:32.197Z", "updatedAt": "2026-10-10T00:48:32.197Z"}}]
+"""#
+    static let share = #"""
+{"list": [{"id": "764951d0-c83b-48bf-a699-f11f8f571f43", "kind": "practice", "title": "共有練習", "description": "説明", "knowledgeCount": 1, "groupCount": 1, "questionCount": 1, "mine": true, "withdrawn": false, "createdAt": "2026-10-10T00:48:32.221Z"}], "detail": {"id": "764951d0-c83b-48bf-a699-f11f8f571f43", "kind": "practice", "title": "共有練習", "description": "説明", "knowledgeCount": 1, "groupCount": 1, "questionCount": 1, "mine": false, "withdrawn": false, "createdAt": "2026-10-10T00:48:32.221Z", "revisions": [{"revision": 1, "createdAt": "2026-10-10T00:48:32.221Z"}], "package": {"format": "jlpt-share", "version": 2, "kind": "practice", "title": "共有練習", "description": "説明", "language": "zh-Hans", "knowledge": [{"kind": "word", "expression": "捉える", "reading": "とらえる", "pos": "verb_2", "jlptLevel": {"min": "N2", "max": "N2"}, "meaning": "抓住", "meaningJa": "しっかりつかむ。", "explanation": "解释", "examples": [{"sentence": "要点を捉える。", "translation": "抓住要点。"}], "memoryPoints": ["抽象"], "patterns": [{"pattern": "～を捉える", "meaning": "抓住"}], "notes": [{"kind": "exam_tip", "body": "tip"}], "comparisons": [{"target": "捕らえる", "kind": "synonym", "difference": "具体"}], "alternateForms": [], "relatedWords": [], "tags": ["动词"], "sources": []}], "groups": [{"typeId": "vocabulary-kanji-reading", "level": "N2", "official": false, "shuffleOptions": true, "instruction": "読み方", "materials": [], "questions": [{"prompt": "彼は問題の本質を的確に捉えている。", "translation": "t", "marks": [{"kind": "target", "start": 11, "end": 14, "label": null, "material": null}], "options": [{"text": "とらえて", "correct": true, "analysis": "a"}, {"text": "おさえて", "correct": false, "distractorType": "x", "analysis": "b"}, {"text": "かかえて", "correct": false, "distractorType": "x", "analysis": "c"}, {"text": "つかまえて", "correct": false, "distractorType": "x", "analysis": "d"}], "explanation": [{"kind": "basis", "body": "basis"}], "evidence": [], "tags": [], "knowledge": [{"index": 0, "relation": "target"}]}]}], "media": []}}}
+"""#
+    private func snapshot() throws -> LocalStudyData {
+        let records = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(Self.records.utf8)) as? [[String: Any]])
+        return try V3Bridge.snapshot(records)
+    }
+
+    func testSyncRecordsBecomeTheCachedModels() throws {
+        let data = try snapshot()
+        let item = try XCTUnwrap(data.items.first)
+        XCTAssertEqual(item.id, "W1")
+        XCTAssertEqual(item.deck, "n1_vocab")
+        XCTAssertEqual(item.original, "捉える")
+        XCTAssertEqual(item.reading, "とらえる")
+        XCTAssertEqual(item.meaning_zh, "抓住")
+        XCTAssertEqual(item.jlpt_level, "N2")
+        XCTAssertEqual(item.examples?.first?.ja, "要点を捉える。")
+        XCTAssertEqual(item.examples?.first?.zh, "抓住要点。")
+        XCTAssertEqual(item.core_memory, ["抽象"])
+        XCTAssertEqual(item.wordbook_id, "WB1")
+        XCTAssertTrue(item.conjugations?.contains { $0.form == "捉えます" } == true)
+        XCTAssertEqual(item.localized?.meaning?.text, "抓住")
+        XCTAssertEqual(data.state.progress["W1"]?.reviewCount, 2, "the practice answer and the hard rating both scheduled the card")
+        XCTAssertEqual(data.wordbooks?.map(\.id), ["WB1"])
+        XCTAssertEqual(data.captures.map(\.body), ["面目躍如"])
+        XCTAssertEqual(data.drafts.map(\.id), ["DR1"])
+        XCTAssertEqual(data.plan.profile?.examDate, "2026-12-06")
+        XCTAssertEqual(data.plan.tasks.map(\.id), ["TK1"])
+        XCTAssertEqual(data.state.cardReviews?.map(\.itemId), ["W1"])
+        XCTAssertEqual(data.state.attemptHistory?.first?.correctCount, 1)
+    }
+
+    func testQuestionGroupsBecomePracticeReadingAndListening() throws {
+        let data = try snapshot()
+        let question = try XCTUnwrap(data.bank?.first)
+        XCTAssertEqual(question.id, "QV1")
+        XCTAssertEqual(question.itemId, "W1")
+        XCTAssertEqual(question.kind, "kanji_to_kana")
+        XCTAssertEqual(question.answer, "とらえて")
+        XCTAssertEqual(question.promptTarget, "捉えて", "UTF-16 mark offsets")
+        XCTAssertEqual(question.choiceAnalysis?.count, 4)
+        XCTAssertEqual(data.optionIds?["QV1"]?["とらえて"], 1)
+        XCTAssertEqual(data.packs.map(\.id), ["DP1"])
+        XCTAssertEqual(data.packs.first?.questions.map(\.id), ["QV1"])
+        let reading = try XCTUnwrap(data.reading.first)
+        XCTAssertEqual(reading.id, "QR1")
+        XCTAssertTrue(reading.passage.contains("素材が変わった"))
+        XCTAssertEqual(reading.choices[reading.answerIndex], "素材")
+        let listening = try XCTUnwrap(data.listening.first)
+        XCTAssertEqual(listening.id, "QL1")
+        XCTAssertEqual(listening.audioAssetId, "1")
+        XCTAssertEqual(listening.transcript, "男：明日は雨です。")
+    }
+
+    func testSettingsTranslateBothWays() throws {
+        let data = try snapshot()
+        let settings = try XCTUnwrap(data.state.settings)
+        XCTAssertEqual(settings["locale"], .string("zh-CN"))
+        XCTAssertEqual(settings["practiceAutoAdvanceSeconds"], .number(0.5))
+        XCTAssertEqual(settings["ttsProvider"], .string("browser"))
+        let patch = try XCTUnwrap(try JSONSerialization.jsonObject(with: V3Bridge.settingsPatch([
+            "locale": .string("ja"), "practiceAutoAdvanceSeconds": .number(1), "jlptVocabularyQuestionKinds": .array([.string("kanji_to_kana")]),
+            "japaneseDisplay": .object(["segmented": .bool(true), "styles": .object([:])]), "memoryCardFrontFields": .array([]),
+        ])) as? [String: Any])
+        XCTAssertEqual(patch["uiLanguage"] as? String, "ja")
+        XCTAssertEqual(patch["autoAdvanceSeconds"] as? Double, 1)
+        XCTAssertEqual(patch["questionKinds"] as? [String], ["vocabulary-kanji-reading"])
+        XCTAssertEqual(patch["segmentedDisplay"] as? Bool, true)
+        XCTAssertNil(patch["memoryCardFrontFields"], "keys v3 does not store stay on the device")
+    }
+
+    func testSharesAndPackagesDecode() throws {
+        let share = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(Self.share.utf8)) as? [String: Any])
+        let list = try XCTUnwrap(share["list"] as? [[String: Any]])
+        let row = V3Bridge.share(list[0])
+        XCTAssertEqual(row.kind, "practice")
+        XCTAssertEqual(row.count, 1)
+        XCTAssertEqual(row.mine, true)
+        let package = try V3Bridge.package(try XCTUnwrap(share["detail"] as? [String: Any]))
+        XCTAssertEqual(package.items?.first?.original, "捉える")
+        XCTAssertEqual(package.practiceQuestions.first?.answer, "とらえて")
+    }
+
+    func testOptionalsInsideJSONDoNotCrashSerialization() throws {
+        let missing: String? = nil
+        let cleaned = try XCTUnwrap(V3Bridge.clean(["a": missing as Any, "b": [1, NSNull()], "c": "x"]) as? [String: Any])
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(cleaned))
+        XCTAssertNil(cleaned["a"])
+        XCTAssertEqual(cleaned["c"] as? String, "x")
+    }
+
+    func testOnlyV3QuestionCodesAreUploaded() {
+        XCTAssertTrue(V3Bridge.isQuestionCode("QV15"))
+        XCTAssertTrue(V3Bridge.isQuestionCode("QL2"))
+        XCTAssertFalse(V3Bridge.isQuestionCode("pq-1"))
+        XCTAssertFalse(V3Bridge.isQuestionCode("memory-card:W1"))
     }
 }

@@ -12,6 +12,8 @@ struct PendingAnswer: Codable, Identifiable {
     var needsSyncReview: Bool? = nil
     var syncReviewReason: String? = nil
     var syncDecision: String? = nil
+    /// The native practice round this answer belongs to; its answers go into one server practice record.
+    var nativeAttemptId: String? = nil
     var isCardReview: Bool { input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: input.selected) != nil }
     var canAutomaticallyUpload: Bool { needsSyncReview != true }
     enum Disposition { case send, alreadyApplied, conflict }
@@ -57,6 +59,12 @@ struct LocalStudyData: Codable {
     var syncReviewCount: Int { pending.count - uploadableCount }
     var responses: [String: LocalStudyResponse]?
     var memoryReview: ReviewSession?
+    /// Reviewed vocabulary/grammar questions from the v3 question bank (the practice pool).
+    var bank: [NativeQuestion]?
+    /// v3 question code → option text → option id (answers are uploaded by option id).
+    var optionIds: [String: [String: Int]]?
+    /// Native practice round id → the server practice record its queued answers are uploaded into.
+    var remoteAttempts: [String: String]?
 
     /// Downloaded content can advance independently of queued, unacknowledged answers.
     func preservingLocalWork(pending: [PendingAnswer], responses: [String: LocalStudyResponse], syncedAt: Date, memoryReview: ReviewSession? = nil) -> Self {
@@ -97,7 +105,7 @@ struct LocalStudyFiles {
     let root: URL
     init(root: URL? = nil) {
         self.root = root ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("OfflineStudy-v1", isDirectory: true)
+            .appendingPathComponent("OfflineStudy-v3", isDirectory: true)
     }
     func directory(userID: Int) -> URL { root.appendingPathComponent("user-\(userID)", isDirectory: true) }
     func load(userID: Int) throws -> LocalStudyData? {
@@ -202,6 +210,7 @@ extension LocalStudyData {
                 input: .init(questionId: question.id, itemId: question.itemId, selected: answer.selected, correct: answer.correct,
                              progressEntry: progress, attemptHistory: index == additions.count - 1 ? [attempt] : nil, syncEventId: eventID.uuidString))
             operation.input.canonicalQuestionId = question.canonicalQuestionId; operation.input.questionRevision = question.questionRevision; operation.input.kind = question.questionTypeId ?? question.kind
+            operation.nativeAttemptId = attempt.id
             if next.pending.contains(where: { $0.input.itemId == question.itemId && $0.needsSyncReview == true }) { operation.needsSyncReview = true }
             next.pending.append(operation)
             next.state.progress[question.itemId] = progress

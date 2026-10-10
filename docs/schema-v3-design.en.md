@@ -635,10 +635,10 @@ Status (2026-10-10):
 | Phase | Status |
 |---|---|
 | 0–4 | Done. Server, REST, MCP, web, browser extension and MCP App views use only v3; the legacy engine (`storage.mjs` and friends), query layer, endpoints and demo data are removed. The migration script and `scripts/v3/verify-*.mjs` are available |
-| 5 | Cloudflare done: the Worker runs v3 (statement-by-statement schema install, named-parameter adapter, R2 writes, OAuth tables) with integration tests. The offline sync endpoint `GET /api/v3/sync` is ready. **iOS still calls the legacy API** and must be rewritten in an Xcode environment following [apple-v3-port.md](apple-v3-port.md) |
+| 5 | Cloudflare done: the Worker runs v3 (statement-by-statement schema install, named-parameter adapter, R2 writes, OAuth tables) with integration tests. The offline sync endpoint `GET /api/v3/sync` is ready. The iOS data layer is on v3 (`apple/Sources/V3Bridge.swift`, see [apple-v3-port.md](apple-v3-port.md)); **it still has to be compiled and tested in Xcode** |
 | 6 | Tooling ready, not executed: maintenance API and `scripts/v3/cloud-migrate.mjs` (backup → migrate → reconcile → import into a new instance → switch with `DATABASE_NAME`); steps in [cloudflare-pages-deploy.md](cloudflare-pages-deploy.md). Running it in production needs separate approval |
 
-After v3 is deployed, the production instance that still holds legacy data is read-only and waits for migration (requests return 503), and iOS is unusable until it is rewritten.
+After v3 is deployed, the production instance that still holds legacy data is read-only and waits for migration (requests return 503), and the new iOS build has to be compiled, tested and released first.
 
 ## 12. Confirmed decisions (2026-10-09)
 

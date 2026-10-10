@@ -12,7 +12,7 @@ struct APIClient {
     static func itemImageRequest(_ image: [String: String], token: String?) throws -> URLRequest {
         let url: URL?
         if let id = image["id"], !id.isEmpty {
-            url = origin.appendingPathComponent("api/item-images").appendingPathComponent(id)
+            url = origin.appendingPathComponent("api/v3/media").appendingPathComponent(id)
         } else {
             url = image["url"].flatMap { URL(string: $0, relativeTo: origin.appendingPathComponent("/"))?.absoluteURL }
         }
@@ -38,6 +38,14 @@ struct APIClient {
     }
     func delete<T: Decodable>(_ path: String) async throws -> T { try await send(path, method: "DELETE") }
     private func send<T: Decodable>(_ path: String, method: String = "GET", data: Data? = nil) async throws -> T {
+        let bytes = try await self.data(path, method: method, body: data)
+        do { return try JSONDecoder().decode(T.self, from: bytes) }
+        catch let error as DecodingError {
+            throw Self.decodingFailure(error, path: path)
+        }
+    }
+    /// The raw response body of a successful request (V3Bridge parses it).
+    func data(_ path: String, method: String = "GET", body data: Data? = nil) async throws -> Data {
         #if DEBUG
         Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Network").debug("request \(method, privacy: .public) \(path, privacy: .public)")
         #endif
@@ -56,10 +64,7 @@ struct APIClient {
             let message = (try? JSONDecoder().decode(ErrorBody.self, from: bytes))?.error ?? "请求失败（\(http.statusCode)）"
             throw APIError.http(http.statusCode, message)
         }
-        do { return try JSONDecoder().decode(T.self, from: bytes) }
-        catch let error as DecodingError {
-            throw Self.decodingFailure(error, path: path)
-        }
+        return bytes
     }
     static func decodingFailure(_ error: DecodingError, path: String) -> APIError {
         let context: DecodingError.Context

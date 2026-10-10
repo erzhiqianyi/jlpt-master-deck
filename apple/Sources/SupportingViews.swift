@@ -1016,9 +1016,9 @@ struct PracticeFeedbackSettingsView: View {
             loadingSettings = true
             defer { loadingSettings = false }
             do {
-                let latest: StudyState = try await store.api.get("api/study-state/settings")
-                loadVocabularyKinds(latest.settings)
-                if case .string(let saved) = latest.settings?["feedbackMode"], ["batch", "immediate"].contains(saved) { mode = saved }
+                let latest = try await V3Bridge.latestSettings(api: store.api)
+                loadVocabularyKinds(latest)
+                if case .string(let saved) = latest["feedbackMode"], ["batch", "immediate"].contains(saved) { mode = saved }
             } catch { message = error.localizedDescription }
         }
     }
@@ -1423,8 +1423,8 @@ struct NativeDailyPracticeSourceSettings: View {
         }.navigationTitle("每日练习来源").task {
             guard !loaded else { return }
             do {
-                let state = store.isDemo ? store.state : try await store.api.get("api/study-state/settings") as StudyState
-                if case .object(let saved) = state.settings?["dailyPracticeSources"] {
+                let settings = store.isDemo ? (store.state.settings ?? [:]) : try await V3Bridge.latestSettings(api: store.api)
+                if case .object(let saved) = settings["dailyPracticeSources"] {
                     if case .bool(let v) = saved["answers"] { answers = v }
                     if case .bool(let v) = saved["cardReviews"] { cardReviews = v }
                     if case .array(let v) = saved["ratings"] { ratings = v.compactMap { if case .string(let s) = $0 { return s }; return nil } }
@@ -1491,7 +1491,7 @@ struct NativeTypePracticeSetup: View {
                     if module == "vocabulary" || module == "grammar" {
                         Picker(module == "grammar" ? "语法本" : "单词本", selection: $book) {
                             Text("全部").tag("all")
-                            ForEach(store.wordbooks.filter { (module == "grammar") == ($0.deck == "grammar_expression") }) { Text($0.title).tag($0.id) }
+                            ForEach(store.wordbooks) { Text($0.title).tag($0.id) }
                         }
                     }
                     if module != "listening" {
@@ -1567,7 +1567,7 @@ struct NativeLibraryTypeSummary: View {
     @State private var generated: [NativeQuestion] = []
     @State private var selected: NativeLibraryTypeRequest?
     @State private var error: String?
-    private var books: [NativeWordbook] { store.wordbooks.filter { (module == "grammar") == ($0.deck == "grammar_expression") } }
+    private var books: [NativeWordbook] { store.wordbooks }
     private var items: [StudyItem] { store.items.filter { (module == "grammar") == $0.isGrammar && (book == "all" || ($0.wordbook_id ?? $0.deck) == book) } }
     private var candidates: [String] {
         if module == "reading" { return store.reading.map { q in (q.tags ?? []).first { $0.hasPrefix("reading-") && NativeTypePracticeSetup.typeNames[$0] != nil } ?? "unclassified" } }

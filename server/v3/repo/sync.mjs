@@ -10,6 +10,9 @@ import { getQuestionGroup } from './questions.mjs';
 import { getPracticeSet } from './practice.mjs';
 import { getPlan } from './plans.mjs';
 import { listCaptures } from './inbox.mjs';
+import { listDrafts } from './drafts.mjs';
+import { listAttempts } from './practice.mjs';
+import { listRatings } from './cards.mjs';
 
 export const SYNC_FORMAT = 'jlpt-v3-sync';
 export const SYNC_VERSION = 1;
@@ -20,6 +23,10 @@ const COLLECTIONS = [
   { name: 'wordbooks', single: (db, userId) => listWordbooks(db, userId) },
   { name: 'plan', single: (db, userId, language) => getPlan(db, userId, { language }) },
   { name: 'inbox', single: (db, userId) => listCaptures(db, userId, { status: 'inbox', limit: 500 }).items },
+  // 履歴は直近の分だけ（端末の記録画面と統計用）。全件は /attempts と /cards/ratings で読む。
+  { name: 'drafts', single: (db, userId, language) => listDrafts(db, userId, { limit: 50, language }) },
+  { name: 'attempts', single: (db, userId, language) => listAttempts(db, userId, { limit: 200, language }).items },
+  { name: 'ratings', single: (db, userId) => listRatings(db, userId, { limit: 500 }) },
   { name: 'knowledge', table: 'knowledge_points', read: (db, userId, code, language) => getKnowledge(db, userId, code, { language }) },
   { name: 'questionGroups', table: 'question_groups', read: (db, userId, code, language) => getQuestionGroup(db, userId, code, { language }) },
   { name: 'practiceSets', table: 'practice_sets', read: (db, userId, code, language) => getPracticeSet(db, userId, code, { language }) },

@@ -42,7 +42,7 @@ test('a sync traversal returns every record once, in collection order, for the o
 
   const { records, pages } = traverse(db, 1, 2);
   assert.ok(pages > 3);
-  assert.deepEqual([...new Set(records.map((r) => r.collection))], ['settings', 'wordbooks', 'plan', 'inbox', 'knowledge']);
+  assert.deepEqual([...new Set(records.map((r) => r.collection))], ['settings', 'wordbooks', 'plan', 'inbox', 'drafts', 'attempts', 'ratings', 'knowledge']);
   const knowledge = records.filter((r) => r.collection === 'knowledge');
   assert.deepEqual(knowledge.map((r) => r.code), ['W1', 'W2', 'W3', 'W4', 'W5']);
   assert.equal(knowledge[0].value.expression, '捉える');

@@ -635,10 +635,10 @@ Cloudflare Workers（Durable Object SQLite）的限制：单条语句最多 100 
 | 阶段 | 状态 |
 |---|---|
 | 0–4 | 完成。服务端、REST、MCP、Web、浏览器扩展、MCP App 视图都只用 v3；旧引擎（`storage.mjs` 等）、旧查询层、旧接口和旧演示数据已删除。迁移脚本与 `scripts/v3/verify-*.mjs` 可用 |
-| 5 | Cloudflare 完成：Worker 使用 v3（逐条建表、具名参数适配、R2 写入、OAuth 表），集成测试覆盖。离线同步接口 `GET /api/v3/sync` 已就绪。**iOS 仍调用旧接口**，需在 Xcode 环境按 [apple-v3-port.md](apple-v3-port.md) 改写 |
+| 5 | Cloudflare 完成：Worker 使用 v3（逐条建表、具名参数适配、R2 写入、OAuth 表），集成测试覆盖。离线同步接口 `GET /api/v3/sync` 已就绪。iOS 数据层已改为 v3（`apple/Sources/V3Bridge.swift`，见 [apple-v3-port.md](apple-v3-port.md)），**尚需在 Xcode 中编译、测试** |
 | 6 | 工具就绪、未执行：维护接口与 `scripts/v3/cloud-migrate.mjs`（备份 → 迁移 → 对账 → 导入新实例 → 用 `DATABASE_NAME` 切换），步骤见 [cloudflare-pages-deploy.md](cloudflare-pages-deploy.md)。线上执行需另行授权 |
 
-部署 v3 后，仍保存旧数据的线上实例只读等待迁移（请求返回 503），iOS 在改写完成前不可用。
+部署 v3 后，仍保存旧数据的线上实例只读等待迁移（请求返回 503）。iOS 需要先在 Xcode 中编译、测试并发布新版本。
 
 ## 12. 已确认的决定（2026-10-09）
 

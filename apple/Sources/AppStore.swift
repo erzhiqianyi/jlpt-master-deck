@@ -29,6 +29,10 @@ final class AppStore {
     var shares: [DiscoveryShare] = []
     var bankVersions: [String: [String: BankCachedVersion]]?
     var bankQuestionStates: [String: BankQuestionState]?
+    /// Reviewed questions of the v3 bank; native practice draws from them.
+    var bank: [NativeQuestion] = [] { didSet { NativeItemQuestions.bank = bank } }
+    @ObservationIgnored private var optionIds: [String: [String: Int]] = [:]
+    @ObservationIgnored private var remoteAttempts: [String: String] = [:]
     private(set) var responses: [String: LocalStudyResponse] = [:]
     private(set) var pending: [PendingAnswer] = []
     private(set) var memoryReview: ReviewSession?
@@ -201,6 +205,7 @@ final class AppStore {
             reading = data.reading; captures = data.captures
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             bankVersions = data.bankVersions; bankQuestionStates = data.bankQuestionStates
+            bank = data.bank ?? []; optionIds = data.optionIds ?? [:]; remoteAttempts = data.remoteAttempts ?? [:]
             hasPracticeCache = true; hasListeningCache = true
             lastSync = data.lastSync; syncCursor = data.syncCursor
             notice = result.uploadError.map { syncSummary + "\n" + $0 } ?? syncSummary
@@ -235,16 +240,15 @@ final class AppStore {
         let expected = generation
         isSaving = true
         defer { isSaving = false }
-        struct RawEnvelope: Decodable { let plan: [String: SettingValue] }
-        let current: RawEnvelope = try await api.get("api/study-plan")
+        struct Profile: Encodable { let examName: String; let level: String; let examDate: String }
+        let body = try JSONEncoder().encode(Profile(examName: name, level: level, examDate: date))
+        let response = try V3Bridge.object(try await api.data("api/v3/plan/profile", method: "PUT", body: body))
         guard expected == generation else { throw CancellationError() }
-        guard case .object(var profile) = current.plan["profile"] else { throw IdentityError.message("未能读取学习计划。") }
-        profile["examName"] = .string(name); profile["level"] = .string(level); profile["examDate"] = .string(date)
-        let result: PlanEnvelope = try await api.put("api/study-plan/profile", body: profile)
-        guard expected == generation else { throw CancellationError() }
-        guard result.plan.profile?.examName == name, result.plan.profile?.level == level, result.plan.profile?.examDate == date else {
+        let saved = try V3Bridge.plan(response["plan"] as? [String: Any] ?? response)
+        guard saved.profile?.examName == name, saved.profile?.level == level, saved.profile?.examDate == date else {
             throw IdentityError.message("服务器尚未保存完整考试目标，请更新服务后重试。")
         }
+        let result = PlanEnvelope(plan: saved)
         let previous = plan
         plan = result.plan
         do { try persist() } catch { plan = previous; throw error }
@@ -261,24 +265,17 @@ final class AppStore {
         defer { isSaving = false }
         var settings = state.settings ?? [:]
         if !isDemo {
-            let latest: StudyState = try await api.get("api/study-state/settings")
+            // v3 stores the settings it models; the rest (e.g. card fields) stay on this device.
+            let response = try V3Bridge.object(try await api.data("api/v3/settings", method: "PATCH", body: try V3Bridge.settingsPatch(changes)))
             guard expected == generation else { throw CancellationError() }
-            settings = latest.settings ?? [:]
-        }
-        settings.merge(changes) { _, new in new }
-        if !isDemo {
-            struct Result: Decodable { let settings: [String: SettingValue] }
-            let result: Result = try await api.put("api/study-state/settings", body: settings)
-            guard expected == generation else { throw CancellationError() }
-            settings = result.settings
-        }
-        for key in ["practiceNavigation", "practiceAutoAdvanceSeconds", "memoryCardFrontFields", "memoryCardBackFields", "locale", "fontSize", "fontScale", "showReviewRuby", "showExplanationRuby", "showRomaji", "explanationLanguage", "japaneseDisplay", "requireJlptVocabularyQuestions", "jlptVocabularyQuestionKinds"] {
-            if let requested = changes[key], settings[key] != requested {
-                throw APIError.http(409, "服务器未保留设置，请同步后重试。")
+            let saved = V3Bridge.legacySettings(response["settings"] as? [String: Any] ?? [:])
+            settings.merge(changes) { _, new in new }
+            settings.merge(saved) { _, new in new }
+            for key in ["practiceNavigation", "locale", "fontScale", "showReviewRuby", "showExplanationRuby", "showRomaji", "explanationLanguage", "feedbackMode"] {
+                if let requested = changes[key], settings[key] != requested { throw APIError.http(409, "服务器未保留设置，请同步后重试。") }
             }
-        }
-        if let requested = changes["feedbackMode"], settings["feedbackMode"] != requested {
-            throw APIError.http(409, "服务器未保留答题反馈设置，请同步后重试。")
+        } else {
+            settings.merge(changes) { _, new in new }
         }
         let previous = state.settings
         state.settings = settings
@@ -405,64 +402,59 @@ final class AppStore {
         while let operation = pending.first(where: \.canAutomaticallyUpload) {
             syncStage = "正在上传答题记录 \(total - pending.count) / \(total)…"
             let isCardReview = operation.input.questionId.hasPrefix("memory-card:") && MemoryRating(rawValue: operation.input.selected) != nil
-            var cloud = state
-            if operation.historyOnly == true {
-                if let attempts = operation.input.attemptHistory {
-                    let merged = NativeAttempt.merging(cloud.attemptHistory ?? [], attempts)
-                    if merged != cloud.attemptHistory {
-                        struct HistoryUpdate: Encodable { let attemptHistory: [NativeAttempt] }
-                        cloud = try await api.put("api/study-state/practice", body: HistoryUpdate(attemptHistory: merged))
-                    }
+            let cloud = state
+            /// Keeps a record the server cannot accept (deleted question or point) for review instead of blocking the queue.
+            func holdForReview(_ reason: String) throws {
+                let previousPending = pending
+                if let index = pending.firstIndex(where: { $0.id == operation.id }) {
+                    pending[index].needsSyncReview = true
+                    pending[index].syncReviewReason = reason
                 }
+                do { try persist() } catch { pending = previousPending; throw error }
+            }
+            if operation.historyOnly == true || operation.syncDecision == "already_counted" {
+                // v3 keeps practice history on the server; a presented-only round, or a record the
+                // learner marked as already counted, has nothing to upload.
             } else if isCardReview {
-                var input = operation.input
-                if let attempts = input.attemptHistory { input.attemptHistory = NativeAttempt.merging(cloud.attemptHistory ?? [], attempts) }
-                let acknowledgment: StudyState = try await api.post("api/answers?compact=1", body: input)
-                cloud.progress.merge(acknowledgment.progress) { _, new in new }
-                cloud.answers.merge(acknowledgment.answers) { _, new in new }
-                if let attempts = acknowledgment.attemptHistory { cloud.attemptHistory = attempts }
-                for event in acknowledgment.cardReviews ?? [] {
-                    var events = cloud.cardReviews ?? []
-                    events.removeAll { $0.eventId == event.eventId }; events.append(event)
-                    cloud.cardReviews = events
-                }
-            } else {
-                struct Replay: Encodable {
-                    let eventId: String; let before: ProgressEntry; let input: AnswerInput
-                    let legacy: Bool; let decision: String?
-                }
-                struct Receipt: Decodable { let eventId: String; let outcome: String; let state: StudyState }
-                let receipt: Receipt
-                do {
-                    receipt = try await api.post("api/answers/replay", body: Replay(
-                        eventId: operation.input.syncEventId ?? operation.id.uuidString, before: operation.before,
-                        input: operation.input, legacy: operation.input.syncEventId == nil, decision: operation.syncDecision))
-                } catch APIError.http(let code, let message) where code == 400 && message == "Study item not found" {
+                do { try await V3Bridge.uploadRating(operation.input, api: api) }
+                catch APIError.http(let code, _) where code == 400 || code == 404 {
                     guard expected == generation else { return }
-                    let previousPending = pending
-                    for index in pending.indices where pending[index].input.itemId == operation.input.itemId && !pending[index].isCardReview && pending[index].historyOnly != true {
-                        pending[index].needsSyncReview = true
-                        pending[index].syncReviewReason = "云端找不到对应题目，可能已删除。本机记录已保留，其他记录继续同步。"
-                    }
-                    do { try persist() } catch { pending = previousPending; throw error }
+                    try holdForReview("云端找不到这张卡片，可能已删除。本机记录已保留。")
                     continue
                 }
+            } else if !V3Bridge.isQuestionCode(operation.input.questionId) {
+                // Answers saved by a version before schema v3 refer to ids the server no longer has.
                 guard expected == generation else { return }
-                guard receipt.eventId == (operation.input.syncEventId ?? operation.id.uuidString) else { throw APIError.invalidResponse }
-                if receipt.outcome == "needs_resolution" {
-                    let previousPending = pending
-                    // Dependent operations must wait too; persist this once, across logins.
-                    for index in pending.indices where pending[index].input.itemId == operation.input.itemId && !pending[index].isCardReview && pending[index].historyOnly != true {
-                        pending[index].needsSyncReview = true
-                        pending[index].syncReviewReason = nil
+                try holdForReview("这是旧版本保存的答题记录，新版服务器无法对应到题目。本机记录已保留。")
+                continue
+            } else {
+                // All queued answers of one native round go into one server practice record.
+                let round = operation.nativeAttemptId ?? operation.id.uuidString
+                let inRound: (PendingAnswer) -> Bool = { ($0.nativeAttemptId ?? $0.id.uuidString) == round && $0.historyOnly != true && !$0.isCardReview && $0.canAutomaticallyUpload }
+                do {
+                    let attemptCode: String
+                    if let existing = remoteAttempts[round] {
+                        attemptCode = existing
+                    } else {
+                        var questions: [String] = []
+                        for code in pending.filter(inRound).map(\.input.questionId) where V3Bridge.isQuestionCode(code) && !questions.contains(code) { questions.append(code) }
+                        let title = state.attemptHistory?.first { $0.id == round }?.title
+                        attemptCode = try await V3Bridge.startAttempt(questions: questions, title: title, api: api)
+                        guard expected == generation else { return }
+                        remoteAttempts[round] = attemptCode
+                        try persist()
                     }
-                    do { try persist() } catch { pending = previousPending; throw error }
+                    let optionId = optionIds[operation.input.questionId]?[operation.input.selected]
+                    try await V3Bridge.uploadAnswer(operation.input, attempt: attemptCode, optionId: optionId, api: api)
+                    if !pending.contains(where: { $0.id != operation.id && inRound($0) }) {
+                        try await V3Bridge.completeAttempt(attemptCode, api: api)
+                        remoteAttempts[round] = nil
+                    }
+                } catch APIError.http(let code, _) where code == 400 || code == 404 {
+                    guard expected == generation else { return }
+                    try holdForReview("云端找不到对应题目，可能已删除。本机记录已保留，其他记录继续同步。")
                     continue
                 }
-                guard ["accepted", "duplicate", "already_counted"].contains(receipt.outcome) else { throw APIError.invalidResponse }
-                cloud.progress.merge(receipt.state.progress) { _, new in new }
-                cloud.answers.merge(receipt.state.answers) { _, new in new }
-                if let attempts = receipt.state.attemptHistory { cloud.attemptHistory = attempts }
             }
             guard expected == generation else { return }
             let previous = state
@@ -527,7 +519,8 @@ final class AppStore {
     private func snapshot() -> LocalStudyData {
         LocalStudyData(bankVersions: bankVersions, bankQuestionStates: bankQuestionStates, wordbooks: wordbooks, items: items, state: state, plan: plan, reading: reading, captures: captures,
                        packs: packs, drafts: drafts, listening: listening, shares: shares, pending: pending,
-                       lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses, memoryReview: memoryReview)
+                       lastSync: lastSync, syncCursor: syncCursor, hasPracticeCache: hasPracticeCache, hasListeningCache: hasListeningCache, responses: responses, memoryReview: memoryReview,
+                       bank: bank, optionIds: optionIds, remoteAttempts: remoteAttempts)
     }
     private func persist() throws {
         guard !isRestoringLocal else { throw IdentityError.message("本机记录仍在恢复，请稍后保存。") }
@@ -551,6 +544,7 @@ final class AppStore {
             packs = data.packs; drafts = data.drafts; listening = data.listening; shares = data.shares
             pending = data.pending; lastSync = data.lastSync; syncCursor = data.syncCursor; responses = data.responses ?? [:]
             bankVersions = data.bankVersions; bankQuestionStates = data.bankQuestionStates
+            bank = data.bank ?? []; optionIds = data.optionIds ?? [:]; remoteAttempts = data.remoteAttempts ?? [:]
             memoryReview = data.memoryReview
             hasPracticeCache = data.hasPracticeCache; hasListeningCache = data.hasListeningCache
             applyPending()
@@ -576,7 +570,7 @@ final class AppStore {
         let ref = item.materialRefs?.first { ref in
             guard case .object(let payload) = bankVersions?["materialVersions"]?[ref.versionKey]?.payload else { return false }; return payload["type"] == .string("audio")
         }
-        let endpoint = ref.map { APIClient.origin.appendingPathComponent("api/materials").appendingPathComponent($0.id).appendingPathComponent("versions").appendingPathComponent(String($0.revision)).appendingPathComponent("audio") } ?? APIClient.origin.appendingPathComponent("api/listening-questions").appendingPathComponent(item.id).appendingPathComponent("audio")
+        let endpoint = ref.map { APIClient.origin.appendingPathComponent("api/materials").appendingPathComponent($0.id).appendingPathComponent("versions").appendingPathComponent(String($0.revision)).appendingPathComponent("audio") } ?? APIClient.origin.appendingPathComponent("api/v3/media").appendingPathComponent(item.audioAssetId ?? item.id)
         var request = URLRequest(url: endpoint)
         request.setValue("Bearer \(session.token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -712,9 +706,9 @@ final class AppStore {
             captures.insert(Capture(id: UUID().uuidString, body: input.body, category: input.category, context: input.context, createdAt: Date.now.ISO8601Format()), at: 0)
         } else {
             let expected = generation
-            let result: CaptureResult = try await api.post("api/captures", body: input)
+            let response = try V3Bridge.object(try await api.data("api/v3/inbox", method: "POST", body: try JSONEncoder().encode(input)))
             guard expected == generation else { throw CancellationError() }
-            captures.insert(result.capture, at: 0)
+            captures.insert(V3Bridge.capture(response["capture"] as? [String: Any] ?? [:]), at: 0)
             try persist()
         }
     }
@@ -749,6 +743,7 @@ final class AppStore {
         wordbooks = []; items = []; state = StudyState(); plan = StudyPlan(); reading = []; captures = []; error = nil; notice = nil
         packs = []; drafts = []; listening = []; shares = []; pending = []; responses = [:]; lastSync = nil; syncCursor = nil
         bankVersions = nil; bankQuestionStates = nil
+        bank = []; optionIds = [:]; remoteAttempts = [:]
         memoryReview = nil
         syncStage = nil
         hasPracticeCache = false; hasListeningCache = false

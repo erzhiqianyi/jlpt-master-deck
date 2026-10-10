@@ -15,7 +15,7 @@ enum StudyDataCategory: String, CaseIterable, Identifiable {
         case .reading: data.reading.count
         case .listening: data.listening.count
         case .packs: data.packs.count
-        case .questions: Set(data.packs.flatMap(\.questions).map(\.id)).count
+        case .questions: Set((data.bank ?? []).map(\.id) + data.packs.flatMap(\.questions).map(\.id)).count
         case .drafts: data.drafts.count
         case .tasks: data.plan.tasks.count
         case .days: data.plan.dailySummaries.count
@@ -134,15 +134,11 @@ struct DatabaseCheckView: View {
         cloud = nil; cloudCounts = nil; checkedAt = nil; cloudError = nil
         guard store.isOnline else { cloudError = "当前离线，云端数量暂不可用。"; return }
         do {
-            struct Status: Decodable { let counts: [String: Int] }
-            let status: Status = try await APIClient(token: session.token).get("api/sync/status")
+            // Count the cloud side from a fresh download; nothing is written to the device.
+            let fresh = try await V3Bridge.download(api: APIClient(token: session.token))
             try Task.checkCancellation()
             guard store.session?.token == session.token else { return }
-            let keys = ["vocabulary", "grammar", "reading", "listening", "packs", "questions", "drafts", "tasks", "days", "progress", "answers", "captures", "discovery", "vocabularyImages", "grammarImages"]
-            cloudCounts = Dictionary(uniqueKeysWithValues: zip(StudyDataCategory.allCases, keys).compactMap { category, key in
-                status.counts[key].map { (category.id, $0) }
-            })
-            cloudCounts?["audio"] = status.counts["audio"]
+            cloud = fresh
             checkedAt = .now
             // A background sync may have finished while fetching cloud statistics.
             await readLocal(userID: session.user.id)
@@ -238,37 +234,11 @@ struct SyncReviewView: View {
 
 
 extension APIClient {
+    /// Downloads the whole v3 library (GET /api/v3/sync). The cached copy is replaced; queued
+    /// answers and ratings are kept by the caller (`preservingLocalWork`).
     func fetchIncrementalStudy(cached: LocalStudyData, progress: (@MainActor @Sendable (Int, Int) -> Void)? = nil) async throws -> LocalStudyData {
-        struct Request: Encodable { let cursor: String?; let page: String? }
-        var data = cached
-        var page: String?
-        var completed = 0
-        var restarted = false
-        while true {
-            try Task.checkCancellation()
-            let response: StudySyncPage = try await post("api/sync", body: Request(cursor: data.syncCursor, page: page))
-            if response.restart == true {
-                guard !restarted else { throw APIError.invalidResponse }
-                restarted = true; data = cached; page = nil; completed = 0
-                continue
-            }
-            if page == nil && response.reset == true { data = LocalStudyData() }
-            try data.applySync(response.changes ?? [])
-            completed += response.changes?.count ?? 0
-            await progress?(completed, response.total ?? completed)
-            page = response.nextPage
-            if page == nil {
-                guard let cursor = response.cursor else { throw APIError.invalidResponse }
-                data.syncCursor = cursor
-                break
-            }
-        }
-        if data.wordbooks == nil {
-            struct Books: Decodable { let wordbooks: [NativeWordbook] }
-            let result: Books = try await get("api/wordbooks")
-            data.wordbooks = result.wordbooks
-        }
-        data.hasPracticeCache = true; data.hasListeningCache = true
+        var data = try await V3Bridge.download(api: self, progress: progress)
+        data.remoteAttempts = cached.remoteAttempts
         return data
     }
 }

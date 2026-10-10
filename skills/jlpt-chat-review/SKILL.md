@@ -1,111 +1,79 @@
 ---
 name: jlpt-chat-review
-description: Turn JLPT study content discussed in an AI coding chat into structured review data for this local JLPT review website.
+description: Turn JLPT study content discussed in an AI chat (words, grammar, sentences, full questions, mistakes, exported study records) into knowledge points and question groups in the learner's JLPT Master Deck library through its MCP tools.
 ---
 
 # JLPT Chat Review
 
-Use this skill when the user gives Japanese-learning material in chat and wants it organized for this review website. The website is a viewer and practice tool, not the capture UI: the user chats with an AI assistant, the assistant extracts structured records, and the website reads monthly archives under `public/data/review-data/YYYY/MM.json`.
+Use this skill when the learner gives Japanese-learning material in chat and wants it organized into their library. The learner chats with an AI assistant; the assistant writes structured records through the JLPT Master Deck MCP server (local stdio, local HTTP or the hosted connector). The website and iOS app read the same database.
+
+There are no data files to edit. Every write goes through an MCP tool, and the server validates it.
 
 ## Workflow
 
-1. Read `references/review-schema.md`.
-2. Ask or infer which output languages the user wants when the request is ambiguous.
-3. Extract learnable items from the user's chat or notes.
-4. Update the matching monthly archive under `public/data/review-data/YYYY/MM.json`.
-5. Keep raw private chat transcripts out of the website data.
-6. Run the project build after editing data.
+1. Read `references/review-schema.md` for the field guide.
+2. Call `get_settings` once: `explanationLanguage` is the default language for meanings, explanations and translations. Ask only when the learner wants a different or an additional language.
+3. Call `list_wordbooks` and pick the wordbook the learner named. Create one with `create_wordbook` only when asked.
+4. For each item, check for duplicates first with `lookup_word` (words: it also matches conjugated forms) or `list_knowledge_points` with `q`. Update the existing point with `update_knowledge_point` instead of creating a second one.
+5. Write knowledge points with `create_knowledge_point` (`kind` word, grammar or name; codes W12 / G3 / N1 come back).
+6. Write questions with `validate_question` and then `create_question_group`. Link each question to its knowledge point with `questions[].knowledge` (`{ "code": "W12", "relation": "target" }`). New groups wait in `needs_review`. They are usable in practice only after another review pass: `get_question_review_context` → `submit_question_review`.
+7. When the input came from the inbox, call `update_learning_capture_status` with `processed` only after everything was saved. Leave failed or ambiguous entries in `inbox`.
+8. Add other languages afterwards with `list_missing_translations` → `set_translation`. Add furigana only where the learner asks, with `set_ruby_annotation`.
 
-For Codex installations, copy this folder to `~/.codex/skills/jlpt-chat-review`.
+Keep raw private chat transcripts out of the library: store the extracted item and, when useful, the one source sentence (`sourceSentence`).
 
-For Claude Code or other coding assistants, tell the assistant to read this `SKILL.md` and follow it as project-specific extraction guidance.
+## Knowledge Points
 
-## Capture Rules
+- `expression` is the dictionary form or standard spelling (for grammar, the pattern such as `～を皮切りに`). Keep the learner's surface form in `sourceSentence` when it matters.
+- `kind` is only `word` (including phrases, idioms and expression sets), `grammar` (including spoken sound-change rules) or `name`. Finer categories go into `tags`.
+- Words need `pos`, using the Japanese-language-education categories `verb_1` (五段), `verb_2` (一段), `verb_3_suru`, `verb_3_kuru`, `i_adjective`, `na_adjective`, `noun`, `adverb`, `conjunction`, `adnominal`, `interjection`, `prefix`, `suffix`, `phrase`, `idiom`. Conjugations are generated from `pos`; never write them yourself. Set `isSuruNoun` for nouns that take する and `transitivity` for verbs. Grammar points and names have no `pos`.
+- `reading` is kana only; romaji is generated.
+- `jlptLevel` only when there is evidence (`N2`, or a range `{ "min": "N2", "max": "N1" }`); otherwise omit it. Never invent an official level.
+- `meaning` is in the call's `language`. `meaningJa` is a concise Japanese dictionary-style definition. `paraphrase` is a shorter context-compatible rewording; it must differ from `meaningJa`, and without a natural one do not plan 言い換え類義 questions.
+- `examples`: at least two natural sentences for every word, each with `translation`. Examples used for questions must show the expression doing real work in a concrete situation; sentences such as `教材では「X」という表現を学んだ` are source notes, not quiz contexts. When a bookish sentence has a natural spoken version, add `spokenSentence` and `spokenTranslation` to the same example.
+- `memoryPoints`: short exam-room recall cues, one per entry. Do not repeat the explanation.
+- `patterns` for connection forms, usage patterns and collocations; `comparisons` for near-synonyms (`kind: "synonym"`) and everyday alternatives (`kind: "everyday"`); `notes` for register, exam tips and traps.
+- Grammar points: always set `register` (`written`, `spoken`, `formal` or `both`) and explain the nuance in a `notes` entry with `kind: "register"`. Add everyday equivalents to `comparisons`.
+- `questionKinds` lists the question type ids suited to the item (from `get_question_types`); `distractors` holds controlled wrong options per type id. Name points normally have none; never present another valid reading of the same name as wrong.
 
-For each item:
+## Questions
 
-- Store the canonical dictionary form or standard spelling directly in `original`; preserve the learner's surface form or original sentence in source fields when it matters.
-- Add `input_at` as an ISO 8601 timestamp for when the user provided the item.
-- Do not create a separate `normalized` display attribute.
-- Classify the deck as `n1_vocab`, `grammar_expression`, or `name_reading`.
-- Estimate JLPT level only when there is enough evidence; otherwise use `unknown`.
-- Write Chinese explanations for review.
-- When the user asks for multiple languages, keep the Japanese source fields stable and write translated learner-facing text under `localizations`.
-- Vocabulary and grammar share one field set (see references/review-schema.md): `patterns` for connection forms, usage patterns and collocations, `points` for usage features and traps, `comparisons` for near-synonyms and everyday alternatives, `register` for register and exam tips, and `explanation_zh` for the detailed explanation. Include reading, core memory, patterns, comparisons, and explanation when relevant. Do not write `date`; `input_at` is the only timestamp.
-- Give every vocabulary item at least two natural Japanese example sentences in `examples`. Every sentence must include its learner-language translation; for the default Simplified Chinese workflow, write it in `examples[].zh`.
-- Examples used for scored questions must show the expression doing real work in a concrete situation. Sentences such as `教材では「X」という表現を学んだ` are source notes, not valid quiz contexts; do not use them as prompts.
-- For verbs and adjectives, include `part_of_speech`, `inflection_class`, `base_form`, and `conjugations`. Use `godan`, `ichidan`, `suru`, `kuru`, `i_adjective`, or `na_adjective` for `inflection_class`. Use stable conjugation `kind` values such as `dictionary`, `polite`, `negative`, `past`, `te`, `conditional`, and `adverbial`; store the actual Japanese surface form in `form`.
-- Classify `part_of_speech` grammatically. Do not use generic content labels such as `語句`, `词语`, `word`, or `expression` as a part of speech. Use precise values such as `名詞`, `名詞句`, `動詞`, `動詞句`, `イ形容詞`, `イ形容詞句`, `ナ形容詞`, or `名詞・サ変動詞`, based on the head or predicate of the complete entry.
-- Add `meaning_ja` as a concise Japanese dictionary-style definition for every vocabulary item. Keep it distinct from the learner-language meaning and from `core_memory`.
-- For `言い換え類義`, write `paraphrase_ja` as a shorter, context-compatible rewording. Never copy `meaning_ja` into it unchanged; if no distinct natural paraphrase exists, do not enable the `meaning` question kind.
-- Write `core_memory` as an array of short exam-room recall points, one point per string. Keep only the cues needed to recognize the word, usage, or contrast quickly. Do not duplicate the full explanation.
-- Add kana readings for every Japanese field that contains kanji. Prefer structured `ruby_terms` arrays in data so the app can show or hide furigana without changing the base text.
-- Do not add furigana or ruby markup inside quiz prompts, choices, selected answers, or correct answers. Furigana is only for review cards and explanations.
-- Put exam-style shortcut reasoning into `explanation_zh`, not into a separate quiz type.
-- Generate JLPT-style mixed practice data. Do not force every item into every question type; choose only the types that match the item.
-- Every non-`proper_name` item should have enough data to generate at least one complete scored question with one prompt, four choices, one answer, and a full explanation. If the user's source lacks a natural context sentence, create a conservative example sentence and mark uncertain parts in `explanation_zh`.
-- For ordinary vocabulary, add `meaning` (`言い換え類義`) when a natural Japanese paraphrase exists, add `moji_goi` (`文脈規定`) when there is a complete natural sentence that can be blanked, and add `kanji_to_kana` (`漢字読み`) when the item contains kanji and has a reliable reading.
-- Add `kana_to_kanji` (`表記`) mainly for N2-N5 vocabulary when the spelling contrast is appropriate. Do not default to `kana_to_kanji` for N1 vocabulary.
-- Add `usage` (`用法`, N3-N1) as an authored `practice_questions` entry: the word as prompt, four sentences, one natural use and three typical misuses. Add `word_formation` (`語形成`, N2-N3) only for words built with a productive prefix or suffix.
-- Every authored `practice_questions` entry needs four choices including the answer, `explanation_zh`, and `distractor_notes` with a concrete reason for each wrong choice; `upsert_review_item` rejects it otherwise.
-- For `proper_name` items, keep `question_kinds: []` unless a reliable name-reading practice is explicitly requested and verified.
-- Add `question_distractors` when a question needs controlled, type-appropriate wrong choices. For name readings, use reading-shaped distractors and never present another valid reading of the same person as wrong.
+Call `get_question_types` once per session. It lists the 26 types with their module, levels, required materials, marks and validation rules. All types use one structure: question group → questions → options.
 
-## Practice Expectations
-
-For this website version, scored questions use mixed JLPT-style formats:
-
-- `文脈規定`: choose the word that naturally fits the blank in a complete Japanese sentence.
-- `言い換え類義`: choose the closest Japanese paraphrase for the underlined word; add `paraphrase_ja` before enabling this type.
-- `漢字読み`: choose the reading of an underlined kanji word in a complete Japanese sentence.
-- `表記`: choose the correct kanji spelling for an underlined kana word, mainly for N2-N5 items.
-- `文の文法1`: choose the grammar form that fits a sentence blank.
-
-Every generated question should support immediate correct/incorrect judging and a full explanation.
-
-Apply the official JLPT-style structure: task instruction, complete natural context, target underlined in context, four options, and no Chinese/English hints inside the prompt or options.
-
-For grammar expressions, prefer a sentence with a blank plus controlled distractors that test connection or function. Do not turn a grammar item into an isolated reading, spelling, or dictionary-meaning question unless that was the learner's actual confusion.
-
-For every grammar expression, record its register explicitly with `register.level` (`written`, `spoken`, `both`, or `formal`) and explain the nuance in `register.note_zh`. Add natural conversational equivalents to `comparisons` with `kind: "everyday"`, especially when the tested form is written or formal. When an example has a natural spoken rewrite, add it directly to that same example as `spoken_ja` and `spoken_zh` so learners can compare the bookish/test sentence with the conversational version. When variants within one entry differ, explain which variant is more common in conversation instead of assigning an oversimplified label.
-
-Every item in `practice_questions` must include `translation_zh`: a complete, natural Chinese translation of the Japanese sentence after inserting the correct answer. Keep this separate from `explanation_zh`, which explains why the answer is correct.
-
-Furigana must be display-controlled, not baked into visible plain text. The review app should be able to hide furigana during recall and show it in explanations when the learner wants support. Question prompts and answer choices must stay plain so readings do not leak into the test.
+- Choose only the types that fit the item. Ordinary vocabulary: 文脈規定 when a complete sentence can be blanked, 言い換え類義 when `paraphrase` exists, 漢字読み when the item has kanji and a reliable reading. 表記 mainly for N2–N5. 用法 (N3–N1) needs one natural use and three typical misuses. 語形成 (N2–N3) only for productive prefixes or suffixes.
+- For grammar, prefer a sentence with a blank and distractors that test connection or function. Do not turn a grammar point into an isolated reading or spelling question unless that was the learner's actual confusion.
+- Follow the official structure: task instruction, complete natural context, target marked in context (`marks` with UTF-16 offsets), four options, no Chinese or English hints in the prompt or options.
+- Exactly one option has `correct: true`. The answer is the option, never a position. Every wrong option gets a `distractorType` and an `analysis` of why it is wrong.
+- Every question needs `explanation` sections (at least `basis`, why the answer is right) and a `translation` of the prompt with the correct answer filled in. Reading and listening questions quote their `evidence` verbatim. Put exam-style shortcut reasoning in the explanation, not in a separate question.
+- No furigana in prompts or options. Furigana belongs to review cards and explanations, through `set_ruby_annotation`.
+- If the source lacks a natural context sentence, write a conservative one and say so in the explanation.
+- Run `validate_question` first. Errors would be rejected; warnings are saved as review findings.
 
 ## Exported Study Record Workflow
 
-When the user provides an exported study record JSON from the website settings page:
+When the learner asks for a diagnosis or plan, read their data instead of an export file:
 
-1. Analyze answer history, item progress, review counts, intervals, and `nextReviewAt`.
-2. Identify weak modules, weak question types, overdue items, and high-confusion items.
-3. Generate a short study diagnosis in the user's requested language.
-4. Create a 7-day review plan based on due items and Anki-style spacing.
-5. Generate new practice material for weak points and update the matching monthly archive only when the user asks to write the new content into the site.
+1. `get_study_overview` (accuracy per question type, daily activity, item states), `list_mistakes`, `get_due_cards`, `list_practice_history`.
+2. Identify weak modules, weak question types, overdue items and confusing pairs.
+3. Write a short diagnosis in the learner's language.
+4. For a plan, use `get_plan_generation_context` and `save_generated_study_plan`. For a daily summary, use `get_daily_summary_context` and `save_daily_summary`.
+5. Create new practice for weak points only when the learner asks: questions with `create_question_group`, then `create_practice_draft` for the learner to confirm, then `publish_practice_draft`.
 
-Do not treat exported SQLite progress as public seed data. It is private learner state used for analysis and planning.
+Review progress (ratings, intervals, due dates) is computed by the server from answers and card ratings. Never write it yourself.
 
 ## Boundaries
 
-- Do not include private raw chat logs in public data.
-- Do not call external dictionary or translation APIs unless the user explicitly asks.
+- Do not store private raw chat logs.
+- Do not call external dictionary or translation APIs unless the learner explicitly asks.
 - Do not invent official JLPT levels for uncertain items.
-- Keep user progress out of the seed data; progress belongs in local SQLite.
-- Keep review counts, ease factors, intervals, and `nextReviewAt` in SQLite progress only. Seed data should describe content, not a specific learner's schedule.
+- Everything you write is saved as AI-written and unverified. Surface uncertain readings, meanings, answers and levels instead of hiding them.
 
 ## Language Output
 
-Default learner-facing language is Simplified Chinese (`zh-CN`). If the user asks for another language or a multilingual deck, output `localizations` for the requested languages.
+The default language is the learner's `explanationLanguage`. Pass `language` on a call to write another one. Supported codes: `ja`, `zh-Hans`, `zh-Hant`, `en`, `ko`, `vi`, `id`, `th`, `my`, `ne`, `es`, `fr` (`list_languages`).
 
-Supported language keys should use BCP 47 style tags, for example:
+Do not translate Japanese source fields (`expression`, `reading`, `examples[].sentence`, `patterns[].pattern`, question prompts and options). Translate meanings, explanations, memory points, comparison notes, example translations and question explanations.
 
-- `zh-CN`
-- `zh-TW`
-- `ja`
-- `en`
-- `ko`
-- `vi`
-- `fr`
-- `es`
+## Setup
 
-Do not translate Japanese source fields such as `original`, `reading`, `patterns[].pattern`, or `examples[].ja`. Translate meanings, memory hints, explanations, comparison notes, question explanations, and learner instructions.
+For Codex, copy this folder to `~/.codex/skills/jlpt-chat-review`. For Claude Code or other assistants, tell the assistant to read this `SKILL.md`. In both cases the assistant needs the JLPT Master Deck MCP server connected; see `docs/local-backend-mcp.md`.

@@ -1,71 +1,59 @@
-# Generated Study Plan Schema
+# Study plan (schema v3)
 
-Use this shape for a machine-readable plan. A plan can be returned in chat unless the user requests a file. Keep learner-specific plans outside a public repository unless the user explicitly asks to publish them.
+A plan is one per learner (`learning_plans`) and is written in two calls. The tool input schemas from `tools/list` are authoritative.
 
-```json
-{
-  "schema_version": "1.0",
-  "generated_at": "2026-08-27T21:00:00+09:00",
-  "content_origin": "ai_generated",
-  "verification_status": "unverified",
-  "disclaimer": {
-    "zh-CN": "本计划和学习内容由 AI 生成，不是 JLPT 官方材料，请自行核对读音、含义、答案和级别。",
-    "en": "This plan and its study content are AI-generated, not official JLPT material. Verify readings, meanings, answers, and level assignments yourself."
-  },
-  "parameters": {
-    "target_level": "N1",
-    "start_date": "2026-08-28",
-    "duration_days": 100,
-    "daily_minutes": 45,
-    "focus_modules": ["vocabulary", "reading"],
-    "output_languages": ["zh-CN", "en"],
-    "timezone": "Asia/Tokyo"
-  },
-  "phases": [],
-  "days": [],
-  "content": {
-    "website_items": [],
-    "grammar_drills": [],
-    "reading_packs": [],
-    "listening_packs": [],
-    "mixed_sets": []
-  }
-}
-```
+## 1. Profile: `save_study_plan_profile`
 
-## Phase
-
-Each phase should include `name`, `start_day`, `end_day`, `goal`, `module_weights`, and `checkpoint`.
-
-## Day
-
-Each day should include `day`, `date`, `estimated_minutes`, `tasks`, `review_targets`, and `completion_criteria`.
-
-Each task should specify `module`, `minutes`, `activity`, `content_ids`, and whether it is `new`, `review`, or `mixed`.
-
-## Generated Website Item Metadata
-
-Add these fields to every generated item that may be merged into monthly archives under `public/data/review-data/YYYY/MM.json`:
+What the learner tells you. Saving it marks an existing generated plan `needs_refresh`.
 
 ```json
 {
-  "content_origin": "ai_generated",
-  "verification_status": "unverified",
-  "level_confidence": "medium",
-  "generation_context": {
-    "target_level": "N1",
-    "focus_module": "vocabulary",
-    "plan_generated_at": "2026-08-27T21:00:00+09:00"
-  }
+  "examName": "JLPT 2026年12月",
+  "level": "N1",
+  "startDate": "2026-10-12",
+  "examDate": "2026-12-06",
+  "studyDaysPerWeek": 6,
+  "dailyMinutes": 45,
+  "materialStartStatus": "新完全マスター語彙は第3章から",
+  "fixedSchedule": "周日休息",
+  "supplementalNeeds": "听力偏弱",
+  "materials": [
+    { "title": "新完全マスター 語彙 N1", "module": "vocabulary", "currentPosition": "第3章" },
+    { "title": "公式問題集 第2集", "module": "other" }
+  ],
+  "language": "zh-Hans"
 }
 ```
 
-Use stable IDs that cannot collide with chat-captured items, for example `ai-2026-08-27-n1-vocab-001`.
+`module` is `vocabulary`, `grammar`, `reading`, `listening` or `other`.
 
-Allowed verification values:
+## 2. Generated plan: `save_generated_study_plan`
 
-- `unverified`: AI-generated and not checked by the learner.
-- `needs_review`: a concrete uncertainty or conflict was found.
-- `verified`: explicitly confirmed by the learner or by a user-requested verification pass.
+```json
+{
+  "goal": "12 月考试达到 N1 合格线，读解与听力各 35 分以上",
+  "phaseStrategy": "前四周打基础，之后转为混合练习，最后两周做模拟考试",
+  "postMaterialStrategy": "教材学完后用错题和到期卡片复习",
+  "phases": [
+    { "startDate": "2026-10-12", "endDate": "2026-11-08", "focus": "基础", "goal": "词汇和语法覆盖", "points": ["每天 40 个新词", "语法每天 2 条"] },
+    { "startDate": "2026-11-09", "endDate": "2026-11-22", "focus": "混合练习", "goal": "题型熟练" },
+    { "startDate": "2026-11-23", "endDate": "2026-12-05", "focus": "模拟与复习", "goal": "时间分配" }
+  ],
+  "tasks": [
+    { "date": "2026-10-12", "module": "vocabulary", "minutes": 20, "material": 0, "title": "第3章 1–40", "detail": "先学再做 文脈規定 10 题" },
+    { "date": "2026-10-12", "module": "grammar", "minutes": 15, "title": "～を皮切りに／～をもって", "detail": "例句跟读并做 文の文法1" },
+    { "date": "2026-10-12", "module": "other", "minutes": 10, "title": "复习到期卡片" }
+  ],
+  "language": "zh-Hans"
+}
+```
 
-The website currently renders vocabulary and grammar-expression items. Keep reading, listening, and mixed packs in the study-plan output until their site schemas and pages are implemented.
+- `material` is the 0-based index of a profile material.
+- Each task gets a `TK` code. The learner (or you, with `set_plan_task_status`) marks it completed, skipped, missed or pending.
+- Saving again replaces pending tasks and keeps completed and skipped ones, so regenerate only the remaining period.
+
+## Content for the first days
+
+Knowledge points and question groups follow `../../jlpt-chat-review/references/review-schema.md`. Bundle a day's questions with `create_practice_draft` (`kind: "daily_review_pack"`, `date`, `minutes`, `objectives`, `sections` with question codes). After the learner confirms it, publish it with `publish_practice_draft`, which creates a daily practice (`DP`).
+
+Everything written through MCP is stored as AI-written and unverified. No extra metadata fields are needed.

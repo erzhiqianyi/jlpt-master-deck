@@ -24,38 +24,32 @@ Ask only for a missing target level or duration when neither can be inferred. Fo
 
 ## Workflow
 
-1. Read [references/study-plan-schema.md](references/study-plan-schema.md) before writing a plan file or website data.
-2. Build a schedule for the full duration, divided into foundation, consolidation, mixed practice, and final review phases. Scale the phases to the available days instead of forcing every phase into very short plans.
-3. Keep each day's workload within the daily time budget. Increase the requested focus modules while preserving some mixed retrieval practice.
-4. Generate only the first seven days of detailed content by default. Keep the remaining days as a plan outline so future batches can react to actual progress. Generate the full duration only when the user asks.
-5. For importable vocabulary and grammar entries, follow `../jlpt-chat-review/references/review-schema.md` and mark every item with the AI-generation metadata defined in the plan schema.
-6. Generate reading, listening, and mixed-practice material in the plan pack. Do not add unsupported item types to monthly archives under `public/data/review-data/YYYY/MM.json` until the website schema supports them.
-7. Update the matching monthly archive only when the user explicitly asks to import the generated material. Merge by `id`; do not replace existing user-created items or SQLite progress.
-8. Run the project build after changing website data.
+Everything is written through the JLPT Master Deck MCP tools; there are no data files to edit.
+
+1. Read [references/study-plan-schema.md](references/study-plan-schema.md).
+2. Save what the learner told you with `save_study_plan_profile` (level, start and exam dates, study days per week, daily minutes, materials).
+3. Call `get_plan_generation_context` for the profile, existing plan, statistics and mistakes. A learner with no history still gets a general plan; say so.
+4. Build a schedule for the full duration, divided into foundation, consolidation, mixed practice and final review phases. Scale the phases to the available days instead of forcing every phase into very short plans. Keep each day within the daily time budget, weight the focus modules, and keep some mixed retrieval practice.
+5. Save it with `save_generated_study_plan`: strategy texts, `phases` and dated `tasks`. Pending tasks are replaced; completed and skipped ones stay.
+6. Generate detailed content for the first seven days only, unless the learner asks for more, so later batches can react to actual progress:
+   - vocabulary and grammar: `create_knowledge_point` in a wordbook the learner chose (follow `../jlpt-chat-review/references/review-schema.md`);
+   - questions: `validate_question` → `create_question_group`, linked to knowledge points; reading and listening use materials;
+   - a daily pack: `create_practice_draft` with the question codes, for the learner to confirm before `publish_practice_draft`.
+7. Have each new question group reviewed (`get_question_review_context` → `submit_question_review`) before it goes into a published practice.
 
 ## Content Rules
 
 - Create original JLPT-style material. Never describe it as an official JLPT question, past paper, or official syllabus item.
-- Match vocabulary, kanji, grammar, sentence length, and distractor difficulty to the target level. When level placement is uncertain, set `jlpt_level` to `unknown` or lower `level_confidence`.
+- Match vocabulary, kanji, grammar, sentence length, and distractor difficulty to the target level. When level placement is uncertain, omit `jlptLevel`.
 - Every question needs one defensible answer, immediate correct/incorrect judging data, and a complete explanation of the answer and distractors when relevant.
-- Do not put furigana in question prompts, choices, selected answers, or correct answers. Add structured readings for review cards and explanations.
-- Listening practice without audio must be labeled `script_based`. Do not imply that text-to-speech or a generated script measures authentic listening ability.
+- Do not put furigana in question prompts or options. Add furigana to review content only where the learner asks (`set_ruby_annotation`).
+- Listening questions need real audio (`upload_media`). Without audio, generate a script for the learner to read or record instead, and do not present it as a listening question.
 - Avoid copying long passages or questions from textbooks, websites, or commercial preparation books. Generate original content.
-- Keep learner-specific scheduling state out of public seed data. SQLite owns review counts, intervals, ease, and `nextReviewAt`.
+- Never write review progress. The server computes it from answers and card ratings.
 
 ## Human Review Boundary
 
-All generated plans and content are drafts that the learner must judge. Include a visible warning in the requested output language and use:
-
-```json
-{
-  "content_origin": "ai_generated",
-  "verification_status": "unverified",
-  "level_confidence": "medium"
-}
-```
-
-Do not silently change `verification_status` to `verified`. Only a user-requested review or an explicit user confirmation can do that. Surface uncertain readings, meanings, answer keys, and JLPT-level assignments instead of hiding uncertainty.
+All generated plans and content are drafts the learner must judge. The server stores everything written through MCP as AI-written and unverified; say so in your reply, in the learner's language. Question groups only reach practice after a review pass, and practice drafts only after the learner confirms them. Surface uncertain readings, meanings, answer keys and JLPT levels instead of hiding them.
 
 ## Relationship To Personalized Review
 

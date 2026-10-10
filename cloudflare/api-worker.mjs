@@ -9,6 +9,7 @@ import { createCopyExporter } from './copy-export.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
+import { MAINTENANCE_PATH, createMaintenance, maintenanceAuthorized } from './maintenance.mjs';
 import { userForToken } from '../server/accounts.mjs';
 import v3Schema from '../server/v3/schema.sql';
 import practiceHtml from 'jlpt:practice-html';
@@ -57,6 +58,12 @@ export class JlptDatabase extends DurableObject {
   }
   async fetch(request) {
     if (this.copyExporter) return this.ctx.blockConcurrencyWhile(() => this.copyExporter(request));
+    const maintenance = MAINTENANCE_PATH.exec(new URL(request.url).pathname);
+    if (maintenance) {
+      if (!maintenanceAuthorized(request, this.env)) return new Response('Not found', { status: 404 });
+      this.maintenance ??= createMaintenance({ db: this.db, storage: this.ctx.storage, legacy: Boolean(this.awaitingMigration) });
+      return this.ctx.blockConcurrencyWhile(() => this.maintenance(request, maintenance[2]));
+    }
     if (this.awaitingMigration) {
       return Response.json({ error: '学习数据正在迁移，请稍后再试。' }, { status: 503, headers: { 'cache-control': 'no-store' } });
     }
@@ -156,6 +163,10 @@ export class JlptDatabase extends DurableObject {
 
 export default {
   fetch(request, env) {
-    return env.JLPT_DATABASE.get(env.JLPT_DATABASE.idFromName('primary-v1')).fetch(request);
+    // 通常は DATABASE_NAME（既定 primary-v1）。保守 API だけは正しいトークンがあれば名前で選んだ DO に届く。
+    const maintenance = MAINTENANCE_PATH.exec(new URL(request.url).pathname);
+    if (maintenance && !maintenanceAuthorized(request, env)) return new Response('Not found', { status: 404 });
+    const name = maintenance ? maintenance[1] : env.DATABASE_NAME ?? 'primary-v1';
+    return env.JLPT_DATABASE.get(env.JLPT_DATABASE.idFromName(name)).fetch(request);
   },
 };

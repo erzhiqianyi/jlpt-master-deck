@@ -1,5 +1,6 @@
 import { cachedSpeech } from '../../server/tts/cache.mjs';
 import { withPlatform } from '../../server/platform.mjs';
+import { restoreIntoEmpty } from '../../server/v3/dump.mjs';
 // Local integration-test entry only. Production always bundles api-worker.mjs.
 import { JlptDatabase } from '../api-worker.mjs';
 const fetchProduction = JlptDatabase.prototype.fetch;
@@ -34,6 +35,18 @@ JlptDatabase.prototype.fetch = async function(request) {
         const result = await cachedSpeech(1, { text: 'fixture' }, async () => { generated = true; return { audio: Buffer.from('fixture-audio'), mimeType: 'audio/mpeg' }; });
         return Response.json({ generated, audio: result.audio.toString() });
       }));
+    }
+    if (new URL(request.url).pathname === '/__load-raw') {
+      // テスト用：この DO の中身を渡された書き出しで丸ごと置き換える（旧形式の DO を作るため）。
+      const dump = await request.json();
+      return this.ctx.blockConcurrencyWhile(async () => {
+        this.ctx.storage.transactionSync(() => {
+          this.db.exec('PRAGMA defer_foreign_keys = ON');
+          for (const { type, name } of this.db.prepare("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY rowid DESC").all()) this.db.exec(`DROP ${type.toUpperCase()} IF EXISTS "${name}"`);
+          restoreIntoEmpty(this.db, dump);
+        });
+        return new Response('loaded');
+      });
     }
     if (new URL(request.url).pathname === '/__make-legacy') {
       // 旧形式のデータだけが残った Durable Object を作る（次の起動で移行待ちになる）。

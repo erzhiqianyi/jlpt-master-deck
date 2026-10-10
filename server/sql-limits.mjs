@@ -38,3 +38,33 @@ export function withSqlVariableLimit(db) {
     },
   });
 }
+
+// Workers SQLite also rejects a single exec() longer than 100 KB (SQLITE_TOOBIG); the v3 schema
+// alone is larger. Split a script into its statements so each one can be sent on its own.
+// Handles quotes, comments, and trigger bodies (BEGIN … END, with CASE … END inside).
+export function splitSqlStatements(script) {
+  const statements = [];
+  let start = 0, depth = 0, trigger = null, word = '';
+  const flush = (end) => { const text = script.slice(start, end).trim(); if (text) statements.push(text); start = end; };
+  const keyword = (w) => {
+    const upper = w.toUpperCase();
+    if (trigger === null) trigger = upper === 'CREATE' ? 'maybe' : false;
+    else if (trigger === 'maybe' && upper !== 'TEMP' && upper !== 'TEMPORARY') trigger = upper === 'TRIGGER';
+    if (trigger !== true) return;
+    if (upper === 'BEGIN' || upper === 'CASE') depth++;
+    else if (upper === 'END') depth--;
+  };
+  for (let i = 0; i < script.length; i++) {
+    const c = script[i];
+    if (/[A-Za-z_]/.test(c)) { word += c; continue; }
+    if (word) { keyword(word); word = ''; }
+    if (c === "'" || c === '"' || c === '`') { const close = script.indexOf(c, i + 1); i = close === -1 ? script.length : close; continue; }
+    if (c === '[') { const close = script.indexOf(']', i + 1); i = close === -1 ? script.length : close; continue; }
+    if (c === '-' && script[i + 1] === '-') { const close = script.indexOf('\n', i); i = close === -1 ? script.length : close; continue; }
+    if (c === '/' && script[i + 1] === '*') { const close = script.indexOf('*/', i + 2); i = close === -1 ? script.length : close + 1; continue; }
+    if (c === ';' && depth <= 0) { flush(i + 1); trigger = null; depth = 0; }
+  }
+  if (word) keyword(word);
+  flush(script.length);
+  return statements.filter((s) => s.replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, '').trim());
+}

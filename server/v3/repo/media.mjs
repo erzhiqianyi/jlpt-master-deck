@@ -1,7 +1,7 @@
 // 画像ファイル（media_files）と知識項目の記憶イメージ（言語ごとに 1 枚）。
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from '../../files.mjs';
+import { mkdirSync, readFileSync, writeFileSync } from '../../files.mjs';
 import { currentPlatform } from '../../platform.mjs';
 import { v3MediaDir } from '../database.mjs';
 import { SUPPORTED_LANGUAGES } from '../i18n.mjs';
@@ -41,7 +41,8 @@ export function storeMedia(db, userId, { base64, mime, fileName = null }) {
   const dir = join(v3MediaDir(), String(userId));
   const path = join(dir, `${sha256}.${(IMAGE_TYPES[type] ?? AUDIO_TYPES[type])}`);
   mkdirSync(dir, { recursive: true });
-  if (!existsSync(path)) writeFileSync(path, bytes);
+  // 名前は内容のハッシュなので上書きしても同じ。Cloudflare の existsSync は R2 を見ずに true を返すため、確認せずに書く。
+  writeFileSync(path, bytes);
   const now = nowIso();
   return Number(db.prepare(`INSERT INTO media_files (user_id, kind, file_name, mime, size, sha256, storage_path, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, kind, fileName, type, bytes.length, sha256, path, now, now).lastInsertRowid);

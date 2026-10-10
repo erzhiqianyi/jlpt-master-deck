@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import { currentPlatform } from '../platform.mjs';
 import { migrateLegacyToV3 } from './migrate/index.mjs';
 import { seedReferenceData } from './reference-data.mjs';
+import { splitSqlStatements } from '../sql-limits.mjs';
 
 const root = resolve(dirname(new URL(import.meta.url).pathname), '../..');
 const legacyPath = () => process.env.JLPT_DB_PATH ?? join(root, '.local', 'jlpt.sqlite');
@@ -46,7 +47,8 @@ export function installV3Schema(handle, schemaSql) {
   if (!has('knowledge_points')) {
     if (has('cloud_schema_version') || has('owned_review_items')) return false;
     handle.exec(ACCOUNT_SCHEMA);
-    handle.exec(schemaSql.replace(/^PRAGMA .*$/gm, ''));
+    // 一文ずつ送る（Workers の SQLite は 100 KB を超える exec を拒否する）。
+    for (const statement of splitSqlStatements(schemaSql.replace(/^PRAGMA .*$/gm, ''))) handle.exec(statement);
   }
   handle.exec(ACCOUNT_SCHEMA);
   seedReferenceData(handle);

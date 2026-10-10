@@ -40,6 +40,8 @@ export class JlptDatabase extends DurableObject {
         ensureTtsSchema(this.db);
         ensureCacheSchema(this.db);
       });
+      // OAuth と MCP の表（ローカルは server/api.mjs の起動時に作る）。
+      if (!this.awaitingMigration) await withPlatform(this.platform(), () => createJlptMcp({ onEvent() {} }).ensureSchema());
     });
   }
   platform(files) {

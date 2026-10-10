@@ -43,18 +43,20 @@ export function createMaintenance({ db, storage, legacy }) {
     }
 
     if (path.startsWith('/import')) {
+      // 断る場合も先に本文を読み切る（読まずに返すと接続が切れ、クライアントには理由が届かない）。
+      const body = request.method === 'GET' ? null : Buffer.from(await request.arrayBuffer());
       if (legacy) return json({ error: 'This database still holds legacy data; import into a new database name' }, 409);
       if (db.prepare('SELECT count(*) AS n FROM users').get().n > 0) return json({ error: 'Target database already has accounts; refusing to overwrite' }, 409);
       const upload = /^\/import\/(0|[1-9][0-9]*)$/.exec(path);
       if (request.method === 'PUT' && upload) {
-        const bytes = Buffer.from(await request.arrayBuffer());
+        const bytes = body;
         if (!bytes.length || bytes.length > CHUNK * 4) return json({ error: 'Chunk size out of range' }, 413);
         staged();
         db.prepare('INSERT OR REPLACE INTO _maintenance_import (idx, bytes) VALUES (?, ?)').run(Number(upload[1]), bytes);
         return json({ index: Number(upload[1]), bytes: bytes.length, sha256: sha256(bytes) });
       }
       if (request.method === 'POST' && path === '/import/commit') {
-        const manifest = await request.json();
+        const manifest = JSON.parse(body.toString('utf8') || '{}');
         staged();
         const pieces = db.prepare('SELECT idx, bytes FROM _maintenance_import ORDER BY idx').all();
         if (pieces.length !== manifest.chunks || pieces.some((p, i) => p.idx !== i)) return json({ error: 'Missing or extra chunks', received: pieces.map((p) => p.idx) }, 422);

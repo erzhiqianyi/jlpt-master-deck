@@ -4,7 +4,6 @@ const roots = [
   ['/jlpt/.local/item-images/', 'item-images/'],
   ['/jlpt/.local/v3-media/', 'v3-media/'],
   ['/jlpt/.local/review-backups/', 'exports/users/'],
-  ['/jlpt/public/data/review-data/', 'exports/review-data/'],
 ];
 export function objectKey(path) {
   const text = String(path);

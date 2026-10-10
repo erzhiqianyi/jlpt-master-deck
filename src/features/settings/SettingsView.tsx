@@ -2,7 +2,7 @@ import { SpeechPreferences } from './SpeechPreferences';
 import './SettingsView.css';
 import { useConfirmation } from '../../components/confirmation';
 import { NavigationCard } from '../../components/NavigationCard';
-import { BookOpen, ChevronRight, Languages, LogOut, MessageSquareText, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
+import { BookOpen, ChevronRight, Languages, LogOut, PanelTop, Settings2, Sparkles, UserRound, Bug, Volume2, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createV3Client } from '../../v3/client';
 import { FONT_SCALES, fontSizeOf, type CardTemplate, type KnowledgeKind, type V3Settings, type V3SettingsPatch } from '../../v3/types';

@@ -1,18 +1,6 @@
 import TinySegmenter from 'tiny-segmenter';
-import type { VocabItem } from '../types';
-
-// normalizeLookup/lookupForms/findLookupItems are also ported to server/word-lookup.mjs
-// for the Chrome extension's lookup API — keep both in sync.
 
 export const normalizeLookup = (text: string) => text.normalize('NFKC').trim();
-export function lookupForms(item: VocabItem): string[] {
-  return [item.original, item.reading, item.base_form, ...(item.conjugations ?? []).map((entry) => entry.form)]
-    .filter((value): value is string => Boolean(value)).map(normalizeLookup);
-}
-export function findLookupItems(items: VocabItem[], query: string) {
-  const word = normalizeLookup(query);
-  return word ? items.filter((item) => lookupForms(item).includes(word)) : [];
-}
 
 // A compact Japanese tokenizer also works on browsers without Intl.Segmenter.
 // Merge known library forms across token boundaries without losing source text.

@@ -48,7 +48,7 @@ export function GlobalSearch({ open, query, results, labels, onQueryChange, onOp
       </div>
       <div className="p-3">
         <p role="status" className="px-2 py-2 text-sm text-[#747b76]">{query.trim() ? `${labels.searchResults} · ${filtered.length}` : labels.searchHint}</p>
-        {query.trim() ? <LearningListFrame locale={locale} className="global-search-results"><LearningList locale={locale} columnLabels={[labels.searchResults, labels.searchTitle, labels.filters]}>{filtered.slice(0, limit).map((result) => <LearningListRow key={`${result.view}:${result.id}`} title={result.title} reading={result.item?.reading} description={result.subtitle} status={result.moduleLabel} actionLabel={labels.entryOpen} onOpen={() => onOpenResult(result)}/>)}</LearningList></LearningListFrame> : null}
+        {query.trim() ? <LearningListFrame locale={locale} className="global-search-results"><LearningList locale={locale} columnLabels={[labels.searchResults, labels.searchTitle, labels.filters]}>{filtered.slice(0, limit).map((result) => <LearningListRow key={`${result.view}:${result.id}`} title={result.title} description={result.subtitle} status={result.moduleLabel} actionLabel={labels.entryOpen} onOpen={() => onOpenResult(result)}/>)}</LearningList></LearningListFrame> : null}
         {filtered.length > limit && <button type="button" onClick={() => setLimit((value) => value + 30)} className="cute-focus my-3 w-full rounded-full border py-3 text-sm">{labels.searchMore}</button>}
       </div>
     </dialog>

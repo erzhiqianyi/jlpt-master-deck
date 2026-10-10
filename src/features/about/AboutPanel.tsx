@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, Bot, ChevronRight, CircleCheck, PlugZap, BookOpen, CalendarClock, Link2, ListChecks } from 'lucide-react';
+import { Bot, ChevronRight, CircleCheck, PlugZap, BookOpen, CalendarClock, Link2, ListChecks } from 'lucide-react';
 import type { AuthUser, Locale } from '../../types';
 import { ConnectedAgents, fetchAgentGrants, type AgentGrant } from '../agents/ConnectedAgents';
 import { GuideBook, guideTitle, isGuideSection } from './GuideBook';

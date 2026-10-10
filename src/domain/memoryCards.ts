@@ -25,19 +25,6 @@ export const memoryCardFields = [
 
 export type MemoryCardField = typeof memoryCardFields[number];
 
-export const configurableMemoryCardFields: MemoryCardField[] = [...memoryCardFields];
-
-export const defaultMemoryCardFrontFields: MemoryCardField[] = ['original'];
-export const defaultMemoryCardBackFields: MemoryCardField[] = ['original', 'reading', 'images', 'patterns', 'meaning', 'examples', 'core_memory'];
-
-const memoryCardFieldSet = new Set<string>(configurableMemoryCardFields);
-
-export function normalizeMemoryCardFields(value: unknown, fallback: MemoryCardField[]): MemoryCardField[] {
-  if (!Array.isArray(value)) return [...fallback];
-  const fields = [...new Set(value.filter((field): field is MemoryCardField => typeof field === 'string' && memoryCardFieldSet.has(field)))];
-  return fields.length ? fields : [...fallback];
-}
-
 export const memoryCardFieldLabels: Record<Locale, Record<MemoryCardField, string>> = {
   'zh-CN': {
     original: '原词 / 语法', reading: '读音', jlpt_level: 'JLPT 等级', part_of_speech: '词性', images: '记忆图片',

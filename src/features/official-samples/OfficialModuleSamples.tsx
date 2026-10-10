@@ -1,8 +1,7 @@
 import { AnswerCelebration } from '../../components/StudyCompanion';
 import { SpeechControls } from '../../components/SpeechControls';
 import { LearningCatalog } from '../../components/LearningCatalog';
-import { LearningList, LearningListRow } from '../../components/LearningList';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { LearningListRow } from '../../components/LearningList';
 import { useEffect, useState } from 'react';
 import {
   officialModuleMeta,
@@ -15,7 +14,6 @@ import type { Locale } from '../../types';
 const OFFICIAL_TYPES_URL = 'https://www.jlpt.jp/e/guideline/testsections.html';
 const OFFICIAL_PURPOSES_URL = 'https://www.jlpt.jp/e/guideline/pdf/n1_e_revised.pdf';
 const OFFICIAL_SAMPLES_URL = 'https://www.jlpt.jp/e/samples/sampleindex.html';
-const SAMPLE_INDEX_PAGE_SIZE = 8;
 const localOfficialNotice: Record<Locale, string> = {
   'zh-CN': '已载入本机 .local 官方题 demo；这些资源仅供个人本地备考使用。',
   ja: 'ローカルの .local 公式問題デモを読み込みました。個人学習用です。',

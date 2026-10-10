@@ -1,7 +1,5 @@
 let writeVersion = 0;
 const pendingWrites = new Set<Promise<void>>();
-export const studyWriteVersion = () => writeVersion;
-export async function waitForStudyWrites() { while (pendingWrites.size) await Promise.all([...pendingWrites]); }
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly details?: unknown) {

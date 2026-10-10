@@ -12,6 +12,7 @@ import { listMaterials, getMaterial, createMaterial, updateMaterial, deleteMater
 import { createPracticeSet, listPracticeSets, getPracticeSet, deletePracticeSet, startAttempt, getAttempt, submitAnswer, completeAttempt, activeAttempt, listAttempts, listMistakes } from './repo/practice.mjs';
 import { dueCards, rateCard, listRatings, cardFor } from './repo/cards.mjs';
 import { studyOverview } from './repo/stats.mjs';
+import { syncPage } from './repo/sync.mjs';
 import { listCaptures, countCaptures, getCapture, createCapture, setCaptureStatus, deleteCapture } from './repo/inbox.mjs';
 import { createRecording, getRecording, listRecordings, claimRecording, saveRecordingAnalysis, deleteRecording } from './repo/recordings.mjs';
 import { getPlan, savePlanProfile, saveGeneratedPlan, setTaskStatus } from './repo/plans.mjs';
@@ -148,6 +149,7 @@ route('POST', new RegExp(`^/api/v3/market/${SHARE}/refresh$`), ({ db, user, para
 route('DELETE', new RegExp(`^/api/v3/market/${SHARE}$`), ({ db, user, params }) => withdrawShare(db, user.id, params[0]), { write: true });
 route('POST', new RegExp(`^/api/v3/market/${SHARE}/import$`), ({ db, user, params }) => importShare(db, user.id, params[0]), { write: true });
 route('GET', /^\/api\/v3\/home$/, ({ db, user }) => learningHome(db, user.id));
+route('GET', /^\/api\/v3\/sync$/, ({ db, user, url }) => syncPage(db, user.id, param(url, ['cursor', 'limit', 'language'])));
 
 const MEDIA = /^\/api\/v3\/media\/(\d+)$/;
 

@@ -99,6 +99,17 @@ test('Workers SQLite, v3 REST, R2, OAuth and MCP survive restart; legacy data wa
     const stolen = await request(`/api/v3/market/${share.id}`, 'DELETE', undefined, 'test-2');
     assert.equal(stolen.status, 404, await stolen.text());
 
+    // Offline clients page through everything they cache.
+    const synced = [];
+    for (let cursor = ''; ;) {
+      const page = await json('/api/v3/sync?limit=2' + (cursor ? '&cursor=' + cursor : ''));
+      synced.push(...page.records);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    assert.deepEqual(synced.filter((r) => r.collection === 'knowledge').map((r) => r.code), ['W1']);
+    assert.equal(synced.find((r) => r.collection === 'questionGroups').value.questions[0].code, question.code);
+
     await restart();
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
     assert.equal((await json('/api/v3/knowledge/W1')).item.expression, '捉える');

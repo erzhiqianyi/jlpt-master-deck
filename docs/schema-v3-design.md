@@ -630,11 +630,15 @@ Cloudflare Workers（Durable Object SQLite）的限制：单条语句最多 100 
 
 阶段 1–4 期间应用处于“部分模块可用”状态，只在本地分支开发，不部署。
 
-过渡期间的两点安排（2026-10-10）：
+实施状态（2026-10-10）：
 
-- **设置只存一处**：设置从阶段 1 起只写 v3。旧引擎里还在用设置的功能（练习、日报、朗读预热）通过 `server/v3/legacy-settings.mjs` 读写 v3；iOS 仍走 `/api/study-state/settings`，因此也读写 v3。这个文件随旧引擎在阶段 5 删除。没有 v3 数据库的环境（还没接入 v3 的 Cloudflare）仍用旧表，v3 的 MCP 工具在那里不公开。
-- **iOS 移到阶段 5**：iOS 的词条详情直接从条目出题，练习、复习和离线模式都依赖旧的同步快照；只换一部分会让练习和离线不可用，所以词条、练习、复习和同步协议在阶段 5 一起切换。
-- **MCP 已全部改为 v3**（阶段 1–4 逐个功能替换）：旧工具、旧查询层（`jlpt_query` 等）和旧的“公开编号”解析已删除，对外一律使用业务编号。没有 v3 数据库的 Cloudflare 在阶段 5 之前不公开学习数据工具。
+| 阶段 | 状态 |
+|---|---|
+| 0–4 | 完成。服务端、REST、MCP、Web、浏览器扩展、MCP App 视图都只用 v3；旧引擎（`storage.mjs` 等）、旧查询层、旧接口和旧演示数据已删除。迁移脚本与 `scripts/v3/verify-*.mjs` 可用 |
+| 5 | Cloudflare 完成：Worker 使用 v3（逐条建表、具名参数适配、R2 写入、OAuth 表），集成测试覆盖。离线同步接口 `GET /api/v3/sync` 已就绪。**iOS 仍调用旧接口**，需在 Xcode 环境按 [apple-v3-port.md](apple-v3-port.md) 改写 |
+| 6 | 工具就绪、未执行：维护接口与 `scripts/v3/cloud-migrate.mjs`（备份 → 迁移 → 对账 → 导入新实例 → 用 `DATABASE_NAME` 切换），步骤见 [cloudflare-pages-deploy.md](cloudflare-pages-deploy.md)。线上执行需另行授权 |
+
+部署 v3 后，仍保存旧数据的线上实例只读等待迁移（请求返回 503），iOS 在改写完成前不可用。
 
 ## 12. 已确认的决定（2026-10-09）
 

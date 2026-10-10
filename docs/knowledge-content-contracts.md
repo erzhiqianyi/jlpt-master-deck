@@ -1,5 +1,7 @@
 # 知识点内容契约：独立于题目与练习
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 2026-10-07；当前字段证据 server/item-schema.mjs、server/storage.mjs、src/types.ts；本节区分现已校验的旧结构与逐步引入的完整内容规则。知识点不是“六道词汇题的容器”。保存词条、补活用、补义项不要求生成题，专名/纯片假名允许零题。
 
 ## 共通身份与内容

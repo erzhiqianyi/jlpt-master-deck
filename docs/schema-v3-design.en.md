@@ -630,11 +630,15 @@ At the end of each phase: all local tests pass, the corresponding Web and iOS pa
 
 During phases 1–4 the app is "partially working" and is developed only on a local branch, not deployed.
 
-Two arrangements for the transition (2026-10-10):
+Status (2026-10-10):
 
-- **Settings live in one place**: from phase 1, settings are written only to v3. Legacy-engine features that still use settings (practice, daily summaries, speech prewarming) read and write v3 through `server/v3/legacy-settings.mjs`; iOS still calls `/api/study-state/settings`, so it reads and writes v3 too. The file is deleted with the legacy engine in phase 5. Environments without a v3 database (Cloudflare until it is connected to v3) keep the legacy table, and the v3 MCP tools are not published there.
-- **iOS moves to phase 5**: the iOS entry detail starts practice directly from items, and practice, review and offline mode all depend on the legacy sync snapshot. Switching only part of it would break practice and offline use, so entries, practice, review and the sync protocol switch together in phase 5.
-- **MCP is fully on v3** (replaced feature by feature in phases 1–4): the legacy tools, the legacy query layer (`jlpt_query` and friends) and the legacy “public number” resolution are removed; business codes are used everywhere. Cloudflare, which has no v3 database yet, publishes no study-data tools until phase 5.
+| Phase | Status |
+|---|---|
+| 0–4 | Done. Server, REST, MCP, web, browser extension and MCP App views use only v3; the legacy engine (`storage.mjs` and friends), query layer, endpoints and demo data are removed. The migration script and `scripts/v3/verify-*.mjs` are available |
+| 5 | Cloudflare done: the Worker runs v3 (statement-by-statement schema install, named-parameter adapter, R2 writes, OAuth tables) with integration tests. The offline sync endpoint `GET /api/v3/sync` is ready. **iOS still calls the legacy API** and must be rewritten in an Xcode environment following [apple-v3-port.md](apple-v3-port.md) |
+| 6 | Tooling ready, not executed: maintenance API and `scripts/v3/cloud-migrate.mjs` (backup → migrate → reconcile → import into a new instance → switch with `DATABASE_NAME`); steps in [cloudflare-pages-deploy.md](cloudflare-pages-deploy.md). Running it in production needs separate approval |
+
+After v3 is deployed, the production instance that still holds legacy data is read-only and waits for migration (requests return 503), and iOS is unusable until it is rewritten.
 
 ## 12. Confirmed decisions (2026-10-09)
 

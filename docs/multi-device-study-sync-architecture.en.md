@@ -1,5 +1,7 @@
 # Multi device study synchronization and conflict recovery architecture
 
+> **Superseded by schema v3.** This document describes the data model or interfaces before v3 and is kept for reference. See [schema-v3-design.en.md](schema-v3-design.en.md) for the current schema and [local-backend-mcp.md](local-backend-mcp.md) for the API and MCP.
+
 Date: October 6, 2026. Status: architecture proposal with a targeted source repair; not deployed.
 
 Languages: [中文](multi-device-study-sync-architecture.md) · English · [日本語](multi-device-study-sync-architecture.ja.md).

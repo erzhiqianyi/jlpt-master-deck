@@ -1,5 +1,7 @@
 # 旧数据迁移计划与真实实施状态
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 2026-10-07。结论：需要影子迁移后才能将canonical作为唯一权威，但**没有执行用户真实数据库迁移**。已实现增量schema、主写入口适配、惰性归档、JSON审计，以及指定SQLite影子副本回填/检查点/旧表哈希对账；仍没有生产读切换、完整历史冻结恢复、媒体恢复演练或全领域迁移。
 
 关联：[架构](architecture.md)、[领域模型](domain-model.md)、[MCP](mcp-domain-contracts.md)、[验证证据](qa/domain-model-implementation.md)。

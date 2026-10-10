@@ -1,5 +1,7 @@
 # 多端学习数据同步与冲突恢复架构
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 日期：2026 年 10 月 6 日。状态：架构提案，已完成局部源码修复，尚未部署。
 
 语言：中文 · [English](multi-device-study-sync-architecture.en.md) · [日本語](multi-device-study-sync-architecture.ja.md)。

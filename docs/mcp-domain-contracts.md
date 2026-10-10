@@ -1,5 +1,7 @@
 # MCP领域写入契约与迁移状态
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 2026-10-07。本文件与server/mcp-tools.mjs、item-schema.mjs、reading-schema.mjs、question-bank.mjs及bank-materials.mjs对齐。implemented=已接现有调用；proposal=尚未提供工具或未完成校验。不能将目标契约当成已发布API。
 
 |规则|状态与真实入口|

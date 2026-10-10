@@ -33,19 +33,18 @@ npm install
 npm run dev
 ```
 
-<http://localhost:5193/> を開いてください。ローカル API は <http://localhost:8791/> で起動します。ログイン画面で作成したユーザー名とパスワードは、このマシンに保存されます。
+<http://localhost:4220/> を開いてください。ローカル API は <http://127.0.0.1:4221/> で起動します（`JLPT_WEB_PORT` / `JLPT_API_PORT` で変更可）。ログイン画面で作成したユーザー名とパスワードは、このマシンに保存されます。
 
 ```bash
 npm run build       # フロントエンドと MCP アプリをビルド
 npm run lint        # ESLint を実行
-npm run data:blank  # サンプルデータを空のローカルデータに置き換える
 npm run dev:tunnel  # 任意: Cloudflare Tunnel でプレビュー
 ```
 
 ## MCP と Agent
 
-- `skills/jlpt-chat-review/` — 学習者のメモを構造化された復習項目やドラフトに変換します。
-- `skills/jlpt-study-generator/` — 個人メモがない場合に、一般的な学習計画と初期練習素材を作成します。
+- `skills/jlpt-chat-review/` — 学習者のメモを MCP ツールで知識項目と審査済みの問題に整理します。
+- `skills/jlpt-study-generator/` — 個人メモがない場合に、一般的な学習計画と最初の練習ドラフトを保存します。
 
 プロジェクト専用の MCP サーバーは次のコマンドで設定できます。
 
@@ -55,20 +54,20 @@ npm run mcp:setup
 
 設定後に Codex を再起動し、`jlpt_review` が利用可能か確認してください。HTTP MCP エンドポイントは OAuth 2.1 で保護されています。アプリの同意フローで認証し、Agent に個人データへのアクセスを許可してください。MCP サーバーには個別の `login` ツールはありません。
 
-基本的な流れは、素材を登録し、MCP で学習記録を分析してドラフトを作成し、アプリで確認・注釈した後、承認済みの内容をライブラリへ保存して練習することです。
+基本的な流れは、素材を登録し、MCP で学習記録を分析してドラフトを作成し、アプリで確認・コメントした後、審査を通った問題を練習として公開することです。
 
-生成コンテンツには `content_origin: "ai_generated"` と `verification_status: "unverified"` が付きます。公式 JLPT 素材ではないため、利用前に確認してください。
+Agent が書いた内容はすべて「AI が作成・未確認」として保存されます。公式 JLPT 素材ではないため、利用前に確認してください。
 
 ## データとプライバシー
 
-サンプル・公開用データは `public/data/review-data/YYYY/MM.json` に、個人データは次に保存されます。
+個人データは次に保存されます。
 
 ```text
-.local/jlpt.sqlite
-.local/listening-audio/<user-id>/
+.local/jlpt-v3.sqlite
+.local/v3-media/<user-id>/
 ```
 
-SQLite にはアカウント、入力素材、復習項目、解答履歴、計画、ドラフト、設定、復習スケジュールが保存されます。月別 JSON はインポート・エクスポート用のバックアップであり、個人進捗の保存先ではありません。聴解音声は Git の外に保存します。
+v3 データベース（設計：[docs/schema-v3-design.ja.md](docs/schema-v3-design.ja.md)）には、アカウント、設定、単語帳、知識項目、問題集、練習記録、復習スケジュール、ドラフト、計画、日報、受信箱が保存されます。画像と音声は SQLite と Git の外に置きます。v3 より前のデータベース（`.local/jlpt.sqlite`）があれば、初回起動時に新しい v3 ファイルへ移行します（旧ファイルは読むだけです）。
 
 復習スケジュールは簡略化した Anki/SM-2 方式です。正解すると間隔が延び、不正解の場合は短期間の復習に戻り、易しさ係数が下がります。
 

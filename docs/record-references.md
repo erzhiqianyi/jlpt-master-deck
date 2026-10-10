@@ -1,5 +1,7 @@
 # Stable references for chat
 
+> **Superseded by schema v3.** This document describes the data model or interfaces before v3 and is kept for reference. See [schema-v3-design.en.md](schema-v3-design.en.md) for the current schema and [local-backend-mcp.md](local-backend-mcp.md) for the API and MCP.
+
 Keep the existing `id` as the storage/link/answer key. The new, server-owned
 `reference` is for people to copy from the page and mention in MCP chat.
 

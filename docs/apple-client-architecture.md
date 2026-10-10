@@ -1,5 +1,7 @@
 # Apple client and shared identity
 
+> The data layer of the Apple client still uses the pre-v3 API. What has to change, call by call, is in [apple-v3-port.md](apple-v3-port.md). Identity and sign-in below are unchanged.
+
 ## Scope and platform
 
 The first native client lives in `apple/`, alongside the web client. It uses SwiftUI, iOS/iPadOS 17+, URLSession, Keychain, Firebase Auth and Google Sign-In. It uses the approved ivory/indigo iPad layout: sidebar, primary study area, secondary due-review/activity column. The right column stacks below the main area in narrower windows. Reading uses two columns only when sufficient width exists. Memory review is a focused full-screen flow.

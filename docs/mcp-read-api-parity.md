@@ -1,5 +1,7 @@
 # 页面查询与 MCP 对照
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 检查范围：`src/App.tsx`、各功能页的请求、`server/api-handler.mjs`、共享 MCP 工具目录与通用查询 schema。HTTP MCP 与 stdio 使用同一目录；Cloudflare 复用查询和存储实现。本表是源码对照，不表示线上服务已经部署或客户端已经刷新 schema。
 
 ## 阅读数据的入口

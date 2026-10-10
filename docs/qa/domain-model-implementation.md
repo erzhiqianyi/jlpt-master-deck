@@ -1,5 +1,7 @@
 # 领域模型与统一题库实施切片核验
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](../schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](../local-backend-mcp.md)。
+
 2026-10-07。独立任务工作区 jlpt-master-deck；分支 domain/unified-question-bank；基线 main=e416bedcf8236638adf8c37c989f62e4200cd327。未 push、PR、merge、deploy；未调用生产 MCP、改真实学习数据或自动化。
 
 ## 本轮实际实现

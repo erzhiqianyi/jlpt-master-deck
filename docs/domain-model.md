@@ -1,5 +1,7 @@
 # JLPT 统一领域模型与渐进实施
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 2026-10-07；基于 main 的 unified-question-bank-design.md 与当前源码。本文是实施契约，生产迁移和发布未授权。独立工作区与分支 domain/unified-question-bank，不读取或改写其他工作区数据库。
 
 ## 边界与统一语言

@@ -1,5 +1,7 @@
 # 统一题库、练习组合与模拟考试兼容设计
 
+> **已被 schema v3 取代。** 本文描述 v3 之前的数据模型或接口，保留作历史参考。当前结构见 [schema-v3-design.md](schema-v3-design.md)，接口与 MCP 见 [local-backend-mcp.md](local-backend-mcp.md)。
+
 日期：2026-10-07。状态：设计方案；未执行生产迁移、未导入官方样题正文、未修改运行逻辑。
 
 ## 目标

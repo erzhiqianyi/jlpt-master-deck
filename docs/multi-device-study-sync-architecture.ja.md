@@ -1,5 +1,7 @@
 # 複数端末の学習データ同期と競合復旧の設計
 
+> **スキーマ v3 で置き換えられました。** この文書は v3 より前のデータモデルやインターフェースを記録として残しています。現在の構造は [schema-v3-design.ja.md](schema-v3-design.ja.md)、API と MCP は [local-backend-mcp.md](local-backend-mcp.md) を参照してください。
+
 日付：2026 年 10 月 6 日。状態：アーキテクチャ提案。全体の実装とデプロイは未完了。
 
 言語：[中文](multi-device-study-sync-architecture.md) · [English](multi-device-study-sync-architecture.en.md) · 日本語。

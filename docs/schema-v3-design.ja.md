@@ -635,7 +635,7 @@ Cloudflare Workers（Durable Object の SQLite）の制限：1 文あたりの�
 | フェーズ | 状況 |
 |---|---|
 | 0–4 | 完了。サーバー、REST、MCP、Web、ブラウザー拡張、MCP App のビューは v3 だけを使う。旧エンジン（`storage.mjs` など）、旧クエリ層、旧 API、旧デモデータは削除済み。移行スクリプトと `scripts/v3/verify-*.mjs` が使える |
-| 5 | Cloudflare は完了：Worker は v3 で動く（スキーマを一文ずつ作成、名前付きパラメーターの変換、R2 への書き込み、OAuth の表）。統合テストあり。オフライン同期 `GET /api/v3/sync` も用意済み。iOS のデータ層は v3 に移行済み（`apple/Sources/V3Bridge.swift`、[apple-v3-port.md](apple-v3-port.md)）。**Xcode でのビルドとテストがまだ必要** |
+| 5 | Cloudflare は完了：Worker は v3 で動く（スキーマを一文ずつ作成、名前付きパラメーターの変換、R2 への書き込み、OAuth の表）。統合テストあり。オフライン同期 `GET /api/v3/sync` も用意済み。iOS のデータ層は v3 に移行済み（`apple/Sources/V3Bridge.swift`、[apple-v3-port.md](apple-v3-port.md)）。変換層は Swift 5.10 でコンパイルし、テストとローカルサーバーへの接続を確認済み。**画面側は Xcode でのビルドとテストがまだ必要** |
 | 6 | 道具は用意済み、未実行：保守 API と `scripts/v3/cloud-migrate.mjs`（バックアップ → 移行 → 照合 → 新しいインスタンスへ取り込み → `DATABASE_NAME` で切り替え）。手順は [cloudflare-pages-deploy.md](cloudflare-pages-deploy.md)。本番での実行は別途承認が必要 |
 
 v3 をデプロイすると、旧データを持つ本番インスタンスは読み取り専用で移行を待ち（リクエストは 503）、iOS は新しい版を Xcode でビルド・テストしてから配布する。

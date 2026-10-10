@@ -69,7 +69,7 @@ The first SwiftUI iPad/iPhone client lives in [`apple/`](apple/README.md), with 
 
 See [Apple client architecture](docs/apple-client-architecture.md) for identity linking, data boundaries, and the deferred web QR sign-in design.
 
-> The Apple client uses the schema v3 API through an adapter (`apple/Sources/V3Bridge.swift`); it has not been compiled in this environment yet, so build and test it in Xcode before release. See [docs/apple-v3-port.md](docs/apple-v3-port.md).
+> The Apple client uses the schema v3 API through an adapter (`apple/Sources/V3Bridge.swift`); the adapter and its tests compile and pass with Swift 5.10 on Linux, but the SwiftUI layer has not been built yet, so build and test the app in Xcode before release. See [docs/apple-v3-port.md](docs/apple-v3-port.md).
 
 ## MCP and agent workflows
 

@@ -2,7 +2,7 @@
 
 iOS 客户端（`apple/`）的数据层已经改为 v3。改法是**在网络边界做转换**：v3 的数据转换成界面已经在用的模型（`StudyItem`、`NativeQuestion`、`ReadingQuestion`、`ListeningItem`、`NativePack` 等），界面代码基本不动。转换都在 `apple/Sources/V3Bridge.swift`。
 
-> 本仓库的开发环境不能编译 iOS（没有 Xcode / Swift 工具链）。Swift 改动只做了语法解析检查（tree-sitter，与改动前一致），**需要在 Xcode 中编译并跑 `JLPTMasterDeck` 的测试后才能发布**。服务端对 iOS 请求的契约由 `tests/v3-ios-contract.test.mjs` 用真实的 REST 处理程序验证。
+> 已验证到哪一步：`V3Bridge.swift` 与它用到的模型（从 `apple/Sources` 原样取出）在 Linux 上用 Swift 5.10.1（`-swift-version 5`）编译通过，无错误、无警告；`V3BridgeTests` 的 6 个测试全部通过；同一份代码作为命令行客户端连上本地 v3 服务器，跑完下载、自评、作答（含重试）、设置、草稿发布、收集箱，结果与服务器一致。依赖 SwiftUI/UIKit 的文件（`AppStore`、各界面）在 Linux 上不能编译，只做了语法解析检查，**仍需在 Xcode 中编译并跑 `JLPTMasterDeck` 的测试后才能发布**。服务端对 iOS 请求的契约由 `tests/v3-ios-contract.test.mjs` 用真实的 REST 处理程序验证。
 
 ## 怎么对应
 
@@ -35,7 +35,8 @@ iOS 客户端（`apple/`）的数据层已经改为 v3。改法是**在网络边
 ## 验证
 
 - 服务端：`node --test tests/v3-ios-contract.test.mjs tests/v3-sync.test.mjs`、`npm run test:cloudflare`。
-- iOS：在 Xcode 中编译 `JLPTMasterDeck` scheme 并运行测试。`StudyTests.swift` 的 `V3BridgeTests` 用服务器真实输出（v3 仓库函数生成）检查转换。然后真机登录，对照 Web 上同一账号的单词本、到期卡片、练习记录和设置。
+- iOS 数据层（不需要 Xcode）：把 `V3Bridge.swift`、模型和 `V3BridgeTests` 用 `swiftc` 编译运行；Linux 上需要导入 `FoundationNetworking`，并补 `Date.ISO8601FormatStyle` 和 `URLSession.data(for:)` 的替代实现。
+- iOS 全部：在 Xcode 中编译 `JLPTMasterDeck` scheme 并运行测试。`StudyTests.swift` 的 `V3BridgeTests` 用服务器真实输出（v3 仓库函数生成）检查转换。然后真机登录，对照 Web 上同一账号的单词本、到期卡片、练习记录和设置。
 
 ## 尚未决定
 

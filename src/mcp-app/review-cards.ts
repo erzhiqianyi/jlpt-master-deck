@@ -35,7 +35,7 @@ const view = createReviewCardsView(document.getElementById('app')!, async (filte
     return items.map(item => ({ original: item.expression, reading: item.reading ?? undefined, meaning_zh: item.meaning?.text, meaning_ja: item.meaningJa ?? undefined }));
   },
   async enqueue(word, context) {
-    const result = await app.callServerTool({ name: 'create_learning_capture', arguments: { body: word, category: 'word', targetDeck: 'n1_vocab', context: `点词查询\n原文：${context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` } });
+    const result = await app.callServerTool({ name: 'create_learning_capture', arguments: { body: word, category: 'word', context: `点词查询\n原文：${context}\n请结合上下文确认词义与辞书形，通过 MCP 解析并加入词库。` } });
     if (result.isError) throw new Error('加入队列失败，请重试。');
   },
 });

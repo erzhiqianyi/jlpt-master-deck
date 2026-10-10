@@ -86,7 +86,7 @@ export function createReviewCardsView(root: HTMLElement, load: (filters: Record<
     if (!card || !flipped || busy) return;
     busy = true; error = ''; render();
     try {
-      if (pendingReview?.itemId !== card.id || pendingReview.rating !== rating) pendingReview = { itemId: card.id, rating, eventId: crypto.randomUUID() };
+      if (pendingReview?.itemId !== card.id || pendingReview.rating !== rating) pendingReview = { itemId: card.id, rating, eventId: crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}` };
       await rate(card.id, rating, pendingReview.eventId);
       pendingReview = null;
       reviewed++;

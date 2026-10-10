@@ -12999,14 +12999,6 @@
     }
   });
 
-  // src/domain/vocabularyQuestionRules.mjs
-  var vocabularyQuestionKinds = ["kanji_to_kana", "kana_to_kanji", "word_formation", "moji_goi", "meaning", "usage"];
-  function normalizeVocabularyQuestionKinds(settings) {
-    const selected = settings?.jlptVocabularyQuestionKinds;
-    if (Array.isArray(selected)) return vocabularyQuestionKinds.filter((kind) => selected.includes(kind));
-    return settings?.requireJlptVocabularyQuestions === true ? [...vocabularyQuestionKinds] : [];
-  }
-
   // node_modules/zod/v4/core/util.js
   var util_exports = {};
   __export(util_exports, {
@@ -24637,8 +24629,8 @@ ${value}`, dataLines++;
         return { user, apiBaseUrl };
       }
       case "GET_STUDY_SETTINGS": {
-        const state = await withMcp("get_study_state");
-        return { jlptVocabularyQuestionKinds: normalizeVocabularyQuestionKinds(state.settings) };
+        const settings = await withMcp("get_settings");
+        return { questionKinds: settings.questionKinds.filter((kind) => kind.startsWith("vocabulary-")) };
       }
       case "LOGIN":
         return login();
@@ -24652,15 +24644,15 @@ ${value}`, dataLines++;
         return { apiBaseUrl };
       }
       case "LOOKUP_WORD":
-        return { matches: await withMcp("lookup_word", { query: message.query }) };
+        return { matches: (await withMcp("lookup_word", { query: message.query })).items };
       case "CREATE_CAPTURE":
         return { capture: await withMcp("create_learning_capture", withoutUndefined(message.input)) };
       case "LIST_CAPTURES":
-        return { captures: await withMcp("list_learning_captures", withoutUndefined({ status: message.status })) };
+        return { captures: (await withMcp("list_learning_captures", withoutUndefined({ status: message.status }))).items };
       case "UPDATE_CAPTURE_STATUS":
-        return { capture: await withMcp("update_learning_capture_status", { id: message.id, status: message.status }) };
+        return { capture: await withMcp("update_learning_capture_status", { code: message.code, status: message.status }) };
       case "LIST_WORDBOOKS":
-        return { wordbooks: await withMcp("list_wordbooks") };
+        return withMcp("list_wordbooks");
       default:
         throw new Error(`\u672A\u77E5\u6D88\u606F\u7C7B\u578B\uFF1A${message.type}`);
     }

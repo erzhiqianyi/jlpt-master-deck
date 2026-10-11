@@ -6,6 +6,7 @@ import { withPlatform } from '../server/platform.mjs';
 import { installV3Schema } from '../server/v3/database.mjs';
 import { sqliteAdapter } from './sqlite-adapter.mjs';
 import { createCopyExporter } from './copy-export.mjs';
+import { createMigrationHandler } from './migration.mjs';
 import { requestFiles, objectKey } from './files.mjs';
 import { createApiHandler } from '../server/api-handler.mjs';
 import { createJlptMcp, MCP_PATHS } from '../server/mcp-app.mjs';
@@ -27,6 +28,11 @@ export class JlptDatabase extends DurableObject {
     // Enabling against production requires a separately approved deployment.
     if (env.COPY_EXPORT_MODE === 'read-only') {
       this.copyExporter = createCopyExporter(this.db, ctx.storage, env);
+      return;
+    }
+    // 線上移行の間だけ：export は旧 DO を読むだけ、import は新しい空の DO に書くだけ（cloudflare/migration.mjs）
+    if (env.MIGRATION_MODE === 'export' || env.MIGRATION_MODE === 'import') {
+      this.migration = createMigrationHandler(this.db, ctx.storage, env);
       return;
     }
     this.firebase = JSON.parse(env.FIREBASE_CONFIG);
@@ -55,6 +61,7 @@ export class JlptDatabase extends DurableObject {
   }
   async fetch(request) {
     if (this.copyExporter) return this.ctx.blockConcurrencyWhile(() => this.copyExporter(request));
+    if (this.migration) return this.ctx.blockConcurrencyWhile(() => this.migration(request));
     if (this.awaitingMigration) {
       return Response.json({ error: '学习数据正在迁移，请稍后再试。' }, { status: 503, headers: { 'cache-control': 'no-store' } });
     }
@@ -103,7 +110,7 @@ export class JlptDatabase extends DurableObject {
     }
   }
   async alarm() {
-    if (this.copyExporter || this.awaitingMigration) return;
+    if (this.copyExporter || this.migration || this.awaitingMigration) return;
     return this.ctx.blockConcurrencyWhile(async () => {
       let delay = 60000;
       try {
@@ -156,6 +163,7 @@ export class JlptDatabase extends DurableObject {
 
 export default {
   fetch(request, env) {
-    return env.JLPT_DATABASE.get(env.JLPT_DATABASE.idFromName('primary-v1')).fetch(request);
+    // 移行先は新しい名前の DO（DATABASE_NAME）。旧い 'primary-v1' はそのまま残し、切り戻すときは名前を戻す
+    return env.JLPT_DATABASE.get(env.JLPT_DATABASE.idFromName(env.DATABASE_NAME || 'primary-v1')).fetch(request);
   },
 };

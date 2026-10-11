@@ -46,6 +46,30 @@ JlptDatabase.prototype.fetch = async function(request) {
         return new Response('legacy');
       });
     }
+    if (new URL(request.url).pathname === '/__legacy-seed') {
+      // 移行前の本番と同じ形の旧データ（export モードの DO に入れる）
+      return this.ctx.blockConcurrencyWhile(async () => {
+        this.ctx.storage.transactionSync(() => {
+          this.db.exec(`
+            CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, salt TEXT NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL);
+            CREATE TABLE cloud_schema_version (version INTEGER PRIMARY KEY);
+            CREATE TABLE user_settings (user_id INTEGER, settings_json TEXT, updated_at TEXT);
+            CREATE TABLE owned_review_items (user_id INTEGER, id TEXT, item_json TEXT, source TEXT, created_at TEXT, updated_at TEXT);
+            CREATE TABLE learning_captures (id TEXT PRIMARY KEY, user_id INTEGER, body TEXT, category TEXT, context TEXT, status TEXT, created_at TEXT, updated_at TEXT);
+            INSERT INTO cloud_schema_version VALUES (1);
+          `);
+          this.db.prepare('INSERT INTO users VALUES (?, ?, ?, ?, ?)').run(1, 'legacy-learner', '', '', '2026-09-01T00:00:00Z');
+          this.db.prepare('INSERT INTO sessions VALUES (?, ?, ?, ?)').run('legacy-session-token', 1, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z');
+          this.db.prepare('INSERT INTO user_settings VALUES (?, ?, ?)').run(1, JSON.stringify({ locale: 'ja', fontSize: 'large' }), '2026-09-02T00:00:00Z');
+          for (const [id, original, reading, meaning] of [['w-1', '遅刻', 'ちこく', '迟到'], ['w-2', '概観', 'がいかん', '概观']]) {
+            this.db.prepare('INSERT INTO owned_review_items VALUES (1, ?, ?, ?, ?, ?)').run(id, JSON.stringify({ id, deck: 'n1_vocab', type: 'vocabulary', original, reading, part_of_speech: '名詞', meaning_zh: meaning }), 'mcp', '2026-09-03T00:00:00Z', '2026-09-03T00:00:00Z');
+          }
+          this.db.prepare('INSERT INTO learning_captures VALUES (?, 1, ?, ?, ?, ?, ?, ?)').run('cap-1', '裁量', 'word', '新聞', 'inbox', '2026-09-04T00:00:00Z', '2026-09-04T00:00:00Z');
+        });
+        return new Response('seeded');
+      });
+    }
     if (new URL(request.url).pathname === '/__seed') {
       return this.ctx.blockConcurrencyWhile(async () => {
         for (const id of [1,2]) {

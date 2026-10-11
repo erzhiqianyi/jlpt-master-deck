@@ -627,7 +627,7 @@ At the end of each phase: all local tests pass, the corresponding Web and iOS pa
 | 3 | Practice, answers, review, learning events, statistics | Historical scores, accuracy and due review counts match legacy data |
 | 4 | Drafts, plans, daily summaries, inbox, recordings, market import | Walk through every feature |
 | 5 | iOS (entries, practice, review, sync protocol), Cloudflare Worker, removal of the v2 engine and compatibility code | Cloudflare tests, full iOS test suite |
-| 6 | Production migration (requires separate authorization): backup → migrate → reconcile → switch | Switch only when reconciliation matches |
+| 6 | Production migration (requires separate authorization): backup → migrate → reconcile → switch; steps and tools in [cloud-v3-migration.en.md](cloud-v3-migration.en.md) | Switch only when reconciliation matches |
 
 During phases 1–4 the app is "partially working" and is developed only on a local branch, not deployed.
 

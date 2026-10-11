@@ -20,8 +20,9 @@ export function requestFiles() {
       const text = String(path);
       if (writes.has(text)) return true;
       if (deletes.has(text)) return false;
-      // Media existence is verified with R2 when streamed. No local seed files exist.
-      return roots.slice(0, 4).some(([prefix]) => text.startsWith(prefix));
+      // Legacy media existence is verified with R2 when streamed. v3 media is content-addressed and
+      // deduplicated by its database row, so a path without a row must always be uploaded.
+      return roots.slice(0, 3).some(([prefix]) => text.startsWith(prefix));
     },
     mkdirSync() {},
     readdirSync() { return []; },

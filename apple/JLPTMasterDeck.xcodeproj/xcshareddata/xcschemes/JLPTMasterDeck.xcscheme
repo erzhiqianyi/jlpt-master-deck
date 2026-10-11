@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2B2197748D27747BDA2DF991"
+               BlueprintIdentifier = "2BAEFDD6E391ABC19B471CCE"
                BuildableName = "JLPTMasterDeck.app"
                BlueprintName = "JLPTMasterDeck"
                ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
@@ -30,7 +30,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2B2197748D27747BDA2DF991"
+            BlueprintIdentifier = "2BAEFDD6E391ABC19B471CCE"
             BuildableName = "JLPTMasterDeck.app"
             BlueprintName = "JLPTMasterDeck"
             ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
@@ -41,7 +41,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "36B72548670BBD5AFE2B0C1E"
+               BlueprintIdentifier = "20D378D445AE80D6EADD2277"
                BuildableName = "JLPTMasterDeckTests.xctest"
                BlueprintName = "JLPTMasterDeckTests"
                ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
@@ -51,7 +51,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E6AB5218B399322360138CC5"
+               BlueprintIdentifier = "F6F909176F0BA2F9122006AF"
                BuildableName = "JLPTMasterDeckUITests.xctest"
                BlueprintName = "JLPTMasterDeckUITests"
                ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
@@ -73,7 +73,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2B2197748D27747BDA2DF991"
+            BlueprintIdentifier = "2BAEFDD6E391ABC19B471CCE"
             BuildableName = "JLPTMasterDeck.app"
             BlueprintName = "JLPTMasterDeck"
             ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">
@@ -90,7 +90,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2B2197748D27747BDA2DF991"
+            BlueprintIdentifier = "2BAEFDD6E391ABC19B471CCE"
             BuildableName = "JLPTMasterDeck.app"
             BlueprintName = "JLPTMasterDeck"
             ReferencedContainer = "container:JLPTMasterDeck.xcodeproj">

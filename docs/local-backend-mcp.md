@@ -132,9 +132,12 @@ Reading passage detail and practice pages offer an opt-in segmentation switch. C
 
 MCP consumers can process the same queue on HTTP and stdio:
 
-1. Call `list_learning_captures` with `status: "inbox"`, optionally filtering `category` (`word`, `grammar`, `sentence`, `listening`, `reading`, `unsure`). Omitting status preserves the existing all-status listing.
-2. Parse each entry with its context. For word/grammar, check existing items and use `upsert_review_item`, preserving the requested deck/wordbook and source. For reading, use the reading create/update tools. For listening, require genuine audio before creating a question. Classify sentence/unsure inputs before choosing a destination; leave ambiguous inputs pending.
-3. After the result is successfully saved, call `update_learning_capture_status` with its `id` and `status: "processed"`. Failed writes stay in `inbox`; retry by checking for an already-saved result before writing again. `inbox` reopens an entry, and `archived` dismisses it. Both tools are scoped to the authenticated owner.
+1. Call `count_learning_captures` for the pending total, then `list_learning_captures` for one bounded page. Both default to `status: "inbox"`; optionally filter `category` (`word`, `grammar`, `sentence`, `listening`, `reading`, `unsure`) or select `status: "all"`. `limit` is an integer from 1 through 50; omission uses 5. Every page carries `total`, the count of the whole filter.
+2. Parse each entry with its context. For word/grammar, check `lookup_word` and create or update the knowledge point in the requested wordbook. For reading and listening, create a question group (listening needs genuine audio). Classify sentence/unsure inputs before choosing a destination; leave ambiguous inputs pending.
+3. After the result is saved, call `update_learning_capture_status` with its `code` (`IN12`) and `status: "processed"`. Failed writes stay in `inbox`. `inbox` reopens an entry, and `archived` dismisses it.
+4. Continue with `page.nextCursor`, optionally changing `limit`. Omitted filters follow the cursor; supplied filters must match. Processing earlier pages does not skip later entries. A traversal is live, not a snapshot or a claim.
+
+REST mirrors the tools: `GET /api/v3/inbox?status=&category=&limit=&cursor=` and `GET /api/v3/inbox/count`. See [the capture queue protocol](mcp-capture-queue.md).
 
 These are shared catalogue changes; hosted MCP receives them only after the cloud API is deployed.
 

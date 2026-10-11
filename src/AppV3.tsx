@@ -20,6 +20,7 @@ import { AboutPanel, aboutSectionTitle, isAboutSection } from './features/about/
 import { AgentConsentPage, isAgentConsentPage } from './features/agents/AgentConsentPage';
 import { DesktopPageHeader, DesktopSidebarNavigation, MobileAppHeader, MobileBottomNavigation } from './features/navigation/MobileNavigation';
 import { GlobalSearch } from './features/search/GlobalSearch';
+import { WordLookup } from './features/search/WordLookup';
 import { HomeToday } from './features/home/HomeToday';
 import { StudyHub } from './features/home/StudyHub';
 import { KnowledgeLibrary } from './features/library/KnowledgeLibrary';
@@ -261,6 +262,7 @@ export default function AppV3() {
       <GlobalSearch locale={locale} open={searchOpen} query={searchQuery} results={searchResults} labels={labels} onQueryChange={setSearchQuery}
         onOpenResult={(result) => { setSearchOpen(false); if (result.view === 'vocabulary' || result.view === 'grammar') go(result.view, 'words', result.id); else go(result.view, 'bank', result.id); }}
         onClose={() => setSearchOpen(false)} />
+      <WordLookup token={token} locale={locale} onOpen={(item) => go(item.kind === 'grammar' ? 'grammar' : 'vocabulary', 'words', item.code)} />
       <MobileAppHeader discovery={view === 'market' && !route.itemId} library={view === 'study'} onSettings={view === 'market' ? undefined : () => go('settings')} settingsLabel={labels.settings}
         onSearch={() => setSearchOpen(true)} searchLabel={labels.searchOpen} title={authoring?.label ?? title} backLabel={authoring?.backLabel || labels.navBack} showBack={!primaryRoot} onBack={goBack} />
       <div className="app-frame flex min-w-0 flex-1 md:items-stretch">

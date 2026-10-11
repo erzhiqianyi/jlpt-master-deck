@@ -23,12 +23,7 @@ struct JLPTMasterDeckApp: App {
                 }
                 else if store.isSignedIn {
                     let accountID = store.session.map { String($0.user.id) } ?? "demo"
-                    #if DEBUG
-                    if let fixtureID=NativeVisualFixtures.requestedID { NativeVisualFixtureView(id:fixtureID) }
-                    else { WorkspaceView(accountID:accountID).id(accountID) }
-                    #else
-                    WorkspaceView(accountID:accountID).id(accountID)
-                    #endif
+                    WorkspaceView(accountID: accountID).id(accountID)
                 }
                 else { LoginView() }
             }
@@ -44,6 +39,9 @@ struct JLPTMasterDeckApp: App {
             .alert("提示", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("知道了") { store.error = nil }
             } message: { Text(store.error ?? "") }
+            .alert("完成", isPresented: Binding(get: { store.notice != nil }, set: { if !$0 { store.notice = nil } })) {
+                Button("好的") { store.notice = nil }
+            } message: { Text(store.notice ?? "") }
         }
     }
 }

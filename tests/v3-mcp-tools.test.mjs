@@ -26,6 +26,23 @@ test('every v3 tool has a JSON schema and a unique name', () => {
   for (const t of v3Tools) assert.ok(z.toJSONSchema(z.object(t.inputSchema), { io: 'input' }), t.name);
 });
 
+test('tool schemas carry no unicode-escape patterns, which some MCP clients reject at discovery', () => {
+  for (const t of v3Tools) assert.doesNotMatch(JSON.stringify(z.toJSONSchema(z.object(t.inputSchema), { io: 'input' })), /\\\\p\{/, t.name);
+});
+
+test('the inbox queue is counted and read in bounded pages', async () => {
+  for (let i = 0; i < 7; i += 1) await call('create_learning_capture', { body: `語${i}`, category: 'word' }, '3');
+  assert.equal((await call('count_learning_captures', {}, '3')).structuredContent.total, 7);
+  assert.throws(() => z.object(byName.list_learning_captures.inputSchema).parse({ limit: 51 }));
+  assert.throws(() => z.object(byName.list_learning_captures.inputSchema).parse({ limit: 0 }));
+  const first = (await call('list_learning_captures', {}, '3')).structuredContent;
+  assert.equal(first.items.length, 5, '省略時は 5 件');
+  assert.equal(first.filters.status, 'inbox');
+  const rest = (await call('list_learning_captures', { cursor: first.page.nextCursor, limit: 50 }, '3')).structuredContent;
+  assert.deepEqual(rest.items.map((c) => c.body), ['語1', '語0']);
+  assert.equal(rest.page.hasMore, false);
+});
+
 test('knowledge, wordbooks, translations and ruby work through the tools', async () => {
   const book = (await call('create_wordbook', { title: '词汇' })).structuredContent;
   assert.equal(book.code, 'WB1');

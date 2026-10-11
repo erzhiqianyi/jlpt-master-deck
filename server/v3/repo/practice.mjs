@@ -236,6 +236,12 @@ export function deletePracticeSet(db, userId, code) {
  */
 export function startAttempt(db, userId, input = {}) {
   const language = languageOf(db, userId, input.language);
+  // オフラインで始めた練習：同じ clientKey は同じ記録（再送しても一つだけ）
+  const clientKey = text(input.clientKey, 'clientKey', { max: 120 });
+  if (clientKey) {
+    const existing = db.prepare('SELECT code FROM practice_attempts WHERE user_id = ? AND client_key = ?').get(userId, clientKey);
+    if (existing) return getAttempt(db, userId, existing.code, { language });
+  }
   let set = null;
   let rids;
   if (input.practice) {
@@ -249,10 +255,11 @@ export function startAttempt(db, userId, input = {}) {
   if (!rids.length) throw new InputError('没有可以练习的题目（只抽审查通过的题目）');
   const kind = oneOf(input.kind ?? (set ? (set.kind === 'daily' ? 'daily' : set.kind === 'mock' ? 'mock' : 'mixed') : input.filters?.module ?? 'mixed'), ATTEMPT_KINDS, 'kind');
   const now = nowIso();
+  const startedAt = iso(input.startedAt, 'startedAt') ?? now;
   db.prepare('UPDATE practice_attempts SET is_active = 0 WHERE user_id = ? AND is_active = 1').run(userId);
   const { code } = nextCode(db, userId, 'AT');
-  const rid = Number(db.prepare(`INSERT INTO practice_attempts (user_id, code, set_rid, kind, is_active, started_at, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)`)
-    .run(userId, code, set?.rid ?? null, kind, now, now, now).lastInsertRowid);
+  const rid = Number(db.prepare(`INSERT INTO practice_attempts (user_id, code, set_rid, kind, is_active, started_at, client_key, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`)
+    .run(userId, code, set?.rid ?? null, kind, startedAt, clientKey, now, now).lastInsertRowid);
   writeText(db, 'practice_attempts', rid, 'title', input.title, language);
   const entries = set ? db.prepare('SELECT rid, position FROM practice_set_entries WHERE set_rid = ? ORDER BY position').all(set.rid) : [];
   rids.forEach((questionRid, position) => db.prepare(`INSERT INTO attempt_answers (attempt_rid, position, entry_rid, question_rid, status) VALUES (?, ?, ?, ?, 'presented')`)
@@ -297,11 +304,16 @@ function answerText(value) {
  */
 export function submitAnswer(db, userId, attemptCode, input = {}) {
   const a = attemptRow(db, userId, attemptCode);
-  if (a.completed_at) throw new ConflictError(`练习 ${a.code} 已结束`);
   const row = input.question != null
     ? db.prepare('SELECT x.* FROM attempt_answers x JOIN questions q ON q.rid = x.question_rid WHERE x.attempt_rid = ? AND q.code = ?').get(a.rid, String(input.question).toUpperCase())
     : db.prepare('SELECT * FROM attempt_answers WHERE attempt_rid = ? AND position = ?').get(a.rid, Number(input.position));
   if (!row) throw new NotFoundError(`练习 ${a.code} 里没有这道题：${input.question ?? input.position}`);
+  if (a.completed_at) {
+    // 結束後に届いた再送（同じ事件）は重複として返す
+    const sent = input.eventId && db.prepare("SELECT 1 FROM learning_events WHERE user_id = ? AND event_id = ? AND event_type = 'AnswerSubmitted' AND question_rid = ?").get(userId, String(input.eventId), row.question_rid);
+    if (sent) return { duplicate: true, ...answerResult(db, userId, a.code, row.position) };
+    throw new ConflictError(`练习 ${a.code} 已结束`);
+  }
   if (!row.question_rid) throw new ConflictError('这道题的原题已找不到，不能作答');
   const eventId = input.eventId ? text(input.eventId, 'eventId', { max: 120 }) : `${a.code}:${row.position}:${Date.now()}`;
   const source = oneOf(input.source ?? 'web', SOURCES, 'source');
@@ -372,9 +384,9 @@ export function updateSchedule(db, userId, pointRid, next, attemptRid = null) {
   return s;
 }
 
-export function completeAttempt(db, userId, code) {
+export function completeAttempt(db, userId, code, { completedAt } = {}) {
   const a = attemptRow(db, userId, code);
-  if (!a.completed_at) db.prepare('UPDATE practice_attempts SET completed_at = ?, is_active = 0, updated_at = ? WHERE rid = ?').run(nowIso(), nowIso(), a.rid);
+  if (!a.completed_at) db.prepare('UPDATE practice_attempts SET completed_at = ?, is_active = 0, updated_at = ? WHERE rid = ?').run(iso(completedAt, 'completedAt') ?? nowIso(), nowIso(), a.rid);
   return getAttempt(db, userId, code);
 }
 

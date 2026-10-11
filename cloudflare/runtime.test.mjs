@@ -22,182 +22,100 @@ test('Workers SQLite, authenticated REST, R2, OAuth and MCP survive restart', as
     assert.equal((await json('/api/health')).database,'durable-object-sqlite');
     assert.equal((await request('/api/me','GET',undefined,'')).status,401);
     assert.equal((await request('/api/auth/firebase','POST',{idToken:'forged'},'')).status,401);
+    assert.equal((await json('/api/auth/config')).market,'database');
     await request('/__seed');
-    await request('/__large-sync-seed');
-    let syncPage = await json('/api/sync','POST',{},'test-3');
-    const largeChanges = [...syncPage.changes];
-    while (syncPage.nextPage) {
-      syncPage = await json('/api/sync','POST',{page:syncPage.nextPage},'test-3');
-      largeChanges.push(...syncPage.changes);
-    }
-    assert.equal(largeChanges.filter(change => change.collection === 'items').length,12);
-    assert(largeChanges.filter(change => change.collection === 'items').every(change => change.value.meaning_zh === '日本語😀'.repeat(20000)));
-    assert(Buffer.byteLength(JSON.stringify(largeChanges)) > 2 * 1024 * 1024);
-    assert.deepEqual((await json('/api/sync','POST',{cursor:syncPage.cursor},'test-3')).changes,[]);
-
+    assert.equal((await json('/api/me')).user.username,'test-1');
     assert.deepEqual(await json('/__tts-cache'), { generated: true, audio: 'fixture-audio' });
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
-    assert.ok((await json('/api/study-plan')).plan.profile);
-    const mock = (await json('/api/mock-exams', 'POST', { title: '自由な試験', sessions: [{ id: 'part', title: '自由なパート', questions: [{ id: 'q', prompt: '選んでください', choices: ['A', 'B'], answerIndex: 1, explanation: 'Bです' }] }] })).exam;
-    assert.equal((await json('/api/mock-exams')).exams[0].id, mock.id);
-    assert.equal((await request('/api/mock-exams/' + mock.id, 'GET', undefined, 'test-2')).status, 404);
-    assert.equal((await json('/api/mock-exams/' + mock.id, 'PATCH', { expectedRevision: 1, title: '変更' })).exam.revision, 2);
-    assert.equal((await request('/api/mock-exams/' + mock.id, 'PATCH', { expectedRevision: 1, title: '古い更新' })).status, 409);
 
-    assert.deepEqual((await json('/api/daily-summaries/2026-09-27')).summary, null);
-    assert.deepEqual((await json('/api/daily-summaries')).summaries, []);
-    assert.equal((await request('/api/daily-summaries/invalid')).status, 400);
-    const empty=await json('/api/review-data');
-    assert.equal(JSON.stringify(empty).includes('面目躍如'),false);
-    const book=(await json('/api/wordbooks','POST',{title:'Cloud isolation',deck:'n1_vocab'})).wordbook;
-    assert.ok(book.id);
-    assert.equal((await json('/api/auth/config')).market,'database');
-    const source = await json('/api/market/import','POST',{format:'jlpt-share',version:1,kind:'wordbook',title:'Cloud public snapshot',items:[{deck:'n1_vocab',original:'共有',reading:'きょうゆう',meaning_zh:'共享'}]});
-    const share = await json('/api/market','POST',{kind:'wordbook',sourceId:source.id});
-    // Practice import invokes draft creation inside an existing transaction.
-    const importedPractice = await json('/api/market/import', 'POST', {
-      format: 'jlpt-share', version: 1, kind: 'practice', title: 'Nested draft archival',
-      questions: [{ id: 'source-q', kind: 'grammar', prompt: '猫（　）いる。', choices: ['が', 'を'], answer: 'が', correctReason: '主语用が。' }],
-    });
-    assert.ok(importedPractice.id);
+    // 設定・単語帳・知識点（v3 は Durable Object の SQLite に入る）
+    assert.equal((await json('/api/v3/settings','PATCH',{uiLanguage:'ja',speech:{rate:0.8}})).settings.speech.rate,0.8);
+    assert.equal((await json('/api/v3/settings','GET',undefined,'test-2')).settings.uiLanguage,'zh-CN');
+    const book=(await json('/api/v3/wordbooks','POST',{title:'Cloud book'})).wordbook;
+    assert.equal(book.code,'WB1');
+    const item=(await json('/api/v3/knowledge','POST',{kind:'word',wordbook:'WB1',expression:'共有',reading:'きょうゆう',pos:'noun',meaning:'共享'})).item;
+    assert.equal(item.code,'W1');
+    assert.equal((await json('/api/v3/knowledge/lookup?q=きょうゆう')).items[0].code,'W1');
+    assert.equal((await json('/api/v3/wordbooks','GET',undefined,'test-2')).wordbooks.length,0);
+    assert.equal((await request('/api/v3/knowledge/W1','GET',undefined,'test-2')).status,404);
 
-    const reviewItem = (await json('/api/review-data')).items.find(item => item.original === '共有');
-    assert.ok(reviewItem);
-    const reviewInput = { questionId: `memory-card:${reviewItem.id}`, itemId: reviewItem.id, selected: 'hard', correct: true,
-      reviewEventId: 'cloud-review-1', reviewedAt: '2026-10-04T01:00:00Z', source: 'ios',
-      progressEntry: { correct: 1, wrong: 0, status: 'review', reviewCount: 1, lastReviewedAt: '2026-10-04T01:00:00Z', nextReviewAt: '2026-10-05T01:00:00Z' } };
-    await json('/api/answers', 'POST', reviewInput);
-    await json('/api/answers', 'POST', reviewInput);
-    assert.equal((await json('/api/daily-summaries/2026-10-04')).cardReviews.totalReviews, 1);
-    assert.equal((await json('/api/daily-summaries/2026-10-04','GET',undefined,'test-2')).cardReviews.totalReviews, 0);
-    assert.ok(!(reviewInput.questionId in (await json('/api/study-state')).answers));
+    // 収集箱：件数とカーソルでのページ読み
+    for (let i=0;i<6;i+=1) await json('/api/v3/inbox','POST',{body:`語${i}`,category:'word'});
+    assert.equal((await json('/api/v3/inbox/count?status=inbox')).total,6);
+    const first=await json('/api/v3/inbox?status=inbox&limit=4');
+    assert.equal(first.items.length,4);
+    for (const c of first.items) await json('/api/v3/inbox/'+c.code,'PATCH',{status:'processed'});
+    const rest=await json('/api/v3/inbox?limit=4&cursor='+encodeURIComponent(first.page.nextCursor));
+    assert.deepEqual(rest.items.map((c)=>c.body),['語1','語0']);
 
-    assert.ok((await json('/api/market','GET',undefined,'test-2')).shares.some(s=>s.id===share.id&&!s.mine));
-    assert.equal((await request(`/api/market/${share.id}`, 'PATCH', {title:'stolen'}, 'test-2')).status, 404);
-    const editedShare = await json(`/api/market/${share.id}`, 'PATCH', {title:'Updated shared book', description:'Edited intro', refreshSource:true});
-    assert.equal(editedShare.id, share.id);
-    assert.equal(editedShare.package.title, 'Updated shared book');
-    assert.equal((await json('/api/market?mine=1')).shares.every(row => row.mine), true);
-    const coverPayload = { mime: 'image/png', imageBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=' };
-    assert.equal((await request(`/api/market/${share.id}/cover`, 'PUT', coverPayload, 'test-2')).status, 404);
-    const coverResult = await json(`/api/market/${share.id}/cover`, 'PUT', coverPayload);
-    const coverResponse = await mf.dispatchFetch(origin + coverResult.coverUrl);
-    assert.equal(coverResponse.status, 200);
-    assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()), Buffer.from(coverPayload.imageBase64, 'base64'));
-    const failedCover = await mf.dispatchFetch(origin + `/api/market/${share.id}/cover`, { method: 'PUT', headers: { 'content-type': 'application/json', authorization: 'Bearer test-1', 'x-test-fail-upload': '1' }, body: JSON.stringify(coverPayload) });
-    assert.equal(failedCover.status, 503);
-    assert.equal((await json('/api/market')).shares.find(s => s.id === share.id).coverUrl, coverResult.coverUrl);
-
-
-    assert.ok(!(await json('/api/wordbooks','GET',undefined,'test-2')).wordbooks.some(x=>x.id===book.id));
-    assert.equal((await request('/api/wordbooks/'+book.id,'PATCH',{title:'stolen'},'test-2')).status,404);
-    const reading = (await json('/__seed-reading', 'POST', { passage: '素材が変わった。', question: '何が変わったか。', choices: ['素材', '場所', '人', '時間'], answerIndex: 0, explanation: '総解説', passageTranslation: '食材变了。', choiceExplanations: ['素材', '場所', '人', '時間'].map((text, i) => ({ text, translation: text, analysis: '分析', evidence: '素材が変わった。', errorType: i ? '无中生有' : '' })), readingAnalysis: { summary: '变化', structure: '说明', keySentences: ['素材が変わった。'] } })).question;
-    assert.equal((await json('/api/reading-questions/' + reading.id)).question.passageTranslation, '食材变了。');
-    assert.equal((await request('/api/reading-questions/' + reading.id, 'GET', undefined, 'test-2')).status, 404);
-    const replay = {eventId:'cloud-answer-replay',legacy:false,before:{correct:0,wrong:0,status:'new'},
-      input:{questionId:'memory-card:'+reading.id,itemId:reading.id,selected:'0',correct:true,
-        progressEntry:{correct:1,wrong:0,status:'learning',lastReviewedAt:'2026-10-05T01:00:00Z'}}};
-    assert.equal((await json('/api/answers/replay','POST',replay)).outcome,'accepted');
-    assert.equal((await json('/api/answers/replay','POST',replay)).outcome,'duplicate');
-    assert.equal((await request('/api/answers/replay','POST',replay,'test-2')).status,400);
-    const audioBody={question:'何をしますか。',choices:['読む','書く','聞く','話す'],choiceDetails:['読む','書く','聞く','話す'].map((choice)=>({translation:choice,explanation:`${choice} の理由`})),answerIndex:2,transcript:'男：音声の原文。',transcriptTranslation:'男：音频原文。',audioMime:'audio/wav',audioBase64:Buffer.from('test-audio-bytes').toString('base64')};
-    // Model an existing database missing the later audio and completion-statistics tables.
-    assert.equal((await request('/__legacy-audio-schema')).status, 200);
-    await mf.dispose(); mf=new Miniflare(options);
-    assert.equal((await json('/api/answers/replay','POST',replay)).outcome,'duplicate');
-    assert.equal((await json('/api/study-state')).progress[reading.id].correct,1);
-    assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
-    assert.equal((await json('/api/health')).databaseReady, true);
-    assert.equal((await json('/api/mock-exams/' + mock.id)).exam.title, '変更');
-    assert.equal((await json('/api/daily-summaries/2026-10-04')).cardReviews.ratings.hard, 1);
-    assert.equal((await json('/api/reading-questions/' + reading.id)).question.explanation, '総解説');
-    const failed=await mf.dispatchFetch(origin+'/__seed-listening',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify(audioBody)});
+    // 画像・音声は R2：アップロードが失敗したら SQL も戻る
+    const audio=Buffer.from('test-audio-bytes').toString('base64');
+    const failed=await mf.dispatchFetch(origin+'/api/v3/media',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test-1','x-test-fail-upload':'1'},body:JSON.stringify({base64:audio,mime:'audio/wav'})});
     assert.equal(failed.status,503);
-    assert.equal((await json('/api/listening-questions')).questions.length,0,'failed R2 upload rolls back SQL');
-    const question=(await json('/__seed-listening','POST',audioBody)).question;
-    const recording=(await json('/api/listening-questions/'+question.id+'/recordings','POST',{audioMime:'audio/wav',audioBase64:Buffer.from('learner-audio-bytes').toString('base64')})).recording;
-    const audioPath='/api/listening-questions/'+question.id+'/audio';
-    assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
-    assert.equal((await request(audioPath,'GET',undefined,'test-2')).status,404);
+    const media=(await json('/api/v3/media','POST',{base64:audio,mime:'audio/wav'})).media;
+    assert.equal(await (await request(media.url)).text(),'test-audio-bytes');
+    assert.equal((await request(media.url,'GET',undefined,'test-2')).status,404);
+    const bucket=await mf.getR2Bucket('MEDIA');
+    assert.ok((await bucket.list()).objects.some((o)=>o.key.startsWith('v3-media/1/')));
+    const recording=(await json('/api/v3/recordings','POST',{audioBase64:Buffer.from('learner-audio').toString('base64'),mime:'audio/webm'})).recording;
+    assert.equal(recording.status,'pending');
+
+    // 市場：公開・他人の取り込み（ファイルは参照のまま共有）
+    const share=(await json('/api/v3/market','POST',{kind:'wordbook',source:'WB1',title:'Shared book'})).share;
+    assert.ok((await json('/api/v3/market','GET',undefined,'test-2')).shares.some((s)=>s.id===share.id));
+    const imported=await json('/api/v3/market/'+share.id+'/import','POST',{},'test-2');
+    assert.ok(imported.wordbook);
+    assert.equal((await request('/api/v3/market/'+share.id,'DELETE',undefined,'test-2')).status,404);
+
+    // OAuth と MCP：v3 のツールが Cloudflare からも公開される
     const doc=await json('/.well-known/oauth-protected-resource');
     assert.equal(doc.resource,origin+'/api/jlpt/mcp');
     const client=await json('/api/jlpt/oauth/register','POST',{client_name:'Runtime test',redirect_uris:['http://localhost:9999/callback'],token_endpoint_auth_method:'none'});
     const verifier='a'.repeat(64);
     const params={client_id:client.client_id,redirect_uri:'http://localhost:9999/callback',response_type:'code',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',state:'test',scope:'study library:write audio:read',resource:origin+'/api/jlpt/mcp'};
-    const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study','library:write','audio:read']});
-    const tokenResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(approved.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
-    assert.equal(tokenResponse.status,200,await tokenResponse.clone().text());
-    const issued=await tokenResponse.json();
-    const recordingAudioPath='/api/listening-recordings/'+recording.id+'/audio';
-    assert.equal(await (await request(audioPath,'GET',undefined,issued.access_token)).text(),'test-audio-bytes');
-    assert.equal(await (await request(recordingAudioPath,'GET',undefined,issued.access_token)).text(),'learner-audio-bytes');
-    assert.equal((await request(recordingAudioPath,'GET',undefined,'test-2')).status,404);
-    assert.equal((await request(recordingAudioPath,'GET',undefined,'agt_invalid')).status,401);
-    assert.equal((await request(recordingAudioPath,'GET',undefined,'')).status,401);
-    const studyOnlyApproval=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes:['study']});
-    const studyOnlyResponse=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(studyOnlyApproval.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
-    assert.equal(studyOnlyResponse.status,200);
-    const studyOnly=await studyOnlyResponse.json();
-    assert.equal((await request(recordingAudioPath,'GET',undefined,studyOnly.access_token)).status,403);
-    const rpc=async(method,params={})=>{
-      const r=await mf.dispatchFetch(origin+'/api/jlpt/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',authorization:`Bearer ${issued.access_token}`},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+    const grant=async(scopes)=>{
+      const approved=await json('/api/jlpt/oauth/approve','POST',{...params,decision:'approve',scopes});
+      const r=await mf.dispatchFetch(origin+'/api/jlpt/oauth/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:new URL(approved.redirect).searchParams.get('code'),code_verifier:verifier,client_id:client.client_id,redirect_uri:params.redirect_uri,resource:params.resource}).toString()});
+      assert.equal(r.status,200,await r.clone().text());
+      return (await r.json()).access_token;
+    };
+    const issued=await grant(['study','library:write','audio:read']);
+    const studyOnly=await grant(['study']);
+    assert.equal(await (await request(media.url,'GET',undefined,issued)).text(),'test-audio-bytes');
+    assert.equal((await request(media.url,'GET',undefined,studyOnly)).status,403);
+    assert.equal((await request(media.url,'GET',undefined,'agt_invalid')).status,401);
+    const rpc=async(method,body={})=>{
+      const r=await mf.dispatchFetch(origin+'/api/jlpt/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream',authorization:`Bearer ${issued}`},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params:body})});
       assert.equal(r.status,200,await r.clone().text());
       const raw=await r.text(),line=raw.split('\n').find(x=>x.startsWith('data:'));
-      const body=JSON.parse(line?line.slice(5):raw); assert.ok(!body.error,JSON.stringify(body));return body.result;
+      const parsed=JSON.parse(line?line.slice(5):raw); assert.ok(!parsed.error,JSON.stringify(parsed));return parsed.result;
     };
-    const catalogue = (await rpc('tools/list')).tools;
-    for (const name of ['list_local_official_samples', 'list_local_mock_exams', 'get_local_mock_exam', 'export_review_data_backup', 'get_listening_recording_analysis_context']) {
-      assert.ok(!catalogue.some((tool) => tool.name === name), `${name} must not be published from Cloudflare`);
-    }
-    for (const tool of catalogue) {
-      for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof tool.annotations?.[hint], 'boolean', `${tool.name}.${hint}`);
-    }
-    // v3 のツールは Cloudflare に v3Db が入るまで（移行の第 5 段階）公開しない
-    // 学習データの MCP ツールはすべて v3。Cloudflare に v3Db が入るまで（第 5 段階）公開しない
-    assert.deepEqual(catalogue.map((tool) => tool.name), ['get_connection_info']);
-    const homeView = await rpc('resources/read', { uri: 'ui://jlpt/ai-learning-home.html' });
-    assert.match(homeView.contents[0].text, /get_ai_learning_home/);
-    assert.equal((await request('/api/listening-recordings/'+recording.id,'DELETE')).status, 200);
-    assert.equal((await request('/api/listening-recordings/'+recording.id+'/audio')).status, 404);
-    assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
-    const resources=(await rpc('resources/list')).resources;
-    assert.match((await rpc('resources/read',{uri:resources[0].uri})).contents[0].text,/<div id="app"><\/div>/);
+    const catalogue=(await rpc('tools/list')).tools;
+    for (const name of ['list_local_official_samples','list_local_mock_exams','get_local_mock_exam']) assert.ok(!catalogue.some((t)=>t.name===name),`${name} must not be published from Cloudflare`);
+    for (const name of ['get_connection_info','list_knowledge_points','start_practice','count_learning_captures','list_learning_captures','get_media']) assert.ok(catalogue.some((t)=>t.name===name),name);
+    for (const tool of catalogue) for (const hint of ['readOnlyHint','destructiveHint','openWorldHint']) assert.equal(typeof tool.annotations?.[hint],'boolean',`${tool.name}.${hint}`);
+    const listed=await rpc('tools/call',{name:'list_knowledge_points',arguments:{}});
+    assert.equal(listed.structuredContent.total,1);
+    const heard=await rpc('tools/call',{name:'get_media',arguments:{mediaId:media.id}});
+    assert.equal(Buffer.from(heard.content[0].data,'base64').toString(),'test-audio-bytes');
+    const homeView=await rpc('resources/read',{uri:'ui://jlpt/ai-learning-home.html'});
+    assert.match(homeView.contents[0].text,/get_ai_learning_home/);
+
+    // 再起動しても残る
     await mf.dispose(); mf=new Miniflare(options);
     assert.deepEqual(await json('/__tts-cache'), { generated: false, audio: 'fixture-audio' });
-    const persistedReading = (await json('/api/reading-questions/' + reading.id)).question;
-    assert.equal(persistedReading.passageTranslation, '食材变了。');
-    assert.deepEqual(persistedReading.readingAnalysis, reading.readingAnalysis);
-    assert.ok((await json('/api/wordbooks')).wordbooks.some(x=>x.id===book.id));
-    const persistedShare = await json('/api/market/'+share.id,'GET',undefined,'test-2');
-    assert.equal(persistedShare.createdAt,share.createdAt);
-    assert.equal(persistedShare.package.items[0].original,'共有');
-    const copy = await json('/api/market/import','POST',{shareId:share.id},'test-2');
-    assert.notEqual(copy.id,source.id);
-    assert.equal((await request('/api/market/'+share.id,'DELETE',undefined,'test-2')).status,404);
-    await json('/api/market/'+share.id,'DELETE');
-    assert.equal((await request('/api/market/import','POST',{shareId:share.id},'test-2')).status,404);
-
-    assert.deepEqual((await json('/api/review-data','GET',undefined,'test-2')).items.map(item=>item.original),['共有']);
-    assert.equal(await (await request(audioPath)).text(),'test-audio-bytes');
+    assert.equal((await json('/api/v3/knowledge/W1')).item.expression,'共有');
+    assert.equal((await json('/api/v3/settings')).settings.uiLanguage,'ja');
+    assert.equal(await (await request(media.url)).text(),'test-audio-bytes');
+    assert.equal((await json('/api/v3/wordbooks','GET',undefined,'test-2')).wordbooks.length,1);
     assert.deepEqual(await json('/__tts-cache-alarm-recovery'), { failed: true, retrySoon: true });
     assert.deepEqual(await json('/__tts-cache-batches'), { first: 6, remaining: 0 });
     assert.deepEqual(await json('/__tts-cache-expire'), { remaining: 0, alarm: true });
-    assert.equal(await (await request(audioPath)).text(), 'test-audio-bytes');
-    await json('/__delete-listening','POST',{id:question.id});
-    assert.equal((await request(audioPath)).status,404);
-    const frozenAudioRef=question.materialRefs[0];
-    const frozenAudioPath=`/api/materials/${encodeURIComponent(frozenAudioRef.id)}/versions/${frozenAudioRef.revision}/audio`;
-    assert.equal(await (await request(frozenAudioPath)).text(),'test-audio-bytes');
-    assert.equal((await request(frozenAudioPath,'GET',undefined,'test-2')).status,404);
-    assert.equal((await request(frozenAudioPath,'GET',undefined,'')).status,401);
-    assert.equal((await request(frozenAudioPath,'GET',undefined,studyOnly.access_token)).status,403);
-    assert.equal(await (await request(frozenAudioPath,'GET',undefined,issued.access_token)).text(),'test-audio-bytes');
-    // Active question route is gone, but immutable material history still owns bytes.
-    const media=await mf.getR2Bucket('MEDIA');
-    const retained=(await media.list()).objects;
-    assert.equal(retained.length,1);
-    assert.equal(await (await media.get(retained[0].key)).text(),'test-audio-bytes');
-    await media.delete(retained[0].key);
-    assert.equal((await request(frozenAudioPath)).status,404);
+
+    // 旧形式のデータしかない Durable Object は書き換えずに待つ（移行は別の手順）
+    assert.equal((await request('/__legacy-database')).status,200);
+    await mf.dispose(); mf=new Miniflare(options);
+    assert.equal((await request('/api/v3/settings')).status,503);
+    assert.equal((await request('/api/health')).status,503);
   } finally {await mf.dispose();rmSync(dir,{recursive:true,force:true});}
 });

@@ -9,23 +9,6 @@ struct APIClient {
     static let origin = URL(string: "https://jlpt.erzhiqian.cc")!
     var token: String?
 
-    static func itemImageRequest(_ image: [String: String], token: String?) throws -> URLRequest {
-        let url: URL?
-        if let id = image["id"], !id.isEmpty {
-            url = origin.appendingPathComponent("api/item-images").appendingPathComponent(id)
-        } else {
-            url = image["url"].flatMap { URL(string: $0, relativeTo: origin.appendingPathComponent("/"))?.absoluteURL }
-        }
-        guard let url, url.scheme == "https" else { throw APIError.invalidResponse }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 30
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        if url.host == origin.host, url.port == origin.port, let token {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        return request
-    }
-
     func get<T: Decodable>(_ path: String) async throws -> T { try await send(path) }
     func post<T: Decodable, Body: Encodable>(_ path: String, body: Body) async throws -> T {
         try await send(path, method: "POST", data: JSONEncoder().encode(body))
@@ -37,6 +20,17 @@ struct APIClient {
         try await send(path, method: "PATCH", data: JSONEncoder().encode(body))
     }
     func delete<T: Decodable>(_ path: String) async throws -> T { try await send(path, method: "DELETE") }
+    /// 画像・音声などの中身（/api/v3/media/:id）。
+    func data(_ path: String) async throws -> Data {
+        guard let url = URL(string: path, relativeTo: Self.origin.appendingPathComponent("/")) else { throw APIError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60
+        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        let (bytes, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else { throw APIError.http(http.statusCode, "文件下载失败（\(http.statusCode)）") }
+        return bytes
+    }
     private func send<T: Decodable>(_ path: String, method: String = "GET", data: Data? = nil) async throws -> T {
         #if DEBUG
         Logger(subsystem: "cc.erzhiqian.jlptmasterdeck", category: "Network").debug("request \(method, privacy: .public) \(path, privacy: .public)")

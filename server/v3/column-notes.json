@@ -691,6 +691,10 @@
       "source": "`analysisStatus`",
       "sample": "idle 未分析 / running / completed",
       "meaning": "AI 练习分析的状态"
+    },
+    "client_key": {
+      "source": "新生成",
+      "sample": "iOS 生成的 UUID"
     }
   },
   "attempt_answers": {

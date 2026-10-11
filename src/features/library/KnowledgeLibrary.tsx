@@ -6,6 +6,7 @@ import { createV3Client } from '../../v3/client';
 import type { JlptLevel, KnowledgeDetail, KnowledgeList, KnowledgeQuery, PickedText, ReviewState, Wordbook } from '../../v3/types';
 import { kindLabel, languageName, levelLabel, libraryText, posLabel, statusLabel } from './libraryText';
 import './library.css';
+import { SpeechControls } from '../../components/SpeechControls';
 
 export type LibraryFamily = 'vocabulary' | 'grammar';
 const FAMILY_KINDS: Record<LibraryFamily, string> = { vocabulary: 'word,name', grammar: 'grammar' };
@@ -225,7 +226,7 @@ function KnowledgeDetailView({ client, locale, code, showRomaji, wordbooks, onBa
       {nav}
       <header className="library-detail-head">
         <span className="library-code">{item.code} · {kindLabel(locale, item.kind)}</span>
-        <h1 lang="ja">{item.expression}</h1>
+        <h1 lang="ja">{item.expression} <SpeechControls text={item.kind === 'word' && item.reading ? item.reading : item.expression} iconOnly /></h1>
         {item.reading && item.reading !== item.expression ? <p className="library-reading" lang="ja">{item.reading}{showRomaji && item.romaji ? <span className="library-romaji">{item.romaji}</span> : null}</p> : null}
         {item.meaning ? <p className="library-detail-meaning">{item.meaning.text} <Fallback text={item.meaning} locale={locale} /></p> : null}
         <dl className="library-facts">{facts.map(([label, value]) => <div key={label + value}>{label ? <dt>{label}</dt> : null}<dd>{value}</dd></div>)}</dl>
@@ -244,7 +245,7 @@ function KnowledgeDetailView({ client, locale, code, showRomaji, wordbooks, onBa
           <ol className="library-examples">
             {item.examples.map((example, index) => (
               <li key={index}>
-                <p lang="ja" className="library-sentence">{example.sentence}</p>
+                <p lang="ja" className="library-sentence">{example.sentence} <SpeechControls text={example.sentence} iconOnly /></p>
                 {example.reading ? <p lang="ja" className="library-muted">{example.reading}</p> : null}
                 {example.translation ? <p>{example.translation.text} <Fallback text={example.translation} locale={locale} /></p> : null}
                 {example.spokenSentence ? <p lang="ja" className="library-muted">{example.spokenSentence}{example.spokenTranslation ? ` — ${example.spokenTranslation.text}` : ''}</p> : null}

@@ -38,6 +38,29 @@ export const ACCOUNT_SCHEMA = `
   );`;
 
 /**
+ * SQL ファイルを文ごとに分ける（Durable Object の SQLite は 1 回に実行できる文の長さに上限がある）。
+ * コメントと PRAGMA は除く。CREATE TRIGGER は END; までを 1 文とする。
+ */
+export function sqlStatements(sql) {
+  const statements = [];
+  let current = [];
+  let inTrigger = false;
+  for (const raw of sql.split('\n')) {
+    const line = raw.replace(/\s+--.*$/, '').replace(/^--.*$/, '').trimEnd();
+    if (!line.trim() || (!current.length && /^PRAGMA /i.test(line))) continue;
+    if (!current.length && /^CREATE TRIGGER /i.test(line)) inTrigger = true;
+    current.push(line);
+    if (inTrigger ? /^END;$/i.test(line.trim()) : line.endsWith(';')) {
+      statements.push(current.join('\n'));
+      current = [];
+      inTrigger = false;
+    }
+  }
+  if (current.length) statements.push(current.join('\n'));
+  return statements;
+}
+
+/**
  * 空のデータベースに v3 の表と参照データを用意する（Cloudflare の Durable Object 用）。
  * 旧形式のデータが入っていて v3 の表がないときは何もしないで false（移行は別の手順で行う）。
  */
@@ -46,7 +69,7 @@ export function installV3Schema(handle, schemaSql) {
   if (!has('knowledge_points')) {
     if (has('cloud_schema_version') || has('owned_review_items')) return false;
     handle.exec(ACCOUNT_SCHEMA);
-    handle.exec(schemaSql.replace(/^PRAGMA .*$/gm, ''));
+    for (const statement of sqlStatements(schemaSql)) handle.exec(statement);
   }
   handle.exec(ACCOUNT_SCHEMA);
   seedReferenceData(handle);

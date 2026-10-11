@@ -56,6 +56,8 @@ export function createV3Client(token: string) {
     rateCard: (code: string, rating: CardRating, eventId: string) => send<{ duplicate: boolean; code: string; rating: CardRating; schedule: Card['schedule'] }>('POST', '/api/v3/cards/ratings', { code, rating, eventId, source: 'web' }),
     stats: (q: { days?: number; module?: string } = {}) => get<StudyOverview>(`/api/v3/stats${query(q)}`),
     inbox: (q: { status?: string; category?: string; limit?: number } = {}) => get<{ total: number; items: InboxCapture[] }>(`/api/v3/inbox${query(q)}`),
+    createCapture: (input: { body: string; category?: InboxCapture['category']; context?: string; wordbook?: string }) =>
+      send<{ capture: InboxCapture }>('POST', '/api/v3/inbox', input).then((r) => r.capture),
     setCaptureStatus: (code: string, status: InboxCapture['status']) => send<{ capture: InboxCapture }>('PATCH', `/api/v3/inbox/${path(code)}`, { status }).then((r) => r.capture),
     deleteCapture: (code: string) => send<{ deleted: string }>('DELETE', `/api/v3/inbox/${path(code)}`),
     drafts: (q: { status?: string } = {}) => get<{ drafts: DraftSummary[] }>(`/api/v3/drafts${query(q)}`).then((r) => r.drafts),

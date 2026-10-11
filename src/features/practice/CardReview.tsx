@@ -1,4 +1,5 @@
 // 記憶カード（v3）：表を見て思い出し、裏を見てから自己評価する。表・裏の内容は選んだテンプレートで決まる。
+import { SpeechControls } from '../../components/SpeechControls';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '../../types';
 import { createV3Client } from '../../v3/client';
@@ -74,6 +75,7 @@ function CardField({ field, items, client, front = false }: { field: string; ite
         <p key={i}>
           {item.title ? <strong>{item.title}　</strong> : null}
           <span lang={item.lang}>{item.text}</span>
+          {item.lang === 'ja' && item.text && (field === 'expression' || field === 'example') ? <SpeechControls text={item.text} iconOnly /> : null}
           {item.translation ? <span className="library-muted memory-translation">{item.translation}</span> : null}
         </p>
       ))}

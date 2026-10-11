@@ -590,6 +590,7 @@ AI 出题 ──▶ ① 硬校验 ──不通过──▶ 拒绝写入，错误
 - 题目接口返回“题目 + 选项（带固定编号）”的组合结构；练习接口返回分区与条目。作答接口提交选中的选项编号。
 - 多语言字段统一返回所选说明语言的文字及回退信息（`{ text, language, isFallback, origin, verified }`），不再返回 `*_zh` 字段。
 - iOS 同步协议的 collection 改为新实体；客户端本地缓存在升级后清空重拉。
+- iOS 离线同步（`server/v3/repo/sync.mjs`）：`GET /api/v3/sync` 返回设置、单词本、卡片模板、题型、复习进度和练习列表；`GET /api/v3/sync/knowledge?offset&limit&since` 分页下载知识点（第一页附全部编号，用来删除本机多余的）；`GET /api/v3/sync/practice/:code` 下载一份练习的全部题组（含正确选项与解析，答完才显示），离线时在本机判分。离线学习写成事件，联网后 `POST /api/v3/sync/events` 按发生顺序提交：`MemoryRated`、`AttemptStarted`（`eventId` 存为 `practice_attempts.client_key`，重复提交只建一条）、`AnswerSubmitted`、`AttemptCompleted`。每个事件返回 applied / duplicate / rejected；被拒绝的（输入错误、找不到、同一事件内容不同）不再重发。复习进度由服务器按事件重新计算，本机只先显示同样规则（iOS 移植的 `ReviewSchedule`，单元测试对照 JS 结果）算出的预估。
 - MCP 工具的参数和返回同步改名（例如 `item_id` → `code`），工具说明一起更新。
 - 新增题目审查工具：`get_question_review_context`、`submit_question_review`、`list_questions_needing_revision`（见 §6“题目审查”）。
 - 新增校验：MCP `validate_question`、REST `POST /api/questions/validate`（只校验不保存）；`GET /api/question-types` 下发题型与校验规则（见 §6“校验规则”）。
@@ -1599,12 +1600,13 @@ Cloudflare Workers（Durable Object SQLite）的限制：单条语句最多 100 
 | `analysis_status` | TEXT | 是 | idle | 取值：idle / running / completed / failed | AI 练习分析的状态 | idle 未分析 / running / completed | `analysisStatus` |
 | `analysis_started_at` | TEXT |  |  |  |  |  |  |
 | `analysis_completed_at` | TEXT |  |  |  |  |  |  |
+| `client_key` | TEXT |  |  |  | 客户端离线开始练习时生成的编号，同一编号重复提交只建一条 | iOS 生成的 UUID | 新生成 |
 | `created_at` | TEXT | 是 |  |  | 创建时间 |  | 旧表的 `created_at`；旧数据没有时取迁移时间 |
 | `updated_at` | TEXT | 是 |  |  | 最后修改时间 |  | 旧表的 `updated_at`；旧数据没有时取迁移时间 |
 
 表级约束：`UNIQUE (user_id, code)`
 
-唯一索引 `practice_attempts_one_active`：(user_id) WHERE is_active = 1
+唯一索引 `practice_attempts_one_active`：(user_id) WHERE is_active = 1；唯一索引 `practice_attempts_client_key`：(user_id, client_key) WHERE client_key IS NOT NULL
 
 译文字段（`content_translations.owner_table` = `practice_attempts`）：`title` 练习记录标题
 

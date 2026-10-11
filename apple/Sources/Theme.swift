@@ -18,7 +18,7 @@ struct PrimaryButton: ButtonStyle {
 struct DeckPanel<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
-        content.padding(24).frame(maxWidth: .infinity, alignment: .leading)
+        content.padding(20).frame(maxWidth: .infinity, alignment: .leading)
             .background(DeckTheme.surface, in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(DeckTheme.line, lineWidth: 1))
     }
@@ -30,77 +30,56 @@ struct DeckRow: View {
         HStack(spacing: 16) {
             Image(systemName: icon).font(.title3).foregroundStyle(DeckTheme.accent).frame(width: 38, height: 42)
             VStack(alignment: .leading, spacing: 6) {
-                JapaneseText(text: title, weight: .semibold).foregroundStyle(DeckTheme.ink)
-                if !subtitle.isEmpty { JapaneseText(text: subtitle, fontSize: 15, color: UIColor(red: 0.44, green: 0.47, blue: 0.46, alpha: 1)).foregroundStyle(DeckTheme.muted).lineLimit(2) }
+                Text(title).fontWeight(.semibold).foregroundStyle(DeckTheme.ink)
+                if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(DeckTheme.muted).lineLimit(2) }
             }
             Spacer(minLength: 8)
             if showsChevron { Image(systemName: "chevron.right").font(.caption).foregroundStyle(DeckTheme.muted) }
-        }.padding(.vertical, 15).contentShape(Rectangle())
+        }.padding(.vertical, 12).contentShape(Rectangle())
     }
 }
-
 struct StudyPagePadding: ViewModifier {
     @Environment(\.horizontalSizeClass) private var sizeClass
-    func body(content: Content) -> some View {
-        content.padding(sizeClass == .compact ? 16 : 24)
-    }
+    func body(content: Content) -> some View { content.padding(sizeClass == .compact ? 16 : 24) }
 }
-
-/// Compact navigation controls for presented screens. Pushed pages keep the
-/// system back button and interactive swipe-to-go-back behavior.
 struct DeckDismissButton: View {
     enum Kind { case back, close }
     @Environment(\.dismiss) private var dismiss
     let kind: Kind
     let label: String
-    var disabled = false
     var identifier = "navigation.dismiss"
-
     var body: some View {
         Button { dismiss() } label: {
-            Label(label, systemImage: kind == .back ? "chevron.backward" : "xmark")
-                .labelStyle(.iconOnly)
-                .font(.body.weight(.semibold))
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+            Label(label, systemImage: kind == .back ? "chevron.backward" : "xmark").labelStyle(.iconOnly)
+                .font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
         }
-        .disabled(disabled)
-        .accessibilityLabel(label)
-        .accessibilityIdentifier(identifier)
-        .keyboardShortcut(.cancelAction)
+        .accessibilityLabel(label).accessibilityIdentifier(identifier).keyboardShortcut(.cancelAction)
     }
 }
 
-/// Shared answer states match the web practice and reading screens.
-struct StudyAnswerChoice: View {
+/// 選択肢（練習の選択肢・答えたあとの正誤表示）。
+struct AnswerChoice: View {
     @Environment(AppStore.self) private var store
     let number: Int
     let text: String
     let selected: Bool
     var correct: Bool? = nil
-    var flat = false
-    var allowsRuby = true
-    var terms: [StudyItem.ReadingTerm] = []
-    var annotations: [JapaneseAnnotation] = []
     var tint: Color { correct == true ? DeckTheme.green : correct == false && selected ? DeckTheme.accent : DeckTheme.ink }
     var fill: Color { correct == true ? DeckTheme.green.opacity(0.08) : selected ? DeckTheme.accent.opacity(0.08) : .clear }
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("\(number)").font(.body.monospacedDigit()).frame(width: 30, height: 30)
-                .background(tint.opacity(0.07), in: Circle())
-            JapaneseText(text: text, japanese: true, allowsRuby: allowsRuby, terms: terms, annotations: annotations, fontSize: 18 * store.textScale).lineSpacing(5).multilineTextAlignment(.leading)
+            Text("\(number)").font(.body.monospacedDigit()).frame(width: 30, height: 30).background(tint.opacity(0.07), in: Circle())
+            Text(text).font(.system(size: 18 * store.textScale)).lineSpacing(5).multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
             if correct == true { Image(systemName: "checkmark.circle.fill") }
             else if selected { Image(systemName: correct == false ? "xmark.circle.fill" : "checkmark.circle.fill") }
-        }.padding(.vertical, 14).padding(.horizontal, flat ? 4 : 16)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading).foregroundStyle(tint)
-            .background(fill, in: RoundedRectangle(cornerRadius: flat ? 0 : 10))
-            .overlay { if !flat { RoundedRectangle(cornerRadius: 10).stroke(selected || correct == true ? tint.opacity(0.5) : DeckTheme.line, lineWidth: 1) } }
-            .overlay(alignment: .bottom) { if flat { Rectangle().fill(DeckTheme.line).frame(height: 1) } }
+        }.padding(.vertical, 14).padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading).foregroundStyle(tint)
+            .background(fill, in: RoundedRectangle(cornerRadius: 10))
+            .overlay { RoundedRectangle(cornerRadius: 10).stroke(selected || correct == true ? tint.opacity(0.5) : DeckTheme.line, lineWidth: 1) }
             .contentShape(Rectangle())
     }
 }
-
 
 extension MemoryRating {
     var symbol: String {
@@ -111,25 +90,24 @@ extension MemoryRating {
     }
 }
 
-// Shared with web display preferences, persisted in the account study state.
-extension AppStore {
-    var appLanguage: String {
-        if case .string(let value) = state.settings?["locale"], ["zh-CN", "ja", "en"].contains(value) { return value }
-        return "zh-CN"
+/// 下線や空欄（UTF-16 の位置、サーバーと同じ）を付けた問題文。
+enum MarkedText {
+    static func attributed(_ text: String, marks: [QuestionMark], size: CGFloat) -> AttributedString {
+        let utf16 = Array(text.utf16)
+        func piece(_ range: Range<Int>, bold: Bool = false, placeholder: String? = nil) -> AttributedString {
+            var value = AttributedString(placeholder ?? String(decoding: utf16[range], as: UTF16.self))
+            value.font = .system(size: size, weight: bold ? .semibold : .regular)
+            if bold { value.underlineStyle = .single }
+            return value
+        }
+        var result = AttributedString()
+        var cursor = 0
+        for mark in marks.sorted(by: { $0.start < $1.start }) where mark.start >= cursor && mark.end <= utf16.count && mark.start <= mark.end {
+            result += piece(cursor..<mark.start)
+            result += piece(mark.start..<mark.end, bold: mark.kind == "target", placeholder: mark.start == mark.end ? "（　　）" : nil)
+            cursor = mark.end
+        }
+        result += piece(min(cursor, utf16.count)..<utf16.count)
+        return result
     }
-    func interfaceText(_ key: String) -> String {
-        let language = appLanguage == "zh-CN" ? "zh-Hans" : appLanguage
-        guard let path = Bundle.main.path(forResource: language, ofType: "lproj"), let bundle = Bundle(path: path) else { return key }
-        return bundle.localizedString(forKey: key, value: key, table: "Localizable")
-    }
-    var textScale: CGFloat {
-        if case .number(let value) = state.settings?["fontScale"], value.isFinite { return CGFloat(min(2, max(0.8, value))) }
-        if case .string(let value) = state.settings?["fontSize"] { return value == "large" ? 1.2 : value == "small" ? 0.9 : 1 }
-        return 1
-    }
-    func displayFlag(_ key: String) -> Bool {
-        if case .bool(let value) = state.settings?[key] { return value }
-        return true
-    }
-
 }

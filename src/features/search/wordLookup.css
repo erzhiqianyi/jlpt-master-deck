@@ -1,0 +1,8 @@
+/* 選んだ言葉の辞書パネル */
+.word-lookup { position: fixed; z-index: 60; width: 320px; max-width: calc(100vw - 24px); display: grid; gap: 8px; padding: 12px 14px;
+  border: 1px solid var(--ledger-line, #e1ddd5); border-radius: 10px; background: var(--ledger-surface, #fff); box-shadow: 0 10px 30px rgb(0 0 0 / 0.12); }
+.word-lookup header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.word-lookup header strong { font-size: 1.1rem; }
+.word-lookup header button { border: 0; background: none; font-size: 1.3rem; line-height: 1; cursor: pointer; min-width: 32px; min-height: 32px; }
+.word-lookup-match { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border: 1px solid var(--ledger-line, #e1ddd5); border-radius: 8px; background: none; cursor: pointer; font: inherit; color: inherit; }
+.word-lookup-match small, .word-lookup-muted { color: var(--ledger-muted, #6b6f6c); font-size: .85rem; margin: 0; }

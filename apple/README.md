@@ -2,39 +2,33 @@
 
 Native SwiftUI first version, minimum iOS/iPadOS 17. Open `JLPTMasterDeck.xcodeproj` and select the `JLPTMasterDeck` scheme. The checked-in project needs no generator to build. SPM resolves Firebase Auth/Core 12.9.0 and Google Sign-In 9.2.0.
 
-## Implemented scope
+## Implemented scope (v3)
 
-- Five-destination adaptive sidebar and today's learning dashboard based on the approved iPad concept. Compact iPhone/iPad windows use five bottom tabs (Today, Practice, Discover, Records, Question Bank), with vocabulary, grammar, reading and listening available in Question Bank.
-- The selected workspace section (including the Question Bank root) is saved per account and restored on relaunch. Ordinary background/foreground transitions retain explicit per-tab navigation paths and mounted detail/answer state. Memory-card review saves its ordered card snapshot, current position and front/back state per account; relaunch resumes that session, and ratings advance its position in the same atomic save as the answer. Only an explicit review exit clears the session. Reading and listening pin the displayed question snapshot during synchronization. Missing route IDs show a safe return page. Other nested details and unfinished practice rounds are not restored by this workspace mechanism.
-- Today displays synchronized daily practice packs with question/answered counts and a direct native quiz entry. An empty practice cache offers manual sync; viewing the dashboard does not initiate a request.
-- The existing orange study companion sits above the bottom safe area and opens page-specific shortcuts. Sync/capture moved out of the navigation bar. Its supplied 72pt transparent frames blink while idle and wave before opening the original shortcuts; newly saved correct answers celebrate and return to idle. One cancellable timeline owns each character, stops when inactive and uses a static fallback for Reduce Motion or missing assets. Chinese tab labels are all two characters: 今日、练习、发现、记录、题库.
-- Phone layouts use a flat practice catalog (topic and mixed practice; daily work stays on Today) and compact margins for login, review, item details, listening and native exercises. Library search stays within library screens.
-- Real cloud library, plans, review progress, reading questions and captures from `https://jlpt.erzhiqian.cc`.
-- Searchable vocabulary/grammar library, Japanese system speech for entries and individual examples, reveal-and-rate memory review. Entry speech prefers the supplied reading when available; speech uses the synchronized web provider and voice settings for cloud audio, or Apple system Japanese voices when the browser/system provider is selected.
-- Entry and example cloud speech uses the existing authenticated `/api/tts/speak` endpoint and its R2 cache. Playback saves account-scoped MP3 files locally; the speaker controls can download a single clip, and Account → local data can download the current vocabulary/grammar entries and examples in bulk. Downloads can be stopped and resumed without fetching completed clips again. Downloaded clips play offline; changing provider/voice/style/role uses a different local key.
-- Memory-review speaker controls sit beside the entry within the card. The position menu selects left or right and saves the preference on this device.
-- Reading passage and question side by side on wide windows; stacked on compact windows with compact margins and flat, separated answer rows. Results are saved before revealing the explanation and full-passage speech controls.
-- Listening library grouped by audio with search/type filters, authenticated playback/pause/restart, native multiple-choice and free-response input, group confirmation and post-answer explanations/transcripts. Practice counts use the same per-audio session key as the web. As on the current web flow, submitted listening selections/free text are stored on this device and visible in History; cloud persistence records the audio practice count. Recording/read-along are not implemented.
-- Capture composer, recent item progress and captured-input list.
-- Native practice hub, topic/daily pack lists, multiple-choice questions, saved-answer feedback and round summary. Mixed rounds sample up to 20 existing formal vocabulary/grammar questions; this does not yet reproduce all browser-generated questions. Unpublished drafts and mock exams are not supported by the native practice flow. There is no embedded web practice UI.
-- Native practice saves per-question answers and item progress through `/api/answers`; full grouped attempt history/resume parity is not yet implemented.
-- Google and Apple Firebase sign-in, explicit provider linking, backend session exchange, Keychain persistence and logout revocation.
-- Explicit in-memory demo mode. Demo data never reaches the server. Debug launch argument `--demo` opens the demo dashboard for visual testing.
+The app reads and writes the v3 data model through `/api/v3` (see `docs/schema-v3-design.md` §10). Records are addressed by code (W12, QV15, DP3).
 
-The dashboard uses task counts from the actual study plan, not invented question counts. No fabricated resume position is shown. Downloaded content can be studied offline. This release does not claim web feature parity or QR login.
+- Five tabs: Today, Practice, Library, Discover, Records. The selected tab is remembered per account.
+- **Today**: due and new memory cards, today's practice sets, and the practice in progress.
+- **Memory cards**: the card template chosen in settings (per kind: word, grammar, name) decides the front and back. Four ratings with the next interval shown on each button; forgotten cards come back at the end of the session. Works offline.
+- **Practice**: downloaded practice sets (daily, topic, mock) are graded on the device with the same rules as the server (choice, typed answers; shadowing and unscored questions are recorded as practiced). Immediate or end-of-practice feedback follows the setting. Drawn practice (10 reviewed questions per module or mixed) needs a connection. Listening audio and images are downloaded on first play, or in bulk from Records → Download practice audio.
+- **Library**: wordbooks and knowledge points with search by spelling, reading, romaji or meaning; details with examples, memory points, patterns, conjugations, comparisons and the memory image. Speech uses the speech provider from settings (system voice, or the server's `/api/tts/speak`).
+- **Discover**: market shares, importable into the account (online).
+- **Records**: statistics (online), sync status, records that could not be uploaded, inbox capture (online), settings (language, text size, romaji, feedback timing, speech provider) and account.
+- Google and Apple Firebase sign-in, provider linking, Keychain session. `--demo` opens an in-memory demo used by the UI tests; demo data never reaches the server.
+- Interface text is localized in Chinese, Japanese and English (`Resources/Localizable.xcstrings`).
 
-## Offline study and discovery
+## Offline study and sync
 
-- Account → Database Check compares current cloud counts with the saved on-disk snapshot by category. It counts unique formal question IDs, separates local-only responses/pending writes, and counts downloaded audio files separately from linked cloud audio groups. Checking does not write to local storage; syncing refreshes the comparison afterward. Missing network results are shown as unavailable, not zero. The scope is content currently synchronized by the native app, not every backend table.
-- Switching tabs, entering listening/practice and returning from a practice round render the local store directly and never initiate a refresh. Missing downloads have an explicit sync action. Startup, true background-to-foreground transitions and network recovery schedule a deferred sync only if the cache is at least five minutes old or answers are pending; automatic attempts are coalesced with a one-minute cooldown. Manual sync bypasses that policy.
-- Startup shows a restoration view while Keychain and offline JSON are read off the main actor. Firebase configuration is deferred until the identity service is needed. Restored content is applied only if the account generation still matches.
-- Open Account → Sync learning data once while online. Vocabulary, grammar, plans, reading, formal practice packs, listening metadata and discovery listings are stored in the app's Application Support directory, separately for each account. Startup restores the snapshot before refreshing the server.
-- Memory ratings, native exercise answers, reading/listening progress and submitted listening text/choices are saved atomically with a pending-write queue before advancing. Foregrounding, manual sync and connectivity recovery retry the queue. Account shows pending count, last completed content sync and failures.
-- Ordinary answers use `/api/answers/replay` with stable event identities. The server atomically merges an answer into current progress and persists its receipt; retries do not increment counts again. Legacy operations without event identity upload automatically only while the cloud still matches their starting progress. Ambiguous records and dependent answers persist as needing review, and login skips them while unrelated records continue uploading. Database Check lets the learner review them in order, either preserving an already-counted record or adding a separate practice action. Numeric reading answers use ordinary replay rather than card ratings. Deploy the replay-capable backend before distributing this client. The remaining Web/MCP snapshot writers still need migration; this is not the complete event-based architecture. See [the synchronization design](../docs/multi-device-study-sync-architecture.md), also available in [English](../docs/multi-device-study-sync-architecture.en.md) and [Japanese](../docs/multi-device-study-sync-architecture.ja.md).
-- Account → Download listening audio downloads the current listening library. Playing an audio file also saves it locally. Undownloaded audio needs a connection. New captures, sign-in, importing discoveries and obtaining new content still need a connection.
-- Logout removes the active session and in-memory data. Account-scoped downloaded data and pending results stay on this device for restoration after signing back into the same account. Demo data stays in memory only.
-- Discover lists real shared content with a single native navigation indicator, previews shared questions and wordbook entries, and can import them into the account. Shared practice supports direct trial rounds with answers, explanations and a score; trial rounds do not write personal progress. Opening a detail requires a connection. Vocabulary/grammar remain under Study.
-- Today's formal practice comes first until all its questions have answers; then topic practice comes first. No available daily practice is treated as incomplete, not as a fabricated completion.
+- The device keeps, per account under Application Support `v3/accounts/<id>/`: `snapshot.json` (settings, wordbooks, card templates, question types, schedules, knowledge points, practice bundles) and `work.json` (events waiting to upload, practices in progress and recent results, local schedule estimates, the card session).
+- Sync (`AppStore.refresh`): upload events → `GET /api/v3/sync` → knowledge points changed since the last sync (`/api/v3/sync/knowledge?since=`; deleted ones are dropped) → practice bundles not yet downloaded (`/api/v3/sync/practice/:code`). It runs on launch, when returning to the foreground after five minutes or with pending events, when the network comes back, on pull to refresh and from Records → Sync now.
+- Study is recorded as events with stable IDs: `MemoryRated`, `AttemptStarted` (its ID becomes the practice's client key), `AnswerSubmitted`, `AttemptCompleted`. `POST /api/v3/sync/events` applies them in order; resending is harmless (duplicate), and rejected events are listed in Records instead of being retried forever.
+- The server recomputes review schedules from the events. Until then the device shows an estimate from `ReviewSchedule`, a Swift port of `src/domain/reviewSchedule.mjs`.
+- Upgrading from the old app: the old cache is not read; sign in once online to download the v3 data.
+
+## Tests
+
+- `Tests/StudyTests.swift`: decoding of real server sync output, review schedule parity with the JavaScript rules, text-answer normalization, offline practice and card ratings becoming events (and surviving a relaunch), UTF-16 marks, speech chunking. `Tests/GeneratedFixtures.swift` is generated by `node scripts/v3/ios-fixtures.mjs`; regenerate it after changing the sync output or the schedule rules.
+- `UITests/NavigationLifecycleTests.swift`: tabs, card review, practice feedback and score, resuming a practice, library search and details (demo data).
+- After adding or removing source files run `ruby generate-project.rb`.
 
 ## Configure real login
 
@@ -60,61 +54,12 @@ See `docs/apple-client-architecture.md` in the repository. QR login is deliberat
 
 ## Verification
 
-- Scheme `JLPTMasterDeck` includes `JLPTMasterDeckTests` (review scheduling, account isolation, route ownership and transparent animation assets) and `JLPTMasterDeckUITests` (demo-only lifecycle/navigation regression with screenshot attachments).
+- `xcodebuild test -scheme JLPTMasterDeck -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` runs the unit and UI tests.
 - Keep simulator signing enabled, including for login testing: use `CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-` for ad-hoc simulator builds. Disabling signing omits the simulator's injected Keychain entitlements and causes Google sign-in to fail with OSStatus `-34018`. Device and Catalyst distribution still require their own valid signing configuration.
-- Demo validation: navigation, search, card reveal/rating, reading answer/feedback, capture/save/history, logout, portrait and landscape resizing.
-- End-to-end real account and Apple provider checks require the configuration above.
+- End-to-end real account and Apple provider checks require the configuration above, and a backend deployed with the v3 API (`/api/v3/sync`).
 
 Regenerating the project discovers all Swift files in `Sources/` and `Tests/`. Keep the generated project and the package resolution lockfile in version control; do not commit local signing settings or provider files.
 
-答题与复习界面与网页保持同一布局规则：iPhone 使用紧凑单列、阅读分隔线选项和固定底部操作；iPad 使用有最大宽度的内容区，阅读在可用宽度至少 760pt 时左右排列。复习正面居中，背面将读音、等级、词性收进标题摘要，四个评分按钮始终同排固定；宽屏助记图位于右侧，窄屏上下排列，点击图片可放大，图片说明仅用于辅助阅读。
+## Not in the native app yet
 
-单词与语法共用原生答题和解析组件：未确认时隐藏解析，确认后显示答题结果、所选答案、编号后的正确答案、解题依据摘要和记忆点；完整依据、逐项辨析、完整翻译及来源词条按需展开。逐项辨析依照题目选项排序，正确标记以题目答案为准，旧版合并解析中的「选项」理由会保留。计时在确认成功后冻结，下一题重置计时及展开状态。Debug UI 测试使用独立示例，不修改正式练习数据。
-
-原生 iPhone、iPad 仅在练习完成总结页展示学习伙伴形象，配合一次挥手或庆祝动作及鼓励文案，遵循系统减少动态效果设置。上下文快捷操作使用省略号菜单，答题底部只保留确认或下一题按钮；菜单直接打开，无动画等待。
-
-练习首页提供专项、综合和模拟考试入口。模拟考试在 App 内复用网页试卷与考试流程，网页数据按原生账户隔离保留，需要联网；普通练习仍使用原生离线答题组件。“统计”首页与网页采用同一已完成练习口径，显示今天的积累、近七天作答柱状图、累计概况、模块表现、最近练习、回顾与巩固和学习资料。iPhone 单列，iPad 可用宽度至少 720pt 时两列；今日、七天和累计值均来自练习历史，按东京日期汇总，未完成练习不计入。统计页不显示底部快捷菜单。旧版“记录”导航偏好自动映射到“统计”。
-
-账户设置包含发音设置：系统/云端服务、服务凭据、音色、Azure 风格与角色、语速、卡片正面/背面自动朗读、语法详情自动朗读、例句朗读和批量离线下载。卡片只保留播放按钮，不显示下载状态图标。卡片字段保存明确发送版本 2，返回结果与选择不一致时报告错误；返回设置页不会重新覆盖尚未保存的选择。
-
-原生单词/语法练习随每题将练习记录写入本机待同步队列，最后一题确认后标记完成；上传时按练习 ID 合并云端历史，不覆盖网页当前正在进行的练习。同步得到的练习历史随本机学习快照保存，统计和历史回顾可离线读取。Debug 专用 `--statistics-fixture` 仅用于截图和测试，不写入真实账户。
-
-原生 iPhone、iPad 各页已移除右下角悬浮快捷操作按钮及其占位；练习入口、朗读、答题确认与账户同步仍使用页面内的操作。
-
-同步下载与答题上传失败分开处理：进度冲突或上传错误不会阻止题库、图片关联和练习更新；待上传队列、作答内容与本机进度保留，401 或取消仍中止。新快照原子写入成功后才更新同步时间。数据库检查顶部显示结果，并分别统计有图词汇和有图语法（关联数量，不是离线图片文件数）。助记图使用黑底全屏预览，支持双指缩放、双击放大、拖动及还原；加载失败可重试，同源图片携带账户凭据，外部图片不携带凭据。
-
-启动分为登录状态恢复、本机快照恢复和云端同步三个阶段。登录状态确认后立即挂载主界面，本机快照在后台读取，顶部显示恢复提示；本机待上传记录加载完成前，自动/手动同步暂不执行，本机学习数据写入会提示稍后重试，避免空快照覆盖现有记录。恢复结束后按现有策略自动同步，退出或切换账户后旧恢复结果不再应用。Performance 日志分别记录登录状态恢复、本机数据恢复和云端同步耗时。
-
-设置入口使用工作区 NavigationStack 的独立页面：iPhone 通过齿轮进入并返回原页面，iPad 在右侧内容区展示，保留侧栏。首页按学习与练习、发音与朗读、AI 与 Agent、账户与数据分组，各项进入单独子页面。账户页保留同步、离线下载、绑定与退出功能。AI 页提供 MCP 接入地址复制、接入说明、账户授权列表、刷新与确认后断开连接；演示模式仅展示接入说明，不读取或修改真实授权。
-
-AI 入口以内容社区形式展示：复用发现封面与自适应网格，支持分类、搜索、文章详情和示例请求复制。首批八篇编辑文章来自 `scripts/build-community-articles.mjs`，包含词汇、语法、阅读、听力、每日练习、备考计划和 Dots 协作案例；标明编辑来源。连接与授权管理作为社区页面中的独立入口。当前文章为内置编辑内容，尚无用户投稿、评论或点赞后端。
-
-显示与阅读设置提供中文、日文、英文界面语言，小／标准／大字号，以及复习和解析两个独立假名开关。保存使用网页相同的 `locale`、`fontSize`、`showReviewRuby`、`showExplanationRuby` 字段，并持久化到账户学习快照。假名以保存的 `reading` 和 `ruby_terms` 标注，不自动推测读音；题目作答区域不显示读音提示。发现列表上方直接切换“全部分享／我的分享”。
-
-助记图和远端发现封面使用按账户隔离的 Application Support 图片缓存。显示优先读取本机文件，网络请求、文件读写和缩略图解码在独立 actor 执行。学习数据保存后独立启动图片同步，最多并发四张；图片失败不撤销题库同步，账户页显示图片下载数量、进度与重试入口。内置发现封面与 AI 社区配图已随应用安装，本身可离线显示。
-
-复习卡片逐条显示有效例句，日文旁提供播放与循环开关，翻译单独显示。循环沿用系统／云端朗读配置，停止或离开卡片时结束。词条标题提供复制原词按钮；卡片内容底部居中显示正式编号（缺省时使用条目 ID），右侧可复制纯编号，复制后显示勾选反馈。
-
-### 条目详情与相关练习
-
-词汇／语法详情按释义、接续、用法、例句与解析分节显示，重复读音不再显示。底部“练习这个条目”打开当前条目的全部可用题目（含已同步练习中关联的题目），不再打开记忆卡片；无题时明确提示。
-
-原生相关练习通过 JavaScriptCore 复用 `src/domain/questions.ts`，保留网页版的题目 ID、出题条件、干扰项与解析。修改出题逻辑或翻译后运行 `node scripts/build-native-questions.mjs`，并提交生成的 `apple/Resources/ItemQuestions.js`；离线快照保留条目的出题字段。模拟器测试覆盖词汇、语法种子题、关联题去重与超过 20 题的完整练习。
-
-## Vocabulary save rule
-
-Settings → Practice settings shares `jlptVocabularyQuestionKinds` with desktop/mobile web and MCP. Six checkboxes select the required types; each selected kind requires at least one complete authored question. An empty selection (the default) skips vocabulary question validation. Opening the native settings screen reads the latest account preference; saving merges into current server settings and verifies the server retained the value. The browser extension queue manager shows the account rule and links to the web settings page for editing.
-
-### 日语显示
-
-卡片、条目详情、练习、阅读和听力使用统一 `JapaneseText`：Core Text 上方假名、可配置分词间距和词性样式。账户设置 → 显示与阅读 → 分词模式，可以分别配置名词、动词、助词、形容词的下划线/字体颜色。AI 标注的数据契约、数据库迁移和旧内容离线回退见 [日语标注设计](../docs/japanese-annotations.md)。
-
-原生 iPhone、iPad 会按账户与练习保存未完成的本机草稿：返回列表或重启后重新进入同一练习，恢复题目位置、未提交选择、已确认答案、练习记录 ID 与有效作答时间。综合练习继续使用上次抽出的题目；交卷后清除草稿，题目列表发生变化时不应用旧草稿。草稿仅在当前设备保存，发现试做不保存个人草稿。
-
-原生复习卡片的日语词与例句支持点词查询：按现有分词识别点击词，查看本机词库释义与读音，修改查询词，并保留卡片来源和原文上下文加入待解析队列。分词显示关闭时仍可点词；查词不会触发翻面，已在待解析队列中的词避免重复加入。网页（桌面及移动端）和 MCP 复习卡片提供相同查询与队列入口。
-
-练习、阅读和听力的未确认题目统一隐藏分词间距、词性样式与假名提示；确认单题或交卷后，按日语显示设置与解析假名设置展示。批量答题中的已选答案在交卷前仍不显示提示，阅读题的目标下划线保留。复习卡片的显示与点词查询继续沿用卡片设置。
-
-批量练习选中后立即高亮，并在固定底部显示所选内容；停留 1 秒后进入下一道未答题，改选会重新计时。“留在本题”、手动切换题目、打开题目列表或交卷确认、退出及进入后台均取消本次自动跳题，选项在停留期间可继续操作。草稿先更新内存，再在后台串行编码与写入，快速重开可直接恢复最新内存草稿；交卷清除同样按写入顺序执行。未显示分词或假名、且无点词查询的答题文本跳过分词分析。
-
-听力练习采用固定顶部音频按钮与进度拖动条、导航栏文件名、单题左右分页和固定底部翻题按钮。答题卡通过四列网格跳题并标记已答；返回或右上角退出入口先进入暂停页，可继续或保存并退出。未完成答案、题目位置、音频位置及会话 ID 按账户和音频保存在本机，重新进入时可继续或重开；题目列表变化后不恢复旧草稿。整组完成并保存成功后先显示真实结果，再查看错题或全部解析，文字作答待自评，不计入正确率。草稿不跨设备同步。Debug 的 `--demo --listening-fixture` 使用独立的 11 题示例；UI 回归覆盖选题、暂停、退出恢复、结果计算及错题翻页，不请求正式账户数据。
+These exist on the web but not natively: question bank editing, AI drafts, study plan editing, daily reports, shadowing recording and its AI analysis, word lookup by tapping text, furigana and part-of-speech display, speech provider credentials and voices (configure them on the web), and memory-card template choice (the app uses the template chosen on the web).

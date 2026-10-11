@@ -7,7 +7,7 @@
 
   // extension/lib/wordbooks.ts
   function wordbooksForCategory(wordbooks, category) {
-    return wordbooks.filter((book) => category === "grammar" === (book.deck === "grammar_expression"));
+    return category === "word" || category === "grammar" ? wordbooks : [];
   }
 
   // extension/content.ts
@@ -64,7 +64,7 @@
     panel.innerHTML = '<p class="loading">\u67E5\u8BE2\u4E2D\u2026</p>';
   }
   function meaningOf(item) {
-    return item.meaning_zh?.trim() || item.meaning_ja?.trim() || "";
+    return item.meaning?.text.trim() ?? "";
   }
   var wordbooksCache = null;
   async function getWordbooks() {
@@ -76,7 +76,7 @@
   }
   function renderMatches(word, matches, context) {
     if (matches.length) {
-      panel.innerHTML = matches.map((item) => `<h4>${escapeHtml(item.original)}${item.reading && item.reading !== word ? ` <span class="reading">${escapeHtml(item.reading)}</span>` : ""}</h4>
+      panel.innerHTML = matches.map((item) => `<h4>${escapeHtml(item.expression)}${item.reading && item.reading !== word ? ` <span class="reading">${escapeHtml(item.reading)}</span>` : ""}</h4>
         <p class="meaning">${escapeHtml(meaningOf(item) || "\u6682\u65E0\u91CA\u4E49")}</p>`).join("");
       return;
     }
@@ -101,14 +101,14 @@
       const wordbooks = await getWordbooks();
       const category = categorySelect.value;
       const options = wordbooksForCategory(wordbooks, category);
-      wordbookSelect.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml(book.id)}">${escapeHtml(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
+      wordbookSelect.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml(book.code)}">${escapeHtml(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
     }
     categorySelect?.addEventListener("change", populateWordbooks);
     void populateWordbooks();
     button?.addEventListener("click", async () => {
       if (!button || !feedback || !categorySelect || !wordbookSelect) return;
       const wordbooks = await getWordbooks();
-      const wordbook = wordbooks.find((book) => book.id === wordbookSelect.value);
+      const wordbook = wordbooks.find((book) => book.code === wordbookSelect.value);
       button.disabled = true;
       button.textContent = "\u6B63\u5728\u52A0\u5165\u2026";
       feedback.textContent = "";
@@ -118,8 +118,7 @@
           input: {
             body: word,
             category: categorySelect.value,
-            targetDeck: wordbook?.deck,
-            targetWordbookId: wordbook?.id,
+            wordbook: wordbook?.code,
             context: `\u63D2\u4EF6\u7F51\u9875\u9009\u8BCD
 \u9875\u9762\uFF1A${location.href}
 \u539F\u6587\uFF1A${context}`

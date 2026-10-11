@@ -38,7 +38,7 @@ async function handle(message: ExtensionMessage): Promise<unknown> {
     case 'CREATE_CAPTURE':
       return { capture: await withMcp('create_learning_capture', withoutUndefined(message.input)) };
     case 'LIST_CAPTURES':
-      return { captures: (await withMcp<{ items: unknown[] }>('list_learning_captures', withoutUndefined({ status: message.status }))).items };
+      return { captures: (await withMcp<{ items: unknown[] }>('list_learning_captures', withoutUndefined({ status: message.status ?? 'all', limit: 50 }))).items };
     case 'UPDATE_CAPTURE_STATUS':
       return { capture: await withMcp('update_learning_capture_status', { code: message.code, status: message.status }) };
     case 'LIST_WORDBOOKS':

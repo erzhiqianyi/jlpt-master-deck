@@ -65,6 +65,8 @@ export class JlptDatabase extends DurableObject {
       try {
         const response = await this.ctx.storage.transaction(async () => withPlatform(platform, async () => {
           const mcp = createJlptMcp({ onEvent() {}, origins: () => ({ publicOrigin: this.env.PUBLIC_ORIGIN, webOrigin: this.env.PUBLIC_ORIGIN }) });
+          // OAuth の表（agent_*）は最初の要求で用意する
+          if (!this.mcpSchemaReady) { await mcp.ensureSchema(); this.mcpSchemaReady = true; }
           const result = await this.dispatch(request, mcp);
           if (result.status >= 400) throw new RouteFailure(result);
           // Uploads become visible before committing their SQL metadata; a failed upload

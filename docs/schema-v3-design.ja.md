@@ -590,6 +590,7 @@ AI が出題 ──▶ ① 必須チェック ──不合格──▶ 書き込
 - 問題の API は「問題＋選択肢（固定の番号付き）」をまとめた構造を返し、練習の API はセクションと項目を返す。解答の API は選んだ選択肢の番号を送る。
 - 多言語のフィールドは、選んだ説明言語の文字とフォールバックの情報（`{ text, language, isFallback, origin, verified }`）を返し、`*_zh` のフィールドは返さない。
 - iOS の同期プロトコルのコレクションを新しいエンティティに変える。クライアントのローカルキャッシュはアップグレード後に消去して取り直す。
+- iOS のオフライン同期（`server/v3/repo/sync.mjs`）：`GET /api/v3/sync` は設定・単語帳・カード模板・問題形式・復習予定・練習の一覧を返す。`GET /api/v3/sync/knowledge?offset&limit&since` は知識点をページごとに返す（最初のページに全部の番号を付け、端末は消えたものを除く）。`GET /api/v3/sync/practice/:code` は練習一つの題組をすべて返す（正解の選択肢と解説を含む。表示は答えたあとだけ）ので、端末でオフライン採点できる。オフラインの学習はイベントとして残し、オンラインになったら `POST /api/v3/sync/events` で起きた順に送る：`MemoryRated`、`AttemptStarted`（`eventId` を `practice_attempts.client_key` に保存し、再送しても記録は一つ）、`AnswerSubmitted`、`AttemptCompleted`。各イベントは applied / duplicate / rejected を返し、rejected（入力の誤り・見つからない・同じイベントで内容が違う）は再送しない。復習予定はサーバーがイベントから計算し直す。端末は同じ規則（Swift に移した `ReviewSchedule`。JS の結果と照らす単体テストあり）による見込みを先に出すだけ。
 - MCP ツールの引数と戻り値の名前もあわせて変え（`item_id` → `code` など）、ツールの説明も更新する。
 - 問題のレビュー用ツールを追加：`get_question_review_context`、`submit_question_review`、`list_questions_needing_revision`（§6「問題のレビュー」参照）。
 - 検証を追加：MCP の `validate_question`、REST の `POST /api/questions/validate`（検証のみで保存しない）。`GET /api/question-types` で問題形式と検証ルールを配布する（§6「検証ルール」参照）。
@@ -1600,12 +1601,13 @@ Cloudflare Workers（Durable Object の SQLite）の制限：1 文あたりの�
 | `analysis_status` | TEXT | 必須 | idle | 値：idle / running / completed / failed | AI による練習分析の状態 | idle 未分析 / running / completed | `analysisStatus` |
 | `analysis_started_at` | TEXT |  |  |  |  |  |  |
 | `analysis_completed_at` | TEXT |  |  |  |  |  |  |
+| `client_key` | TEXT |  |  |  | クライアントがオフラインで練習を始めたときに作る番号。同じ番号で何度送っても記録は一つだけ | iOS が生成した UUID | 新規生成 |
 | `created_at` | TEXT | 必須 |  |  | 作成日時 |  | 旧テーブルの `created_at`。旧データにない場合は移行日時 |
 | `updated_at` | TEXT | 必須 |  |  | 最終更新日時 |  | 旧テーブルの `updated_at`。旧データにない場合は移行日時 |
 
 テーブル制約：`UNIQUE (user_id, code)`
 
-一意インデックス `practice_attempts_one_active`：(user_id) WHERE is_active = 1
+一意インデックス `practice_attempts_one_active`：(user_id) WHERE is_active = 1；一意インデックス `practice_attempts_client_key`：(user_id, client_key) WHERE client_key IS NOT NULL
 
 翻訳フィールド（`content_translations.owner_table` = `practice_attempts`）：`title` 練習記録のタイトル
 

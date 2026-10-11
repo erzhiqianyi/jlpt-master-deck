@@ -775,11 +775,13 @@ CREATE TABLE practice_attempts (
   analysis_status        TEXT NOT NULL DEFAULT 'idle' CHECK (analysis_status IN ('idle', 'running', 'completed', 'failed')),  -- AI 练习分析状态
   analysis_started_at    TEXT,
   analysis_completed_at  TEXT,
+  client_key             TEXT,                          -- 客户端离线开始练习时生成的编号，同一编号重复提交只建一条
   created_at             TEXT NOT NULL,
   updated_at             TEXT NOT NULL,
   UNIQUE (user_id, code)
 );
 CREATE UNIQUE INDEX practice_attempts_one_active ON practice_attempts (user_id) WHERE is_active = 1;
+CREATE UNIQUE INDEX practice_attempts_client_key ON practice_attempts (user_id, client_key) WHERE client_key IS NOT NULL;
 -- 译文字段：title（标题）
 
 -- 练习中每道题的作答
@@ -1099,6 +1101,7 @@ CREATE TABLE inbox_captures (
   updated_at           TEXT NOT NULL,
   UNIQUE (user_id, code)
 );
+CREATE INDEX inbox_captures_queue ON inbox_captures (user_id, status, category, rid);  -- 按状态、类别分页（新的在前）
 
 -- 跟读录音
 CREATE TABLE speaking_recordings (

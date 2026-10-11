@@ -51,6 +51,33 @@ test('inbox captures are created, filed and isolated per learner', () => {
   assert.throws(() => inbox.createCapture(db, 1, { body: 'x', category: 'nope' }), /category/);
 });
 
+test('the inbox is read page by page with a cursor and processing entries skips none', () => {
+  const db = freshDb();
+  for (let i = 0; i < 12; i += 1) inbox.createCapture(db, 1, { body: `word ${i}`, category: i === 11 ? 'grammar' : 'word' });
+  inbox.createCapture(db, 2, { body: 'other learner', category: 'word' });
+  assert.deepEqual(inbox.countCaptures(db, 1, { status: 'inbox', category: 'word' }), { total: 11, filters: { status: 'inbox', category: 'word' } });
+  const seen = [];
+  let page = inbox.listCaptures(db, 1, { status: 'inbox', category: 'word', limit: 4 });
+  assert.equal(page.total, 11);
+  for (;;) {
+    seen.push(...page.items.map((c) => c.code));
+    // 処理済みにしても次のページは飛ばない
+    for (const c of page.items) inbox.setCaptureStatus(db, 1, c.code, 'processed');
+    if (!page.page.hasMore) break;
+    page = inbox.listCaptures(db, 1, { cursor: page.page.nextCursor, limit: 4 });
+  }
+  assert.deepEqual(seen, Array.from({ length: 11 }, (_, i) => `IN${11 - i}`));
+  assert.equal(page.page.nextCursor, null);
+  assert.equal(inbox.countCaptures(db, 1, { status: 'inbox' }).total, 1);
+  assert.equal(inbox.countCaptures(db, 1, { status: 'all' }).total, 12);
+  const first = inbox.listCaptures(db, 1, { status: 'all', limit: 2 });
+  assert.throws(() => inbox.listCaptures(db, 1, { cursor: first.page.nextCursor, status: 'inbox' }), /筛选条件/);
+  assert.throws(() => inbox.listCaptures(db, 1, { cursor: 'not-a-cursor' }), /cursor/);
+  // 他人の行はカーソルを書き換えても読めない
+  const forged = Buffer.from(JSON.stringify({ v: 1, status: 'all', category: null, before: 999 })).toString('base64url');
+  assert.ok(inbox.listCaptures(db, 1, { cursor: forged, limit: 50 }).items.every((c) => c.body !== 'other learner'));
+});
+
 test('recordings keep the reference transcript and receive an AI analysis', () => {
   const db = freshDb();
   const audio = storeMedia(db, 1, { base64: Buffer.from('ID3-a').toString('base64'), mime: 'audio/mpeg' });

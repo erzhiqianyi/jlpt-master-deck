@@ -1,2547 +1,2578 @@
 {
-  "sourceLanguage" : "zh-Hans",
-  "strings" : {
-    "%@" : {
-
-    },
-    "%@ · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@"
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "%lld 个 · 待复习 %lld · 已掌握 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld items · %lld due · %lld mastered"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 項目 · 復習 %lld · 習得 %lld"
           }
         }
       }
     },
-    "%@ · %@ 次作答" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ 次作答"
+    "%lld 个知识点 · %lld 份练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld items · %lld practices"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 項目 · 練習 %lld 件"
+          }
         }
       }
     },
-    "%@ · %@ 次作答 · 正确率 %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · %2$@ 次作答 · 正确率 %3$@"
+    "%lld 天": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 日"
           }
         }
       }
     },
-    "%@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
+    "%lld 条": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 件"
           }
         }
       }
     },
-    "%@ / %@ 已答" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@ 已答"
+    "%lld 题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld questions"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 問"
+          }
         }
       }
     },
-    "%@ / %@ 题正确" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@ 题正确"
+    "10 分钟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 min"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 分"
           }
         }
       }
     },
-    "%@ / 5000" : {
-
-    },
-    "%@ %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
+    "English": {},
+    "JLPT Master Deck": {},
+    "上一题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の問題"
           }
         }
       }
     },
-    "%@ %@ ·" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ ·"
+    "上次同步": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last sync"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回の同期"
+          }
         }
       }
-    },
-    "%@ 套" : {
-
     },
-    "%@ 张图片未下载，可联网后重试。" : {
-
-    },
-    "%@ 次作答" : {
-
-    },
-    "%@ 次作答 · %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ 次作答 · %2$@"
+    "下一题": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next question"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の問題"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一题"
           }
         }
       }
     },
-    "%@ 次复习 · %@ 张卡片" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ 次复习 · %2$@ 张卡片"
+    "下载练习音频": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download practice audio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "練習の音声をダウンロード"
           }
         }
       }
     },
-    "%@ 段音频 · %@ 道题" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ 段音频 · %2$@ 道题"
+    "不确定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not sure"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "わからない"
           }
         }
       }
     },
-    "%@ 题" : {
-
-    },
-    "%@. %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@. %2$@"
+    "专项练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Topic practice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テーマ別練習"
           }
         }
       }
     },
-    "%@%%" : {
-
-    },
-    "★ 第 %@ 空" : {
-
-    },
-    "0.8×" : {
-
-    },
-    "1" : {
-
-    },
-    "2.0×" : {
-
-    },
-    "AI 学习社区" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI learning community"
+    "云端朗读的 API Key 请在网页的设置里配置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up the cloud speech API key in the web settings."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI 学習コミュニティ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クラウド読み上げの API Key はウェブの設定で登録してください。"
+          }
+        }
+      }
+    },
+    "人名": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI 学习社区"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人名"
           }
         }
       }
-    },
-    "AI 生成 · 待核验" : {
-
-    },
-    "AI 生成内容需要核验后再用于正式学习。" : {
-
-    },
-    "English" : {
-
-    },
-    "JLPT" : {
-
     },
-    "JLPT\nMaster Deck" : {
-
-    },
-    "JLPT Master · 编辑精选" : {
-
-    },
-    "JLPT Master Deck" : {
-
-    },
-    "MCP 添加或更新单词时，每个勾选题型须提供至少一道完整题目；全部不选则不校验。此设置与网页端共用。" : {
-
-    },
-    "一次选择适用于全部待核对记录。云端已包含的作答只保留记录；另一轮练习会合并计数。本机记录会保留，上传失败可重试。" : {
-
-    },
-    "下一题" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next question"
+    "今天也一起学习吧": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let's study today too"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "次の問題"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日も一緒に勉強しよう"
+          }
+        }
+      }
+    },
+    "今天的卡片都复习完了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All cards for today are done"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下一题"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日のカードはすべて終わりました"
           }
         }
       }
-    },
-    "下载时间不代表本机记录已全部上传，请同时检查待同步数量。本机数量读取已保存的数据；词条数量相同不代表图片已更新。有图数量统计关联图片的词条，不代表图片文件已下载。" : {
-
-    },
-    "不标记" : {
-
-    },
-    "与 Web 端共用正反面内容设置，缺少内容的字段自动省略。正面读音默认隐藏，可在「卡片正面」中开启「读音」。保存需要联网。" : {
-
-    },
-    "云端" : {
-
     },
-    "云端已包含这次作答，只保留记录" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Already included; preserve the record"
+    "今天还没有练习。可以让 AI 按你的情况出一份（create_practice_set），同步后就会出现在这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No practice for today yet. Your AI can write one for you (create_practice_set); it appears here after syncing."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "算入済みとして記録を保持"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の練習はまだありません。AI に作ってもらえます（create_practice_set）。同期するとここに出ます。"
           }
+        }
+      }
+    },
+    "今日": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
+          }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "云端已包含这次作答，只保留记录"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日"
           }
         }
       }
     },
-    "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only this record will be processed. The cloud progress snapshot will not be replaced. Merging adds one answer; an already included record is not counted again."
+    "今日练习": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily practice"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この記録だけを処理し、クラウドの進捗全体は置換しません。統合すると解答を一回加算し、算入済みの記録は再計数しません。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の練習"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅处理这一条记录，不覆盖整份云端进度。合并后会增加一次作答；已包含的记录不会再次计数。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日练习"
           }
         }
       }
-    },
-    "仅预览，不记录答案" : {
-
-    },
-    "今天的积累" : {
-
-    },
-    "今天还没有准备好的练习" : {
-
     },
-    "今天还没有安排任务" : {
-
-    },
-    "今天还没有完成练习" : {
-
-    },
-    "今日练习" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daily practice"
+    "从头播放": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play from start"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今日の練習"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初から再生"
+          }
+        }
+      }
+    },
+    "从审查通过的题目里抽 10 题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 questions from reviewed ones"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今日练习"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "審査済みの問題から 10 問"
           }
         }
       }
     },
-    "你的答案：%@" : {
-
-    },
-    "你的选择：%@" : {
-
-    },
-    "使用 Google 登录" : {
-
-    },
-    "使用网页已配置的朗读音色。下载后优先本地播放；更换音色后需要重新下载。" : {
-
-    },
-    "使用词条中保存的读音；读音题作答时不显示提示。" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uses saved entry readings. Reading questions hide hints before answering."
+    "从未": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存された読みを表示します。読み方の問題では解答前に表示しません。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだありません"
+          }
+        }
+      }
+    },
+    "作答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answered"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用词条中保存的读音；读音题作答时不显示提示。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解答"
           }
         }
       }
     },
-    "例句" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Examples"
+    "使用 Google 登录": {},
+    "例句": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Examples"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例文"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例文"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例句"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例句"
           }
         }
       }
     },
-    "保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save"
+    "保存": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
           }
         }
       }
     },
-    "保存设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save settings"
+    "保存中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving…"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を保存"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存中…"
+          }
+        }
+      }
+    },
+    "先体验演示版": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try the demo first"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存设置"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まずデモを試す"
           }
         }
       }
-    },
-    "修改原单词本或练习后，可在这里更新分享内容。别人已导入的副本不会改变。" : {
-
     },
-    "假名显示" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kana display"
+    "全部": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ふりがな表示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "假名显示"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
           }
         }
       }
     },
-    "全部" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
+    "全部完成后": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After finishing all"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべて"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて終わってから"
           }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部"
-          }
         }
       }
-    },
-    "全部 · %@" : {
-
     },
-    "全部（%@）" : {
-
-    },
-    "全部分享" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All shares"
+    "其他练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other practice"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべての共有"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他の練習"
+          }
+        }
+      }
+    },
+    "内容（单词、语法、句子…）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content (word, grammar, sentence…)"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部分享"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容（単語・文法・文…）"
           }
         }
       }
-    },
-    "全部标签" : {
-
-    },
-    "全部答完后查看" : {
-
     },
-    "全部题型" : {
-
-    },
-    "共 %@ 题 · 已选 %@ 题" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "共 %1$@ 题 · 已选 %2$@ 题"
+    "写法、读音、罗马音或释义": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spelling, reading, romaji or meaning"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表記・読み・ローマ字・意味"
           }
         }
       }
     },
-    "关闭" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
+    "出处或上下文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source or context"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "閉じる"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出典や前後の文"
           }
+        }
+      }
+    },
+    "单词": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words"
+          }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語"
           }
         }
       }
     },
-    "关闭循环播放" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turn off repeat"
+    "单词本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordbooks"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "繰り返し再生をオフ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語帳"
+          }
+        }
+      }
+    },
+    "卡片自评": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card ratings"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭循环播放"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カード評価"
           }
         }
       }
-    },
-    "其他考试" : {
-
-    },
-    "内容" : {
-
     },
-    "最近练习" : {
-
-    },
-    "分享范围" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share scope"
+    "参考答案：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reference answer: %@"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共有範囲"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模範解答：%@"
+          }
+        }
+      }
+    },
+    "反馈时机": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback timing"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分享范围"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "答え合わせのタイミング"
           }
         }
       }
-    },
-    "到期复习" : {
-
-    },
-    "前一天" : {
-
-    },
-    "单词添加规则" : {
-
-    },
-    "卡片复习情况" : {
-
-    },
-    "原创示例 · AI 生成 · 待核验" : {
-
     },
-    "原始题目版本缺失；仅保留当时作答与分数。" : {
-
-    },
-    "原词 / 语法" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Word / grammar"
+    "发现": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discover"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "単語・文法"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "発見"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原词 / 语法"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发现"
           }
         }
       }
     },
-    "原题第 %@ 题" : {
-
-    },
-    "发现" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discover"
+    "取消": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "発見"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发现"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
           }
         }
       }
     },
-    "发音与朗读" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pronunciation & speech"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "発音と読み上げ"
+    "句型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pattern"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发音与朗读"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文型"
           }
         }
       }
     },
-    "发音设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speech settings"
+    "句子": {},
+    "同步": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "発音設定"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发音设置"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步"
           }
         }
       }
     },
-    "取消" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
+    "听力": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャンセル"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聴解"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "听力"
           }
         }
       }
-    },
-    "句子" : {
-
-    },
-    "另有 %@ 道文字作答待自评，不计入正确率。" : {
-
     },
-    "只看错题（%@）" : {
-
-    },
-    "只看错题也包含未作答的题目。" : {
-
-    },
-    "只设置日期" : {
-
-    },
-    "同步" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync"
+    "听力原文": {},
+    "回答正确": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correct"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同期"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正解"
           }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同步"
-          }
         }
       }
     },
-    "同步一次后，即可离线练习。" : {
-
-    },
-    "同步图片到本机" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync images to device"
+    "回答错误": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incorrect"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画像を端末に同期"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不正解"
+          }
+        }
+      }
+    },
+    "复习中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reviewing"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同步图片到本机"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復習中"
           }
         }
       }
     },
-    "同步题库后即可查看，音频可单独下载。" : {
-
-    },
-    "听力" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Listening"
+    "大": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "聴解"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "听力"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大"
           }
         }
       }
-    },
-    "听力原文" : {
-
-    },
-    "和 AI 一起学日语" : {
-
     },
-    "回顾与巩固" : {
-
-    },
-    "图片下载中…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloading images…"
+    "好的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画像をダウンロード中…"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "字号": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text size"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "图片下载中…"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字の大きさ"
           }
         }
       }
-    },
-    "图片素材不可用" : {
-
-    },
-    "在 AI 客户端中添加此 MCP 地址，使用当前学习账户登录并确认授权范围。读写权限以授权页面为准。" : {
-
     },
-    "在单词本或练习中分享后，可在这里编辑和管理。" : {
-
-    },
-    "在网页版添加阅读资料后，点击刷新即可同步。" : {
-
-    },
-    "基于当前保留的已完成练习" : {
-
-    },
-    "复习" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review"
+    "学习中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learning"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "復習"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学習中"
+          }
+        }
+      }
+    },
+    "学习统计": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statistics"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复习"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学習の統計"
           }
         }
       }
     },
-    "复习时显示假名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show kana during review"
+    "完成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "復習でふりがなを表示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完了"
+          }
+        }
+      }
+    },
+    "完成 %lld 次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed %lld×"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复习时显示假名"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 回完了"
           }
         }
       }
     },
-    "复习记录只使用卡片自带的题目，没有题库的卡片跳过，不重新生成。自评分布与做题正确率分开统计。" : {
-
-    },
-    "复制单词" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy word"
+    "完成这题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done with this question"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "単語をコピー"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この問題を終える"
+          }
+        }
+      }
+    },
+    "导入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制单词"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込む"
           }
         }
       }
     },
-    "复制编号" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy ID"
+    "小": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "番号をコピー"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制编号"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小"
           }
         }
       }
     },
-    "大" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Large"
+    "已下载": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード済み"
+          }
+        }
+      }
+    },
+    "已掌握": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastered"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "習得済み"
           }
         }
       }
     },
-    "字体大小" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text size"
+    "已答 %lld / %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answered %lld / %lld"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文字サイズ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解答 %lld / %lld"
+          }
+        }
+      }
+    },
+    "已记录（不计分）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded (not scored)"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字体大小"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録しました（採点なし）"
           }
         }
       }
     },
-    "学习" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study"
+    "开始复习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start review"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復習を始める"
+          }
+        }
+      }
+    },
+    "待上传": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting to upload"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信待ち"
           }
         }
       }
     },
-    "学习与练习" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study & practice"
+    "待复习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習と練習"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復習待ち"
+          }
+        }
+      }
+    },
+    "待复习 %lld · 新卡 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld due · %lld new"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习与练习"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復習 %lld · 新規 %lld"
           }
         }
       }
     },
-    "学习指南" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study guide"
+    "很简单": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Easy"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習ガイド"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "簡単"
           }
+        }
+      }
+    },
+    "忘记了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot"
+          }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习指南"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘れた"
           }
         }
       }
-    },
-    "学习数据" : {
-
     },
-    "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study data updated; %1$ld records await upload and %2$ld legacy records need review. Local records are preserved."
+    "快捷操作": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習データを更新しました。送信待ち %1$ld 件、要確認の旧記録 %2$ld 件。端末の記録は保持されています。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ショートカット"
+          }
+        }
+      }
+    },
+    "找不到这次练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This practice could not be found"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习数据已更新；%ld 条等待上传，%ld 条旧记录待核对。本机记录已保留。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この練習が見つかりません"
           }
         }
       }
     },
-    "学习计划" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Study plan"
+    "抽题练习（需要联网）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drawn practice (online)"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学習計画"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "抽選練習（オンライン）"
+          }
+        }
+      }
+    },
+    "提交": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "学习计划"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信"
           }
         }
       }
     },
-    "学习资料" : {
-
-    },
-    "完成一次练习后，在这里回顾结果。" : {
-
-    },
-    "密钥不会从服务器读回。需要更换服务配置时，请重新填写完整配置。" : {
-
-    },
-    "小" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Small"
+    "提示": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notice"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お知らせ"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示"
           }
         }
       }
     },
-    "尚无已完成的练习" : {
-
-    },
-    "尝试其他关键词，或从网页版导入学习资料。" : {
-
-    },
-    "左右滑动切换题目" : {
-
-    },
-    "已下载图片" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloaded images"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ダウンロード済み画像"
+    "搜索结果": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search results"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已下载图片"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索結果"
           }
         }
       }
     },
-    "已保存" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saved"
+    "播放音频": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play audio"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存しました"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声を再生"
+          }
+        }
+      }
+    },
+    "日本語": {},
+    "日语释义": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japanese definition"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已保存"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日本語の意味"
           }
         }
       }
     },
-    "已保存到本机，等待同步" : {
-
-    },
-    "已复习 %@ 项。%@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "已复习 %1$@ 项。%2$@"
+    "显示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示"
           }
         }
       }
     },
-    "已复制" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied"
+    "显示答案": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show answer"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コピーしました"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "答えを見る"
+          }
+        }
+      }
+    },
+    "暂停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已复制"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止"
           }
         }
       }
     },
-    "已学习 %@ 天 · %@ 分钟" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "已学习 %1$@ 天 · %2$@ 分钟"
+    "最近完成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently finished"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近終えた練習"
           }
         }
       }
     },
-    "已有练习中共 %@ 道词汇与语法题，每轮最多 20 题。" : {
-
-    },
-    "已选 %@ 题" : {
-
-    },
-    "应用于卡片、详情、练习、阅读与听力。优先使用内容中的分词标注；缺失时离线分词，无法确定词性的词不着色。" : {
-
-    },
-    "应用于新开始的练习；与网页端同步。" : {
-
-    },
-    "应用语言" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App language"
+    "有点难": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hard"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アプリの言語"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "難しい"
+          }
+        }
+      }
+    },
+    "朗读": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read aloud"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "应用语言"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み上げ"
           }
         }
       }
-    },
-    "当前使用系统日语朗读。云端语音下载需先在网页配置服务商，再同步学习数据。" : {
-
-    },
-    "当前离线，请联网后同步。" : {
-
-    },
-    "当前题" : {
-
-    },
-    "彩色下划线" : {
-
-    },
-    "待确认练习 · %@" : {
-
     },
-    "循环播放例句" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Repeat example"
+    "朗读服务": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech service"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例文を繰り返し再生"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み上げサービス"
           }
+        }
+      }
+    },
+    "未下载": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not downloaded"
+          }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "循环播放例句"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未ダウンロード"
           }
         }
       }
     },
-    "我的分享" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My shares"
+    "未学": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自分の共有"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未学習"
+          }
+        }
+      }
+    },
+    "未能上传的记录（%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Records that could not be uploaded (%lld)"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我的分享"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送れなかった記録（%lld）"
           }
         }
       }
-    },
-    "手动切换" : {
-
     },
-    "排列片段；★标出第 %@ 空。" : {
-
-    },
-    "接入 AI 与管理连接" : {
-
-    },
-    "提示" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notice"
+    "标准": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "お知らせ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "提示"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准"
           }
         }
       }
     },
-    "搜索发现" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search Discover"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共有を検索"
+    "模拟考试": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mock exams"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索发现"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模擬試験"
           }
         }
       }
     },
-    "播放时优先使用本地语音。更换音色后需重新下载。" : {
-
-    },
-    "文字颜色" : {
-
-    },
-    "日本語" : {
-
-    },
-    "日语分词与词性" : {
-
-    },
-    "旧记录待核对" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy records to review"
+    "正在导入…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing…"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "要確認の旧記録"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込み中…"
+          }
+        }
+      }
+    },
+    "正在恢复登录状态…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring sign-in…"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "旧记录待核对"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン状態を復元中…"
           }
         }
       }
-    },
-    "时间配置" : {
-
     },
-    "显示与阅读" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display & reading"
+    "正在登录…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing in…"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "表示と読み方"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン中…"
+          }
+        }
+      }
+    },
+    "正确率": {},
+    "每天一点，日语更进一步。": {},
+    "每日练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily practice"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示与阅读"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎日の練習"
           }
         }
       }
     },
-    "暂不分类" : {
-
-    },
-    "暂不处理" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review later"
+    "每题提交后": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After each question"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "後で確認"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 問ごと"
+          }
+        }
+      }
+    },
+    "没有作答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not answered"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂不处理"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未解答"
           }
         }
       }
-    },
-    "暂无专项练习" : {
-
     },
-    "暂无释义，可加入待解析队列。" : {
-
-    },
-    "暂无错题" : {
-
-    },
-    "朗读例句" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play example"
+    "没有找到": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing found"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例文を読み上げ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見つかりません"
+          }
+        }
+      }
+    },
+    "活用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conjugations"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "朗读例句"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活用"
           }
         }
       }
-    },
-    "未设置" : {
-
     },
-    "本机" : {
-
-    },
-    "本机尚未下载学习数据" : {
-
-    },
-    "本轮全部答对了，可以切换到全部查看解析。" : {
-
-    },
-    "查看全部" : {
-
-    },
-    "查看统计" : {
-
-    },
-    "标准" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard"
+    "演示内容仅用于体验，不会写入你的账户。": {},
+    "演示模式不能浏览分享。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shares are not available in demo mode."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "標準"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デモでは共有を見られません。"
+          }
+        }
+      }
+    },
+    "界面语言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App language"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标准"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示言語"
           }
         }
       }
     },
-    "核对旧答题记录" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review legacy answers"
+    "登录后，与网页版共用词库、学习计划和复习进度。": {},
+    "知道了": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "旧解答記録の確認"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "核对旧答题记录"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "知道了"
           }
         }
       }
     },
-    "核对这条记录" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review this record"
+    "离线 · %lld 条记录待上传": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline · %lld records waiting to upload"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この記録を確認"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフライン · 送信待ち %lld 件"
           }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "核对这条记录"
-          }
         }
       }
-    },
-    "模块表现" : {
-
-    },
-    "正在后台恢复本机记录，完成后自动同步…" : {
-
     },
-    "正确率" : {
-
-    },
-    "正确答案" : {
-
-    },
-    "正确答案：%@" : {
-
-    },
-    "正确答案：%@. %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "正确答案：%1$@. %2$@"
+    "离线 · 使用已下载的内容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline · using downloaded content"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフライン · ダウンロード済みの内容を使用"
+          }
         }
       }
-    },
-    "正面" : {
-
-    },
-    "此 Agent 的访问令牌将立即失效，再次连接需要重新授权。" : {
-
-    },
-    "此题无标准答案，不计正确率。" : {
-
-    },
-    "每天一点，日语更进一步。" : {
-
-    },
-    "每日练习的数据来源" : {
-
-    },
-    "每日练习的数据来源、复习评分、读取范围、时区与执行时间可在练习设置中配置。请在自己的 AI 客户端创建定时任务，先读取 get_daily_practice_source_context，再准备并保存练习。复习来源只复用已有题目，无题库则跳过；卡片评分不计入做题正确率。MCP 本身不执行定时任务。" : {
-
-    },
-    "每答一题后查看" : {
-
-    },
-    "没有待核对的旧记录" : {
-
     },
-    "没有明确题型标签的阅读题归入未分类。" : {
-
-    },
-    "演示内容仅用于体验，不会写入你的账户。" : {
-
-    },
-    "演示模式：仅保留在本次体验中。" : {
-
-    },
-    "用于全部答完后查看答案的模式。0 秒表示立即跳转；逐题查看解析时，阅读后手动切换。" : {
-
-    },
-    "登录后，与网页版共用词库、学习计划和复习进度。" : {
-
-    },
-    "登录后使用已同步的正式练习。" : {
-
-    },
-    "登录后查看和管理当前账户的 AI 授权。" : {
-
-    },
-    "登录后查看账户里的试卷和考试安排。" : {
-
-    },
-    "知道了" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+    "离线中，修改需要联网后才能保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline. Changes can be saved when you are back online."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインです。変更はオンラインになってから保存できます。"
+          }
+        }
+      }
+    },
+    "离线中，联网后可以浏览分享。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline. Shares are available when you are back online."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "知道了"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインです。オンラインになると共有を見られます。"
           }
         }
       }
     },
-    "确认" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirm"
+    "离线中，联网后才能保存。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline. You can save once you are back online."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "確認"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインです。オンラインになると保存できます。"
+          }
+        }
+      }
+    },
+    "离线中，还没有下载的单词本。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline, and no wordbooks are downloaded yet."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "确认"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインで、ダウンロード済みの単語帳がありません。"
           }
         }
       }
     },
-    "符合条件 %@ 题 · 本次抽取 %@ 题" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "符合条件 %1$@ 题 · 本次抽取 %2$@ 题"
+    "立即同步": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync now"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ同期"
+          }
         }
       }
-    },
-    "第 %@ 题" : {
-
     },
-    "第 %@ 题 · 已答 %@ / %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "第 %1$@ 题 · 已答 %2$@ / %3$@"
+    "第 %lld 题 / 共 %lld 题": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question %lld of %lld"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %lld 問 / 全 %lld 問"
+          }
         }
       }
-    },
-    "第 %@ 题 · 预览" : {
-
     },
-    "第 %@ 题 / 共 %@ 题" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "第 %1$@ 题 / 共 %2$@ 题"
+    "答对 %lld / %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of %lld correct"
           }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld 問中 %1$lld 問正解"
+          }
         }
       }
     },
-    "等待上传" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting to upload"
+    "简体中文": {},
+    "类别": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "送信待ち"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "種類"
+          }
+        }
+      }
+    },
+    "系统语音": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System voice"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待上传"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末の音声"
           }
         }
       }
-    },
-    "答案解析" : {
-
     },
-    "答题卡" : {
-
-    },
-    "答题反馈" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Answer feedback"
+    "练习": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Practice"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解答フィードバック"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "練習"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "答题反馈"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "练习"
           }
         }
       }
     },
-    "答题反馈设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Answer feedback settings"
+    "绑定 Google 登录": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link Google sign-in"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解答フィードバック設定"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google ログインを連携"
+          }
+        }
+      }
+    },
+    "结束后显示答案和解析": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answers and explanations appear when you finish"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "答题反馈设置"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了後に正解と解説を表示します"
           }
         }
       }
-    },
-    "答题后切换" : {
-
     },
-    "答题后立即显示" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show after each answer"
+    "结束练习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解答後すぐ表示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "練習を終える"
+          }
+        }
+      }
+    },
+    "结果已保存在本机，联网后自动上传。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Results are saved on this device and upload automatically when online."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "答题后立即显示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果はこの端末に保存し、オンラインになると自動で送ります。"
           }
         }
       }
     },
-    "答题结果" : {
-
-    },
-    "简体中文" : {
-
-    },
-    "系统日语朗读" : {
-
-    },
-    "累计作答 · 正确率" : {
-
-    },
-    "累计概况" : {
-
-    },
-    "练习" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Practice"
+    "统计需要联网。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statistics need a connection."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "練習"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "統計はオンラインで表示します。"
+          }
+        }
+      }
+    },
+    "继续复习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue review"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "练习"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復習を続ける"
           }
         }
       }
     },
-    "练习完成" : {
-
-    },
-    "练习结束后统一显示" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show after practice"
+    "继续练习：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue: %@"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "練習終了後に表示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続きから：%@"
+          }
+        }
+      }
+    },
+    "综合": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixed"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "练习结束后统一显示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "総合"
           }
         }
       }
     },
-    "绑定后，Apple 和 Google 都可以登录当前账户。已有独立账户不会自动合并。" : {
-
-    },
-    "统计" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Statistics"
+    "综合练习": {},
+    "罗马音": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Romaji"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "統計"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローマ字"
+          }
+        }
+      }
+    },
+    "补充": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "统计"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補足"
           }
         }
       }
     },
-    "综合练习" : {
-
-    },
-    "考试目标" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exam goal"
+    "记录": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Records"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "試験目標"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録"
+          }
+        }
+      }
+    },
+    "记录一个疑问": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note a question"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "考试目标"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疑問を記録"
           }
         }
       }
-    },
-    "联网后可确认并保存" : {
-
-    },
-    "背面" : {
-
     },
-    "自主练习" : {
-
-    },
-    "自动跳转" : {
-
-    },
-    "自动跳转等待：%.1f 秒" : {
-
-    },
-    "自由回答：%@" : {
-
-    },
-    "解析中显示假名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show kana in explanations"
+    "记录疑问": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note a question"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解説でふりがなを表示"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疑問を記録"
+          }
+        }
+      }
+    },
+    "记得": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remembered"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解析中显示假名"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "覚えている"
           }
         }
       }
-    },
-    "解题依据" : {
-
     },
-    "记忆卡片" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Memory cards"
+    "记忆卡片": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory cards"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "記憶カード"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記憶カード"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "记忆卡片"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记忆卡片"
           }
         }
       }
     },
-    "记忆点" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Memory points"
+    "记忆图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory image"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "覚えるポイント"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記憶イメージ"
           }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "记忆点"
-          }
         }
       }
     },
-    "设置" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
+    "记忆要点": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory point"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "覚え方"
+          }
+        }
+      }
+    },
+    "讲解": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explanation"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解説"
           }
         }
       }
-    },
-    "设置考试日期" : {
-
     },
-    "词汇" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vocabulary"
+    "设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "単語"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "词汇"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
           }
         }
       }
-    },
-    "译文" : {
-
-    },
-    "试做不计入学习记录" : {
-
-    },
-    "该题的冻结素材尚未同步，请同步后作答。" : {
-
     },
-    "详细解析" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detailed explanation"
+    "词汇": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocabulary"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "詳しい解説"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "详细解析"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词汇"
           }
         }
       }
     },
-    "语法" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grammar"
+    "译文": {},
+    "译文：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation: %@"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文法"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訳：%@"
           }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "语法"
-          }
         }
       }
     },
-    "语言、字体与假名" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language, text size & kana"
+    "语法": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grammar"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "言語・文字サイズ・ふりがな"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "语言、字体与假名"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法"
           }
         }
       }
-    },
-    "请先听完音频，再查看问题与选项。" : {
-
     },
-    "请在自己的 AI 客户端按此时间和时区配置定时任务。MCP 供 AI 读取设置与数据；保存此设置不会启动定时任务。" : {
-
-    },
-    "请返回列表选择其他内容。" : {
-
-    },
-    "读音" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reading"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読み方"
+    "读取中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading…"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "读音"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込み中…"
           }
         }
       }
     },
-    "账户" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account"
+    "读音": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウント"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み方"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读音"
           }
         }
       }
     },
-    "账户、同步与离线数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account, sync & offline data"
+    "读音旁显示罗马音": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show romaji next to readings"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウント・同期・オフラインデータ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読みの横にローマ字を表示"
           }
+        }
+      }
+    },
+    "账号": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
+          }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户、同步与离线数据"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウント"
           }
         }
       }
     },
-    "账户与数据" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account & data"
+    "跟读题：听完后跟着读。录音分析请在网页上进行，这里记为已练习。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shadowing: listen, then read along. Recording analysis is on the web; here it is recorded as practiced."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウントとデータ"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シャドーイング：聞いてから一緒に読みます。録音の分析はウェブで行い、ここでは練習済みとして記録します。"
+          }
+        }
+      }
+    },
+    "输入你听到的内容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type what you heard"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户与数据"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聞こえた内容を入力"
           }
         }
       }
-    },
-    "过去若干小时" : {
-
     },
-    "近七天作答" : {
-
+    "辨析": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparisons"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使い分け"
+          }
+        }
+      }
     },
-    "返回" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Back"
+    "返回": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "戻る"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻る"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "返回"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
           }
         }
       }
-    },
-    "还没有已连接的 Agent。" : {
-
-    },
-    "这一轮完成了" : {
-
     },
-    "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These records are saved on this device and will not be retried at login. Review them in answer order: if the same answer is already included in the cloud, do not count it again; merge counts only for a separate practice action."
+    "还没有单词本。同步后会出现在这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No wordbooks yet. They appear here after syncing."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "これらの記録は端末に保存され、ログイン時には再送されません。解答順に確認してください。同じ解答がクラウドに含まれる場合は再計数せず、別の練習と確認した場合だけ回数を加算します。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語帳はまだありません。同期するとここに出ます。"
+          }
+        }
+      }
+    },
+    "还没有练习。可以让 AI 按你的情况出题（create_practice_set），同步后会出现在这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No practices yet. Your AI can write one (create_practice_set); it appears here after syncing."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这些记录已保存在本机，登录时不会重复上传。请按作答顺序核对：云端已包含同一次作答时不增加次数；确认是另一轮练习时才合并计数。"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "練習はまだありません。AI に作ってもらえます（create_practice_set）。同期するとここに出ます。"
           }
         }
       }
     },
-    "这份草稿尚未整理为完整题组。" : {
-
-    },
-    "这是另一轮练习，合并计数" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separate practice action; add one answer"
+    "这道题不计分，读完后继续。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This question is not scored; continue when done reading."
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "別の練習として一回加算"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この問題は採点しません。読み終えたら次へ。"
+          }
+        }
+      }
+    },
+    "这道题的内容没有下载，请同步后再试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This question is not downloaded. Sync and try again."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这是另一轮练习，合并计数"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この問題はダウンロードされていません。同期してからもう一度。"
           }
         }
       }
     },
-    "这条作答是否已经包含在云端？" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Is this answer already included in the cloud?"
+    "进行中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In progress"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この解答はクラウドに含まれていますか？"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進行中"
+          }
+        }
+      }
+    },
+    "连续学习": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streak"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这条作答是否已经包含在云端？"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連続学習"
           }
         }
       }
     },
-    "连接你的学习账户，开始一次 AI 协作" : {
-
-    },
-    "退出登录" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign out"
+    "退出登录": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログアウト"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログアウト"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出登录"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出登录"
           }
         }
       }
-    },
-    "选择将应用于全部 %@ 条待核对记录。合并计数会增加作答次数，请确认这些作答尚未计入云端。" : {
-
-    },
-    "选项 %@" : {
-
-    },
-    "逐题解析" : {
-
     },
-    "通过 MCP 连接 ChatGPT、Claude 等 AI 助手，整理学习笔记、生成练习和分析学习记录。" : {
-
-    },
-    "释义" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meaning"
+    "释义": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meaning"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "意味"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "意味"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "释义"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "释义"
           }
         }
       }
     },
-    "阅读" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reading"
+    "阅读": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読解"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読解"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "阅读"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阅读"
           }
         }
       }
-    },
-    "阅读学习方法、实用案例与协作经验，找到适合自己的学习方式。" : {
-
-    },
-    "随机抽取，不重复凑题；开始后固定本轮题目与顺序。" : {
-
     },
-    "项" : {
-
-    },
-    "题型 · 题数" : {
-
-    },
-    "题库" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Question bank"
+    "题库": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question bank"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "問題集"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "問題集"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "题库"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "题库"
           }
         }
       }
-    },
-    "默认" : {
-
-    },
-    "默认音色" : {
-
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

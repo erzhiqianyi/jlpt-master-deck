@@ -7,7 +7,7 @@
 
   // extension/lib/wordbooks.ts
   function wordbooksForCategory(wordbooks, category) {
-    return wordbooks.filter((book) => category === "grammar" === (book.deck === "grammar_expression"));
+    return category === "word" || category === "grammar" ? wordbooks : [];
   }
 
   // extension/lib/storage.ts
@@ -62,7 +62,7 @@
     ruleStatus.textContent = "\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\uFF1A\u8BF7\u767B\u5F55\u540E\u67E5\u770B";
     if (state.data.user) {
       const rule = await sendMessage({ type: "GET_STUDY_SETTINGS" });
-      ruleStatus.textContent = rule.ok ? `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\uFF1A${rule.data.jlptVocabularyQuestionKinds.length ? `\u5FC5\u987B\u751F\u6210 ${rule.data.jlptVocabularyQuestionKinds.map((kind) => ({ kanji_to_kana: "\u6F22\u5B57\u8AAD\u307F", kana_to_kanji: "\u8868\u8A18", word_formation: "\u8A9E\u5F62\u6210", moji_goi: "\u6587\u8108\u898F\u5B9A", meaning: "\u8A00\u3044\u63DB\u3048\u985E\u7FA9", usage: "\u7528\u6CD5" })[kind] ?? kind).join("\u3001")}` : "\u4E0D\u6821\u9A8C JLPT \u8A9E\u5F59\u9898\u76EE"}` : `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\u8BFB\u53D6\u5931\u8D25\uFF1A${rule.error}`;
+      ruleStatus.textContent = rule.ok ? `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\uFF1A${rule.data.questionKinds.length ? `\u5FC5\u987B\u751F\u6210 ${rule.data.questionKinds.map((kind) => ({ "vocabulary-kanji-reading": "\u6F22\u5B57\u8AAD\u307F", "vocabulary-orthography": "\u8868\u8A18", "vocabulary-word-formation": "\u8A9E\u5F62\u6210", "vocabulary-context": "\u6587\u8108\u898F\u5B9A", "vocabulary-paraphrase": "\u8A00\u3044\u63DB\u3048\u985E\u7FA9", "vocabulary-usage": "\u7528\u6CD5" })[kind] ?? kind).join("\u3001")}` : "\u4E0D\u6821\u9A8C JLPT \u8A9E\u5F59\u9898\u76EE"}` : `\u5355\u8BCD\u6DFB\u52A0\u89C4\u5219\u8BFB\u53D6\u5931\u8D25\uFF1A${rule.error}`;
     }
     accountEl.innerHTML = state.data.user ? `<span>\u5DF2\u767B\u5F55\uFF1A${formatIdentity(state.data.user)}</span> <button id="logout" type="button">\u9000\u51FA\u767B\u5F55</button>` : '<button id="login" type="button">\u767B\u5F55</button>';
     document.getElementById("login")?.addEventListener("click", async () => {
@@ -93,12 +93,12 @@
     manualWordbookLabel.style.display = supportsWordbook ? "" : "none";
     if (!supportsWordbook) return;
     const options = wordbooksForCategory(await getWordbooks(), category);
-    manualWordbook.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml2(book.id)}">${escapeHtml2(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
+    manualWordbook.innerHTML = options.length ? options.map((book) => `<option value="${escapeHtml2(book.code)}">${escapeHtml2(book.title)}</option>`).join("") : '<option value="">\uFF08\u65E0\u53EF\u7528\u5355\u8BCD\u672C\uFF09</option>';
   }
   function renderCapture(capture) {
     const created = capture.createdAt ? new Date(capture.createdAt).toLocaleString() : "";
     return `
-    <article class="capture-card" data-id="${escapeHtml2(capture.id)}">
+    <article class="capture-card" data-code="${escapeHtml2(capture.code)}">
       <p class="body">${escapeHtml2(capture.body)}</p>
       ${capture.context ? `<p class="context">${escapeHtml2(capture.context)}</p>` : ""}
       <p class="meta">${escapeHtml2(capture.category)} \xB7 ${escapeHtml2(created)}</p>
@@ -122,11 +122,11 @@
     listEl.querySelectorAll("button[data-action]").forEach((button) => {
       button.addEventListener("click", async () => {
         const card = button.closest(".capture-card");
-        const id = card?.dataset.id;
+        const code = card?.dataset.code;
         const status = button.dataset.action;
-        if (!id) return;
+        if (!code) return;
         button.disabled = true;
-        const result = await sendMessage({ type: "UPDATE_CAPTURE_STATUS", id, status });
+        const result = await sendMessage({ type: "UPDATE_CAPTURE_STATUS", code, status });
         if (result.ok) await refreshList();
         else {
           button.disabled = false;
@@ -172,7 +172,7 @@
     if (!body) return;
     const category = manualCategory.value;
     const supportsWordbook = category === "word" || category === "grammar";
-    const wordbook = supportsWordbook ? (await getWordbooks()).find((book) => book.id === manualWordbook.value) : void 0;
+    const wordbook = supportsWordbook ? (await getWordbooks()).find((book) => book.code === manualWordbook.value) : void 0;
     manualFeedback.textContent = "\u6B63\u5728\u52A0\u5165\u2026";
     manualFeedback.className = "muted";
     const response = await sendMessage({
@@ -180,8 +180,7 @@
       input: {
         body,
         category,
-        targetDeck: wordbook?.deck,
-        targetWordbookId: wordbook?.id,
+        wordbook: wordbook?.code,
         context: manualContext.value.trim() || void 0
       }
     });

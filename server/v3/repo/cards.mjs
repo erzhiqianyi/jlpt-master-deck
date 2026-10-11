@@ -85,8 +85,9 @@ export function rateCard(db, userId, input = {}) {
   const rating = oneOf(input.rating, RATINGS, 'rating');
   const eventId = text(input.eventId, 'eventId', { optional: false, max: 120 });
   const source = oneOf(input.source ?? 'web', SOURCES, 'source');
-  const reviewedAt = input.reviewedAt ? new Date(Date.parse(input.reviewedAt)).toISOString() : nowIso();
-  if (reviewedAt === 'Invalid Date') throw new InputError('reviewedAt 应为时间');
+  const parsed = input.reviewedAt ? new Date(input.reviewedAt) : null;
+  if (parsed && Number.isNaN(parsed.getTime())) throw new InputError('reviewedAt 应为时间');
+  const reviewedAt = parsed ? parsed.toISOString() : nowIso();
   const previous = db.prepare('SELECT point_rid, rating FROM memory_ratings WHERE user_id = ? AND event_id = ?').get(userId, eventId);
   if (previous) {
     if (previous.point_rid !== point.rid || previous.rating !== rating) throw new ConflictError(`事件 ${eventId} 已用于另一次自评`);
